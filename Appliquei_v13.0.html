@@ -10681,6 +10681,7 @@
            três botões viravam blocos empilhados depois do primeiro salvar. */
         #chipsLancamento { display: flex; }
         .mob-tabbar, .mob-voltar, .mob-seg, .mob-dre, .mob-sim-fixo, .mob-inicio, .mob-story, .mob-saudacao, .mob-olho, .mob-stories, .mob-folha, .mob-wiz, .mob-ext-resumo { display: none; }
+        .mob-sim-range, .mob-sim-prazos, .mob-sim-inss { display: none; }
         /* Ícone redondo de cada linha do extrato: só existe no celular. */
         .extrato-item .ext-ico { display: none; }
         @media (min-width: 769px) {
@@ -11075,6 +11076,37 @@
             .mob-sim-fixo-rot { flex: 1; font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,0.85); }
             .mob-sim-fixo-val { font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 500; white-space: nowrap; }
             .mob-sim-fixo-val small { font-size: 12px; opacity: 0.75; margin-left: 2px; }
+            /* ============ Simulador: ajustar com o dedo ============ */
+            /* Cada número importante ganha um controle deslizante e o
+               período, atalhos. O campo digitado continua valendo: os dois
+               conversam (mobSimRanges em appliquei-mobile.js). */
+            #simulador .mob-sim-range {
+                display: block; width: 100%; margin: 12px 0 2px; height: 28px; background: none;
+                accent-color: var(--cor-primaria); cursor: pointer;
+            }
+            #simulador .mob-sim-prazos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+            #simulador .mob-sim-prazos button {
+                min-height: 40px; border-radius: 12px; border: 1.5px solid var(--cor-borda); background: var(--cor-branco);
+                font: 600 13.5px 'Figtree', sans-serif; color: var(--cor-texto-principal); cursor: pointer;
+            }
+            #simulador .mob-sim-prazos button[aria-pressed="true"] { border-color: var(--cor-primaria); background: var(--cor-bg-primaria); color: var(--tinta-verde); }
+            /* Uma coluna: cada valor com a sua régua inteira. */
+            #simulador .sim-campos-2, #simulador .sim-campos-3 { grid-template-columns: 1fr !important; gap: 18px !important; }
+            #simulador .sim-campos-3 > .form-group:nth-child(n) { grid-column: auto !important; }
+            #simCapital, #simAporte, #metaValor, #metaCapital { font-family: 'DM Mono', monospace; font-size: 20px !important; }
+            /* INSS recolhido: uma linha com o resumo; abre quando tocada. */
+            #simulador .mob-sim-inss {
+                display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 20px; padding: 14px 16px;
+                border: 1.5px solid var(--cor-borda); border-radius: 14px; background: var(--cor-superficie);
+                font-family: inherit; text-align: left; cursor: pointer; color: var(--cor-texto-principal);
+            }
+            #simulador .mob-sim-inss span { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+            #simulador .mob-sim-inss b { font-size: 15px; }
+            #simulador .mob-sim-inss small { font-size: 12.5px; color: var(--cor-texto-mutado); }
+            #simulador .mob-sim-inss i { font-size: 18px; transition: transform 0.2s; }
+            #simulador .mob-sim-inss[aria-expanded="true"] i { transform: rotate(180deg); }
+            #simulador .mob-sim-inss[aria-expanded="false"] + #simInssBloco { display: none; }
+            #simInssBloco { border-top: 0 !important; margin-top: 4px !important; }
 
             /* ============ Micro: resposta ao toque ============ */
             .mob-tile:active, .mdre-card:active, .kpi-mini:active, .kpi-hero:active,
@@ -12076,6 +12108,82 @@
             body.dark .mob-wiz-continuar { color: #052e1a; }
             .mob-wiz-continuar:disabled { background: var(--cor-borda); color: var(--cor-texto-mutado); box-shadow: none; cursor: default; }
             #carteira:has(#cartQuestionnaire[style*="display: block"]) > .page-header { display: none; }
+        }
+        /* ============================================================ */
+        /* Sonhos no celular: o cadastro em quatro telas                 */
+        /* (mobSonhoIrPasso em web/appliquei-mobile.js). O modal guarda a */
+        /* tela em data-sonho-etapa (1..4, ou "previa"); cada campo diz   */
+        /* em qual aparece. A prévia e o salvar são os do desktop.        */
+        /* ============================================================ */
+        @media (max-width: 768px) {
+            #modalSonho .sonho-wiz-topo { margin: 0 0 14px -10px; }
+            #modalSonho .sonho-wiz-passo { margin: 0 0 4px; }
+            #modalSonho[data-sonho-etapa="1"] .mob-wiz-voltar { visibility: hidden; }
+            #modalSonho[data-sonho-etapa="1"] .mob-wiz-progs > span:nth-child(-n+1),
+            #modalSonho[data-sonho-etapa="2"] .mob-wiz-progs > span:nth-child(-n+2),
+            #modalSonho[data-sonho-etapa="3"] .mob-wiz-progs > span:nth-child(-n+3),
+            #modalSonho[data-sonho-etapa="4"] .mob-wiz-progs > span { background: var(--cor-primaria); }
+            /* O título do modal some: a pergunta da tela é o título. */
+            #modalSonho:not([data-sonho-etapa="previa"]) #tituloModalSonho { visibility: hidden; }
+            #modalSonho > div > div:first-child { margin-bottom: 4px !important; }
+            /* Uma coluna, na ordem da pergunta, e só a tela da vez. */
+            /* !important porque os passos escrevem display inline (block/none). */
+            #sonhoPasso1 { display: flex !important; flex-direction: column; }
+            #sonhoPasso1[style*="display: none"], #sonhoPasso1[style*="display:none"] { display: none !important; }
+            #sonhoPasso1 .grid-2-iguais { display: contents; }
+            #sonhoPasso1 > [data-sonho-etapa], #sonhoPasso1 .grid-2-iguais > [data-sonho-etapa] { margin-bottom: 16px !important; }
+            #sonhoPasso1 [data-sonho-ordem="1"] { order: 1; }
+            #sonhoPasso1 [data-sonho-ordem="2"] { order: 2; }
+            #sonhoPasso1 [data-sonho-ordem="3"] { order: 3; }
+            #modalSonho[data-sonho-etapa="1"] #sonhoPasso1 [data-sonho-etapa]:not([data-sonho-etapa="1"]),
+            #modalSonho[data-sonho-etapa="2"] #sonhoPasso1 [data-sonho-etapa]:not([data-sonho-etapa="2"]),
+            #modalSonho[data-sonho-etapa="3"] #sonhoPasso1 [data-sonho-etapa]:not([data-sonho-etapa="3"]),
+            #modalSonho[data-sonho-etapa="4"] #sonhoPasso1 [data-sonho-etapa]:not([data-sonho-etapa="4"]) { display: none !important; }
+            #sonhoPasso1 .sonho-wiz-cab { display: block; order: 0; margin-bottom: 4px !important; }
+            #sonhoPasso1 .sonho-wiz-cab .mob-wiz-q, #sonhoPasso1 .sonho-wiz-cab .mob-wiz-sub { display: block; }
+            #sonhoPasso1 .sonho-wiz-cab .mob-wiz-q { font-size: 26px !important; font-weight: 800 !important; letter-spacing: -0.5px; line-height: 1.15; margin: 0 0 6px; }
+            #sonhoPasso1 .sonho-wiz-cab .mob-wiz-sub { font-size: 15px; line-height: 1.45; margin: 0 0 14px; }
+            /* A folha não muda de altura entre as telas, e o botão fica no pé,
+               onde o polegar está. */
+            #modalSonho:not([data-sonho-etapa="previa"]) > div { display: flex; flex-direction: column; min-height: 86dvh; }
+            #modalSonho:not([data-sonho-etapa="previa"]) .sonho-wiz-continuar,
+            #modalSonho[data-sonho-etapa="4"] #sonhoAcoesPasso1 { margin-top: auto !important; }
+            /* Valores grandes, como num app de banco. */
+            #sonhoValorTotal, #sonhoValorInicial { font-family: 'DM Mono', monospace; font-size: 24px !important; min-height: 58px; }
+            #sonhoNome { min-height: 54px; font-size: 18px !important; }
+            /* Categoria em blocos de tocar; o select fica para o desktop. */
+            #modalSonho .sonho-wiz-cats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+            #modalSonho .sonho-wiz-cats + select { display: none; }
+            .sonho-wiz-cats button {
+                display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+                min-height: 74px; padding: 8px 4px; border-radius: 14px; border: 1.5px solid var(--cor-borda);
+                background: var(--cor-branco); color: var(--cor-texto-principal); cursor: pointer;
+                font: 600 12.5px 'Figtree', sans-serif; line-height: 1.2; text-align: center;
+            }
+            .sonho-wiz-cats button span { font-size: 22px; line-height: 1; }
+            .sonho-wiz-cats button[aria-pressed="true"] { border-color: var(--cor-primaria); background: var(--cor-bg-primaria); color: var(--tinta-verde); }
+            /* Prazo: atalhos; o campo livre fica embaixo para o resto. */
+            #modalSonho .sonho-wiz-prazos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 10px; }
+            #modalSonho .sonho-wiz-prazos button { font: 600 15px 'Figtree', sans-serif; }
+            /* Esforço: um embaixo do outro, cada um com a explicação inteira. */
+            #sonhoEsforcoContainer { flex-direction: column; }
+            #sonhoEsforcoContainer .sonho-esforco-btn { display: flex; align-items: center; gap: 12px; text-align: left !important; padding: 14px 16px !important; border-radius: 14px !important; }
+            #sonhoEsforcoContainer .sonho-esforco-btn > div:first-child { margin: 0 !important; font-size: 24px !important; }
+            #sonhoEsforcoContainer .sonho-esforco-btn > div:nth-child(2) { font-size: 15px !important; }
+            #sonhoEsforcoContainer .sonho-esforco-btn > div:nth-child(3) { margin: 0 0 0 auto !important; font-size: 12.5px !important; }
+            /* Continuar nas três primeiras telas; na quarta, "Ver prévia". */
+            #modalSonho .sonho-wiz-continuar { display: block; margin-top: 6px; }
+            #modalSonho[data-sonho-etapa="4"] .sonho-wiz-continuar,
+            #modalSonho[data-sonho-etapa="previa"] .sonho-wiz-continuar { display: none; }
+            #modalSonho[data-sonho-etapa="1"] #sonhoAcoesPasso1,
+            #modalSonho[data-sonho-etapa="2"] #sonhoAcoesPasso1,
+            #modalSonho[data-sonho-etapa="3"] #sonhoAcoesPasso1 { display: none !important; }
+            #modalSonho[data-sonho-etapa="4"] #sonhoAcoesPasso1 { flex-direction: column-reverse; }
+            #modalSonho #sonhoAcoesPasso1 .btn-acao, #modalSonho #sonhoAcoesPasso2 .btn-acao { min-height: 56px; border-radius: 16px; font-size: 16px; }
+            #modalSonho[data-sonho-etapa="4"] #sonhoAcoesPasso1 .btn-secundario { border: 0; background: none; }
+            /* Na prévia o assistente sai de cena: volta o título e o "Ajustar". */
+            #modalSonho[data-sonho-etapa="previa"] .sonho-wiz-topo,
+            #modalSonho[data-sonho-etapa="previa"] .sonho-wiz-passo { display: none; }
         }
 
         @media (max-width: 768px) {
@@ -14731,10 +14839,12 @@
                     <div class="form-group" style="margin-bottom:0;">
                         <label>Capital inicial (R$)</label>
                         <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="simCapital" value="1000" oninput="aplicarMascaraBRL(this); calcularSimulador();"></span>
+                        <input type="range" class="mob-sim-range" data-mob-range-de="simCapital" aria-label="Ajustar o capital inicial">
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
                         <label>Aporte mensal (R$)</label>
                         <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="simAporte" value="500" oninput="aplicarMascaraBRL(this); calcularSimulador();"></span>
+                        <input type="range" class="mob-sim-range" data-mob-range-de="simAporte" aria-label="Ajustar o aporte mensal">
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
                         <label>Inflação anual (%)</label>
@@ -14749,6 +14859,7 @@
                             <input type="number" id="simTaxa" value="1" step="0.1" style="flex:1;" oninput="calcularSimulador()">
                             <select id="simTipoTaxa" style="flex:1;" onchange="calcularSimulador()"><option value="mes">% / mês</option><option value="ano">% / ano</option></select>
                         </div>
+                        <input type="range" class="mob-sim-range" data-mob-range-de="simTaxa" aria-label="Ajustar a taxa de juros">
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
                         <label>Período</label>
@@ -14756,12 +14867,19 @@
                             <input type="number" id="simTempo" value="10" style="flex:1;" oninput="calcularSimulador()">
                             <select id="simTipoTempo" style="flex:1;" onchange="calcularSimulador()"><option value="ano">Anos</option><option value="mes">Meses</option></select>
                         </div>
+                        <input type="range" class="mob-sim-range" data-mob-range-de="simTempo" aria-label="Ajustar o período">
+                        <div class="mob-sim-prazos" data-mob-prazo-de="simTempo"><button type="button" data-anos="5">5 anos</button><button type="button" data-anos="10">10 anos</button><button type="button" data-anos="20">20 anos</button><button type="button" data-anos="30">30 anos</button></div>
                     </div>
                 </div>
             
                 <!-- Parâmetros do lado INSS. Separados de propósito: a contribuição
                      sai da RENDA (com teto), não do aporte que a pessoa investe. -->
-                <div style="margin-top:18px;padding-top:16px;border-top:1px dashed var(--cor-borda);">
+                <!-- Celular: o bloco do INSS fica recolhido atrás desta linha, que
+                     resume o que está valendo (mobSimInss em appliquei-mobile.js). -->
+                <button type="button" class="mob-sim-inss" id="mobSimInss" onclick="mobSimInss()" aria-expanded="false" aria-controls="simInssBloco">
+                    <span><b>Comparar com o INSS</b><small id="mobSimInssResumo">CLT · renda de R$ 3.500,00</small></span><i class="ph ph-caret-down"></i>
+                </button>
+                <div id="simInssBloco" style="margin-top:18px;padding-top:16px;border-top:1px dashed var(--cor-borda);">
                     <div style="font-size:10px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:4px;">Para comparar com o INSS</div>
                     <div style="font-size:11.5px;color:var(--cor-texto-mutado);line-height:1.5;margin-bottom:14px;">A contribuição não sai do quanto você investe — sai da sua renda, e trava no teto de <strong id="lblTetoInss">R$ 8.475,55</strong>. <span id="lblTabelaInss">Tabela 2026.</span></div>
                     <div class="sim-campos sim-campos-2" style="margin-bottom:14px;">
@@ -14978,6 +15096,7 @@
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Quanto quero acumular (R$)</label>
                             <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaValor" value="1000000" oninput="aplicarMascaraBRL(this); calcularMeta();"></span>
+                            <input type="range" class="mob-sim-range" data-mob-range-de="metaValor" aria-label="Ajustar quanto quero acumular">
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Em quanto tempo</label>
@@ -14985,6 +15104,8 @@
                                 <input type="number" id="metaPrazo" value="20" style="flex:1;" oninput="calcularMeta()">
                                 <select id="metaTipoPrazo" style="flex:1;" onchange="calcularMeta()"><option value="ano">Anos</option><option value="mes">Meses</option></select>
                             </div>
+                            <input type="range" class="mob-sim-range" data-mob-range-de="metaPrazo" aria-label="Ajustar o prazo">
+                            <div class="mob-sim-prazos" data-mob-prazo-de="metaPrazo"><button type="button" data-anos="5">5 anos</button><button type="button" data-anos="10">10 anos</button><button type="button" data-anos="20">20 anos</button><button type="button" data-anos="30">30 anos</button></div>
                         </div>
                     </div>
 
@@ -15010,6 +15131,7 @@
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Capital inicial (R$)</label>
                             <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaCapital" value="1000" oninput="aplicarMascaraBRL(this); calcularMeta();"></span>
+                            <input type="range" class="mob-sim-range" data-mob-range-de="metaCapital" aria-label="Ajustar o capital inicial">
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Rentabilidade esperada</label>
@@ -15017,6 +15139,7 @@
                                 <input type="number" id="metaTaxa" value="1" step="0.1" style="flex:1;" oninput="calcularMeta()">
                                 <select id="metaTipoTaxa" style="flex:1;" onchange="calcularMeta()"><option value="mes">% / mês</option><option value="ano">% / ano</option></select>
                             </div>
+                            <input type="range" class="mob-sim-range" data-mob-range-de="metaTaxa" aria-label="Ajustar a rentabilidade">
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Inflação anual (%)</label>
@@ -15615,25 +15738,39 @@
                         <button class="drawer-fechar" onclick="fecharModalSonho()" aria-label="Fechar"><i class="ph ph-x" style="font-size:18px;"></i></button>
                     </div>
 
+                    <!-- Celular: o mesmo formulário em quatro telas, uma pergunta
+                         por vez (web/appliquei-mobile.js, mobSonhoIrPasso). Cada
+                         campo diz em que tela aparece por data-sonho-etapa; no
+                         desktop nada disto existe e o formulário é o de sempre. -->
+                    <div class="mob-wiz mob-wiz-topo sonho-wiz-topo">
+                        <button type="button" class="mob-wiz-voltar" onclick="mobSonhoPasso(-1)" aria-label="Voltar"><i class="ph ph-caret-left"></i></button>
+                        <div class="mob-wiz-progs" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+                    </div>
+                    <p class="mob-wiz mob-wiz-passo sonho-wiz-passo" id="sonhoWizPasso">Passo 1 de 4</p>
+
                     <!-- Passo 1: os dados do sonho. Passo 2 (prévia) é montado
                          por renderPreviaSonho() em web/appliquei-sonhos.js. -->
                     <div id="sonhoPasso1">
-                    <div class="form-group">
+                    <div class="mob-wiz sonho-wiz-cab" data-sonho-etapa="1"><h3 class="mob-wiz-q">Qual é o seu sonho?</h3><p class="mob-wiz-sub">Dê um nome e escolha o tipo. É assim que ele aparece nos seus cards.</p></div>
+                    <div class="mob-wiz sonho-wiz-cab" data-sonho-etapa="2"><h3 class="mob-wiz-q">Quanto ele custa?</h3><p class="mob-wiz-sub">O valor total e o que você já tem guardado para ele.</p></div>
+                    <div class="mob-wiz sonho-wiz-cab" data-sonho-etapa="3"><h3 class="mob-wiz-q">Para quando?</h3><p class="mob-wiz-sub">O prazo decide quanto separar por mês. Dá para começar depois, esperando o 13º ou as férias.</p></div>
+                    <div class="mob-wiz sonho-wiz-cab" data-sonho-etapa="4"><h3 class="mob-wiz-q">De onde sai o dinheiro?</h3><p class="mob-wiz-sub">A conta que paga as parcelas e o ritmo que você topa.</p></div>
+                    <div class="form-group" data-sonho-etapa="1" data-sonho-ordem="1">
                         <label>Qual o seu sonho?</label>
                         <input type="text" id="sonhoNome" placeholder="Ex: Viagem dos sonhos para Europa">
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group" data-sonho-etapa="1" data-sonho-ordem="3">
                         <label>Descrição (opcional)</label>
                         <textarea id="sonhoDescricao" rows="2" placeholder="Detalhes sobre o que você deseja alcançar..." style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;resize:vertical;"></textarea>
                     </div>
 
                     <div class="grid-2-iguais" style="gap:14px;">
-                        <div class="form-group">
+                        <div class="form-group" data-sonho-etapa="2" data-sonho-ordem="1">
                             <label>Valor total necessário (R$)</label>
                             <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="sonhoValorTotal" placeholder="15.000,00" oninput="aplicarMascaraBRL(this)"></span>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" data-sonho-etapa="3" data-sonho-ordem="2">
                             <label>Quando começar?</label>
                             <input type="month" id="sonhoMesInicio">
                             <span style="font-size:11px;color:var(--cor-texto-mutado);margin-top:4px;display:block;">Pode adiar — útil pra esperar 13º, férias, etc.</span>
@@ -15641,9 +15778,17 @@
                     </div>
 
                     <div class="grid-2-iguais" style="gap:14px;">
-                        <div class="form-group">
+                        <div class="form-group" data-sonho-etapa="3" data-sonho-ordem="1">
                             <label>Prazo para conquista</label>
-                            <div style="display:flex;gap:6px;">
+                            <div class="mob-wiz mob-wiz-valores sonho-wiz-prazos" id="sonhoWizPrazos">
+                                <button type="button" data-meses="6" onclick="mobSonhoPrazo(6)">6 meses</button>
+                                <button type="button" data-meses="12" onclick="mobSonhoPrazo(12)">1 ano</button>
+                                <button type="button" data-meses="24" onclick="mobSonhoPrazo(24)">2 anos</button>
+                                <button type="button" data-meses="36" onclick="mobSonhoPrazo(36)">3 anos</button>
+                                <button type="button" data-meses="60" onclick="mobSonhoPrazo(60)">5 anos</button>
+                                <button type="button" data-meses="120" onclick="mobSonhoPrazo(120)">10 anos</button>
+                            </div>
+                            <div class="sonho-prazo-livre" style="display:flex;gap:6px;">
                                 <input type="number" id="sonhoPrazo" min="1" step="1" value="12" placeholder="Ex: 12" style="flex:2;">
                                 <select id="sonhoPrazoUnidade" style="flex:1;">
                                     <option value="meses" selected>meses</option>
@@ -15654,12 +15799,13 @@
                     </div>
 
                     <div class="grid-2-iguais" style="gap:14px;align-items:end;">
-                        <div class="form-group" style="margin-bottom:0;">
+                        <div class="form-group" style="margin-bottom:0;" data-sonho-etapa="2" data-sonho-ordem="2">
                             <label>Já tem algum valor guardado? (R$)</label>
                             <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="sonhoValorInicial" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span>
                         </div>
-                        <div class="form-group" style="margin-bottom:0;">
+                        <div class="form-group" style="margin-bottom:0;" data-sonho-etapa="1" data-sonho-ordem="2">
                             <label>Categoria</label>
+                            <div class="mob-wiz sonho-wiz-cats" id="sonhoWizCats" role="group" aria-label="Categoria do sonho"></div>
                             <select id="sonhoCategoria">
                                 <option value="viagem">✈️ Viagem</option>
                                 <option value="veiculo">🚗 Veículo</option>
@@ -15674,12 +15820,12 @@
                         </div>
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group" data-sonho-etapa="4" data-sonho-ordem="1">
                         <label>Conta de onde sai o dinheiro <span style="color:var(--cor-erro)">*</span> <small style="color:var(--cor-texto-mutado);font-weight:400">— debita o Saldo em Conta no Meu Patrimônio</small></label>
                         <select id="sonhoContaOrigem"></select>
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group" data-sonho-etapa="4" data-sonho-ordem="2">
                         <label>Nível de esforço para alcançar</label>
                         <div id="sonhoEsforcoContainer" style="display:flex;gap:8px;">
                             <button type="button" class="sonho-esforco-btn" data-nivel="baixo" onclick="selecionarEsforcoSonho('baixo')" style="flex:1;padding:12px 10px;border:1.5px solid var(--cor-borda);border-radius:10px;background:var(--cor-superficie);cursor:pointer;text-align:center;transition:all 0.2s;font-family:'Figtree',sans-serif;">
@@ -15703,6 +15849,8 @@
                     </div><!-- /sonhoPasso1 -->
 
                     <div id="sonhoPasso2" style="display:none;"></div>
+
+                    <button type="button" class="mob-wiz mob-wiz-continuar sonho-wiz-continuar" onclick="mobSonhoPasso(1)">Continuar</button>
 
                     <div id="sonhoAcoesPasso1" style="display:flex;gap:10px;margin-top:22px;">
                         <button class="btn-secundario" style="flex:1;" onclick="fecharModalSonho()">Cancelar</button>
