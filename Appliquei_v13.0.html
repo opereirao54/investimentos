@@ -10681,7 +10681,7 @@
            três botões viravam blocos empilhados depois do primeiro salvar. */
         #chipsLancamento { display: flex; }
         .mob-tabbar, .mob-voltar, .mob-seg, .mob-dre, .mob-sim-fixo, .mob-inicio, .mob-story, .mob-saudacao, .mob-olho, .mob-stories, .mob-folha, .mob-wiz, .mob-ext-resumo { display: none; }
-        .mob-sim-range, .mob-sim-prazos, .mob-sim-inss { display: none; }
+        .mob-sim-range, .mob-sim-prazos, .mob-sim-inss, .mob-sim-comp, .mob-sonhos, .mob-sonhos-saude { display: none; }
         /* Ícone redondo de cada linha do extrato: só existe no celular. */
         .extrato-item .ext-ico { display: none; }
         @media (min-width: 769px) {
@@ -11107,6 +11107,21 @@
             #simulador .mob-sim-inss[aria-expanded="true"] i { transform: rotate(180deg); }
             #simulador .mob-sim-inss[aria-expanded="false"] + #simInssBloco { display: none; }
             #simInssBloco { border-top: 0 !important; margin-top: 4px !important; }
+            /* Resultado: Investindo × INSS em abas, cartões de app. */
+            #simulador .mob-sim-comp {
+                display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 4px 0 12px;
+                background: var(--cor-fundo); border: 1px solid var(--cor-borda); border-radius: 14px; padding: 3px;
+            }
+            #simulador .mob-sim-comp button {
+                min-height: 40px; border: 0; border-radius: 11px; background: transparent; cursor: pointer;
+                font: 700 14px 'Figtree', sans-serif; color: var(--cor-texto-mutado);
+            }
+            #simulador .mob-sim-comp button[aria-selected="true"] { background: var(--cor-branco); color: var(--cor-texto-principal); box-shadow: 0 1px 3px rgba(16, 30, 19, 0.12); }
+            #simCompGrade[data-mob-lado="inv"] > .card-container:last-child,
+            #simCompGrade[data-mob-lado="inss"] > .card-container:first-child { display: none; }
+            #simulador .card-container, #simulador #simHero { border-radius: 20px !important; }
+            #simulador #simHero { padding: 20px 18px !important; gap: 14px !important; }
+            #simulador .card-container { padding: 18px 16px !important; box-shadow: none !important; }
 
             /* ============ Micro: resposta ao toque ============ */
             .mob-tile:active, .mdre-card:active, .kpi-mini:active, .kpi-hero:active,
@@ -12184,6 +12199,100 @@
             /* Na prévia o assistente sai de cena: volta o título e o "Ajustar". */
             #modalSonho[data-sonho-etapa="previa"] .sonho-wiz-topo,
             #modalSonho[data-sonho-etapa="previa"] .sonho-wiz-passo { display: none; }
+        }
+
+        /* ============================================================ */
+        /* Meus sonhos no celular: a tela no padrão do app               */
+        /* Topo com o guardado em destaque (mobRenderSonhos), saúde      */
+        /* recolhida numa linha e os sonhos como lista de cartões. Os    */
+        /* cartões são os do desktop (toggleSonhoCard e as ações de      */
+        /* sempre); só o desenho muda.                                    */
+        /* ============================================================ */
+        @media (max-width: 768px) {
+            #meus_sonhos .page-header .page-actions { display: none; }
+            #meus_sonhos #sonhosResumoContainer { display: none; }
+            #meus_sonhos .mob-sonhos { display: block; margin-bottom: 18px; }
+            #meus_sonhos .mob-sonhos:empty { display: none; }
+            .msn-barra { height: 10px; border-radius: 99px; background: var(--cor-borda); overflow: hidden; margin-top: 12px; }
+            .msn-barra > span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--cor-primaria), #7c3aed); }
+            .msn-sub { margin: 6px 0 0; font-size: 13px; color: var(--cor-texto-mutado); }
+            .msn-sub b { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--cor-texto-principal); }
+            #sonhosMob .mpm-chips { margin-top: 14px; }
+            #sonhosMob .mpm-chip { cursor: default; }
+            #sonhosMob .msn-novo {
+                display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 52px; margin-top: 14px;
+                border: 0; border-radius: 16px; background: var(--cor-primaria); color: #fff; cursor: pointer;
+                font: 700 15.5px 'Figtree', sans-serif; box-shadow: 0 10px 22px rgba(5, 150, 105, 0.22);
+            }
+            body.dark #sonhosMob .msn-novo { color: #052e1a; }
+
+            /* Saúde financeira: uma linha que abre o painel inteiro. */
+            #meus_sonhos .mob-sonhos-saude {
+                display: flex; align-items: center; gap: 12px; width: 100%; margin: 0 0 18px; padding: 12px 14px;
+                border: 1px solid var(--cor-borda); border-radius: 18px; background: var(--cor-branco);
+                font-family: inherit; text-align: left; cursor: pointer; color: var(--cor-texto-principal);
+            }
+            .msn-saude-ic {
+                width: 42px; height: 42px; border-radius: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+                font-size: 20px; color: var(--msn-cor, var(--cor-primaria)); background: color-mix(in srgb, var(--msn-cor, var(--cor-primaria)) 13%, var(--cor-branco));
+            }
+            .msn-saude-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+            .msn-saude-txt b { font-size: 15px; font-weight: 700; }
+            .msn-saude-txt small { font-size: 12.5px; color: var(--cor-texto-mutado); }
+            .msn-saude-seta { font-size: 17px; color: var(--cor-texto-mutado); transition: transform 0.2s; }
+            .mob-sonhos-saude[aria-expanded="true"] .msn-saude-seta { transform: rotate(180deg); }
+            #meus_sonhos .mob-sonhos-saude[aria-expanded="false"] + #painelSaudeSonhos { display: none; }
+            #meus_sonhos .mob-sonhos-saude[aria-expanded="true"] { margin-bottom: 10px; }
+
+            /* A barra "N sonhos cadastrados" vira o título da lista. */
+            #meus_sonhos #sonhosToolbar { margin: 4px 0 10px !important; flex-wrap: nowrap !important; }
+            #meus_sonhos #sonhosToolbar > div:first-child { font-size: 17px !important; font-weight: 800 !important; color: var(--cor-texto-principal) !important; letter-spacing: -0.2px; }
+            #meus_sonhos #sonhosToolbar > div:first-child i { display: none; }
+            #meus_sonhos #sonhosToolbar > div { white-space: nowrap; }
+            #meus_sonhos #sonhosToolbar > div:last-child { gap: 2px !important; }
+            #meus_sonhos #sonhosToolbar button {
+                white-space: nowrap;
+                padding: 6px 4px !important; border: 0 !important; background: none !important; color: var(--tinta-verde) !important;
+                font-size: 13px !important; font-weight: 700 !important;
+            }
+            #meus_sonhos #sonhosToolbar button i { display: none; }
+
+            /* Cada sonho: um cartão de lista, tocar abre. */
+            #meus_sonhos .sonho-card { border-radius: 20px; margin-bottom: 10px; box-shadow: none; }
+            #meus_sonhos .sonho-card-collapsed {
+                display: grid !important; grid-template-columns: 46px minmax(0, 1fr) auto; align-items: center;
+                gap: 6px 12px !important; padding: 16px 16px 14px !important;
+            }
+            #meus_sonhos .sonho-card-collapsed::before { height: 4px; border-radius: 20px 20px 0 0; }
+            #meus_sonhos .sonho-collapsed-avatar { width: 46px; height: 46px; border-radius: 15px; font-size: 22px; grid-row: 1; }
+            #meus_sonhos .sonho-collapsed-info { grid-column: 2 / 4; grid-row: 1; }
+            #meus_sonhos .sonho-collapsed-nome { font-family: 'Figtree', sans-serif; font-size: 16px; font-weight: 800; white-space: normal; }
+            #meus_sonhos .sonho-collapsed-meta { gap: 6px 8px; font-size: 12px; }
+            #meus_sonhos .sonho-collapsed-meta > span[title="Quanto falta para atingir a meta"] { display: none; }
+            #meus_sonhos .sonho-collapsed-progress { grid-column: 1 / 4; grid-row: 2; min-width: 0; margin-top: 6px; order: 0 !important; }
+            #meus_sonhos .sonho-collapsed-bar { height: 8px; border: 0; background: var(--cor-borda); }
+            #meus_sonhos .sonho-collapsed-pct { font-size: 13.5px; }
+            #meus_sonhos .sonho-collapsed-expand { display: none; }
+            #meus_sonhos .sonho-card:active:not(.expanded) { transform: scale(0.99); }
+
+            /* Aberto: o anel e os números primeiro, depois os passos. */
+            #meus_sonhos .sonho-body { display: flex !important; flex-direction: column; border-top: 0; }
+            #meus_sonhos .sonho-right { order: -1; border: 0 !important; padding: 18px 16px 6px !important; align-items: center; }
+            #meus_sonhos .sonho-passos { padding: 14px 16px !important; border-top: 1px solid var(--cor-borda); }
+            #meus_sonhos .sonho-stats-mini { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
+            #meus_sonhos .sonho-stat-mini { border-radius: 14px; padding: 10px 12px; text-align: left; }
+            #meus_sonhos .sonho-stat-mini-val { font-size: 15px; }
+            #meus_sonhos .sonho-caixinha-tip, #meus_sonhos .sonho-alerta-bar { margin: 0 16px 12px; border-radius: 14px; }
+            #meus_sonhos .sonho-card-details > div:last-child {
+                display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px !important;
+                padding: 14px 16px 16px !important; background: none !important;
+            }
+            #meus_sonhos .sonho-card-details > div:last-child > * { margin: 0 !important; }
+            #meus_sonhos .sonho-card-details > div:last-child > span { grid-column: 1 / -1; justify-self: start; }
+            #meus_sonhos .sonho-card-details > div:last-child .btn-acao {
+                min-height: 46px; border-radius: 14px !important; font-size: 13.5px !important; justify-content: center;
+            }
+            #meus_sonhos .sonho-card-details > div:last-child .btn-acao[onclick*="pedirConfirmacaoPlanoSonho"] { grid-column: 1 / -1; }
         }
 
         @media (max-width: 768px) {
@@ -14931,7 +15040,13 @@
                 </div>
             </div>
 
-            <div class="grid-2-iguais" style="margin-bottom:16px;">
+            <!-- Celular: os dois lados lado a lado não cabem; uma aba de cada vez
+                 (mobSimComparar em appliquei-mobile.js). No desktop, as duas colunas. -->
+            <div class="mob-sim-comp" role="tablist" aria-label="Comparar">
+                <button type="button" role="tab" aria-selected="true" data-lado="inv" onclick="mobSimComparar('inv')">Investindo</button>
+                <button type="button" role="tab" aria-selected="false" data-lado="inss" onclick="mobSimComparar('inss')">Pelo INSS</button>
+            </div>
+            <div class="grid-2-iguais sim-comp-grade" id="simCompGrade" data-mob-lado="inv" style="margin-bottom:16px;">
                 <div class="card-container" style="margin-bottom:0;border-color:var(--cor-borda-primaria);background:linear-gradient(160deg,var(--cor-branco),var(--cor-bg-primaria));">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
                         <div style="font-size:13px;font-weight:700;color:var(--cor-texto-principal);display:flex;align-items:center;gap:7px;font-family:'Figtree',sans-serif;"><i class="ph ph-trend-up" style="color:var(--cor-primaria);font-size:17px;"></i> Investindo</div>
@@ -15694,6 +15809,17 @@
                     <button class="btn-acao" onclick="abrirCadastroSonho()" style="background-color: var(--cor-primaria);"><i class="ph-bold ph-plus"></i> Novo sonho</button>
                 </div>
             </div>
+
+            <!-- Celular: o topo no padrão do app (quanto já está guardado, o
+                 que falta, quanto por mês), desenhado por mobRenderSonhos em
+                 web/appliquei-mobile.js. Substitui a "Visão geral", que tem os
+                 mesmos números. A análise de saúde fica recolhida numa linha. -->
+            <div id="sonhosMob" class="mob-sonhos" aria-live="polite"></div>
+            <button type="button" class="mob-sonhos-saude" id="mobSonhosSaude" onclick="mobSonhosSaude()" aria-expanded="false" aria-controls="painelSaudeSonhos">
+                <span class="msn-saude-ic" id="mobSonhosSaudeIc"><i class="ph-fill ph-heartbeat"></i></span>
+                <span class="msn-saude-txt"><b>Sua saúde financeira</b><small id="mobSonhosSaudeResumo">Toque para ver a análise</small></span>
+                <i class="ph ph-caret-down msn-saude-seta"></i>
+            </button>
 
             <!-- PAINEL DE SAÚDE FINANCEIRA + PLANO SUGERIDO -->
             <div id="painelSaudeSonhos"></div>

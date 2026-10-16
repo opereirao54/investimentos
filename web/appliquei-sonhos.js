@@ -591,6 +591,7 @@ function renderizarSonhos() {
 
   renderPainelSaudeSonhos();
   renderResumoSonhos();
+  if (typeof mobRenderSonhos === 'function') mobRenderSonhos();
 
   const toolbar = document.getElementById('sonhosToolbar');
   const toolbarLabel = document.getElementById('sonhosToolbarLabel');

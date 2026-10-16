@@ -2517,6 +2517,103 @@ document.addEventListener('input', function (e) {
 });
 
 // ------------------------------------------------------------
+// Meus sonhos no celular: o topo no padrão do app
+// ------------------------------------------------------------
+// O mesmo resumo da "Visão geral" (renderResumoSonhos), com o guardado em
+// destaque como o total do Meu patrimônio. Os números saem das mesmas
+// contas: soma das metas, do guardado e de calcSonhoMensal por sonho.
+function mobRenderSonhos() {
+  const el = document.getElementById('sonhosMob');
+  if (!el) return;
+  _mobSonhosSaudeResumo();
+  const lista = typeof sonhos !== 'undefined' && Array.isArray(sonhos) ? sonhos : [];
+  if (!lista.length) {
+    el.innerHTML = '';
+    return;
+  }
+  const meta = lista.reduce((a, s) => a + (Number(s.valorTotal) || 0), 0);
+  const guardado = lista.reduce((a, s) => a + (Number(s.valorAtual) || 0), 0);
+  const falta = Math.max(0, meta - guardado);
+  const mensal = lista.reduce(
+    (a, s) =>
+      a +
+      (typeof calcSonhoMensal === 'function'
+        ? calcSonhoMensal(s.valorTotal, s.valorAtual, s.mesesRestantes) || 0
+        : 0),
+    0
+  );
+  const pct = meta > 0 ? Math.min(100, (guardado / meta) * 100) : 0;
+  const conquistados = lista.filter((s) => s.valorAtual >= s.valorTotal).length;
+  const agendados =
+    typeof statusSonho === 'function'
+      ? lista.filter((s) => statusSonho(s) === 'agendado').length
+      : 0;
+  const fmt = (v) => _mobEsc(_mobPatFmt(v));
+  const extra =
+    (conquistados ? ' · ' + conquistados + ' conquistado' + (conquistados === 1 ? '' : 's') : '') +
+    (agendados ? ' · ' + agendados + ' agendado' + (agendados === 1 ? '' : 's') : '');
+  el.innerHTML =
+    '<div class="mpm-cab"><h2 class="mpm-tit">Guardado nos sonhos</h2></div>' +
+    '<p class="mpm-valor valor-mascarado">' +
+    fmt(guardado) +
+    '</p>' +
+    '<p class="msn-sub">de <b class="valor-mascarado">' +
+    fmt(meta) +
+    '</b> · ' +
+    pct.toFixed(0) +
+    '% do total' +
+    extra +
+    '</p>' +
+    '<div class="msn-barra" role="progressbar" aria-label="Progresso geral" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' +
+    pct.toFixed(0) +
+    '"><span style="width:' +
+    pct.toFixed(1) +
+    '%"></span></div>' +
+    '<div class="mpm-chips">' +
+    '<div class="mpm-chip"><span class="mpm-chip-dot" style="background:var(--cor-erro)"></span><span class="mpm-chip-txt"><small>Falta</small><b class="valor-mascarado">' +
+    fmt(falta) +
+    '</b></span></div>' +
+    '<div class="mpm-chip"><span class="mpm-chip-dot" style="background:#7c3aed"></span><span class="mpm-chip-txt"><small>Por mês, somando</small><b class="valor-mascarado">' +
+    fmt(mensal) +
+    '</b></span></div>' +
+    '</div>' +
+    '<button type="button" class="msn-novo" onclick="abrirCadastroSonho()"><i class="ph-bold ph-plus"></i> Novo sonho</button>';
+}
+
+/** A linha da saúde financeira: o nível de hoje e, tocada, o painel inteiro. */
+function mobSonhosSaude() {
+  const b = document.getElementById('mobSonhosSaude');
+  if (!b) return;
+  b.setAttribute('aria-expanded', b.getAttribute('aria-expanded') === 'true' ? 'false' : 'true');
+}
+
+function _mobSonhosSaudeResumo() {
+  const txt = document.getElementById('mobSonhosSaudeResumo');
+  const ic = document.getElementById('mobSonhosSaudeIc');
+  if (!txt || typeof analisarSaudeFinanceiraSonhos !== 'function') return;
+  let a = null;
+  try {
+    a = analisarSaudeFinanceiraSonhos();
+  } catch (e) {
+    a = null;
+  }
+  if (!a || a.semDados) {
+    txt.textContent = 'Ainda sem dados do Controle para analisar';
+    if (ic) ic.style.removeProperty('--msn-cor');
+    return;
+  }
+  const nivel = { critico: 'Crítica', frágil: 'Frágil', estável: 'Estável', forte: 'Forte' }[
+    a.nivel
+  ];
+  txt.textContent =
+    (nivel || String(a.nivel || '')) +
+    ' · recomendado ' +
+    _mobPatFmt(a.recomendadoSonhos || 0) +
+    '/mês para sonhos';
+  if (ic && a.cor) ic.style.setProperty('--msn-cor', a.cor);
+}
+
+// ------------------------------------------------------------
 // Sonhos no celular: o cadastro em quatro telas
 // ------------------------------------------------------------
 // Os mesmos campos do desktop, uma pergunta por tela: o sonho, quanto custa,
@@ -3195,4 +3292,15 @@ function mobCartSecao(nome, abrir) {
   // O gráfico da simulação é desenhado num canvas escondido: ao abrir, ele
   // precisa do tamanho real.
   if (on && nome === 'sim') window.dispatchEvent(new Event('resize'));
+}
+
+/** Resultado do simulador no celular: Investindo ou INSS, uma aba de cada vez. */
+function mobSimComparar(lado) {
+  const grade = document.getElementById('simCompGrade');
+  if (!grade) return;
+  const l = lado === 'inss' ? 'inss' : 'inv';
+  grade.dataset.mobLado = l;
+  document.querySelectorAll('#simulador .mob-sim-comp button').forEach((b) => {
+    b.setAttribute('aria-selected', b.dataset.lado === l ? 'true' : 'false');
+  });
 }

@@ -204,5 +204,60 @@ test('simulador: cada controle deslizante aponta para um campo que existe', () =
     assert.match(MOB, new RegExp('\\b' + id + ': '), 'limites de ' + id);
   }
   // No desktop nada disso aparece.
-  assert.match(HTML, /\.mob-sim-range, \.mob-sim-prazos, \.mob-sim-inss \{ display: none; \}/);
+  assert.match(
+    HTML,
+    /\.mob-sim-range, \.mob-sim-prazos, \.mob-sim-inss, \.mob-sim-comp, \.mob-sonhos, \.mob-sonhos-saude \{ display: none; \}/
+  );
+});
+
+test('Meus sonhos no celular: o topo soma os mesmos números da Visão geral', () => {
+  const { ctx, els } = carregar();
+  els.sonhosMob = no('sonhosMob');
+  els.mobSonhosSaudeResumo = no('mobSonhosSaudeResumo');
+  els.mobSonhosSaudeIc = no('mobSonhosSaudeIc', {
+    style: { setProperty() {}, removeProperty() {} },
+  });
+  ctx.sonhos = [
+    { valorTotal: 20000, valorAtual: 3500, mesesRestantes: 10 },
+    { valorTotal: 30000, valorAtual: 30000, mesesRestantes: 0 },
+  ];
+  ctx.calcSonhoMensal = (t, a, m) => (m > 0 ? (t - a) / m : 0);
+  ctx.statusSonho = () => 'ativo';
+  ctx.analisarSaudeFinanceiraSonhos = () => ({
+    nivel: 'forte',
+    cor: '#10b981',
+    recomendadoSonhos: 1000,
+  });
+  vm.runInContext('mobRenderSonhos()', ctx);
+  const h = els.sonhosMob.innerHTML;
+  const so = (v) => v.replace(/\s/g, ' ');
+  assert.match(so(h), /33\.?500,00/, 'guardado');
+  assert.match(so(h), /50\.?000,00/, 'meta');
+  assert.match(so(h), /16\.?500,00/, 'falta');
+  assert.match(so(h), /1\.?650,00/, 'por mês');
+  assert.match(h, /67% do total · 1 conquistado/);
+  assert.match(h, /onclick="abrirCadastroSonho\(\)"/);
+  assert.match(els.mobSonhosSaudeResumo.textContent, /^Forte · recomendado/);
+
+  ctx.sonhos = [];
+  vm.runInContext('mobRenderSonhos()', ctx);
+  assert.equal(els.sonhosMob.innerHTML, '', 'sem sonhos, fica o estado vazio de sempre');
+});
+
+test('Meus sonhos no celular: a saúde recolhe o painel, não o apaga', () => {
+  // A linha fica logo antes do painel e o CSS esconde só enquanto fechada.
+  assert.match(
+    HTML,
+    /id="mobSonhosSaude"[\s\S]{0,600}<\/button>\s*<!-- PAINEL DE SAÚDE[^>]*>\s*<div id="painelSaudeSonhos">/
+  );
+  assert.match(
+    HTML,
+    /\.mob-sonhos-saude\[aria-expanded="false"\] \+ #painelSaudeSonhos \{ display: none; \}/
+  );
+  const r = fs.readFileSync(path.join(ROOT, 'web/appliquei-sonhos.js'), 'utf8');
+  const fn = r.slice(
+    r.indexOf('function renderizarSonhos'),
+    r.indexOf('function formatarPrazoMeses')
+  );
+  assert.match(fn, /mobRenderSonhos\(\)/);
 });
