@@ -231,6 +231,12 @@ function mpTimestampTransacao(t) {
 //   3) 1º dia da competência (mes/ano) — fallback antigo (recorrentes sem
 //      vencimento, cujo `data` é o instante de criação, igual p/ todas parcelas).
 function mpDataMovimento(t) {
+  // Saída paga: a data do dinheiro é a do PAGAMENTO, não a do vencimento —
+  // conta paga adiantada ou atrasada aparece no extrato no dia em que saiu.
+  if (!mpEhEntradaCaixa(t.categoria)) {
+    const pagoEm = typeof appliqueiPagoEmMs === 'function' ? appliqueiPagoEmMs(t) : null;
+    if (pagoEm != null) return pagoEm;
+  }
   if (t.dataVencimento) {
     const d = appliqueiParseData(t.dataVencimento);
     if (d && !isNaN(d.getTime())) return d.getTime();
@@ -286,6 +292,16 @@ function mpQuandoEntraNoCaixa(t) {
   return mpTimestampTransacao(t);
 }
 
+// Quando uma SAÍDA deixa o caixa. Paga com data de baixa (`pagoEm`): no dia do
+// pagamento. Antes era sempre o 1º dia da competência, e quem pagava em 15/10
+// a conta de novembro via o saldo do banco no app só cair em 1º/11 — dinheiro
+// que já tinha saído aparecia como disponível. Sem `pagoEm` (lançamento antigo,
+// ou despesa à vista que nasce paga), segue a competência, como sempre foi.
+function mpQuandoSaiDoCaixa(t) {
+  const pagoEm = typeof appliqueiPagoEmMs === 'function' ? appliqueiPagoEmMs(t) : null;
+  return pagoEm != null ? pagoEm : mpTimestampTransacao(t);
+}
+
 // Decide se uma transação já compõe o caixa/saldo em conta até `refMs`.
 // Entradas (receita/salário, resgates, transferências de entrada) NÃO têm
 // botão "pago" no Controle — são lançadas já recebidas, logo contam pela data.
@@ -300,11 +316,11 @@ function mpQuandoEntraNoCaixa(t) {
 // pessoa ainda não tem, na dobra da tela que existe para responder quanto ela
 // tem. Entrada passa a olhar o VENCIMENTO informado (mpQuandoEntraNoCaixa).
 //
-// Saída continua pela competência porque quem a governa é `pago`: ela só entra
-// na conta depois de a pessoa dar baixa, e a baixa acontece no dia real.
+// Saída é governada por `pago` e entra no caixa no dia da baixa
+// (mpQuandoSaiDoCaixa); sem a data da baixa, pela competência.
 function mpTransacaoComputaCaixa(t, refMs) {
   const ehEntrada = mpEhEntradaCaixa(t.categoria);
-  const quando = ehEntrada ? mpQuandoEntraNoCaixa(t) : mpTimestampTransacao(t);
+  const quando = ehEntrada ? mpQuandoEntraNoCaixa(t) : mpQuandoSaiDoCaixa(t);
   if (quando > refMs) return false;
   // Fase 3B: aporte cujo débito de caixa já é representado por uma perna de
   // transferência (transferencia_saida com contaId) NÃO conta aqui — senão

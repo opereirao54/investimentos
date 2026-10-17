@@ -128,6 +128,30 @@ function ehAporteExterno(t) {
   return !!t && ehCategoriaAporte(t.categoria) && !!t.origemExterna;
 }
 
+// Instante em que uma SAÍDA foi paga — o "Baixar" (marcarTransacaoPaga grava
+// `pagoEm`). É a data em que o dinheiro deixou a conta, que pode não ser a do
+// vencimento: a conta de novembro paga em 15/10 sai do saldo em 15/10. Null
+// quando não está paga ou é lançamento antigo, de antes de `pagoEm` existir.
+function appliqueiPagoEmMs(t) {
+  if (!t || !t.pago || !t.pagoEm) return null;
+  const ms = new Date(t.pagoEm).getTime();
+  return isFinite(ms) ? ms : null;
+}
+
+// O mesmo instante como dia local 'aaaa-mm-dd'.
+function appliqueiDiaDoPagamento(t) {
+  const ms = appliqueiPagoEmMs(t);
+  if (ms == null) return null;
+  const d = new Date(ms);
+  return (
+    d.getFullYear() +
+    '-' +
+    String(d.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(d.getDate()).padStart(2, '0')
+  );
+}
+
 // --- BRL helpers (máscara em inputs monetários) ---
 // Retorna sempre Number finito (nunca string/NaN/Infinity). Strings vazias
 // ou sem dígitos viram 0. Entradas com múltiplas vírgulas (ex.: "1,234,56")

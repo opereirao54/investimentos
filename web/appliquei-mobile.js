@@ -1801,6 +1801,7 @@ function mobBaixarConta(id) {
   const nomeConta = conta ? conta.nome : t.banco || '';
   const dd = (t.dataVencimento || '').split('-').reverse().slice(0, 2).join('/');
   const idEsc = _mobEsc(String(t.id));
+  const hoje = typeof hojeYmdLocal === 'function' ? hojeYmdLocal() : '';
   const html =
     '<div class="mf-cab"><p class="mf-sobre">Vence ' +
     _mobEsc(dd) +
@@ -1814,6 +1815,17 @@ function mobBaixarConta(id) {
     '" value="' +
     _mobEsc(typeof formatarBRLInput === 'function' ? formatarBRLInput(t.valor) : String(t.valor)) +
     '" oninput="aplicarMascaraBRL(this)"></span></label>' +
+    // O dia em que foi pago: é quando o dinheiro sai da conta. Hoje por padrão;
+    // quem pagou ontem e lança hoje corrige aqui.
+    '<label class="mf-campo" for="input-pago-dia-' +
+    idEsc +
+    '">Pago em<span class="mf-campo-caixa"><input type="date" id="input-pago-dia-' +
+    idEsc +
+    '" value="' +
+    _mobEsc(hoje) +
+    '" max="' +
+    _mobEsc(hoje) +
+    '"></span></label>' +
     (nomeConta
       ? '<div class="mf-info"><i class="ph ph-bank"></i><span>Sai de <b>' +
         _mobEsc(nomeConta) +
@@ -1834,7 +1846,13 @@ function mobConfirmarBaixa(id) {
       mostrarToast('Por favor, informe um valor válido.', 'erro');
     return;
   }
-  // confirmarPagamento lê o mesmo campo pelo id; a folha fecha depois.
+  const dia = document.getElementById('input-pago-dia-' + id);
+  if (dia && dia.value && typeof hojeYmdLocal === 'function' && dia.value > hojeYmdLocal()) {
+    if (typeof mostrarToast === 'function')
+      mostrarToast('A data do pagamento não pode ser no futuro.', 'erro');
+    return;
+  }
+  // confirmarPagamento lê os mesmos campos pelo id; a folha fecha depois.
   confirmarPagamento(id);
   mobFolhaFechar();
 }
