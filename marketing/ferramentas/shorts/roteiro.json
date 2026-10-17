@@ -1,0 +1,13 @@
+{
+  "voz": "pt-br-edresson-low",
+  "falas": [
+    { "inicio": 0.15, "fim": 3.6, "texto": "Fim do mês chegando. E pra onde foi o seu dinheiro?" },
+    { "inicio": 3.75, "fim": 7.0, "texto": "Planilha, banco, corretora: tudo espalhado." },
+    { "inicio": 7.15, "fim": 11.0, "texto": "Com o Appliquei, seu dinheiro fica numa tela só." },
+    { "inicio": 11.15, "fim": 15.0, "texto": "Ele te avisa antes de o dinheiro apertar." },
+    { "inicio": 15.15, "fim": 19.6, "texto": "Gastou? Manda no Telegram, e já está no app." },
+    { "inicio": 19.75, "fim": 23.4, "texto": "Seus sonhos ganham prazo e parcela." },
+    { "inicio": 23.55, "fim": 26.8, "texto": "Você vê quanto tem, e onde pode chegar." },
+    { "inicio": 26.85, "fim": 30.0, "texto": "Teste grátis por sete dias. Link na bio." }
+  ]
+}

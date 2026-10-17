@@ -1,0 +1,325 @@
+<!doctype html>
+<!--
+  Modelo de Shorts/Reels de 30 s (1080×1920) da Appliquei — o primeiro vídeo
+  de venda. Cada <div class="cena"> é uma cena; os tempos estão em CENAS, no
+  script, e o que se mexe dentro de cada cena em cenaExtra(). render(t)
+  desenha o quadro do segundo t; render.js tira 30 quadros por segundo.
+
+  Para um vídeo novo: copie este arquivo, troque textos e telas das cenas e
+  ajuste CENAS/DUR. Elementos com class="linha" e data-in="s" entram sozinhos
+  (s segundos depois do início da cena). Telas: marketing/ferramentas/telas-app.js.
+  Regras de roteiro e de promessa: .claude/skills/marketing-saas/.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root {
+    --campo1: #0b1410; --campo2: #0f1f18; --campo3: #112720;
+    --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa;
+    --sinal: #34d399; --verde: #10b981; --primaria: #059669; --ambar: #fbbf24; --vermelho: #f87171;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--campo1); }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: linear-gradient(150deg, var(--campo1) 0%, var(--campo2) 50%, var(--campo3) 100%); }
+  .halo { position: absolute; inset: -20%;
+    background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.20), transparent 70%),
+                radial-gradient(40% 35% at 10% 90%, rgba(5,150,105,.16), transparent 70%); }
+  .malha { position: absolute; inset: 0; }
+  .cena { position: absolute; inset: 0; opacity: 0; }
+  .rot { font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .16em; text-transform: uppercase; color: var(--sinal); }
+  h1, .tit { font-weight: 900; letter-spacing: -.035em; line-height: .98; color: var(--tinta); }
+  h1 em, .tit em { font-style: normal; color: var(--sinal); }
+  .sub { font-size: 44px; line-height: 1.32; color: var(--deck); font-weight: 500; }
+  .sub b { color: var(--tinta); font-weight: 800; }
+  .linha { display: block; will-change: transform, opacity; }
+
+  /* Celular */
+  .fone { position: absolute; left: 50%; width: 600px; height: 1298px; margin-left: -300px; border-radius: 74px;
+    background: #050a08; padding: 16px; box-shadow: 0 60px 120px rgba(0,0,0,.55), 0 0 0 2px rgba(240,250,244,.08), 0 0 140px rgba(16,185,129,.18); }
+  .fone .tela { width: 100%; height: 100%; border-radius: 60px; overflow: hidden; position: relative; background: #f3f5f2; }
+  .fone .tela img { position: absolute; left: 0; top: 0; width: 100%; display: block; }
+  .fone .ilha { position: absolute; top: 30px; left: 50%; width: 150px; height: 40px; margin-left: -75px; border-radius: 30px; background: #050a08; z-index: 3; }
+
+  /* Cena 2: chips espalhados */
+  .chip { position: absolute; display: flex; align-items: center; gap: 18px; padding: 26px 34px; border-radius: 28px;
+    background: rgba(240,250,244,.06); border: 2px solid rgba(240,250,244,.12); font-size: 44px; font-weight: 700; color: var(--deck); }
+  .chip i { font-style: normal; font-size: 46px; }
+
+  /* Telegram */
+  .tg { position: absolute; left: 90px; right: 90px; top: 640px; border-radius: 48px; overflow: hidden;
+    background: #0e1621; box-shadow: 0 50px 100px rgba(0,0,0,.5); border: 2px solid rgba(240,250,244,.08); }
+  .tg-cab { display: flex; align-items: center; gap: 22px; padding: 30px 36px; background: #17212b; }
+  .tg-av { width: 84px; height: 84px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #047857);
+    display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 40px; color: #fff; }
+  .tg-cab b { display: block; font-size: 38px; color: #fff; }
+  .tg-cab small { font-size: 28px; color: #7f91a4; }
+  .tg-corpo { padding: 40px 36px 50px; display: flex; flex-direction: column; gap: 26px; min-height: 640px;
+    background: #0e1621 radial-gradient(circle at 30% 20%, rgba(52,211,153,.06), transparent 60%); }
+  .bolha { max-width: 78%; padding: 24px 30px; border-radius: 30px; font-size: 38px; line-height: 1.35; }
+  .bolha.eu { align-self: flex-end; background: #2b5278; color: #fff; border-bottom-right-radius: 10px; }
+  .bolha.bot { align-self: flex-start; background: #182533; color: #e8eef4; border-bottom-left-radius: 10px; }
+  .bolha.bot b { color: #fff; }
+  .bolha small { display: block; text-align: right; font-size: 24px; color: rgba(255,255,255,.5); margin-top: 6px; }
+  .digitando { align-self: flex-start; display: flex; gap: 10px; padding: 26px 30px; border-radius: 30px; background: #182533; }
+  .digitando span { width: 16px; height: 16px; border-radius: 50%; background: #7f91a4; }
+
+  /* CTA */
+  .cta { display: inline-flex; align-items: center; gap: 26px; padding: 40px 56px; border-radius: 36px; background: var(--primaria);
+    font-weight: 900; font-size: 58px; letter-spacing: -.02em; color: #fff; box-shadow: 0 30px 70px rgba(5,150,105,.45); }
+  .cta svg { width: 54px; height: 54px; }
+  .marca { width: 380px; margin: 0 auto; }
+  .pill { display: inline-flex; align-items: center; gap: 16px; padding: 18px 32px; border-radius: 99px;
+    background: rgba(52,211,153,.12); border: 2px solid rgba(52,211,153,.35); font-family: 'DM Mono', monospace; font-size: 30px;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--sinal); }
+  .pill .pt { width: 14px; height: 14px; border-radius: 50%; background: var(--sinal); box-shadow: 0 0 18px var(--sinal); }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <div class="halo"></div>
+  <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
+
+  <!-- 1. GANCHO -->
+  <div class="cena" id="c1">
+    <div style="position:absolute;left:96px;right:96px;top:300px;">
+      <div class="rot linha" data-in="0.2">Fim do mês chegando…</div>
+      <h1 style="font-size:150px;margin-top:40px;">
+        <span class="linha" data-in="0.35">Pra onde</span>
+        <span class="linha" data-in="0.6">foi o seu</span>
+        <span class="linha" data-in="0.85"><em>dinheiro?</em></span>
+      </h1>
+    </div>
+    <svg id="curva" style="position:absolute;left:0;top:1180px;" width="1080" height="560" viewBox="0 0 1080 560">
+      <defs>
+        <linearGradient id="gc" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#34d399"/><stop offset=".55" stop-color="#fbbf24"/><stop offset="1" stop-color="#f87171"/></linearGradient>
+        <linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f87171" stop-opacity=".28"/><stop offset="1" stop-color="#f87171" stop-opacity="0"/></linearGradient>
+      </defs>
+      <line x1="60" y1="330" x2="1020" y2="330" stroke="#f0faf4" stroke-opacity=".3" stroke-width="3" stroke-dasharray="4 14"/>
+      <text x="64" y="380" fill="#9fb3aa" font-family="DM Mono" font-size="26" letter-spacing="3">SALDO ZERO</text>
+      <path id="curvaArea" d="" fill="url(#ga)"/>
+      <path id="curvaLinha" d="" fill="none" stroke="url(#gc)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle id="curvaPonto" r="18" fill="#f87171"/>
+    </svg>
+  </div>
+
+  <!-- 2. PROBLEMA -->
+  <div class="cena" id="c2">
+    <div class="chip" id="ch1" style="left:110px;top:430px;"><i>📊</i>Planilha</div>
+    <div class="chip" id="ch2" style="left:470px;top:640px;"><i>🏦</i>App do banco</div>
+    <div class="chip" id="ch3" style="left:150px;top:850px;"><i>📈</i>Corretora</div>
+    <div class="chip" id="ch4" style="left:520px;top:1040px;"><i>🧾</i>Boletos</div>
+    <div style="position:absolute;left:96px;right:96px;top:1300px;">
+      <div class="tit linha" data-in="1.6" style="font-size:118px;">Tudo<br><em style="color:#fbbf24">espalhado.</em></div>
+    </div>
+  </div>
+
+  <!-- 3. PRODUTO -->
+  <div class="cena" id="c3">
+    <div style="position:absolute;left:0;right:0;top:170px;text-align:center;">
+      <img class="marca linha" data-in="0.05" src="wordmark.svg" alt="Appliquei">
+      <div class="tit linha" data-in="0.35" style="font-size:96px;margin-top:46px;">Seu dinheiro inteiro,<br><em>numa tela só.</em></div>
+    </div>
+    <div class="fone" id="f3" style="top:640px;"><div class="ilha"></div><div class="tela"><img id="f3img" src="tela-inicio.png"></div></div>
+  </div>
+
+  <!-- 4. AVISO DE APERTO -->
+  <div class="cena" id="c4">
+    <div style="position:absolute;left:96px;right:96px;top:150px;">
+      <div class="pill linha" data-in="0.1"><span class="pt" style="background:#fbbf24;box-shadow:0 0 18px #fbbf24"></span><span style="color:#fbbf24">Aviso de caixa apertado</span></div>
+      <div class="tit linha" data-in="0.3" style="font-size:94px;margin-top:36px;">Te avisa <em>antes</em><br>de o dinheiro apertar.</div>
+    </div>
+    <img id="f4" src="card-aviso.png" style="position:absolute;left:70px;width:940px;top:760px;border-radius:44px;box-shadow:0 50px 110px rgba(0,0,0,.55),0 0 120px rgba(248,113,113,.25);">
+    <div style="position:absolute;left:96px;right:96px;top:1640px;text-align:center;">
+      <div class="sub linha" data-in="1.6">Dias antes. Com o valor e a data.</div>
+    </div>
+  </div>
+
+  <!-- 5. TELEGRAM -->
+  <div class="cena" id="c5">
+    <div style="position:absolute;left:96px;right:96px;top:170px;">
+      <div class="pill linha" data-in="0.1"><span class="pt"></span>Lançamento pelo Telegram</div>
+      <div class="tit linha" data-in="0.3" style="font-size:100px;margin-top:36px;">Gastou?<br><em>Manda uma mensagem.</em></div>
+    </div>
+    <div class="tg" id="tg">
+      <div class="tg-cab"><div class="tg-av">A</div><div><b>Appliquei</b><small>bot</small></div></div>
+      <div class="tg-corpo">
+        <div class="bolha eu" id="b1">mercado 87,50<small>12:41 ✓✓</small></div>
+        <div class="digitando" id="dig"><span></span><span></span><span></span></div>
+        <div class="bolha bot" id="b2">✅ <b>Despesa lançada</b><br>Mercado · <b>R$ 87,50</b><br>Alimentação<br>🏦 Nubank<br>📅 17/10/2026<small>12:41</small></div>
+      </div>
+    </div>
+    <div style="position:absolute;left:96px;right:96px;top:1640px;text-align:center;">
+      <div class="sub linha" data-in="2.6">Pronto. Já está no app.</div>
+    </div>
+  </div>
+
+  <!-- 6. SONHOS -->
+  <div class="cena" id="c6">
+    <div style="position:absolute;left:96px;right:96px;top:150px;">
+      <div class="pill linha" data-in="0.1"><span class="pt" style="background:#a78bfa;box-shadow:0 0 18px #a78bfa"></span><span style="color:#c4b5fd">Sonhos e metas</span></div>
+      <div class="tit linha" data-in="0.3" style="font-size:96px;margin-top:36px;">Seu sonho com<br><em>prazo e parcela.</em></div>
+    </div>
+    <div class="fone" id="f6" style="top:640px;"><div class="ilha"></div><div class="tela"><img src="tela-sonhos.png"></div></div>
+  </div>
+
+  <!-- 7. PATRIMÔNIO + SIMULADOR -->
+  <div class="cena" id="c7">
+    <div style="position:absolute;left:96px;right:96px;top:150px;">
+      <div class="pill linha" data-in="0.1"><span class="pt"></span>Patrimônio e simulador</div>
+      <div class="tit linha" data-in="0.3" style="font-size:96px;margin-top:36px;">Quanto você tem.<br><em>Onde pode chegar.</em></div>
+    </div>
+    <div class="fone" id="f7a" style="top:640px;"><div class="ilha"></div><div class="tela"><img src="tela-patrimonio.png"></div></div>
+    <div class="fone" id="f7b" style="top:640px;"><div class="ilha"></div><div class="tela"><img src="tela-sim.png"></div></div>
+  </div>
+
+  <!-- 8. CTA -->
+  <div class="cena" id="c8">
+    <div style="position:absolute;left:0;right:0;top:420px;text-align:center;">
+      <img class="marca linha" data-in="0.05" src="wordmark.svg" alt="Appliquei" style="width:460px;">
+      <div class="sub linha" data-in="0.25" style="margin-top:26px;color:#9fb3aa;">Controle financeiro e investimentos</div>
+      <div class="tit linha" data-in="0.5" style="font-size:118px;margin-top:110px;">Teste grátis<br><em>por 7 dias.</em></div>
+      <div class="sub linha" data-in="0.8" style="margin-top:44px;">Sem cartão. Sem cobrança automática.</div>
+      <div class="linha" data-in="1.1" style="margin-top:110px;"><span class="cta">Link na bio
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span></div>
+    </div>
+  </div>
+
+  <div class="barra-t" id="barraT"></div>
+</div>
+
+<script>
+  // Malha (mesma das peças de marketing)
+  (function () {
+    const L = 1080, A = 1920, t = [];
+    for (let x = 60; x < L; x += 60) t.push(`<line x1="${x}" y1="0" x2="${x}" y2="${A}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 60; y < A; y += 60) t.push(`<line x1="0" y1="${y}" x2="${L}" y2="${y}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 120; y < A; y += 120) {
+      t.push(`<line x1="0" y1="${y}" x2="16" y2="${y}" stroke="#34d399" stroke-opacity=".18" stroke-width="2"/>`);
+      t.push(`<line x1="${L - 16}" y1="${y}" x2="${L}" y2="${y}" stroke="#34d399" stroke-opacity=".18" stroke-width="2"/>`);
+    }
+    document.getElementById('malha').innerHTML = t.join('');
+  })();
+
+  const DUR = 30;
+  // [id, início, fim]
+  const CENAS = [['c1', 0, 3.6], ['c2', 3.6, 7.0], ['c3', 7.0, 11.0], ['c4', 11.0, 15.0], ['c5', 15.0, 19.6], ['c6', 19.6, 23.4], ['c7', 23.4, 26.8], ['c8', 26.8, 30.2]];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeInOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+
+  function curvaPts() {
+    const pts = [];
+    for (let i = 0; i <= 60; i++) {
+      const x = 60 + (i / 60) * 960;
+      const u = i / 60;
+      const y = 120 + u * 120 + Math.sin(u * 9) * 26 + Math.pow(u, 3) * 360;
+      pts.push([x, y]);
+    }
+    return pts;
+  }
+  const PTS = curvaPts();
+
+  function render(t) {
+    for (const [id, a, b] of CENAS) {
+      const el = document.getElementById(id);
+      const dentro = t >= a - 0.01 && t < b;
+      const fadeIn = easeOut(prog(t, a, a + 0.35));
+      const fadeOut = 1 - prog(t, b - 0.3, b);
+      el.style.opacity = dentro ? Math.min(fadeIn, fadeOut) : 0;
+      el.style.display = dentro ? 'block' : 'none';
+      if (!dentro) continue;
+      const lt = t - a;
+      el.querySelectorAll('.linha').forEach((ln) => {
+        const d = Number(ln.dataset.in || 0);
+        const p = easeOut(prog(lt, d, d + 0.45));
+        ln.style.opacity = p;
+        ln.style.transform = `translateY(${(1 - p) * 60}px)`;
+      });
+      cenaExtra(id, lt, b - a);
+    }
+    document.getElementById('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+
+  function foneEntra(el, lt, extraY) {
+    const p = easeOut(prog(lt, 0.3, 1.1));
+    el.style.transform = `translateY(${(1 - p) * 700 + (extraY || 0)}px) rotate(${(1 - p) * 4}deg)`;
+  }
+
+  function cenaExtra(id, lt, dur) {
+    if (id === 'c1') {
+      const p = easeInOut(prog(lt, 0.4, 3.0));
+      const n = Math.max(2, Math.round(p * PTS.length));
+      const ps = PTS.slice(0, n);
+      const d = ps.map((q, i) => (i ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join(' ');
+      document.getElementById('curvaLinha').setAttribute('d', d);
+      // área abaixo da linha do zero (330)
+      const abaixo = ps.filter((q) => q[1] > 330);
+      document.getElementById('curvaArea').setAttribute('d', abaixo.length > 1 ? 'M' + abaixo[0][0] + ' 330 ' + abaixo.map((q) => 'L' + q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join(' ') + ' L' + abaixo[abaixo.length - 1][0] + ' 330 Z' : '');
+      const u = ps[ps.length - 1];
+      const pt = document.getElementById('curvaPonto');
+      pt.setAttribute('cx', u[0]); pt.setAttribute('cy', u[1]);
+      pt.setAttribute('fill', u[1] > 330 ? '#f87171' : '#34d399');
+    }
+    if (id === 'c2') {
+      ['ch1', 'ch2', 'ch3', 'ch4'].forEach((c, i) => {
+        const el = document.getElementById(c);
+        const p = easeOut(prog(lt, 0.15 + i * 0.22, 0.6 + i * 0.22));
+        const sx = [-1, 1, -1, 1][i];
+        const drift = Math.sin(lt * 2 + i) * 14;
+        const rot = [-6, 5, -4, 7][i] + Math.sin(lt * 1.5 + i) * 2;
+        el.style.opacity = p;
+        el.style.transform = `translate(${(1 - p) * 500 * sx + drift}px, ${drift * 0.6}px) rotate(${rot}deg)`;
+      });
+    }
+    if (id === 'c3') {
+      const el = document.getElementById('f3');
+      foneEntra(el, lt);
+      // rola a tela do Início
+      const s = easeInOut(prog(lt, 2.0, 3.6));
+      document.getElementById('f3img').style.transform = `translateY(${-s * 260}px)`;
+    }
+    if (id === 'c4') {
+      const el = document.getElementById('f4');
+      const p = easeOut(prog(lt, 0.35, 1.0));
+      const pulse = lt > 1.2 ? 1 + Math.max(0, Math.sin((lt - 1.2) * 4)) * 0.015 : 1;
+      el.style.opacity = p;
+      el.style.transform = `translateY(${(1 - p) * 220}px) scale(${(0.86 + 0.14 * p) * pulse}) rotate(${(1 - p) * -3}deg)`;
+    }
+    if (id === 'c5') {
+      const tg = document.getElementById('tg');
+      const p = easeOut(prog(lt, 0.25, 0.9));
+      tg.style.opacity = p;
+      tg.style.transform = `translateY(${(1 - p) * 120}px)`;
+      const b1 = document.getElementById('b1');
+      const p1 = easeOut(prog(lt, 0.9, 1.25));
+      b1.style.opacity = p1; b1.style.transform = `translateY(${(1 - p1) * 30}px) scale(${0.9 + 0.1 * p1})`;
+      const dig = document.getElementById('dig');
+      const mostraDig = lt > 1.35 && lt < 2.1;
+      dig.style.display = mostraDig ? 'flex' : 'none';
+      dig.querySelectorAll('span').forEach((s, i) => { s.style.opacity = 0.35 + 0.65 * Math.max(0, Math.sin(lt * 9 - i * 0.9)); });
+      const b2 = document.getElementById('b2');
+      const p2 = easeOut(prog(lt, 2.1, 2.45));
+      b2.style.display = lt >= 2.1 ? 'block' : 'none';
+      b2.style.opacity = p2; b2.style.transform = `translateY(${(1 - p2) * 30}px) scale(${0.9 + 0.1 * p2})`;
+    }
+    if (id === 'c6') foneEntra(document.getElementById('f6'), lt);
+    if (id === 'c7') {
+      const a = document.getElementById('f7a');
+      const b = document.getElementById('f7b');
+      foneEntra(a, lt);
+      const s = easeInOut(prog(lt, 1.7, 2.3));
+      a.style.transform += ` translateX(${-s * 1100}px)`;
+      b.style.transform = `translateX(${(1 - s) * 1100}px)`;
+    }
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>
