@@ -149,24 +149,50 @@ function alertasVencimentos(d, agora) {
     });
 }
 
-// Só as que venceram nos últimos 3 dias: quem liga o bot com 20 contas
-// atrasadas do ano passado não recebe 20 avisos de uma vez, e o app já mostra
-// o atraso em vermelho.
+// Conta vencida e não paga não pode ficar em silêncio. A regra antiga avisava
+// UMA vez e só nos 3 primeiros dias: a conta do dia 10 ainda aberta no dia 15
+// não gerava mais nada — e era justamente quando o atraso pesava (relato:
+// "os alertas de contas vencidas não estão chegando").
+//
+// Agora: um aviso por dia nos 3 primeiros dias de atraso; depois, um lembrete
+// por semana enquanto a conta seguir em aberto, até VENCIDAS_ATE_DIAS — o
+// mesmo limite do painel do app (VENC_ATRASO_MAX_DIAS), para cadastro velho
+// nunca baixado não virar lembrete eterno. A mensagem da manhã já corta em
+// MAX_AVISOS, então 20 contas atrasadas não viram 20 linhas.
+const VENCIDAS_DIARIO_ATE = 3;
+const VENCIDAS_ATE_DIAS = 90;
+
+function diasEntre(ymdA, ymdB) {
+  const [a1, m1, d1] = ymdA.split('-').map(Number);
+  const [a2, m2, d2] = ymdB.split('-').map(Number);
+  return Math.round((Date.UTC(a2, m2 - 1, d2) - Date.UTC(a1, m1 - 1, d1)) / 86400000);
+}
+
 function alertasVencidas(d, agora) {
   const hoje = ymd(agora);
-  const limite = ymd(diaMais(agora, -3));
   return aPagar(d.transacoes)
     .filter((t) => t.categoria !== 'cartao_credito')
-    .filter((t) => t.dataVencimento < hoje && t.dataVencimento >= limite)
-    .sort((a, b) => a.dataVencimento.localeCompare(b.dataVencimento))
-    .map((t) => ({
-      tipo: 'vencidas',
-      chave: `vencida:${t.id}:${t.dataVencimento}`,
-      texto:
-        `⚠️ <b>${esc(t.descricao || 'Conta')}</b> venceu ${ddmm(t.dataVencimento)} e não ` +
-        `está paga · ${brl(t.valor)}`,
-      pagar: { rotulo: t.descricao || 'conta', alvos: [t.id] },
-    }));
+    .map((t) => ({ t, dias: diasEntre(t.dataVencimento, hoje) }))
+    .filter((x) => x.dias >= 1 && x.dias <= VENCIDAS_ATE_DIAS)
+    .sort((a, b) => a.t.dataVencimento.localeCompare(b.t.dataVencimento))
+    .map(({ t, dias }) => {
+      // A chave muda a cada dia no começo e a cada semana depois: é ela que
+      // faz o lembrete voltar (o envio nunca repete uma chave já mandada).
+      const ciclo =
+        dias <= VENCIDAS_DIARIO_ATE
+          ? 'd' + dias
+          : 's' + Math.floor((dias - VENCIDAS_DIARIO_ATE - 1) / 7);
+      const ha = dias === 1 ? 'ontem' : `há ${dias} dias`;
+      return {
+        tipo: 'vencidas',
+        chave: `vencida:${t.id}:${t.dataVencimento}:${ciclo}`,
+        texto:
+          `⚠️ <b>${esc(t.descricao || 'Conta')}</b> venceu ${ddmm(t.dataVencimento)} ` +
+          `(${ha}) e ${dias <= VENCIDAS_DIARIO_ATE ? 'não está paga' : 'continua em aberto'} · ` +
+          `${brl(t.valor)}`,
+        pagar: { rotulo: t.descricao || 'conta', alvos: [t.id] },
+      };
+    });
 }
 
 function alertasFaturaVence(d, agora) {

@@ -220,15 +220,15 @@ O bot avisa sozinho, duas vezes por dia no máximo (uma mensagem por horário,
 juntando tudo). Tudo vem ligado; o usuário desliga pelo 🔕 de cada aviso, pelo
 botão **🔔 Alertas** ou mandando "parar alertas".
 
-| Horário (Brasília) | Alerta                                                                            |
-| ------------------ | --------------------------------------------------------------------------------- |
-| ☀️ ~7h             | conta vencendo hoje/amanhã · conta vencida (até 3 dias) · com **✅ Já paguei**    |
-| ☀️ ~7h             | fatura fechando em 1–2 dias · fatura vencendo hoje/amanhã (com ✅ Já paguei)      |
-| ☀️ ~7h             | **sai antes de entrar**: o caixa projetado fica negativo nos próximos 10 dias     |
-| 🌙 ~18h            | **limite de 60% da receita** (régua do termômetro do Controle), uma vez por faixa |
-| 🌙 ~18h            | ritmo: variáveis + cartão já passaram o mês anterior inteiro                      |
-| 🌙 ~18h            | lembrete: 3 dias sem lançar nada                                                  |
-| 🌙 ~18h            | sonho conquistado                                                                 |
+| Horário (Brasília) | Alerta                                                                                                                         |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| ☀️ ~7h             | conta vencendo hoje/amanhã · conta vencida: todo dia nos 3 primeiros dias, depois 1×/semana até 90 dias · com **✅ Já paguei** |
+| ☀️ ~7h             | fatura fechando em 1–2 dias · fatura vencendo hoje/amanhã (com ✅ Já paguei)                                                   |
+| ☀️ ~7h             | **sai antes de entrar**: o caixa projetado fica negativo nos próximos 10 dias                                                  |
+| 🌙 ~18h            | **limite de 60% da receita** (régua do termômetro do Controle), uma vez por faixa                                              |
+| 🌙 ~18h            | ritmo: variáveis + cartão já passaram o mês anterior inteiro                                                                   |
+| 🌙 ~18h            | lembrete: 3 dias sem lançar nada                                                                                               |
+| 🌙 ~18h            | sonho conquistado                                                                                                              |
 
 Quem dispara é o **GitHub Actions** (`.github/workflows/telegram-alertas.yml`),
 porque o cron da Vercel Hobby só roda uma vez por dia e as duas vagas estão
