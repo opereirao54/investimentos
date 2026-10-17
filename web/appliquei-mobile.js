@@ -834,6 +834,10 @@ function _mobSimAtualizar() {
   // No modo "Planejar minha meta" o herói é outro: a faixa não se aplica.
   const meta = document.getElementById('simModoMeta');
   document.body.classList.toggle('mob-sim-meta', !!(meta && meta.style.display !== 'none'));
+  // Cada cálculo também acerta os controles deslizantes e o resumo do INSS
+  // (o select do vínculo só é preenchido depois da carga).
+  if (typeof mobSimRanges === 'function') mobSimRanges();
+  if (typeof _mobSimInssResumo === 'function') _mobSimInssResumo();
 }
 
 function mobSimIrResultado() {
@@ -872,6 +876,125 @@ function _mobLigarSimulador() {
 }
 
 document.addEventListener('DOMContentLoaded', _mobLigarSimulador);
+
+// ------------------------------------------------------------
+// Simulador: ajustar com o dedo
+// ------------------------------------------------------------
+// Ao lado de cada número importante há um controle deslizante (só no
+// celular). Ele escreve no campo de sempre e recalcula pelo mesmo caminho;
+// digitar no campo move o controle. Os limites da taxa e do prazo seguem a
+// unidade escolhida (% ao mês ou ao ano, anos ou meses).
+var MOB_SIM_LIMITES = {
+  simCapital: [0, 200000, 1000],
+  simAporte: [0, 10000, 50],
+  metaValor: [10000, 5000000, 10000],
+  metaCapital: [0, 200000, 1000],
+  simTaxa: { un: 'simTipoTaxa', mes: [0.1, 2, 0.05], ano: [1, 25, 0.5] },
+  metaTaxa: { un: 'metaTipoTaxa', mes: [0.1, 2, 0.05], ano: [1, 25, 0.5] },
+  simTempo: { un: 'simTipoTempo', ano: [1, 50, 1], mes: [1, 600, 1] },
+  metaPrazo: { un: 'metaTipoPrazo', ano: [1, 50, 1], mes: [1, 600, 1] },
+};
+
+function _mobSimLimites(id) {
+  const lim = MOB_SIM_LIMITES[id];
+  if (!lim || Array.isArray(lim)) return lim;
+  const un = document.getElementById(lim.un);
+  return lim[un && un.value === 'ano' ? 'ano' : 'mes'] || lim.ano;
+}
+
+function _mobSimValorDoCampo(campo) {
+  return campo.dataset.brl === '1' ? parseBRL(campo.value) : Number(campo.value) || 0;
+}
+
+function _mobSimRecalcular(id) {
+  if (id.indexOf('meta') === 0) {
+    if (typeof calcularMeta === 'function') calcularMeta();
+  } else if (typeof calcularSimulador === 'function') calcularSimulador();
+}
+
+/** Copia o valor de cada campo para o seu controle (e os limites da unidade). */
+function mobSimRanges() {
+  document.querySelectorAll('#simulador .mob-sim-range').forEach((r) => {
+    const campo = document.getElementById(r.dataset.mobRangeDe);
+    const lim = _mobSimLimites(r.dataset.mobRangeDe);
+    if (!campo || !lim) return;
+    r.min = String(lim[0]);
+    r.max = String(lim[1]);
+    r.step = String(lim[2]);
+    r.value = String(Math.max(lim[0], Math.min(lim[1], _mobSimValorDoCampo(campo))));
+  });
+  document.querySelectorAll('#simulador .mob-sim-prazos').forEach((box) => {
+    const campo = document.getElementById(box.dataset.mobPrazoDe);
+    const un = document.getElementById(MOB_SIM_LIMITES[box.dataset.mobPrazoDe].un);
+    const anos = un && un.value === 'ano' ? Number(campo && campo.value) : NaN;
+    box.querySelectorAll('button').forEach((b) => {
+      b.setAttribute('aria-pressed', Number(b.dataset.anos) === anos ? 'true' : 'false');
+    });
+  });
+}
+
+function _mobSimDoControle(r) {
+  const id = r.dataset.mobRangeDe;
+  const campo = document.getElementById(id);
+  if (!campo) return;
+  const v = Number(r.value);
+  if (campo.dataset.brl === '1') setValorBRLInput(campo, v);
+  else campo.value = String(Math.round(v * 100) / 100);
+  _mobSimRecalcular(id);
+  mobSimRanges();
+}
+
+function _mobSimPrazo(botao) {
+  const box = botao.closest('.mob-sim-prazos');
+  const id = box && box.dataset.mobPrazoDe;
+  const campo = id && document.getElementById(id);
+  if (!campo) return;
+  const un = document.getElementById(MOB_SIM_LIMITES[id].un);
+  if (un) un.value = 'ano';
+  campo.value = botao.dataset.anos;
+  campo.dispatchEvent(new Event('input'));
+  _mobSimRecalcular(id);
+  mobSimRanges();
+}
+
+/** O bloco do INSS recolhido, com o resumo do que está valendo. */
+function mobSimInss() {
+  const b = document.getElementById('mobSimInss');
+  if (!b) return;
+  b.setAttribute('aria-expanded', b.getAttribute('aria-expanded') === 'true' ? 'false' : 'true');
+}
+
+function _mobSimInssResumo() {
+  const alvo = document.getElementById('mobSimInssResumo');
+  const vinc = document.getElementById('simVinculo');
+  const renda = document.getElementById('simRenda');
+  if (!alvo) return;
+  const opt = vinc && vinc.options[vinc.selectedIndex];
+  const nome = opt ? opt.textContent.split(/\s+[—(]/)[0].trim() : '';
+  const r = renda ? parseBRL(renda.value) : 0;
+  alvo.textContent =
+    (nome ? nome + ' · ' : '') +
+    'renda de ' +
+    (typeof formatarMoeda === 'function' ? formatarMoeda(r) : r);
+}
+
+document.addEventListener('input', function (e) {
+  const t = e.target;
+  if (!t || !t.closest || !t.closest('#simulador')) return;
+  if (t.classList && t.classList.contains('mob-sim-range')) return _mobSimDoControle(t);
+  if (MOB_SIM_LIMITES[t.id]) mobSimRanges();
+  if (t.id === 'simRenda') _mobSimInssResumo();
+});
+document.addEventListener('change', function (e) {
+  const t = e.target;
+  if (!t || !t.closest || !t.closest('#simulador')) return;
+  if (/TipoTaxa$|TipoTempo$|TipoPrazo$/.test(t.id)) mobSimRanges();
+  if (t.id === 'simVinculo') _mobSimInssResumo();
+});
+document.addEventListener('click', function (e) {
+  const b = e.target.closest && e.target.closest('#simulador .mob-sim-prazos button');
+  if (b) _mobSimPrazo(b);
+});
 
 // ------------------------------------------------------------
 // Início no celular: resposta primeiro, detalhe depois
@@ -1801,6 +1924,7 @@ function mobBaixarConta(id) {
   const nomeConta = conta ? conta.nome : t.banco || '';
   const dd = (t.dataVencimento || '').split('-').reverse().slice(0, 2).join('/');
   const idEsc = _mobEsc(String(t.id));
+  const hoje = typeof hojeYmdLocal === 'function' ? hojeYmdLocal() : '';
   const html =
     '<div class="mf-cab"><p class="mf-sobre">Vence ' +
     _mobEsc(dd) +
@@ -1814,6 +1938,17 @@ function mobBaixarConta(id) {
     '" value="' +
     _mobEsc(typeof formatarBRLInput === 'function' ? formatarBRLInput(t.valor) : String(t.valor)) +
     '" oninput="aplicarMascaraBRL(this)"></span></label>' +
+    // O dia em que foi pago: é quando o dinheiro sai da conta. Hoje por padrão;
+    // quem pagou ontem e lança hoje corrige aqui.
+    '<label class="mf-campo" for="input-pago-dia-' +
+    idEsc +
+    '">Pago em<span class="mf-campo-caixa"><input type="date" id="input-pago-dia-' +
+    idEsc +
+    '" value="' +
+    _mobEsc(hoje) +
+    '" max="' +
+    _mobEsc(hoje) +
+    '"></span></label>' +
     (nomeConta
       ? '<div class="mf-info"><i class="ph ph-bank"></i><span>Sai de <b>' +
         _mobEsc(nomeConta) +
@@ -1834,7 +1969,13 @@ function mobConfirmarBaixa(id) {
       mostrarToast('Por favor, informe um valor válido.', 'erro');
     return;
   }
-  // confirmarPagamento lê o mesmo campo pelo id; a folha fecha depois.
+  const dia = document.getElementById('input-pago-dia-' + id);
+  if (dia && dia.value && typeof hojeYmdLocal === 'function' && dia.value > hojeYmdLocal()) {
+    if (typeof mostrarToast === 'function')
+      mostrarToast('A data do pagamento não pode ser no futuro.', 'erro');
+    return;
+  }
+  // confirmarPagamento lê os mesmos campos pelo id; a folha fecha depois.
   confirmarPagamento(id);
   mobFolhaFechar();
 }
@@ -2394,6 +2535,235 @@ document.addEventListener('input', function (e) {
 });
 
 // ------------------------------------------------------------
+// Meus sonhos no celular: o topo no padrão do app
+// ------------------------------------------------------------
+// O mesmo resumo da "Visão geral" (renderResumoSonhos), com o guardado em
+// destaque como o total do Meu patrimônio. Os números saem das mesmas
+// contas: soma das metas, do guardado e de calcSonhoMensal por sonho.
+function mobRenderSonhos() {
+  const el = document.getElementById('sonhosMob');
+  if (!el) return;
+  _mobSonhosSaudeResumo();
+  const lista = typeof sonhos !== 'undefined' && Array.isArray(sonhos) ? sonhos : [];
+  if (!lista.length) {
+    el.innerHTML = '';
+    return;
+  }
+  const meta = lista.reduce((a, s) => a + (Number(s.valorTotal) || 0), 0);
+  const guardado = lista.reduce((a, s) => a + (Number(s.valorAtual) || 0), 0);
+  const falta = Math.max(0, meta - guardado);
+  const mensal = lista.reduce(
+    (a, s) =>
+      a +
+      (typeof calcSonhoMensal === 'function'
+        ? calcSonhoMensal(s.valorTotal, s.valorAtual, s.mesesRestantes) || 0
+        : 0),
+    0
+  );
+  const pct = meta > 0 ? Math.min(100, (guardado / meta) * 100) : 0;
+  const conquistados = lista.filter((s) => s.valorAtual >= s.valorTotal).length;
+  const agendados =
+    typeof statusSonho === 'function'
+      ? lista.filter((s) => statusSonho(s) === 'agendado').length
+      : 0;
+  const fmt = (v) => _mobEsc(_mobPatFmt(v));
+  const extra =
+    (conquistados ? ' · ' + conquistados + ' conquistado' + (conquistados === 1 ? '' : 's') : '') +
+    (agendados ? ' · ' + agendados + ' agendado' + (agendados === 1 ? '' : 's') : '');
+  el.innerHTML =
+    '<div class="mpm-cab"><h2 class="mpm-tit">Guardado nos sonhos</h2></div>' +
+    '<p class="mpm-valor valor-mascarado">' +
+    fmt(guardado) +
+    '</p>' +
+    '<p class="msn-sub">de <b class="valor-mascarado">' +
+    fmt(meta) +
+    '</b> · ' +
+    pct.toFixed(0) +
+    '% do total' +
+    extra +
+    '</p>' +
+    '<div class="msn-barra" role="progressbar" aria-label="Progresso geral" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' +
+    pct.toFixed(0) +
+    '"><span style="width:' +
+    pct.toFixed(1) +
+    '%"></span></div>' +
+    '<div class="mpm-chips">' +
+    '<div class="mpm-chip"><span class="mpm-chip-dot" style="background:var(--cor-erro)"></span><span class="mpm-chip-txt"><small>Falta</small><b class="valor-mascarado">' +
+    fmt(falta) +
+    '</b></span></div>' +
+    '<div class="mpm-chip"><span class="mpm-chip-dot" style="background:#7c3aed"></span><span class="mpm-chip-txt"><small>Por mês, somando</small><b class="valor-mascarado">' +
+    fmt(mensal) +
+    '</b></span></div>' +
+    '</div>' +
+    '<button type="button" class="msn-novo" onclick="abrirCadastroSonho()"><i class="ph-bold ph-plus"></i> Novo sonho</button>';
+}
+
+/** A linha da saúde financeira: o nível de hoje e, tocada, o painel inteiro. */
+function mobSonhosSaude() {
+  const b = document.getElementById('mobSonhosSaude');
+  if (!b) return;
+  b.setAttribute('aria-expanded', b.getAttribute('aria-expanded') === 'true' ? 'false' : 'true');
+}
+
+function _mobSonhosSaudeResumo() {
+  const txt = document.getElementById('mobSonhosSaudeResumo');
+  const ic = document.getElementById('mobSonhosSaudeIc');
+  if (!txt || typeof analisarSaudeFinanceiraSonhos !== 'function') return;
+  let a = null;
+  try {
+    a = analisarSaudeFinanceiraSonhos();
+  } catch (e) {
+    a = null;
+  }
+  if (!a || a.semDados) {
+    txt.textContent = 'Ainda sem dados do Controle para analisar';
+    if (ic) ic.style.removeProperty('--msn-cor');
+    return;
+  }
+  const nivel = { critico: 'Crítica', frágil: 'Frágil', estável: 'Estável', forte: 'Forte' }[
+    a.nivel
+  ];
+  txt.textContent =
+    (nivel || String(a.nivel || '')) +
+    ' · recomendado ' +
+    _mobPatFmt(a.recomendadoSonhos || 0) +
+    '/mês para sonhos';
+  if (ic && a.cor) ic.style.setProperty('--msn-cor', a.cor);
+}
+
+// ------------------------------------------------------------
+// Sonhos no celular: o cadastro em quatro telas
+// ------------------------------------------------------------
+// Os mesmos campos do desktop, uma pergunta por tela: o sonho, quanto custa,
+// para quando, de onde sai o dinheiro. A tela vive em data-sonho-etapa do
+// modal; o CSS mostra só os campos dela. Quem valida o conjunto e monta a
+// prévia continua sendo irParaPreviaSonho, como no desktop.
+var MOB_SONHO_PASSOS = 4;
+
+function _mobSonhoModal() {
+  return document.getElementById('modalSonho');
+}
+
+function _mobSonhoEtapa() {
+  const m = _mobSonhoModal();
+  return m ? Number(m.dataset.sonhoEtapa) || 1 : 1;
+}
+
+/** O que falta na tela para seguir; null quando está tudo certo. */
+function _mobSonhoFalta(passo) {
+  const val = (id) => (document.getElementById(id) || {}).value || '';
+  if (passo === 1 && !val('sonhoNome').trim()) return 'Dê um nome ao seu sonho!';
+  if (passo === 2 && !(parseBRL(val('sonhoValorTotal')) > 0))
+    return 'Informe o valor total da meta.';
+  if (passo === 3 && !(Number(val('sonhoPrazo')) >= 1)) return 'Escolha um prazo.';
+  return null;
+}
+
+/** Chamada também por sonhos.js: abrir/editar volta à 1; a prévia marca "previa". */
+function mobSonhoIrPasso(n) {
+  const m = _mobSonhoModal();
+  if (!m) return;
+  if (n === 'previa') {
+    m.dataset.sonhoEtapa = 'previa';
+    return;
+  }
+  const passo = Math.max(1, Math.min(MOB_SONHO_PASSOS, Number(n) || 1));
+  m.dataset.sonhoEtapa = String(passo);
+  const rot = document.getElementById('sonhoWizPasso');
+  if (rot) rot.textContent = 'Passo ' + passo + ' de ' + MOB_SONHO_PASSOS;
+  _mobSonhoDesenharCategorias();
+  _mobSonhoMarcarPrazo();
+  const card = m.firstElementChild;
+  if (card) card.scrollTop = 0;
+}
+
+function mobSonhoPasso(delta) {
+  const m = _mobSonhoModal();
+  if (m && m.dataset.sonhoEtapa === 'previa') return;
+  const atual = _mobSonhoEtapa();
+  if (delta > 0) {
+    const falta = _mobSonhoFalta(atual);
+    if (falta) return mostrarToast(falta, 'erro');
+  }
+  mobSonhoIrPasso(atual + delta);
+  if (delta > 0 && mobEhCelular()) {
+    // Leva o teclado ao primeiro campo da tela nova, como um app faz.
+    const alvo = { 2: 'sonhoValorTotal' }[_mobSonhoEtapa()];
+    const el = alvo && document.getElementById(alvo);
+    if (el && !el.value) setTimeout(() => el.focus(), 60);
+  }
+}
+
+/** Categorias em blocos de tocar, montados do próprio select (fonte única). */
+function _mobSonhoDesenharCategorias() {
+  const box = document.getElementById('sonhoWizCats');
+  const sel = document.getElementById('sonhoCategoria');
+  if (!box || !sel) return;
+  if (!box.childElementCount) {
+    box.innerHTML = Array.from(sel.options)
+      .map((o) => {
+        const txt = o.textContent.trim();
+        const i = txt.indexOf(' ');
+        const emoji = i > 0 ? txt.slice(0, i) : '';
+        const nome = i > 0 ? txt.slice(i + 1) : txt;
+        return (
+          '<button type="button" data-cat="' +
+          o.value +
+          '" onclick="mobSonhoCategoria(\'' +
+          o.value +
+          '\')"><span aria-hidden="true">' +
+          emoji +
+          '</span>' +
+          nome +
+          '</button>'
+        );
+      })
+      .join('');
+  }
+  box.querySelectorAll('button').forEach((b) => {
+    b.setAttribute('aria-pressed', b.dataset.cat === sel.value ? 'true' : 'false');
+  });
+}
+
+function mobSonhoCategoria(valor) {
+  const sel = document.getElementById('sonhoCategoria');
+  if (!sel) return;
+  sel.value = valor;
+  sel.dispatchEvent(new Event('change'));
+  _mobSonhoDesenharCategorias();
+}
+
+/** Atalho de prazo: escreve no campo de sempre (sonhoPrazo + unidade). */
+function mobSonhoPrazo(meses) {
+  const prazo = document.getElementById('sonhoPrazo');
+  const unidade = document.getElementById('sonhoPrazoUnidade');
+  if (!prazo) return;
+  const emAnos = meses >= 12 && meses % 12 === 0;
+  prazo.value = String(emAnos ? meses / 12 : meses);
+  if (unidade) unidade.value = emAnos ? 'anos' : 'meses';
+  prazo.dispatchEvent(new Event('input'));
+  _mobSonhoMarcarPrazo();
+}
+
+function _mobSonhoMarcarPrazo() {
+  const prazo = document.getElementById('sonhoPrazo');
+  const unidade = document.getElementById('sonhoPrazoUnidade');
+  if (!prazo) return;
+  const n = Number(prazo.value) || 0;
+  const meses = unidade && unidade.value === 'anos' ? n * 12 : n;
+  document.querySelectorAll('#sonhoWizPrazos button').forEach((b) => {
+    b.setAttribute('aria-pressed', Number(b.dataset.meses) === meses ? 'true' : 'false');
+  });
+}
+
+document.addEventListener('input', function (e) {
+  if (e.target && e.target.id === 'sonhoPrazo') _mobSonhoMarcarPrazo();
+});
+document.addEventListener('change', function (e) {
+  if (e.target && e.target.id === 'sonhoPrazoUnidade') _mobSonhoMarcarPrazo();
+});
+
+// ------------------------------------------------------------
 // Carteira no celular: a lista de compras do mês
 // ------------------------------------------------------------
 // O plano do motor (o mesmo objeto que cartRenderizarMotorPlano desenha em
@@ -2940,4 +3310,15 @@ function mobCartSecao(nome, abrir) {
   // O gráfico da simulação é desenhado num canvas escondido: ao abrir, ele
   // precisa do tamanho real.
   if (on && nome === 'sim') window.dispatchEvent(new Event('resize'));
+}
+
+/** Resultado do simulador no celular: Investindo ou INSS, uma aba de cada vez. */
+function mobSimComparar(lado) {
+  const grade = document.getElementById('simCompGrade');
+  if (!grade) return;
+  const l = lado === 'inss' ? 'inss' : 'inv';
+  grade.dataset.mobLado = l;
+  document.querySelectorAll('#simulador .mob-sim-comp button').forEach((b) => {
+    b.setAttribute('aria-selected', b.dataset.lado === l ? 'true' : 'false');
+  });
 }

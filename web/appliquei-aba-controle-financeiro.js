@@ -2889,6 +2889,7 @@ function prepararPagamento(id, contexto) {
             <div style="display: flex; gap: 5px; align-items: center; background: white; padding: 4px; border-radius: 6px; border: 1px solid var(--cor-primaria);">
                 <span style="font-size: 11px; font-weight:600; color:var(--cor-texto-secundario);">R$</span>
                 <input type="text" inputmode="decimal" id="input-pago-${id}" value="${formatarBRLInput(t.valor)}" oninput="aplicarMascaraBRL(this)" style="width: 90px; padding: 4px; border: 1px solid var(--cor-borda); border-radius: 4px; font-size: 13px; outline:none; color: var(--cor-texto-principal); font-weight: 600; text-align: right;">
+                <input type="date" id="input-pago-dia-${id}" value="${hojeYmdLocal()}" max="${hojeYmdLocal()}" title="Dia em que foi pago" aria-label="Dia em que foi pago" style="padding: 3px 4px; border: 1px solid var(--cor-borda); border-radius: 4px; font-size: 12px; color: var(--cor-texto-principal); background: var(--cor-superficie);">
                 <button onclick="confirmarPagamento('${id}')" style="background: var(--cor-primaria); color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; display:flex; align-items:center; gap:4px;"><i class="ph-bold ph-check"></i></button>
                 <button onclick="atualizarTelaControle()" style="background: #e2e8f0; color: var(--cor-texto-secundario); border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer;"><i class="ph-bold ph-x"></i></button>
             </div>
@@ -2900,9 +2901,12 @@ function prepararPagamento(id, contexto) {
 // cartão, a conta pagadora. É a parte de confirmarPagamento que não depende do
 // valor digitado — o "Já paguei" do Telegram passa por aqui também, para as
 // duas baixas não divergirem.
-function marcarTransacaoPaga(t) {
+// `diaPago` ('aaaa-mm-dd', opcional): o dia em que a conta foi paga, quando a
+// baixa é registrada depois ("paguei ontem, lancei hoje"). É a data em que o
+// dinheiro sai da conta (mpQuandoSaiDoCaixa). Vazio, hoje ou inválido = agora.
+function marcarTransacaoPaga(t, diaPago) {
   t.pago = true;
-  t.pagoEm = new Date().toISOString(); // pagamento explícito — protege da normalização
+  t.pagoEm = pagoEmDoDia(diaPago); // pagamento explícito — protege da normalização
   // Fase 3: baixa de cartão debita a conta pagadora do cartão.
   if (t.categoria === 'cartao_credito' && t.cartaoId && typeof obterCartao === 'function') {
     const card = obterCartao(t.cartaoId);
@@ -2930,11 +2934,32 @@ function efeitosDoPagamento(txPaga) {
   return efeito;
 }
 
+// Hoje, 'aaaa-mm-dd' no fuso local — o teto do campo "pago em".
+function hojeYmdLocal() {
+  const h = new Date();
+  return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
+}
+
+// O `pagoEm` de uma baixa. Dia de hoje (ou nenhum) = o instante de agora; dia
+// passado = meio-dia daquele dia (fuso-seguro). Dia futuro não existe: não se
+// paga amanhã — vira agora.
+function pagoEmDoDia(diaPago) {
+  const hoje = hojeYmdLocal();
+  if (!diaPago || !/^\d{4}-\d{2}-\d{2}$/.test(diaPago) || diaPago >= hoje)
+    return new Date().toISOString();
+  const d = new Date(diaPago + 'T12:00:00');
+  return isFinite(d.getTime()) ? d.toISOString() : new Date().toISOString();
+}
+
 function confirmarPagamento(id) {
   const inputVal = document.getElementById(`input-pago-${id}`).value;
   const novoValor = parseBRL(inputVal);
   if (isNaN(novoValor) || novoValor < 0)
     return mostrarToast('Por favor, informe um valor válido.', 'erro');
+  const elDia = document.getElementById(`input-pago-dia-${id}`);
+  const diaPago = elDia ? elDia.value : '';
+  if (diaPago && diaPago > hojeYmdLocal())
+    return mostrarToast('A data do pagamento não pode ser no futuro.', 'erro');
 
   let txPaga = null;
   transacoes = transacoes.map((t) => {
@@ -2943,7 +2968,7 @@ function confirmarPagamento(id) {
         t.valor = novoValor;
         if (t.groupId) t.groupId = null; // Isola o registro
       }
-      marcarTransacaoPaga(t);
+      marcarTransacaoPaga(t, diaPago);
       txPaga = t;
     }
     return t;
@@ -3490,7 +3515,15 @@ function atualizarTelaControle() {
       if (t.dataVencimento) {
         let [vAno, vMes, vDia] = t.dataVencimento.split('-');
         if (t.pago) {
-          vencimentoHtml = ` <span style="color: var(--cor-primaria); font-size: 10px; margin-left: 5px; font-weight: 600;"><i class="ph-bold ph-check"></i> Pago</span>`;
+          // A data do pagamento quando ela não é a do vencimento — é o que
+          // explica a linha estar num dia diferente do que a conta vencia.
+          const diaPago =
+            typeof appliqueiDiaDoPagamento === 'function' ? appliqueiDiaDoPagamento(t) : null;
+          const quando =
+            diaPago && diaPago !== t.dataVencimento
+              ? ' ' + diaPago.slice(8, 10) + '/' + diaPago.slice(5, 7)
+              : '';
+          vencimentoHtml = ` <span style="color: var(--cor-primaria); font-size: 10px; margin-left: 5px; font-weight: 600;"><i class="ph-bold ph-check"></i> Pago${quando}</span>`;
         } else if (t.dataVencimento === hojeStr) {
           vencimentoHtml = ` <span style="color: var(--cor-erro); font-weight: 700; background: var(--cor-bg-erro); padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 5px;"><i class="ph-fill ph-warning-circle"></i> HOJE</span>`;
         } else if (t.dataVencimento < hojeStr) {
@@ -4195,6 +4228,14 @@ function _extYmd(a, m, d) {
  *   3. sem nada, o dia 1.
  */
 function extratoDiaDe(t, mes, ano) {
+  // Conta paga entra no dia em que foi PAGA, se o pagamento caiu no mês da
+  // conta. Paga em outro mês (adiantada ou atrasada), fica no mês dela — o
+  // Controle é por competência — no dia do vencimento, com "Pago dd/mm" na
+  // linha. Compra no cartão segue a fatura, que tem o seu próprio dia.
+  if (t.categoria !== 'cartao_credito' && typeof appliqueiDiaDoPagamento === 'function') {
+    const pago = appliqueiDiaDoPagamento(t);
+    if (pago && pago.slice(0, 7) === _extYmd(ano, mes, 1).slice(0, 7)) return pago;
+  }
   if (t.dataVencimento && /^\d{4}-\d{2}-\d{2}$/.test(t.dataVencimento)) return t.dataVencimento;
   const ultimo = new Date(ano, mes + 1, 0).getDate();
   const d = t.data ? new Date(t.data) : null;

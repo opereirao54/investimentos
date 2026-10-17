@@ -79,7 +79,8 @@ const ESTADOS_MOB = {
 
 /**
  * Formulários e janelas: o DOM é o mesmo nos dois tamanhos, mas o CSS do
- * celular pode esconder algo lá dentro. [aba, como abrir, raiz].
+ * celular pode esconder algo lá dentro. [aba, como abrir, raiz, estados que
+ * só existem no celular (opcional)].
  */
 const OVERLAYS = [
   ['controle', 'abrirPainelLancamento()', '#painelNovoLancamento'],
@@ -93,7 +94,13 @@ const OVERLAYS = [
   ['controle', "abrirModalConfig('metas')", '#cfgPainelMetas'],
   ['controle', "abrirModalConfig('telegram')", '#cfgPainelTelegram'],
   ['controle', "abrirModalConfig('dados')", '#cfgPainelDados'],
-  ['meus_sonhos', 'abrirCadastroSonho()', '#modalSonho'],
+  // No celular o cadastro do sonho é um passo a passo: uma tela por vez.
+  [
+    'meus_sonhos',
+    'abrirCadastroSonho()',
+    '#modalSonho',
+    ['mobSonhoIrPasso(2)', 'mobSonhoIrPasso(3)', 'mobSonhoIrPasso(4)'],
+  ],
   ['meu_patrimonio', 'abrirNovoBemForm()', '#modalBem'],
   ['meu_patrimonio', 'abrirNovaContaForm()', '#formNovaConta'],
 ];
@@ -114,6 +121,8 @@ const EQUIVALENTES = {
     'no celular a categoria fica na gaveta "Filtros" do extrato (abrirFolhaFiltros → Categoria → Ver N lançamentos); a ativa vira etiqueta removível',
   'fn:mudarOrdemExtrato':
     'no celular a ordem fica na gaveta "Filtros" do extrato (abrirFolhaFiltros → Ordenar → Ver N lançamentos); fora de "Recentes" vira etiqueta removível',
+  '#sonhoCategoria':
+    'no celular a categoria do sonho é escolhida pelos blocos de tocar da primeira tela do cadastro (mobSonhoCategoria), que escrevem no mesmo select',
   'fn:filtrarExtratoPorOrigem':
     'no celular conta/cartão fica na gaveta "Filtros" do extrato (abrirFolhaFiltros → Conta ou cartão → Ver N lançamentos); a ativa vira etiqueta removível',
 };
@@ -202,12 +211,18 @@ async function percorrer(page, modo, recarregar) {
     }
     rel[aba] = acc;
   }
-  for (const [aba, abre, raiz] of OVERLAYS) {
+  for (const [aba, abre, raiz, estadosMob] of OVERLAYS) {
     await page.evaluate(irParaAbaNaPagina, aba);
     await page.waitForTimeout(400);
     await page.evaluate(abre);
     await page.waitForTimeout(450);
-    rel['janela ' + raiz] = await page.evaluate(coletarNaPagina, raiz);
+    const acc = await page.evaluate(coletarNaPagina, raiz);
+    for (const e of modo === 'mob' ? estadosMob || [] : []) {
+      await page.evaluate(e);
+      await page.waitForTimeout(300);
+      Object.assign(acc, await page.evaluate(coletarNaPagina, raiz));
+    }
+    rel['janela ' + raiz] = acc;
     await recarregar();
   }
   return rel;

@@ -591,6 +591,7 @@ function renderizarSonhos() {
 
   renderPainelSaudeSonhos();
   renderResumoSonhos();
+  if (typeof mobRenderSonhos === 'function') mobRenderSonhos();
 
   const toolbar = document.getElementById('sonhosToolbar');
   const toolbarLabel = document.getElementById('sonhosToolbarLabel');
@@ -1140,6 +1141,7 @@ function irParaPreviaSonho() {
       : '<i class="ph-bold ph-shooting-star"></i> Criar sonho';
   }
   renderPreviaSonho();
+  if (typeof mobSonhoIrPasso === 'function') mobSonhoIrPasso('previa');
   const card = document.querySelector('#modalSonho > div');
   if (card) card.scrollTop = 0;
 }
@@ -1152,6 +1154,8 @@ function voltarParaFormularioSonho() {
   document.getElementById('sonhoAcoesPasso1').style.display = 'flex';
   const titulo = document.getElementById('tituloModalSonho').querySelector('span');
   if (titulo) titulo.textContent = sonhoEditandoId ? 'Editar sonho' : 'Cadastrar novo sonho';
+  // No celular, "Ajustar" volta à última tela do cadastro (a da conta).
+  if (typeof mobSonhoIrPasso === 'function') mobSonhoIrPasso(4);
 }
 
 function destruirChartPreviaSonho() {
@@ -1382,6 +1386,7 @@ function resetarPassosSonho() {
   }
   if (a1) a1.style.display = 'flex';
   if (a2) a2.style.display = 'none';
+  if (typeof mobSonhoIrPasso === 'function') mobSonhoIrPasso(1);
 }
 
 function abrirCadastroSonho() {
@@ -1406,6 +1411,7 @@ function abrirCadastroSonho() {
   document.getElementById('sonhoCategoria').value = 'viagem';
   document.getElementById('sonhoEsforco').value = 'medio';
   selecionarEsforcoSonho('medio');
+  if (typeof mobSonhoIrPasso === 'function') mobSonhoIrPasso(1);
   document.getElementById('modalSonho').style.display = 'flex';
 }
 
@@ -1806,6 +1812,8 @@ function editarSonho(id) {
   setValorBRLInput(document.getElementById('sonhoValorInicial'), s.valorAtual);
   document.getElementById('sonhoCategoria').value = s.categoria;
   selecionarEsforcoSonho(s.esforco || 'medio');
+  // Os atalhos do celular (categoria, prazo) leem os campos já preenchidos.
+  if (typeof mobSonhoIrPasso === 'function') mobSonhoIrPasso(1);
   document.getElementById('modalSonho').style.display = 'flex';
 }
 
