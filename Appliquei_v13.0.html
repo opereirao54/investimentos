@@ -987,6 +987,18 @@
             color: var(--cor-texto-mutado);
         }
         .ins-porque-linha { display: flex; justify-content: space-between; gap: 10px; }
+        /* Aviso de aperto: os lançamentos que fazem a conta. */
+        .ins-comp { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--cor-borda); display: flex; flex-direction: column; gap: 6px; }
+        .ins-comp-titulo { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--cor-texto-mutado); }
+        .ins-comp-linha { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 8px; align-items: baseline; font-size: 12.5px; }
+        .ins-comp-dia { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--cor-texto-mutado); }
+        .ins-comp-desc { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--cor-texto-principal); }
+        .ins-comp-desc small { margin-left: 6px; font-size: 10.5px; color: var(--cor-texto-mutado); }
+        .ins-comp-linha b { font-family: 'DM Mono', monospace; font-weight: 600; white-space: nowrap; }
+        .ins-comp-sai b { color: var(--cor-erro); }
+        .ins-comp-entra b { color: var(--cor-primaria); }
+        .ins-comp-base .ins-comp-desc { font-weight: 600; }
+        .ins-comp-mais { font-size: 11px; color: var(--cor-texto-mutado); }
         .ins-porque-linha b {
             color: var(--cor-texto-principal);
             font-weight: 600;

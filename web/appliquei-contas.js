@@ -112,7 +112,7 @@ function saldoCaixaPorConta(refMs) {
   return mapa;
 }
 
-// Soma ao mapa de saldos tudo o que está AGENDADO na janela (agora, refMs],
+// Lista tudo o que está AGENDADO na janela (agora, refMs],
 // pago ou não — é a diferença entre "quanto tenho" e "quanto terei naquele dia".
 // Espelha as regras de caixa do Patrimônio (mpTransacaoComputaCaixa) menos a
 // exigência de `pago`, que é justamente o que ainda não aconteceu:
@@ -125,9 +125,10 @@ function saldoCaixaPorConta(refMs) {
 // baixada — sem arrastar cadastro velho que ninguém vai mais pagar.
 var ATRASO_MAXIMO_PROJETADO_MS = 30 * 86400000;
 
-function aplicarAgendadoNoSaldo(mapa, deMs, ateMs) {
-  if (typeof transacoes === 'undefined') return mapa;
-  if (typeof mpTimestampTransacao !== 'function') return mapa;
+function movimentosAgendados(deMs, ateMs) {
+  const lista = [];
+  if (typeof transacoes === 'undefined') return lista;
+  if (typeof mpTimestampTransacao !== 'function') return lista;
   // Aqui a granularidade é o DIA, não o mês: a pergunta é "quanto vou ter no dia
   // 15?", e mpTimestampTransacao devolve sempre o 1º dia da competência — o
   // aluguel do dia 20 apareceria descontado já no dia 15. mpDataMovimento é a
@@ -206,13 +207,30 @@ function aplicarAgendadoNoSaldo(mapa, deMs, ateMs) {
       return;
     if (ehExterno(t)) return;
     if (jaNaFoto(t)) return;
-    const chave =
-      typeof mpChaveInstTransacao === 'function' ? mpChaveInstTransacao(t).key : t.contaId;
-    if (!chave) return;
-    if (mapa[chave] == null) mapa[chave] = 0;
+    const inst =
+      typeof mpChaveInstTransacao === 'function'
+        ? mpChaveInstTransacao(t)
+        : { key: t.contaId, label: t.banco || '' };
+    if (!inst.key) return;
     const valor = Number(t.valor) || 0;
-    if (ehEntrada(t.categoria)) mapa[chave] += valor;
-    else mapa[chave] -= valor;
+    lista.push({
+      t: t,
+      ms: ts,
+      chave: inst.key,
+      rotuloConta: inst.label,
+      valor: ehEntrada(t.categoria) ? valor : -valor,
+    });
+  });
+  return lista;
+}
+
+// O saldo projetado é a foto de hoje MAIS estes movimentos. Separados numa
+// função própria para que quem EXPLICA a projeção (o aviso de aperto lista
+// as contas que entram na conta) leia exatamente a mesma lista que a calcula.
+function aplicarAgendadoNoSaldo(mapa, deMs, ateMs) {
+  movimentosAgendados(deMs, ateMs).forEach(function (m) {
+    if (mapa[m.chave] == null) mapa[m.chave] = 0;
+    mapa[m.chave] += m.valor;
   });
   return mapa;
 }

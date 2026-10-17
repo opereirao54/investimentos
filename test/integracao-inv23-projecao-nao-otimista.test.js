@@ -177,11 +177,18 @@ test('INV-23: a guarda de duplo-débito pergunta à foto, não à competência',
   const fs = require('node:fs');
   const path = require('node:path');
   const src = fs.readFileSync(path.resolve(__dirname, '..', 'web/appliquei-contas.js'), 'utf8');
+  // A guarda mora em movimentosAgendados, a lista que aplicarAgendadoNoSaldo
+  // soma (e que o aviso de aperto mostra).
   const corpo = src.slice(
-    src.indexOf('function aplicarAgendadoNoSaldo'),
+    src.indexOf('function movimentosAgendados'),
     src.indexOf('function contasComSaldo')
   );
-  assert.ok(corpo.length > 0, 'aplicarAgendadoNoSaldo não encontrada');
+  assert.ok(corpo.length > 0, 'movimentosAgendados não encontrada');
+  assert.ok(
+    corpo.includes('function aplicarAgendadoNoSaldo') &&
+      corpo.includes('movimentosAgendados(deMs, ateMs)'),
+    'o saldo projetado tem de somar a MESMA lista que o aviso mostra'
+  );
   assert.ok(
     corpo.includes('mpTransacaoComputaCaixa'),
     'a guarda tem de perguntar à mesma função que monta a foto de hoje'
