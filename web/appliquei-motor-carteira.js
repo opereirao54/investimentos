@@ -2145,6 +2145,15 @@ var MOTOR_OPCOES_CLASSE = {
 };
 
 var MOTOR_UNIDADE_CLASSE = { acao: 'ações', fii: 'cotas', cripto: 'unidades', rf: null };
+var MOTOR_UNIDADE_SINGULAR = { ações: 'ação', cotas: 'cota', unidades: 'unidade' };
+
+/** "11 ações", "1 cota"; cripto mostra só a quantidade (fracionada). */
+function motorQtdRotulo(it) {
+  if (!it || it.quantidade == null || !it.unidade) return '';
+  if (it.classe === 'cripto') return String(it.quantidade);
+  var un = it.quantidade === 1 ? MOTOR_UNIDADE_SINGULAR[it.unidade] || it.unidade : it.unidade;
+  return it.quantidade + ' ' + un;
+}
 
 /**
  * Divide o aporte do mês entre as classes.
@@ -2620,6 +2629,7 @@ var MotorCarteira = {
   planoClasse: motorPlanoClasse,
   recalcularItemTrocado: motorRecalcularItemTrocado,
   planoAporte: motorPlanoAporte,
+  qtdRotulo: motorQtdRotulo,
   COBERTURA_MINIMA: MOTOR_COBERTURA_MINIMA,
   CRITERIOS: MOTOR_CRITERIOS,
   criteriosDe: motorCriteriosDe,

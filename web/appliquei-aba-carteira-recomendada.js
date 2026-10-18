@@ -2307,9 +2307,7 @@ function cartRenderizarMotorPlano(plano) {
             .map(function (it) {
               var qtd =
                 it.quantidade != null && it.unidade
-                  ? '<span class="cart-plano-qtd">' +
-                    (it.classe === 'cripto' ? it.quantidade : it.quantidade + ' ' + it.unidade) +
-                    '</span>'
+                  ? '<span class="cart-plano-qtd">' + motorQtdRotulo(it) + '</span>'
                   : '';
               var chip =
                 it.score === null

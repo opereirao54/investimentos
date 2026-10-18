@@ -2893,11 +2893,7 @@ function mobRenderCarteiraPlano(plano) {
                       '</span>';
                 const qtd =
                   it.quantidade != null && it.unidade
-                    ? '<small>' +
-                      esc(
-                        it.classe === 'cripto' ? it.quantidade : it.quantidade + ' ' + it.unidade
-                      ) +
-                      '</small>'
+                    ? '<small>' + esc(motorQtdRotulo(it)) + '</small>'
                     : '';
                 const detalhe = aberto
                   ? '<div class="mcp-det"><p>' +
