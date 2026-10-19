@@ -92,7 +92,10 @@ test('o menu é acessível', () => {
   assert.match(HTML, /aria-haspopup="menu"/);
   assert.match(HTML, /aria-controls="fabMenu"/);
   assert.match(HTML, /role="menu"/);
-  assert.ok((HTML.match(/role="menuitem"/g) || []).length === 2);
+  // Lançamento, Investimento e "Pelo Telegram" (o atalho que mais poupa
+  // trabalho no dia a dia, posto onde a pessoa já procura para lançar).
+  assert.ok((HTML.match(/role="menuitem"/g) || []).length === 3);
+  assert.match(HTML, /onclick="ppFabTelegram\(\)"/);
   assert.match(corpo('abrirMenuCadastro'), /setAttribute\('aria-expanded', 'true'\)/);
   assert.match(corpo('fecharMenuCadastro'), /setAttribute\('aria-expanded', 'false'\)/);
   assert.match(APP, /ev\.key === 'Escape'.*fecharMenuCadastro/s, 'Esc fecha, como no resto do app');

@@ -14,13 +14,17 @@
  * antes serve para outra coisa: informar o saldo que a pessoa JÁ tinha, para
  * o "Meu patrimônio" não mostrar caixa negativo na primeira despesa paga.
  *
- * Ninguém adivinha isso olhando para uma tela vazia. Este módulo diz em voz
- * alta e leva pela mão, com duas peças:
+ * Ninguém adivinha isso olhando para uma tela vazia. Este módulo leva pela
+ * mão sem despejar tudo de uma vez, com três peças:
  *
- *   1. Modal de boas-vindas — só aparece com o app vazio. Responde à dúvida
- *      em uma frase e oferece as duas saídas: SEGUIR O GUIA ou PULAR.
- *   2. Cartão "Primeiros passos" — checklist no topo do conteúdo, um botão
- *      por passo que navega até a tela certa e já abre o formulário certo.
+ *   1. Modal de boas-vindas — só aparece com o app vazio. Mostra o caminho
+ *      inteiro em quatro linhas e oferece COMEÇAR ou PULAR.
+ *   2. Cartão "Primeiros passos" — no topo do conteúdo, UM passo aberto por
+ *      vez (conta, receita, gasto, Telegram), cada um com o botão que leva à
+ *      tela certa com o formulário aberto. Abaixo, "Quando quiser": sonho e
+ *      investimentos, que existem mas não são obrigação.
+ *   3. Telegram — a janela de conexão abre pelo passo do guia, pelo "+" e por
+ *      um lembrete de uma linha no Controle depois do guia.
  *
  * Os passos marcam-se sozinhos a partir dos DADOS, nunca de cliques: quem
  * importa um backup, ou lança por fora do guia, encontra tudo já concluído.
@@ -162,6 +166,47 @@ function ppTemInvestimento() {
 // convite. `cartoes` fica DE FORA de propósito — appliquei-app.js semeia um
 // "Cartão principal" no boot de todo mundo, e usá-lo aqui esconderia o guia
 // exatamente de quem mais precisa dele.
+function ppTemSonho() {
+  return ppSonhos().length > 0;
+}
+
+// ── Telegram como passo do guia ──
+// O passo só existe para quem tem sessão (o bot fala com a conta da pessoa) e
+// com o módulo do Telegram carregado. Conta como feito quando conecta — ou
+// quando a pessoa diz que não usa Telegram, que é resposta tão válida quanto.
+// A escolha mora numa chave appliquei_* para viajar entre celular e PC.
+var PP_CHAVE_TELEGRAM = 'appliquei_pp_telegram';
+
+function ppTelegramExiste() {
+  try {
+    return (
+      typeof telegramGerarLink === 'function' &&
+      typeof telegramUsuario === 'function' &&
+      !!telegramUsuario()
+    );
+  } catch (_) {
+    return false;
+  }
+}
+
+function ppTelegramConectado() {
+  try {
+    return (
+      typeof telegramEstado !== 'undefined' && !!telegramEstado && telegramEstado.conectado === true
+    );
+  } catch (_) {
+    return false;
+  }
+}
+
+function ppTelegramPulado() {
+  try {
+    return localStorage.getItem(PP_CHAVE_TELEGRAM) === 'pulado';
+  } catch (_) {
+    return false;
+  }
+}
+
 function ppAppVazio() {
   return (
     ppTransacoes().length === 0 &&
@@ -181,25 +226,23 @@ function ppAppVazio() {
 // obrigatório porque de fato não é — está aqui pelo saldo de abertura,
 // e o próprio cartão diz isso.
 function ppPassos() {
-  return [
+  var passos = [
     {
       id: 'conta',
       icone: 'ph-bank',
-      titulo: 'Diga onde seu dinheiro está hoje',
+      titulo: 'Onde está o seu dinheiro hoje',
       texto:
-        'Cadastre suas contas (Nubank, Itaú, a carteira do dia a dia) com o saldo que você tem <strong>neste momento</strong>. É isso que faz o Meu patrimônio começar com o número certo.',
-      selo: 'Recomendado',
-      acao: 'Cadastrar conta',
+        'Cadastre o banco que você mais usa e <strong>quanto tem nele agora</strong>. Assim o seu patrimônio já começa com o número certo.',
+      acao: 'Cadastrar meu banco',
       feito: ppTemConta(),
       essencial: true,
     },
     {
       id: 'receita',
       icone: 'ph-arrow-down-left',
-      titulo: 'Lance a sua receita',
+      titulo: 'Lance o que você recebe',
       texto:
-        'Salário, pró-labore, aluguel recebido. Basta digitar o nome do banco onde o dinheiro cai — <strong>não precisa ter cadastrado a conta antes</strong>.',
-      selo: '',
+        'Seu salário ou outra renda. É só digitar o nome do banco onde o dinheiro cai — <strong>não precisa</strong> ter cadastrado nada antes.',
       acao: 'Lançar receita',
       feito: ppTemReceita(),
       essencial: true,
@@ -207,26 +250,49 @@ function ppPassos() {
     {
       id: 'despesa',
       icone: 'ph-arrow-up-right',
-      titulo: 'Lance uma despesa',
-      texto:
-        'Aluguel, mercado, energia ou uma compra no cartão. Escolha de qual banco o dinheiro sai e a Appliquei desconta do saldo daquela conta.',
-      selo: '',
-      acao: 'Lançar despesa',
+      titulo: 'Lance um gasto',
+      texto: 'Mercado, aluguel, luz ou uma compra no cartão. O saldo do banco se ajusta sozinho.',
+      acao: 'Lançar gasto',
       feito: ppTemDespesa(),
       essencial: true,
+    },
+  ];
+  if (ppTelegramExiste()) {
+    passos.push({
+      id: 'telegram',
+      icone: 'ph-telegram-logo',
+      titulo: 'Lance pelo Telegram',
+      texto:
+        'O jeito mais rápido: mande <code>mercado 52,90</code> numa mensagem e o gasto entra no app sozinho, sem precisar abrir a Appliquei.',
+      acao: 'Conectar o Telegram',
+      feito: ppTelegramConectado() || ppTelegramPulado(),
+      pulado: !ppTelegramConectado() && ppTelegramPulado(),
+      essencial: true,
+    });
+  }
+  // "Quando quiser": o que a Appliquei faz além do mês, sem virar obrigação.
+  passos.push(
+    {
+      id: 'sonho',
+      icone: 'ph-star',
+      titulo: 'Cadastre um sonho',
+      texto: 'Viagem, carro, reserva: a Appliquei calcula quanto guardar por mês.',
+      acao: 'Criar sonho',
+      feito: ppTemSonho(),
+      essencial: false,
     },
     {
       id: 'investimento',
       icone: 'ph-trend-up',
-      titulo: 'Registre o que você já tem investido',
+      titulo: 'Registre seus investimentos',
       texto:
-        'Ações, fundos, Tesouro, cripto. Na origem do recurso escolha <strong>“Investimento já existente”</strong> para cadastrar sem descontar de nenhuma conta.',
-      selo: 'Opcional',
-      acao: 'Registrar investimento',
+        'Os que você já tem: marque <strong>“Investimento já existente”</strong> para não descontar do banco.',
+      acao: 'Registrar',
       feito: ppTemInvestimento(),
       essencial: false,
-    },
-  ];
+    }
+  );
+  return passos;
 }
 
 function ppProgresso() {
@@ -388,6 +454,17 @@ function ppIrParaPasso(id) {
     }, 220);
     return;
   }
+  if (id === 'telegram') {
+    ppAbrirTelegram();
+    return;
+  }
+  if (id === 'sonho') {
+    ppNavegarPara('meus_sonhos');
+    setTimeout(function () {
+      if (typeof abrirCadastroSonho === 'function') abrirCadastroSonho();
+    }, 220);
+    return;
+  }
   if (id === 'investimento') {
     ppNavegarPara('patrimonio');
     setTimeout(function () {
@@ -422,12 +499,14 @@ function ppAbrirBoasVindas() {
   if (sub) {
     sub.textContent = posReset
       ? 'Seus registros foram apagados. O caminho para reconstruir é curto — e é este aqui.'
-      : 'Antes de qualquer coisa, a dúvida que todo mundo tem no primeiro dia:';
+      : 'Vamos montar o seu mês juntos, um passo de cada vez. Leva poucos minutos.';
   }
 
-  // Primeira página: lançar pelo Telegram. Quem não tem sessão (convidado)
-  // ou já conectou vai direto para o guia.
-  ppMostrarPaginaBoasVindas(ppTelegramDisponivel() ? 'telegram' : 'guia');
+  // O Telegram NÃO abre antes do guia: pedir banco e conexão antes de a
+  // pessoa ver o app era informação demais na primeira tela. Ele é o passo 4
+  // do guia — quando já existe conta (o bot não precisa perguntar o banco) e
+  // a pessoa acabou de lançar à mão, o que deixa clara a vantagem.
+  ppMostrarPaginaBoasVindas('guia');
 
   modal.style.display = 'flex';
   try {
@@ -436,47 +515,21 @@ function ppAbrirBoasVindas() {
 }
 
 // ============================================================
-// --- Boas-vindas, página 1: lançar pelo Telegram ---
+// --- Telegram: janela de conexão (passo do guia, "+" e lembrete) ---
 // ============================================================
 //
-// Vem antes do guia porque é o que mais poupa trabalho no dia a dia. A pessoa
-// conecta ali mesmo ou toca em "Agora não" e segue para o guia. Como o
-// convite só aparece com o app VAZIO, ainda não existe conta: o bot precisa
-// saber de onde sai o dinheiro quando a mensagem não cita o banco, então a
-// página pergunta o banco do dia a dia (e o saldo, opcional) e cria a conta
-// já como principal — o mesmo que o passo "Suas contas" do guia pediria.
-
-var _ppPaginaTelegramMostrada = false;
-
-function ppTelegramDisponivel() {
-  try {
-    if (typeof telegramGerarLink !== 'function' || typeof telegramUsuario !== 'function') {
-      return false;
-    }
-    if (!telegramUsuario()) return false;
-    if (typeof telegramEstado !== 'undefined' && telegramEstado && telegramEstado.conectado) {
-      return false;
-    }
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
+// A mesma caixa do convite, aberta sozinha. Se ainda não houver conta de
+// onde o dinheiro sai, pergunta o banco do dia a dia (e o saldo, opcional) e
+// cria a conta já como principal — sem ela o bot não sabe de onde descontar.
 
 function ppMostrarPaginaBoasVindas(pagina) {
   var tg = document.getElementById('ppBvTelegram');
   var guia = document.getElementById('ppBvGuia');
   var modal = document.getElementById('ppBoasVindas');
   var noTelegram = pagina === 'telegram' && !!tg;
-  if (noTelegram) {
-    _ppPaginaTelegramMostrada = true;
-    ppTelegramPrepararPagina();
-  }
+  if (noTelegram) ppTelegramPrepararPagina();
   if (tg) tg.style.display = noTelegram ? '' : 'none';
   if (guia) guia.style.display = noTelegram ? 'none' : '';
-  // "2 de 2" só faz sentido se a pessoa passou pela página 1.
-  var etapa = document.getElementById('ppBvGuiaEtapa');
-  if (etapa) etapa.style.display = !noTelegram && _ppPaginaTelegramMostrada ? '' : 'none';
   if (modal) {
     modal.setAttribute('aria-labelledby', noTelegram ? 'ppBvTelegramTitulo' : 'ppBoasVindasTitulo');
     try {
@@ -602,26 +655,69 @@ function ppTelegramConectar() {
 
 // Chamada pelo appliquei-telegram.js a cada status novo do servidor.
 function ppTelegramStatusMudou() {
+  // O passo do guia e o lembrete dependem do status: redesenha sempre.
+  ppRenderizarCartao();
   var tg = document.getElementById('ppBvTelegram');
   if (!tg || tg.style.display === 'none') return;
-  if (typeof telegramEstado === 'undefined' || !telegramEstado || !telegramEstado.conectado) return;
+  if (!ppTelegramConectado()) return;
   var area = document.getElementById('ppTgLink');
-  // Já estava conectado antes de o convite abrir: a página não tem nada a
-  // oferecer — vai para o guia como se nunca tivesse aparecido.
+  // Já estava conectado antes de a janela abrir: não há o que oferecer.
   if (!area || !area.innerHTML) {
-    _ppPaginaTelegramMostrada = false;
-    ppMostrarPaginaBoasVindas('guia');
+    ppTelegramFechar();
     return;
   }
-  if (area) {
-    area.innerHTML =
-      '<div class="pp-tg-ok"><i class="ph-fill ph-check-circle"></i><span><strong>Telegram conectado!</strong> Mande <code>mercado 52,90</code> para o bot e veja o lançamento chegar.</span></div>';
-  }
+  area.innerHTML =
+    '<div class="pp-tg-ok"><i class="ph-fill ph-check-circle"></i><span><strong>Telegram conectado!</strong> Mande <code>mercado 52,90</code> para o bot e veja o lançamento chegar.</span></div>';
   ppTelegramBotaoSeguir(true);
 }
 
-function ppTelegramIrParaGuia() {
-  ppMostrarPaginaBoasVindas('guia');
+/** Abre a janela de conexão do Telegram (passo do guia, "+" e lembrete). */
+function ppAbrirTelegram() {
+  ppFecharGuiaPopup();
+  var modal = document.getElementById('ppBoasVindas');
+  if (!modal) return;
+  ppMostrarPaginaBoasVindas('telegram');
+  modal.style.display = 'flex';
+  try {
+    document.body.classList.add('pp-modal-aberto');
+  } catch (_) {}
+}
+
+/** "Agora não" / "Continuar": fecha e volta para onde a pessoa estava. */
+function ppTelegramFechar() {
+  ppFecharBoasVindas();
+  ppRenderizarCartao();
+}
+
+/** "Não uso Telegram": conclui o passo sem conectar e cala o lembrete. */
+function ppTelegramPular() {
+  try {
+    localStorage.setItem(PP_CHAVE_TELEGRAM, 'pulado');
+  } catch (_) {}
+  ppTelegramFechar();
+  if (typeof mostrarToast === 'function') {
+    mostrarToast(
+      'Tudo bem! Se mudar de ideia: ⚙ Configurações → Lançar pelo Telegram.',
+      'sucesso',
+      4500
+    );
+  }
+}
+
+/** Opção "Pelo Telegram" do botão "+". */
+function ppFabTelegram() {
+  if (typeof fecharMenuCadastro === 'function') fecharMenuCadastro();
+  if (ppTelegramConectado() && telegramEstado.bot) {
+    try {
+      window.open('https://t.me/' + encodeURIComponent(telegramEstado.bot), '_blank', 'noopener');
+    } catch (_) {}
+    return;
+  }
+  if (ppTelegramExiste()) {
+    ppAbrirTelegram();
+    return;
+  }
+  if (typeof abrirModalConfig === 'function') abrirModalConfig('telegram');
 }
 
 function ppFecharBoasVindas() {
@@ -700,44 +796,73 @@ function ppFecharGuiaPopup() {
 // --- Cartão "Primeiros passos" ---
 // ============================================================
 
-function ppHtmlPasso(p, numero) {
-  var selo = p.selo
-    ? '<span class="pp-selo' +
-      (p.selo === 'Opcional' ? ' pp-selo-fraco' : '') +
-      '">' +
-      p.selo +
-      '</span>'
-    : '';
+// Um passo por vez: só o passo da vez aparece aberto, com texto e botão. Os
+// feitos encolhem para uma linha com ✓ e os próximos para uma linha apagada —
+// a pessoa vê o caminho inteiro sem ter de ler quatro parágrafos.
+function ppHtmlPasso(p, numero, atual) {
   var marcador = p.feito
     ? '<span class="pp-num pp-num-feito"><i class="ph-bold ph-check"></i></span>'
     : '<span class="pp-num">' + numero + '</span>';
-  var botao = p.feito
-    ? '<span class="pp-feito-txt"><i class="ph-fill ph-check-circle"></i> Feito</span>'
-    : '<button type="button" class="pp-btn-passo" onclick="ppIrParaPasso(\'' +
-      p.id +
-      '\')"><i class="ph ph-arrow-right"></i> ' +
-      p.acao +
-      '</button>';
-
+  var tit = '<div class="pp-passo-tit"><i class="ph ' + p.icone + '"></i> ' + p.titulo + '</div>';
+  if (!atual) {
+    return (
+      '<li class="pp-passo pp-passo-compacto' +
+      (p.feito ? ' pp-passo-feito' : ' pp-passo-depois') +
+      '">' +
+      marcador +
+      '<div class="pp-passo-corpo">' +
+      tit +
+      '</div>' +
+      (p.feito
+        ? '<span class="pp-feito-txt">' +
+          (p.pulado ? 'Pulado' : '<i class="ph-fill ph-check-circle"></i> Feito') +
+          '</span>'
+        : '') +
+      '</li>'
+    );
+  }
+  var extra =
+    p.id === 'telegram'
+      ? '<button type="button" class="pp-link pp-link-pular" onclick="ppTelegramPular()">Não uso Telegram</button>'
+      : '';
   return (
-    '<li class="pp-passo' +
-    (p.feito ? ' pp-passo-feito' : '') +
-    '">' +
+    '<li class="pp-passo pp-passo-atual">' +
     marcador +
     '<div class="pp-passo-corpo">' +
-    '<div class="pp-passo-tit"><i class="ph ' +
-    p.icone +
-    '"></i> ' +
-    p.titulo +
-    selo +
-    '</div>' +
+    tit +
     '<p class="pp-passo-txt">' +
     p.texto +
     '</p>' +
+    '<div class="pp-passo-acao"><button type="button" class="pp-btn-passo" onclick="ppIrParaPasso(\'' +
+    p.id +
+    '\')"><i class="ph ph-arrow-right"></i> ' +
+    p.acao +
+    '</button>' +
+    extra +
     '</div>' +
-    '<div class="pp-passo-acao">' +
-    botao +
     '</div>' +
+    '</li>'
+  );
+}
+
+function ppHtmlExtra(p) {
+  return (
+    '<li class="pp-extra' +
+    (p.feito ? ' pp-extra-feito' : '') +
+    '"><span class="pp-extra-ic"><i class="ph ' +
+    p.icone +
+    '"></i></span><div class="pp-extra-txt"><strong>' +
+    p.titulo +
+    '</strong><span>' +
+    p.texto +
+    '</span></div>' +
+    (p.feito
+      ? '<span class="pp-feito-txt"><i class="ph-fill ph-check-circle"></i> Feito</span>'
+      : '<button type="button" class="pp-btn-extra" onclick="ppIrParaPasso(\'' +
+        p.id +
+        '\')">' +
+        p.acao +
+        '</button>') +
     '</li>'
   );
 }
@@ -745,26 +870,39 @@ function ppHtmlPasso(p, numero) {
 /** `emJanela`: dentro da janela aberta por Configurações — o X só fecha. */
 function ppHtmlCartao(emJanela) {
   var passos = ppPassos();
+  var essenciais = passos.filter(function (p) {
+    return p.essencial;
+  });
+  var extras = passos.filter(function (p) {
+    return !p.essencial;
+  });
   var prog = ppProgresso();
   var completo = ppEssenciaisConcluidos();
   var pct = prog.total ? Math.round((prog.feitos / prog.total) * 100) : 0;
+  var atual = essenciais.filter(function (p) {
+    return !p.feito;
+  })[0];
 
-  var itens = passos
+  var itens = essenciais
     .map(function (p, i) {
-      return ppHtmlPasso(p, i + 1);
+      return ppHtmlPasso(p, i + 1, p === atual);
     })
     .join('');
 
-  var rodape = completo
+  var final = completo
     ? '<div class="pp-final">' +
-      '<div class="pp-final-txt"><i class="ph-fill ph-seal-check"></i> <strong>Pronto!</strong> O essencial está registrado — daqui em diante é só manter o mês em dia.</div>' +
+      '<div class="pp-final-txt"><i class="ph-fill ph-seal-check"></i> <strong>Pronto!</strong> Seu mês já está na Appliquei. Daqui em diante é só lançar os gastos.</div>' +
       '<button type="button" class="pp-btn-primario" onclick="ppConcluirGuia()"><i class="ph ph-check"></i> Fechar o guia</button>' +
       '</div>'
-    : '<div class="pp-nota">' +
-      '<i class="ph-fill ph-info"></i> <strong>Não precisa cadastrar conta antes de lançar.</strong> ' +
-      'Na receita e na despesa você digita o nome do banco e a Appliquei cria a conta sozinha. ' +
-      'Cadastrar antes serve só para informar o saldo que você <em>já tinha</em> — assim o patrimônio não nasce negativo.' +
-      '</div>';
+    : '';
+
+  var blocoExtras = extras.length
+    ? '<div class="pp-extras">' +
+      '<div class="pp-extras-cab"><strong>Quando quiser</strong><span>Não precisa ser agora.</span></div>' +
+      '<ul class="pp-extras-lista">' +
+      extras.map(ppHtmlExtra).join('') +
+      '</ul></div>'
+    : '';
 
   return (
     '<section class="pp-cartao" aria-label="Primeiros passos">' +
@@ -773,8 +911,8 @@ function ppHtmlCartao(emJanela) {
     '<h2><i class="ph-fill ph-compass"></i> Primeiros passos</h2>' +
     '<p>' +
     (completo
-      ? 'Você concluiu os ' + prog.total + ' passos essenciais.'
-      : prog.feitos + ' de ' + prog.total + ' passos essenciais concluídos.') +
+      ? 'Você concluiu os ' + prog.total + ' passos.'
+      : 'Passo ' + (prog.feitos + 1) + ' de ' + prog.total + ' — um de cada vez.') +
     '</p>' +
     '</div>' +
     (emJanela
@@ -788,7 +926,8 @@ function ppHtmlCartao(emJanela) {
     '<ol class="pp-passos">' +
     itens +
     '</ol>' +
-    rodape +
+    final +
+    blocoExtras +
     '<div class="pp-rodape-links">' +
     '<button type="button" class="pp-link" onclick="ppPularGuia()">Pular o guia</button>' +
     '<span class="pp-rodape-sep">·</span>' +
@@ -798,12 +937,39 @@ function ppHtmlCartao(emJanela) {
   );
 }
 
+// Depois do guia (concluído ou pulado), quem ainda não conectou o Telegram vê
+// um lembrete de uma linha no Controle — só depois do primeiro lançamento,
+// que é quando a vantagem fica óbvia. O X cala para sempre (mesma chave do
+// "Não uso Telegram"). `conectado === false` e não "falsy": `null` é o status
+// ainda a chegar, e o lembrete não pode piscar para quem já conectou.
+function ppDeveLembrarTelegram() {
+  var e = ppEstadoAtual();
+  if (e !== 'concluido' && e !== 'pulado') return false;
+  if (!ppTelegramExiste() || ppTelegramPulado()) return false;
+  if (typeof telegramEstado === 'undefined' || !telegramEstado) return false;
+  if (telegramEstado.conectado !== false) return false;
+  return ppTransacoes().length > 0;
+}
+
+function ppHtmlLembreteTelegram() {
+  return (
+    '<div class="pp-lembrete-tg" role="note">' +
+    '<i class="ph-fill ph-telegram-logo pp-lembrete-ic"></i>' +
+    '<div class="pp-lembrete-txt"><strong>Lance pelo Telegram</strong>' +
+    '<span>Mande <code>mercado 52,90</code> numa mensagem e o gasto entra sozinho.</span></div>' +
+    '<button type="button" class="pp-btn-passo" onclick="ppAbrirTelegram()">Conectar</button>' +
+    '<button type="button" class="pp-btn-fechar" onclick="ppTelegramPular()" aria-label="Não mostrar mais" title="Não mostrar mais"><i class="ph ph-x"></i></button>' +
+    '</div>'
+  );
+}
+
 function ppRenderizarCartao() {
   var alvo = document.getElementById('ppGuia');
   if (!alvo) return false;
   if (!ppDeveMostrarCartao()) {
-    alvo.innerHTML = '';
-    alvo.hidden = true;
+    var lembrete = ppDeveLembrarTelegram();
+    alvo.innerHTML = lembrete ? ppHtmlLembreteTelegram() : '';
+    alvo.hidden = !lembrete;
     return false;
   }
   alvo.hidden = false;

@@ -656,6 +656,17 @@ function verificarRegraCartao() {
   const grupoVenc = document.getElementById('grupoVencimentoControle');
   const gridCatVenc = document.getElementById('gridCategoriaVencimento');
   if (grupoVenc) grupoVenc.style.display = ehCartao ? 'none' : '';
+  // "Vencimento" é palavra de conta a pagar: no salário confundia quem está
+  // começando. O campo é o mesmo; muda só como ele se apresenta.
+  const lblVenc = document.getElementById('lblVencimentoControle');
+  if (lblVenc) {
+    lblVenc.textContent =
+      cat === 'receita' || cat === 'resgate_investimento'
+        ? 'Data do recebimento'
+        : cat === 'despesa_variavel'
+          ? 'Data do gasto'
+          : 'Vencimento';
+  }
   // Sem o vencimento, a grade de duas colunas deixaria a Categoria sozinha
   // ocupando metade da linha, com um buraco do lado.
   if (gridCatVenc) gridCatVenc.style.gridTemplateColumns = ehCartao ? '1fr' : '';
@@ -685,7 +696,7 @@ function verificarRegraCartao() {
     divParcelas.style.display = 'none';
     divFixa.style.display = 'flex';
     document.getElementById('qtdParcelas').value = 1;
-    lblValor.innerText = 'Valor Monetário (R$)';
+    lblValor.innerText = 'Valor (R$)';
     const formInlineCart = document.getElementById('formNovoCartaoInline');
     if (formInlineCart) formInlineCart.style.display = 'none';
 
@@ -1586,7 +1597,7 @@ function tentarSalvarTransacao() {
 
   if (!desc || !Number.isFinite(valorTotal) || valorTotal <= 0 || !categoria)
     return mostrarToast(
-      'Preencha a descrição, o valor e escolha uma Classificação Contábil válida!',
+      'Preencha a descrição e o valor, e escolha o tipo: Entrada, Saída ou Cartão.',
       'erro'
     );
 
@@ -1683,7 +1694,7 @@ function executarEdicao(modo) {
 
   if (!desc || !Number.isFinite(valorTotal) || valorTotal <= 0 || !categoria) {
     return mostrarToast(
-      'Preencha a descrição, o valor e escolha uma Classificação Contábil válida!',
+      'Preencha a descrição e o valor, e escolha o tipo: Entrada, Saída ou Cartão.',
       'erro'
     );
   }
@@ -1939,7 +1950,7 @@ function executarInsercao() {
   const erro = validarLancamento(dados);
   if (erro === 'dados_invalidos') {
     return mostrarToast(
-      'Preencha a descrição, o valor e escolha uma Classificação Contábil válida!',
+      'Preencha a descrição e o valor, e escolha o tipo: Entrada, Saída ou Cartão.',
       'erro'
     );
   }
