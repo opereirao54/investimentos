@@ -7513,6 +7513,7 @@
         }
         .fab-opcao-icone.lanc { background: var(--cor-bg-primaria); color: var(--tinta-verde); }
         .fab-opcao-icone.inv { background: var(--cor-bg-info); color: var(--tinta-azul); }
+        .fab-opcao-icone.tg { background: rgba(34,158,217,0.12); color: #229ed9; }
         .fab-opcao-txt { display: grid; gap: 2px; min-width: 0; }
         .fab-opcao-titulo { font-size: 13.5px; font-weight: 700; }
         .fab-opcao-sub { font-size: 11.5px; color: var(--cor-texto-mutado); line-height: 1.35; }
@@ -10505,6 +10506,53 @@
             font-size: 12px; font-weight: 700; color: var(--cor-txt-primaria);
         }
 
+        /* Um passo por vez: o da vez aberto e destacado; os outros numa linha. */
+        .pp-passo-atual { border-color: var(--cor-primaria); background: var(--cor-branco); box-shadow: 0 0 0 3px var(--cor-bg-primaria); }
+        .pp-passo-atual .pp-num { border-color: var(--cor-primaria); color: var(--cor-primaria); }
+        .pp-passo-atual .pp-passo-acao { margin-top: 10px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .pp-passo-compacto { align-items: center; padding: 8px 14px; }
+        .pp-passo-compacto .pp-passo-tit { margin-bottom: 0; flex-wrap: nowrap; }
+        .pp-passo-compacto .pp-passo-tit i { display: none; }
+        .pp-tg-passos { margin: 0 0 14px; padding-left: 20px; display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--cor-texto-secundario); line-height: 1.45; }
+        .pp-tg-passos strong { color: var(--cor-texto-principal); }
+        .pp-tg-passos code { font-family: 'DM Mono', monospace; font-size: 0.92em; padding: 1px 5px; border-radius: 5px; background: var(--cor-superficie); border: 1px solid var(--cor-borda); }
+        .pp-passo-depois { opacity: 0.6; }
+        .pp-passo-txt code, .pp-lembrete-txt code { font-family: 'DM Mono', monospace; font-size: 0.92em; padding: 1px 5px; border-radius: 5px; background: var(--cor-superficie); border: 1px solid var(--cor-borda); }
+
+        /* "Quando quiser": sonhos e investimentos, sem virar obrigação. */
+        .pp-extras { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--cor-borda2); }
+        .pp-extras-cab { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; font-size: 13px; color: var(--cor-texto-principal); }
+        .pp-extras-cab span { font-size: 11.5px; color: var(--cor-texto-mutado); }
+        .pp-extras-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+        .pp-extra { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--cor-borda); border-radius: var(--radius-sm); background: var(--cor-superficie); }
+        .pp-extra-ic { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; background: var(--cor-branco); border: 1px solid var(--cor-borda); color: var(--cor-primaria); font-size: 16px; }
+        .pp-extra-txt { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .pp-extra-txt strong { font-size: 13px; color: var(--cor-texto-principal); }
+        .pp-extra-txt span { font-size: 12px; line-height: 1.45; color: var(--cor-texto-secundario); }
+        .pp-extra-feito { opacity: 0.72; }
+        .pp-btn-extra {
+            flex: 0 0 auto; padding: 7px 12px; border-radius: var(--radius-sm);
+            border: 1px solid var(--cor-primaria); background: transparent; color: var(--cor-txt-primaria);
+            font-family: 'Figtree', sans-serif; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
+        }
+        .pp-btn-extra:hover { background: var(--cor-bg-primaria); }
+
+        /* Lembrete do Telegram depois do guia: uma linha, só no Controle. */
+        .pp-lembrete-tg {
+            display: none; align-items: center; gap: 12px; padding: 12px 14px;
+            border-radius: var(--radius); background: var(--cor-branco);
+            border: 1px solid var(--cor-borda-info); box-shadow: var(--shadow-card);
+        }
+        .main-content:has(#controle.ativa) .pp-lembrete-tg { display: flex; }
+        #ppGuia:has(.pp-lembrete-tg) { margin-bottom: 14px; }
+        .main-content:not(:has(#controle.ativa)) #ppGuia:has(.pp-lembrete-tg) { display: none; }
+        .pp-lembrete-ic { color: #229ed9; font-size: 26px; flex: 0 0 auto; }
+        .pp-lembrete-txt { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .pp-lembrete-txt strong { font-size: 13.5px; color: var(--cor-texto-principal); }
+        .pp-lembrete-txt span { font-size: 12.5px; color: var(--cor-texto-secundario); line-height: 1.45; }
+        .pp-bv-depois { font-size: 12.5px; color: var(--cor-texto-mutado); margin: -6px 0 18px; }
+        .pp-bv-depois i { color: var(--cor-primaria); vertical-align: -2px; }
+
         .pp-nota, .pp-final {
             margin-top: 14px; padding: 11px 13px; border-radius: var(--radius-sm);
             font-size: 12.5px; line-height: 1.55;
@@ -10572,16 +10620,6 @@
         .pp-bv-caixa h2 i { color: var(--cor-primaria); font-size: 22px; }
         .pp-bv-sub { font-size: 13px; color: var(--cor-texto-mutado); margin: 0 0 16px; line-height: 1.55; }
 
-        /* O bloco que responde à dúvida. É o motivo de o modal existir, então
-           é o primeiro e o mais destacado. */
-        .pp-bv-resposta {
-            background: var(--cor-bg-primaria); border: 1px solid var(--cor-borda-primaria);
-            border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 16px;
-        }
-        .pp-bv-resposta-q { font-size: 12.5px; color: var(--cor-texto-mutado); font-style: italic; margin: 0 0 8px; line-height: 1.5; }
-        .pp-bv-resposta-a { font-size: 13.5px; color: var(--cor-txt-primaria); margin: 0; line-height: 1.6; }
-        .pp-bv-resposta-a strong { font-weight: 700; }
-
         .pp-bv-mini { list-style: none; margin: 0 0 18px; padding: 0; display: flex; flex-direction: column; gap: 9px; }
         .pp-bv-mini li { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--cor-texto-secundario); line-height: 1.5; }
         .pp-bv-mini .pp-bv-mini-num {
@@ -10602,8 +10640,7 @@
         .pp-bv-pular:hover { border-color: var(--cor-texto-mutado); color: var(--cor-texto-principal); }
         .pp-bv-nota { margin: 14px 0 0; font-size: 11.5px; color: var(--cor-texto-mutado); text-align: center; line-height: 1.5; }
 
-        /* ---------- Convite, página 1: Telegram ---------- */
-        .pp-bv-etapa { display: inline-block; margin-bottom: 10px; padding: 3px 10px; border-radius: 999px; background: var(--cor-superficie); border: 1px solid var(--cor-borda2); font-size: 11px; font-weight: 700; color: var(--cor-texto-mutado); letter-spacing: 0.3px; }
+        /* ---------- Janela do Telegram ---------- */
         #ppBvTelegram h2 i { color: #229ed9; }
         /* A conversa de exemplo é a explicação: ver o "mercado 52,90" virar
            lançamento diz mais que um parágrafo. */
@@ -10631,9 +10668,10 @@
         @media (max-width: 768px) {
             #ppGuia { margin-bottom: 18px; }
             .pp-cartao { padding: 16px 15px 14px; }
-            .pp-passo { flex-wrap: wrap; }
-            .pp-passo-acao { width: 100%; padding-left: 36px; }
-            .pp-btn-passo { width: 100%; justify-content: center; }
+            .pp-passo-atual .pp-btn-passo { width: 100%; justify-content: center; }
+            .pp-passo-atual .pp-passo-acao { flex-direction: column; align-items: stretch; gap: 10px; }
+            .pp-lembrete-tg { flex-wrap: wrap; }
+            .pp-lembrete-tg .pp-btn-passo { order: 3; width: 100%; justify-content: center; }
             .pp-final { flex-direction: column; align-items: stretch; }
             .pp-btn-primario { justify-content: center; }
             .pp-bv-caixa { padding: 22px 18px 18px; }
@@ -12945,12 +12983,11 @@
         <div class="pp-popup-caixa" id="ppGuiaPopupConteudo"></div>
     </div>
     <div id="ppBoasVindas" role="dialog" aria-modal="true" aria-labelledby="ppBoasVindasTitulo">
-        <!-- Página 1: lançar pelo Telegram. Vem antes do guia porque é o que
-             mais economiza tempo no dia a dia; a pessoa conecta aqui mesmo
-             ou passa para o guia ("Agora não"). Some para quem já conectou
-             ou está no modo convidado (ppTelegramDisponivel). -->
+        <!-- Conectar o Telegram. Abre sozinha pelo passo do guia, pela opção
+             "Pelo Telegram" do "+" e pelo lembrete do Controle
+             (ppAbrirTelegram). Não vem antes do guia: na primeira tela era
+             informação demais. -->
         <div class="pp-bv-caixa" id="ppBvTelegram" style="display:none;">
-            <span class="pp-bv-etapa">1 de 2</span>
             <h2 id="ppBvTelegramTitulo"><i class="ph-fill ph-telegram-logo"></i> Lance seus gastos pelo Telegram</h2>
             <p class="pp-bv-sub">Gastou? Mande uma mensagem para o nosso bot e o lançamento entra no app, sem precisar abrir a Appliquei.</p>
 
@@ -12961,6 +12998,12 @@
                 <div class="pp-tg-msg pp-tg-bot"><i class="ph-fill ph-check-circle"></i> Compra no cartão: Tênis · 3x de R$ 100,00</div>
                 <span class="pp-tg-legenda">Exemplo</span>
             </div>
+
+            <ol class="pp-tg-passos">
+                <li>Toque em <strong>Conectar o Telegram</strong>.</li>
+                <li>O Telegram abre: toque em <strong>Iniciar</strong>.</li>
+                <li>Pronto! Mande <code>mercado 52,90</code> e o gasto aparece aqui.</li>
+            </ol>
 
             <!-- Só aparece sem conta principal: o bot precisa saber de onde sai
                  o dinheiro quando a mensagem não cita o banco. -->
@@ -12979,29 +13022,25 @@
 
             <div class="pp-bv-acoes" id="ppTgAcoes">
                 <button type="button" class="pp-bv-seguir" id="ppTgConectar" onclick="ppTelegramConectar()"><i class="ph ph-telegram-logo"></i> Conectar o Telegram</button>
-                <button type="button" class="pp-bv-pular" id="ppTgPular" onclick="ppTelegramIrParaGuia()"><i class="ph ph-arrow-right"></i> Agora não</button>
+                <button type="button" class="pp-bv-pular" id="ppTgPular" onclick="ppTelegramFechar()"><i class="ph ph-arrow-right"></i> Agora não</button>
             </div>
-            <p class="pp-bv-nota">Dá para conectar depois em <strong>&#9881; Configurações → Lançar pelo Telegram</strong>.</p>
+            <p class="pp-bv-nota">Não tem Telegram? É grátis na loja de apps do seu celular. Dá para conectar depois em <strong>&#9881; Configurações → Lançar pelo Telegram</strong>. <button type="button" class="pp-link" onclick="ppTelegramPular()">Não uso Telegram</button></p>
         </div>
 
         <div class="pp-bv-caixa" id="ppBvGuia">
-            <span class="pp-bv-etapa" id="ppBvGuiaEtapa" style="display:none;">2 de 2</span>
             <h2 id="ppBoasVindasTitulo"><i class="ph-fill ph-hand-waving"></i> Bem-vindo à Appliquei</h2>
-            <p class="pp-bv-sub" id="ppBoasVindasSub">Antes de qualquer coisa, a dúvida que todo mundo tem no primeiro dia:</p>
-
-            <div class="pp-bv-resposta">
-                <p class="pp-bv-resposta-q">&ldquo;Preciso criar uma conta em Meu patrimônio para conseguir cadastrar uma despesa? E para a receita, também preciso?&rdquo;</p>
-                <p class="pp-bv-resposta-a"><strong>Não precisa.</strong> Ao lançar uma receita ou uma despesa você digita o nome do banco e a Appliquei cria a conta sozinha. Cadastrar antes serve para outra coisa: informar o <strong>saldo que você já tem hoje</strong>, para o seu patrimônio não começar negativo.</p>
-            </div>
+            <p class="pp-bv-sub" id="ppBoasVindasSub">Vamos montar o seu mês juntos, um passo de cada vez. Leva poucos minutos.</p>
 
             <ol class="pp-bv-mini">
-                <li><span class="pp-bv-mini-num">1</span><span><strong>Suas contas</strong> — onde o dinheiro está agora, com o saldo atual.</span></li>
-                <li><span class="pp-bv-mini-num">2</span><span><strong>Sua receita</strong> — salário, pró-labore, aluguel recebido.</span></li>
-                <li><span class="pp-bv-mini-num">3</span><span><strong>Uma despesa</strong> — e o saldo da conta certa já se ajusta.</span></li>
+                <li><span class="pp-bv-mini-num">1</span><span><strong>Onde está o seu dinheiro</strong> — o banco que você usa e quanto tem hoje.</span></li>
+                <li><span class="pp-bv-mini-num">2</span><span><strong>O que entra</strong> — seu salário ou outra renda.</span></li>
+                <li><span class="pp-bv-mini-num">3</span><span><strong>O que sai</strong> — um gasto do mês.</span></li>
+                <li><span class="pp-bv-mini-num">4</span><span><strong>Lançar pelo Telegram</strong> — o próximo gasto chega por mensagem.</span></li>
             </ol>
+            <p class="pp-bv-depois"><i class="ph ph-sparkle"></i> Depois, quando quiser: <strong>sonhos</strong> e <strong>investimentos</strong>.</p>
 
             <div class="pp-bv-acoes">
-                <button type="button" class="pp-bv-seguir" onclick="ppComecarGuia()"><i class="ph-fill ph-compass"></i> Seguir o guia</button>
+                <button type="button" class="pp-bv-seguir" onclick="ppComecarGuia()"><i class="ph-fill ph-compass"></i> Começar</button>
                 <button type="button" class="pp-bv-pular" onclick="ppPularGuia()"><i class="ph ph-arrow-right"></i> Pular, quero explorar sozinho</button>
             </div>
             <p class="pp-bv-nota">Você pode reabrir o guia quando quiser em <strong>&#9881; Configurações</strong>.</p>
@@ -13277,6 +13316,13 @@
             <span class="fab-opcao-txt">
                 <span class="fab-opcao-titulo">Investimento</span>
                 <span class="fab-opcao-sub">Compra, aporte ou venda em Meus investimentos</span>
+            </span>
+        </button>
+        <button type="button" class="fab-opcao" role="menuitem" onclick="ppFabTelegram()">
+            <span class="fab-opcao-icone tg"><i class="ph-fill ph-telegram-logo"></i></span>
+            <span class="fab-opcao-txt">
+                <span class="fab-opcao-titulo">Pelo Telegram</span>
+                <span class="fab-opcao-sub">Mande "mercado 52,90" e o gasto entra sozinho</span>
             </span>
         </button>
     </div>
@@ -16497,6 +16543,7 @@
 
             <h2 class="mob-grupo">Preferências</h2>
             <div class="mob-lista">
+                <button type="button" class="mob-item" onclick="abrirModalConfig('telegram')"><i class="ph ph-telegram-logo"></i><span>Lançar pelo Telegram</span><i class="ph ph-caret-right mob-seta"></i></button>
                 <button type="button" class="mob-item" id="mobPrefTema" role="switch" aria-checked="false" onclick="mobAlternarTema()"><i class="ph ph-moon"></i><span>Tema escuro</span><span class="mob-switch" aria-hidden="true"></span></button>
                 <button type="button" class="mob-item" id="mobPrefValores" role="switch" aria-checked="false" onclick="mobAlternarValores()"><i class="ph ph-eye-slash"></i><span>Esconder valores</span><span class="mob-switch" aria-hidden="true"></span></button>
                 <button type="button" class="mob-item" onclick="abrirModalConfig()"><i class="ph ph-gear"></i><span>Configurações</span><i class="ph ph-caret-right mob-seta"></i></button>
