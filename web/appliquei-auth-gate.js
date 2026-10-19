@@ -407,6 +407,16 @@ function aplicarSeloBeta() {
   } catch (_) {}
 })();
 
+// "Começar grátis" da landing chega com ?modo=cadastro: quem clicou para
+// começar não pode cair em "Bem-vindo de volta" e ter de achar a aba certa.
+function modoInicialDoLink() {
+  try {
+    return new URLSearchParams(location.search).get('modo') === 'cadastro' ? 'registro' : 'login';
+  } catch (_) {
+    return 'login';
+  }
+}
+
 window.appliqueiAuthSetModo = function (modo) {
   window.__appliqueiAuthModo = modo === 'registro' ? 'registro' : 'login';
   var login = window.__appliqueiAuthModo === 'login';
@@ -435,6 +445,8 @@ window.appliqueiAuthSetModo = function (modo) {
   // Aceite da Política de Privacidade: só no cadastro (appliquei-privacidade.js).
   var privWrap = $('authPrivWrap');
   if (privWrap) privWrap.style.display = login ? 'none' : '';
+  var dicaGoogle = $('authDicaGoogle');
+  if (dicaGoogle) dicaGoogle.style.display = login ? 'none' : '';
   aplicarModoConvite();
   if (!login) {
     var cupomInput = $('authCupom');
@@ -934,6 +946,74 @@ window.appliqueiAuthVerifyCheck = function () {
       }
     });
 };
+// A tela de confirmação percebe sozinha quando o link foi clicado: confere a
+// cada 5 s enquanto está visível e logo que a pessoa volta do app de e-mail.
+// O botão "Já verifiquei" continua como plano B. Só reload() aqui — o
+// refresh do token (que leva o email_verified para as regras) fica com
+// appliqueiAuthVerifyCheck, chamado quando a confirmação aparece.
+var vigiaVerificacao = null;
+function verificacaoVisivel() {
+  var v = $('authGateVerify');
+  var g = $('authGate');
+  return !!(v && g && v.style.display !== 'none' && g.style.display !== 'none');
+}
+function conferirVerificacaoSozinho() {
+  if (!verificacaoVisivel()) {
+    pararVigiaVerificacao();
+    return;
+  }
+  if (document.visibilityState === 'hidden') return;
+  var fb = window.AppliqueiFirebase;
+  var u = fb && fb.ready && fb.auth && fb.auth.currentUser;
+  if (!u) return;
+  u.reload()
+    .then(function () {
+      if (u.emailVerified && verificacaoVisivel()) {
+        pararVigiaVerificacao();
+        window.appliqueiAuthVerifyCheck();
+      }
+    })
+    .catch(function () {});
+}
+function pararVigiaVerificacao() {
+  if (vigiaVerificacao) clearInterval(vigiaVerificacao);
+  vigiaVerificacao = null;
+}
+function vigiarVerificacao() {
+  if (vigiaVerificacao) return;
+  vigiaVerificacao = setInterval(conferirVerificacaoSozinho, 5000);
+}
+try {
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && vigiaVerificacao) conferirVerificacaoSozinho();
+  });
+} catch (_) {}
+
+// Atalho para a caixa de entrada dos provedores mais comuns. Para os outros,
+// o botão não aparece (não há um endereço único para "abrir o e-mail").
+function linkCaixaDeEntrada(email) {
+  var dominio = String(email || '')
+    .split('@')[1]
+    .toLowerCase();
+  if (/^(gmail|googlemail)\.com$/.test(dominio)) return 'https://mail.google.com/';
+  if (/^(hotmail|outlook|live|msn)\.(com|com\.br)$/.test(dominio))
+    return 'https://outlook.live.com/mail/';
+  if (/^yahoo\.(com|com\.br)$/.test(dominio)) return 'https://mail.yahoo.com/';
+  if (/^(icloud|me|mac)\.com$/.test(dominio)) return 'https://www.icloud.com/mail';
+  if (/^(uol|bol)\.com\.br$/.test(dominio)) return 'https://email.uol.com.br/';
+  return '';
+}
+function prepararBotaoAbrirEmail(email) {
+  var a = $('authVerifyAbrirEmail');
+  if (!a) return;
+  var url = '';
+  try {
+    url = linkCaixaDeEntrada(email);
+  } catch (_) {}
+  a.style.display = url ? '' : 'none';
+  if (url) a.setAttribute('href', url);
+}
+
 window.appliqueiAuthSignOut = function () {
   var fb = window.AppliqueiFirebase;
   if (fb && fb.ready && fb.auth) fb.auth.signOut().catch(function () {});
@@ -979,7 +1059,7 @@ window.appliqueiSidebarAuthClick = function () {
   } catch (_) {}
   showGate();
   if (!fb || !fb.ready) {
-    setCabecalho('Não conseguimos iniciar', 'A autenticação não carregou neste navegador');
+    setCabecalho('Não conseguimos iniciar', 'Algo impediu o login de abrir — dá para resolver');
     setAuthPanel('noconf');
   } else {
     setCabecalho('Bem-vindo de volta', 'Entre para continuar de onde parou');
@@ -995,7 +1075,7 @@ function initAppliqueiAuth() {
   setCabecalho('Bem-vindo', 'Um instante — estamos preparando tudo');
   if (!window.AppliqueiFirebase || !AppliqueiFirebase.ready) {
     setAuthPanel('noconf');
-    setCabecalho('Não conseguimos iniciar', 'A autenticação não carregou neste navegador');
+    setCabecalho('Não conseguimos iniciar', 'Algo impediu o login de abrir — dá para resolver');
     if (isGuest()) {
       hideGate();
       refreshSidebar();
@@ -1074,6 +1154,8 @@ function initAppliqueiAuth() {
           showGate();
           setCabecalho('Quase lá', 'Só falta confirmar o seu e-mail');
           setAuthPanel('verify');
+          prepararBotaoAbrirEmail(user.email || '');
+          vigiarVerificacao();
           refreshSidebar();
           return;
         }
@@ -1105,8 +1187,7 @@ function initAppliqueiAuth() {
       if (AppliqueiFirebase.auth.currentUser || isGuest()) return;
       showGate();
       setAuthPanel('form');
-      setCabecalho('Bem-vindo de volta', 'Entre para continuar de onde parou');
-      window.appliqueiAuthSetModo('login');
+      window.appliqueiAuthSetModo(modoInicialDoLink());
       if (avisoLoginPendente) {
         window.appliqueiAuthErr(avisoLoginPendente);
         avisoLoginPendente = '';

@@ -49,7 +49,9 @@ test('volta do Google sem resultado vira aviso, não tela de login muda', () => 
   assert.match(SRC, /O navegador não devolveu o login do Google/);
   // O timer de "sem sessão" chama setModo('login'), que limpa o erro: o
   // aviso tem de ser reaplicado depois dele.
-  const timer = SRC.indexOf("window.appliqueiAuthSetModo('login');\n      if (avisoLoginPendente)");
+  const timer = SRC.indexOf(
+    'window.appliqueiAuthSetModo(modoInicialDoLink());\n      if (avisoLoginPendente)'
+  );
   assert.notEqual(timer, -1, 'aviso reaplicado depois do setModo do timer');
 });
 
