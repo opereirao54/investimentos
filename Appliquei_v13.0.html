@@ -9077,6 +9077,15 @@
             gap: 10px; margin-bottom: 10px;
         }
         #patrimonio .inv-hero-acoes { display: flex; align-items: center; gap: 8px; }
+        /* "Cotações de 14:32" — toca para atualizar. Fica âmbar quando há
+           ativo sem preço novo ou a busca falhou (renderStatusCotacoes). */
+        .cotacoes-status {
+            display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 99px;
+            font-family: 'Figtree', sans-serif; font-size: 11.5px; font-weight: 600; white-space: nowrap; cursor: pointer;
+            background: var(--cor-superficie); color: var(--cor-texto-secundario); border: 1px solid var(--cor-borda);
+        }
+        .cotacoes-status:hover { border-color: var(--cor-borda2); color: var(--cor-texto-principal); }
+        .cotacoes-status.cotacoes-alerta { background: var(--cor-bg-amber); color: var(--cor-txt-amber); border-color: var(--cor-borda-amber); }
         /* Selo "preços estimados": o JS alterna entre none e inline-flex. */
         #patrimonio .inv-flag {
             align-items: center; gap: 5px; padding: 4px 9px; border-radius: 99px;
@@ -13631,7 +13640,8 @@
                     <div class="inv-hero-top">
                         <span class="inv-eyebrow">Investimentos hoje</span>
                         <div class="inv-hero-acoes">
-                            <span id="badgePrecosEstimados" class="inv-flag" style="display:none;" title="Não foi possível buscar cotações do Yahoo Finance. Preços exibidos são estimativas."><i class="ph-fill ph-warning"></i> Estimados</span>
+                            <button type="button" class="cotacoes-status" style="display:none;" onclick="atualizarCotacoes(true)" aria-label="Atualizar cotações"></button>
+                            <span id="badgePrecosEstimados" class="inv-flag" style="display:none;" title="Há ativos sem cotação: mostrando o preço médio pago."><i class="ph-fill ph-warning"></i> Estimados</span>
                             <button class="inv-btn-add" onclick="abrirDrawerOperacao()"><i class="ph-bold ph-plus"></i> Registrar</button>
                         </div>
                     </div>
@@ -15434,6 +15444,7 @@
                 <div class="page-header-left">
                     <h1>Meu patrimônio</h1>
                     <p class="subtitulo" style="margin-bottom:0">Visão consolidada de tudo o que você tem — saldo, investimentos e bens.</p>
+                    <button type="button" class="cotacoes-status" style="display:none;margin-top:8px;" onclick="atualizarCotacoes(true)" aria-label="Atualizar cotações"></button>
                 </div>
             </div>
 

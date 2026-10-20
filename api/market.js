@@ -66,6 +66,10 @@ const YAHOO_BASE = 'https://query1.finance.yahoo.com/v8/finance/chart';
 const MAX_TICKERS_PER_REQUEST = 50;
 const BATCH_SIZE = 50;
 const CACHE_COLLECTION = 'marketQuotes';
+// O cron tem 15 s de função; o aquecimento para antes e deixa o resto para o
+// pedido do próprio usuário (que já serve o preço antigo marcado como atrasado).
+const WARMUP_MAX_TICKERS = 300;
+const WARMUP_ORCAMENTO_MS = 11000;
 const HISTORY_COLLECTION = 'marketHistory';
 
 // Cripto: mapa de símbolo curto -> id do CoinGecko.
@@ -116,9 +120,62 @@ function sanitizeTicker(t) {
   const clean = t
     .trim()
     .toUpperCase()
+    // Quem copia do Yahoo ou do Google digita "PETR4.SA".
+    .replace(/\.SA$/, '')
     .replace(/[^A-Z0-9]/g, '');
-  if (clean.length < 4 || clean.length > 10) return null;
+  if (clean.length > 10) return null;
+  // Cripto tem símbolo de 3 letras (BTC, ETH, SOL); o resto da B3 tem 4+.
+  // Antes o corte em 4 derrubava toda cripto antes de chegar à CoinGecko.
+  if (clean.length < 4 && !CRYPTO_MAP[clean]) return null;
   return clean;
+}
+
+// ── Validade da cotação em cache ──
+// Antes valia o DIA inteiro: o primeiro pedido do dia (às vezes antes do
+// pregão abrir) congelava o preço para todos os usuários até a meia-noite.
+// Agora: durante o pregão, 15 minutos; fora dele, vale o que foi buscado
+// depois do último fechamento (o preço não muda até a próxima abertura).
+// Cripto negocia 24h: sempre 15 minutos. Feriado não é tratado — o pior caso
+// é uma busca a mais, nunca um preço velho.
+const COTACAO_TTL_MS = 15 * 60 * 1000;
+const PREGAO_ABRE_MIN = 10 * 60;
+const PREGAO_FECHA_MIN = 18 * 60 + 10;
+
+function brtPartes(ms) {
+  const d = new Date(ms - 3 * 3600 * 1000);
+  return { d, dia: d.getUTCDay(), min: d.getUTCHours() * 60 + d.getUTCMinutes() };
+}
+
+function pregaoAberto(ms) {
+  const p = brtPartes(ms);
+  return p.dia >= 1 && p.dia <= 5 && p.min >= PREGAO_ABRE_MIN && p.min < PREGAO_FECHA_MIN;
+}
+
+/** Instante (ms) do último fechamento de pregão em dia útil, até `ms`. */
+function ultimoFechamentoMs(ms) {
+  for (let k = 0; k < 8; k++) {
+    const { d, dia } = brtPartes(ms - k * 86400000);
+    if (dia === 0 || dia === 6) continue;
+    const fechamento =
+      Date.UTC(
+        d.getUTCFullYear(),
+        d.getUTCMonth(),
+        d.getUTCDate(),
+        Math.floor(PREGAO_FECHA_MIN / 60),
+        PREGAO_FECHA_MIN % 60
+      ) +
+      3 * 3600 * 1000;
+    if (fechamento <= ms) return fechamento;
+  }
+  return ms - 7 * 86400000;
+}
+
+function cotacaoFresca(doc, agora, ehCripto) {
+  if (!doc || typeof doc.price !== 'number' || typeof doc.fetchedAtMs !== 'number') return false;
+  const idade = agora - doc.fetchedAtMs;
+  if (idade < 0) return false;
+  if (ehCripto || pregaoAberto(agora)) return idade < COTACAO_TTL_MS;
+  return doc.fetchedAtMs >= ultimoFechamentoMs(agora);
 }
 
 async function fetchBrapi(tickers) {
@@ -184,23 +241,31 @@ async function handleQuote(req, res) {
   }
 
   const today = todayYmdBRT();
+  const agora = Date.now();
   const database = db();
   const refs = requested.map((t) => database.collection(CACHE_COLLECTION).doc(t));
   const snaps = await database.getAll(...refs);
   const fresh = {};
+  const antigos = {};
   const stale = [];
   snaps.forEach((snap, i) => {
     const t = requested[i];
     const d = snap.data();
-    if (d && d.dateYmd === today && typeof d.price === 'number') fresh[t] = d;
-    else stale.push(t);
+    if (cotacaoFresca(d, agora, !!CRYPTO_MAP[t])) fresh[t] = d;
+    else {
+      stale.push(t);
+      // O preço velho não é jogado fora: se a fonte falhar agora, ele volta
+      // marcado como atrasado, em vez de a tela cair no preço médio calada.
+      if (d && typeof d.price === 'number') antigos[t] = d;
+    }
   });
 
   let fetched = {};
   let fetchError = null;
+  const erros = [];
   if (stale.length) {
     try {
-      fetched = await fetchCotacoesMercado(stale, null, 9000);
+      fetched = await fetchCotacoesMercado(stale, erros, 9000);
       const batch = database.batch();
       for (const t of stale) {
         const f = fetched[t];
@@ -210,8 +275,9 @@ async function handleQuote(req, res) {
           {
             ...f,
             dateYmd: today,
+            fetchedAtMs: agora,
             updatedAt: timestamp().now(),
-            source: 'brapi',
+            source: f.fonteCotacao || 'brapi',
           },
           { merge: true }
         );
@@ -220,16 +286,29 @@ async function handleQuote(req, res) {
         .commit()
         .catch((e) => console.warn('[market/quote] cache_write_failed', e.message));
     } catch (e) {
-      console.warn('[market/quote] brapi_failed', e.message);
+      console.warn('[market/quote] fetch_failed', e.message);
       fetchError = e.message;
     }
   }
 
   const quotes = {};
+  const semCotacao = [];
   for (const t of requested) {
-    if (fresh[t]) quotes[t] = { ...fresh[t], cached: true };
-    else if (fetched[t]) quotes[t] = { ...fetched[t], cached: false };
-    else quotes[t] = { ticker: t, price: null, cached: false, error: 'unavailable' };
+    if (fresh[t]) quotes[t] = { ...fresh[t], cached: true, asOfMs: fresh[t].fetchedAtMs };
+    else if (fetched[t] && typeof fetched[t].price === 'number')
+      quotes[t] = { ...fetched[t], cached: false, asOfMs: agora };
+    else if (antigos[t]) {
+      quotes[t] = {
+        ...antigos[t],
+        cached: true,
+        stale: true,
+        asOfMs: antigos[t].fetchedAtMs || null,
+      };
+    } else {
+      quotes[t] = { ticker: t, price: null, cached: false, error: 'unavailable' };
+      semCotacao.push(t);
+    }
+    delete quotes[t].updatedAt;
     // A URL do logo fica no servidor. Se ela sair daqui, mais cedo ou mais
     // tarde alguém a usa direto num <img src>, e aí o CDN de terceiro passa a
     // receber o IP do usuário junto com a lista de ativos que ele tem — que é
@@ -240,10 +319,12 @@ async function handleQuote(req, res) {
   return res.json({
     success: true,
     today,
+    pregaoAberto: pregaoAberto(agora),
     fromCache: Object.keys(fresh).length,
     fromApi: Object.keys(fetched).length,
     requested: requested.length,
     quotes,
+    semCotacao,
     fetchError,
   });
 }
@@ -486,21 +567,25 @@ async function handleWarmup(req, res) {
     ranking = 'falhou:' + e.message;
   }
 
+  // Quais tickers aquecer: os que algum usuário pediu nos últimos 30 dias —
+  // o próprio cache marketQuotes. Antes a varredura procurava uma coleção
+  // `investimentos` que não existe (os dados ficam em users/{uid}/data/main)
+  // e o cron nunca atualizava nada.
   let snapshot;
   try {
-    snapshot = await database.collectionGroup('investimentos').get();
+    snapshot = await database
+      .collection(CACHE_COLLECTION)
+      .where('fetchedAtMs', '>', Date.now() - 30 * 86400000)
+      .limit(WARMUP_MAX_TICKERS)
+      .get();
   } catch (e) {
     return res.status(500).json({ error: 'scan_failed', detail: e.message });
   }
 
   const tickerSet = new Set();
   snapshot.forEach((doc) => {
-    const d = doc.data() || {};
-    const candidate = d.ticker || d.codigo || d.symbol || d.ativo;
-    const clean = sanitizeTicker(candidate);
-    // Heurística: tickers B3 = 4 letras + 1-2 dígitos (FII termina em 11,
-    // BDR em 32-35). Ignora códigos de RF (CDB, LCI etc) — sem cotação BRAPI.
-    if (clean && /^[A-Z]{4}\d{1,2}$/.test(clean)) tickerSet.add(clean);
+    const clean = sanitizeTicker(doc.id);
+    if (clean) tickerSet.add(clean);
   });
 
   const tickers = Array.from(tickerSet);
@@ -521,6 +606,14 @@ async function handleWarmup(req, res) {
   for (let i = 0; i < tickers.length; i += BATCH_SIZE) {
     const slice = tickers.slice(i, i + BATCH_SIZE);
     let results;
+    if (Date.now() - started > WARMUP_ORCAMENTO_MS) {
+      errors.push({
+        batch: i / BATCH_SIZE,
+        error: 'orcamento_esgotado',
+        restantes: tickers.length - i,
+      });
+      break;
+    }
     try {
       const fetched = await fetchCotacoesMercado(slice, null, 8000);
       results = Object.values(fetched);
@@ -537,8 +630,9 @@ async function handleWarmup(req, res) {
         {
           ...r,
           dateYmd: today,
+          fetchedAtMs: Date.now(),
           updatedAt: timestamp().now(),
-          source: 'brapi-cron',
+          source: (r.fonteCotacao || 'brapi') + '-cron',
         },
         { merge: true }
       );
@@ -1668,7 +1762,12 @@ async function fetchYahooCotacaoUma(ticker) {
   const timer = setTimeout(() => ctrl.abort(), YAHOO_CHART_TIMEOUT_MS);
   let json;
   try {
-    const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: ctrl.signal });
+    // Sem User-Agent o Yahoo trata o pedido como robô e devolve 429 com mais
+    // facilidade — e os IPs da Vercel são compartilhados.
+    const res = await fetch(url, {
+      headers: { Accept: 'application/json', 'User-Agent': YAHOO_UA },
+      signal: ctrl.signal,
+    });
     if (!res.ok) throw new Error(`yahoo_chart_${res.status}`);
     json = await res.json();
   } finally {
@@ -1718,9 +1817,10 @@ async function fetchYahooCotacoes(tickers, erros, orcamentoMs) {
   const out = {};
   if (!tickers.length) return out;
   const limite = Date.now() + (orcamentoMs != null ? orcamentoMs : YAHOO_COTACAO_ORCAMENTO_MS);
-  // Três de cada vez: o v8/chart aguenta mais que o quoteSummary, mas manter
+  // Quatro de cada vez: o v8/chart aguenta mais que o quoteSummary, mas manter
   // o paralelismo baixo é o que evita repetir o 429 que derrubou a outra via.
-  for (let i = 0; i < tickers.length; i += 3) {
+  const PARALELO = 4;
+  for (let i = 0; i < tickers.length; i += PARALELO) {
     if (Date.now() > limite) {
       if (erros)
         erros.push({
@@ -1730,7 +1830,7 @@ async function fetchYahooCotacoes(tickers, erros, orcamentoMs) {
         });
       break;
     }
-    const lote = tickers.slice(i, i + 3);
+    const lote = tickers.slice(i, i + PARALELO);
     const res = await Promise.all(
       lote.map((t) =>
         fetchYahooCotacaoUma(t)
@@ -1756,14 +1856,86 @@ async function fetchYahooCotacoes(tickers, erros, orcamentoMs) {
  */
 async function fetchCotacoesMercado(tickers, erros, orcamentoMs) {
   if (!tickers.length) return {};
-  if (process.env.BRAPI_TOKEN) {
+  const out = {};
+
+  // Cripto: CoinGecko, de graça e sem chave. O Yahoo não conhece "BTC.SA".
+  const cripto = tickers.filter((t) => CRYPTO_MAP[t]);
+  if (cripto.length) {
     try {
-      return await fetchBrapi(tickers);
+      Object.assign(out, await fetchCriptoCotacoes(cripto));
+    } catch (e) {
+      if (erros) erros.push({ fonte: 'coingecko_cotacao', erro: e.message });
+    }
+  }
+
+  // Fracionário (PETR4F) tem o mesmo preço do lote padrão (PETR4): busca a
+  // base e devolve com o código que a pessoa usa.
+  const porBase = {};
+  for (const t of tickers) {
+    if (CRYPTO_MAP[t]) continue;
+    const base = t.replace(/^([A-Z]{4}\d{1,2})F$/, '$1');
+    (porBase[base] = porBase[base] || []).push(t);
+  }
+  const bases = Object.keys(porBase);
+  const daB3 = {};
+  let faltam = bases;
+  if (bases.length && process.env.BRAPI_TOKEN) {
+    try {
+      const r = await fetchBrapi(bases);
+      Object.assign(daB3, r);
+      // A brapi às vezes devolve só parte do lote: o resto vai ao Yahoo.
+      faltam = bases.filter((t) => !(r[t] && typeof r[t].price === 'number'));
     } catch (e) {
       if (erros) erros.push({ fonte: 'brapi_cotacao', erro: e.message, degradou: true });
     }
   }
-  return fetchYahooCotacoes(tickers, erros, orcamentoMs);
+  if (faltam.length) Object.assign(daB3, await fetchYahooCotacoes(faltam, erros, orcamentoMs));
+  for (const base of bases) {
+    if (!daB3[base]) continue;
+    for (const t of porBase[base]) out[t] = t === base ? daB3[base] : { ...daB3[base], ticker: t };
+  }
+  return out;
+}
+
+/** Preço de cripto em reais pela CoinGecko (endpoint público, sem chave). */
+async function fetchCriptoCotacoes(tickers) {
+  const ids = Array.from(new Set(tickers.map((t) => CRYPTO_MAP[t]).filter(Boolean)));
+  if (!ids.length) return {};
+  const url =
+    `${COINGECKO_BASE}/simple/price?ids=${encodeURIComponent(ids.join(','))}` +
+    '&vs_currencies=brl&include_24hr_change=true&include_last_updated_at=true';
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 6000);
+  let json;
+  try {
+    const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: ctrl.signal });
+    if (!res.ok) throw new Error(`coingecko_${res.status}`);
+    json = await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+  const out = {};
+  for (const t of tickers) {
+    const d = json && json[CRYPTO_MAP[t]];
+    const preco = d ? fundNum(d.brl) : null;
+    if (preco === null) continue;
+    const pct = fundNum(d.brl_24h_change);
+    const anterior = pct !== null && pct !== -100 ? preco / (1 + pct / 100) : null;
+    out[t] = {
+      ticker: t,
+      price: preco,
+      previousClose: anterior,
+      change: anterior !== null ? preco - anterior : null,
+      changePct: pct,
+      currency: 'BRL',
+      shortName: t,
+      marketTime: d.last_updated_at || null,
+      marketCap: null,
+      volume: null,
+      fonteCotacao: 'coingecko',
+    };
+  }
+  return out;
 }
 
 /**
@@ -3054,6 +3226,11 @@ module.exports.__test = {
   LOGO_MAX_BYTES,
   fetchYahooCotacoes,
   fetchCotacoesMercado,
+  fetchCriptoCotacoes,
+  cotacaoFresca,
+  pregaoAberto,
+  ultimoFechamentoMs,
+  sanitizeTicker,
   diagnosticarErrosDeFonte,
   fetchBrapiFundamentals,
   mapYahooFundamental,
