@@ -933,7 +933,9 @@ function confirmarPularMes(id, txId) {
       a++;
     }
     transacoes.push({
-      id: 'tx_' + Date.now() + '_' + i,
+      // Sufixo próprio: no mesmo milissegundo da geração do plano, '_' + i
+      // repetia o id de uma parcela que acabou de sair (pulo de atrasada).
+      id: 'tx_' + Date.now() + '_p' + i + Math.random().toString(36).slice(2, 6),
       groupId: s.groupIdControle || 'sonho_grp_' + s.id,
       sonhoId: s.id,
       descricao: `Sonho: ${s.nome}`,
