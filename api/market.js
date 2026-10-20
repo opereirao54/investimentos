@@ -654,10 +654,13 @@ async function fetchB3Json(url, ticker, fetchImpl) {
   }
   json = desembrulharB3(json);
   const lista = mapB3Proventos(json, ticker);
-  // Nenhum provento é quase sempre resposta num formato que não lemos (a 1ª
-  // rodada gravou 35 listas vazias): vira erro com o formato no motivo, para o
-  // log mostrar o que veio e o cache antigo não ser sobrescrito por nada.
-  if (!lista.length) throw new Error(`b3_vazio ${formatoB3(json)}`);
+  // Resposta sem a lista cashDividends é formato que não lemos (a 1ª rodada
+  // gravou 35 listas vazias assim): vira erro com o formato no motivo. Com a
+  // lista presente e vazia, a empresa não pagou nada no período — resposta
+  // válida, que fica no cache e não é buscada de novo a cada rodada.
+  const blocos = Array.isArray(json) ? json : [json];
+  if (!lista.length && !blocos.some((b) => b && Array.isArray(b.cashDividends)))
+    throw new Error(`b3_vazio ${formatoB3(json)}`);
   return lista;
 }
 
@@ -702,15 +705,19 @@ async function fetchB3Proventos(ticker, fetchImpl = fetch) {
     fetchImpl
   ).catch((e) => {
     if (!ehOnze) throw e;
-    return [];
+    return null;
   });
   // Final 11 sem nada como companhia: é fundo (FII) — pergunta ao proxy de fundos.
-  if (lista.length || !ehOnze) return lista;
+  if ((lista && lista.length) || !ehOnze) return lista;
   return fetchB3Json(
     B3_FUNDOS_URL + b3Param({ cnpj: '0', identifierFund: ticker.slice(0, 4), typeFund: 7 }),
     ticker,
     fetchImpl
-  );
+  ).catch((e) => {
+    // A companhia respondeu (unit sem proventos): vale a resposta dela.
+    if (lista) return lista;
+    throw e;
+  });
 }
 
 async function fetchProventos(tickers, erros, orcamentoMs, fetchImpl = fetch) {

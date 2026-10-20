@@ -148,25 +148,39 @@ test('proventos: B3 antes do Yahoo; se a B3 falhar, o motivo fica e o Yahoo tent
   }
 });
 
-test('proventos: B3 sem nenhum provento vira erro com o formato (não grava lista vazia)', async () => {
+test('proventos: B3 sem cashDividends é erro; com a lista vazia é "não pagou"', async () => {
   const antes = process.env.BRAPI_TOKEN;
   delete process.env.BRAPI_TOKEN;
   try {
-    const vazio = async (url) =>
+    const com = (corpo) => async (url) =>
       /b3\.com\.br/.test(url)
-        ? {
-            ok: true,
-            status: 200,
-            text: async () => JSON.stringify([{ code: 'PETR', cashDividends: [] }]),
-          }
+        ? { ok: true, status: 200, text: async () => JSON.stringify(corpo) }
         : { ok: false, status: 429, json: async () => ({}) };
     const erros = [];
-    const r = await market.fontes.fetchProventos(['PETR4'], erros, 5000, vazio);
+    const r = await market.fontes.fetchProventos(['PETR4'], erros, 5000, com([{ code: 'PETR' }]));
     assert.equal(r.PETR4, undefined);
-    assert.match(erros[0].erro, /^b3_vazio array\[1\] \{code,cashDividends\} cash=0/);
+    assert.match(erros[0].erro, /^b3_vazio array\[1\] \{code\} cash=-/);
+
+    const r2 = await market.fontes.fetchProventos(
+      ['MGLU3'],
+      [],
+      5000,
+      com([{ code: 'MGLU', cashDividends: [] }])
+    );
+    assert.deepEqual(r2.MGLU3, { pagamentos: [], fonte: 'b3' });
   } finally {
     if (antes !== undefined) process.env.BRAPI_TOKEN = antes;
   }
+});
+
+test('B3: unit (final 11) sem proventos fica com a resposta da companhia', async () => {
+  const f = async (url) =>
+    /listedCompaniesProxy/.test(url)
+      ? { ok: true, status: 200, text: async () => JSON.stringify([{ cashDividends: [] }]) }
+      : { ok: false, status: 500, text: async () => '' };
+  assert.deepEqual(await fetchB3Proventos('ABCD11', f), []);
+  const nada = async () => ({ ok: false, status: 500, text: async () => '' });
+  await assert.rejects(() => fetchB3Proventos('ABCD11', nada), /b3_500/);
 });
 
 test('job: lista vazia gravada pela B3 é buscada de novo; lista em dia não', async () => {
@@ -175,6 +189,7 @@ test('job: lista vazia gravada pela B3 é buscada de novo; lista em dia não', a
   const docs = {
     PETR4: { pagamentos: [], fonte: 'b3', fetchedAtMs: agora },
     ITUB4: { pagamentos: [{ valor: 1 }], fonte: 'b3', fetchedAtMs: agora },
+    MGLU3: { pagamentos: [], fonte: 'b3', semProventos: true, fetchedAtMs: agora },
   };
   const gravados = {};
   const database = {
@@ -194,7 +209,7 @@ test('job: lista vazia gravada pela B3 é buscada de novo; lista em dia não', a
   const log = console.log;
   console.log = () => {};
   try {
-    await atualizarProventos(database, market, ['ITUB4', 'PETR4']);
+    await atualizarProventos(database, market, ['ITUB4', 'MGLU3', 'PETR4']);
   } finally {
     console.log = log;
   }

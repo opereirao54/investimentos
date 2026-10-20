@@ -166,8 +166,14 @@ async function atualizarProventos(database, market, tickers) {
   const agora = Date.now();
   const vencidos = candidatos.filter((t, i) => {
     const d = snaps[i].data();
-    // Lista vazia da B3 é a da 1ª rodada, que não leu o formato: busca de novo.
-    const vaziaB3 = d && d.fonte === 'b3' && Array.isArray(d.pagamentos) && !d.pagamentos.length;
+    // Lista vazia da B3 sem `semProventos` é da 1ª rodada, que não leu o
+    // formato: busca de novo. Com a marca, a B3 confirmou que não há proventos.
+    const vaziaB3 =
+      d &&
+      d.fonte === 'b3' &&
+      Array.isArray(d.pagamentos) &&
+      !d.pagamentos.length &&
+      !d.semProventos;
     return !(
       d &&
       !vaziaB3 &&
@@ -188,21 +194,25 @@ async function atualizarProventos(database, market, tickers) {
       batch.set(col.doc(t), {
         pagamentos: achados[t].pagamentos,
         fonte: achados[t].fonte,
+        semProventos: !achados[t].pagamentos.length,
         fetchedAtMs: Date.now(),
         updatedAt: timestamp().now(),
       });
     await batch.commit();
   }
   const porFonte = {};
-  let comPagamento = 0;
+  const semPagamento = [];
   for (const t of prontos) {
     porFonte[achados[t].fonte] = (porFonte[achados[t].fonte] || 0) + 1;
-    if (achados[t].pagamentos.length) comPagamento++;
+    if (!achados[t].pagamentos.length) semPagamento.push(t);
   }
   console.log(
-    `· proventos: ${prontos.length}/${vencidos.length} buscados (${comPagamento} com pagamentos)`,
+    `· proventos: ${prontos.length}/${vencidos.length} buscados (${prontos.length - semPagamento.length} com pagamentos)`,
     JSON.stringify(porFonte)
   );
+  if (semPagamento.length) console.log(`· sem proventos no período: ${semPagamento.join(', ')}`);
+  const falhos = vencidos.filter((t) => !achados[t]);
+  if (falhos.length) console.log(`· proventos não buscados: ${falhos.join(', ')}`);
   const motivos = {};
   for (const e of erros)
     motivos[`${e.fonte}: ${e.erro}`] = (motivos[`${e.fonte}: ${e.erro}`] || 0) + 1;
