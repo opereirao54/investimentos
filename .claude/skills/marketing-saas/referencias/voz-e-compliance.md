@@ -4,6 +4,9 @@
 
 - **Direto e próximo.** Fala como um amigo que entende de dinheiro, não como
   banco. "Você", nunca "o usuário". Frases curtas.
+- **A voz é da empresa.** Fale como Appliquei ("o Appliquei nasceu…",
+  "queremos…"), nunca citando os fundadores pelo nome nem em primeira pessoa
+  do singular ("eu e o Caio"), mesmo que o texto de origem venha assim.
 - **Concreto.** Número, data, nome da tela. "Avisa no dia 20 que o saldo fura
   no dia 26", não "gestão inteligente das suas finanças".
 - **Calmo, não alarmista.** A dor é real, mas a peça termina em alívio e
