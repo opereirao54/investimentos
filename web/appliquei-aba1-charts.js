@@ -164,7 +164,7 @@ function patrimonioNaData(dataLimite, filtroTipo, filtroAtivo) {
       // do KPI de hoje), para o ganho do período medir só a variação real.
       patrim += valorAtualRendaFixa(ticker, ativo.categoria, limiteMs);
     } else {
-      const precoAtual = am ? am.preco_atual : ativo.precoMedio;
+      const precoAtual = am && am.preco_atual > 0 ? am.preco_atual : ativo.precoMedio;
       patrim += ativo.qtdTotal * precoAtual;
     }
   }
@@ -200,7 +200,8 @@ function atualizarKPIsResumo(carteiraConsolidada) {
       // rendimento — senão mostrava só o custo aplicado e o ganho zerava.
       saldo = valorAtualRendaFixa(ticker, ativo.categoria);
     } else {
-      const precoAtual = ativoMercado ? ativoMercado.preco_atual : ativo.precoMedio;
+      const precoAtual =
+        ativoMercado && ativoMercado.preco_atual > 0 ? ativoMercado.preco_atual : ativo.precoMedio;
       saldo = ativo.qtdTotal * precoAtual;
     }
     patrim += saldo;
@@ -453,7 +454,8 @@ function calcularSerieEvolucao(filtroTipo, filtroAtivo) {
         valorMercado += valorAtualRendaFixa(ticker, cat, refMs);
       } else {
         const ativoMercado = mockAtivosMercado.find((a) => a.ticker === ticker);
-        const precoAtual = ativoMercado ? ativoMercado.preco_atual : p.pm;
+        const precoAtual =
+          ativoMercado && ativoMercado.preco_atual > 0 ? ativoMercado.preco_atual : p.pm;
         const preco =
           typeof rendPrecoEm === 'function' ? rendPrecoEm(ticker, refMs, precoAtual) : precoAtual;
         valorMercado += p.qtd * preco;
@@ -884,7 +886,8 @@ function agruparCarteiraPorCategoria(carteiraConsolidada) {
     if (cat === 'previdencia') {
       saldo = calcularSaldoPrevidencia(ticker);
     } else {
-      const precoAtual = ativoMercado ? ativoMercado.preco_atual : ativo.precoMedio;
+      const precoAtual =
+        ativoMercado && ativoMercado.preco_atual > 0 ? ativoMercado.preco_atual : ativo.precoMedio;
       saldo = ativo.qtdTotal * precoAtual;
     }
     grupos[chave].investido += ativo.valorTotalInvestido;
@@ -1004,7 +1007,12 @@ function renderizarGraficoDistribuicao(carteiraConsolidada) {
       const cat = inferirCategoria(ticker, ativo, ativoMercado);
       let saldo;
       if (cat === 'previdencia') saldo = calcularSaldoPrevidencia(ticker);
-      else saldo = ativo.qtdTotal * (ativoMercado ? ativoMercado.preco_atual : ativo.precoMedio);
+      else
+        saldo =
+          ativo.qtdTotal *
+          (ativoMercado && ativoMercado.preco_atual > 0
+            ? ativoMercado.preco_atual
+            : ativo.precoMedio);
       if (saldo > maiorSaldo) {
         maiorSaldo = saldo;
         maiorTicker = ticker;
@@ -1294,7 +1302,8 @@ function atualizarCarteiraAtivos() {
     if (ativo.qtdTotal <= 0) continue;
     let precoMedio = ativo.precoMedio;
     let ativoMercado = mockAtivosMercado.find((a) => a.ticker === ticker);
-    let precoAtual = ativoMercado ? ativoMercado.preco_atual : precoMedio;
+    let precoAtual =
+      ativoMercado && ativoMercado.preco_atual > 0 ? ativoMercado.preco_atual : precoMedio;
     let nomeAtivo = ativoMercado ? ativoMercado.nome : 'Ativo Personalizado';
     let saldoAtualAtivo = ativo.qtdTotal * precoAtual;
     if (ativo.categoria === 'previdencia') {

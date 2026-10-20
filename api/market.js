@@ -171,6 +171,19 @@ function ultimoFechamentoMs(ms) {
   return ms - 7 * 86400000;
 }
 
+/**
+ * Velha demais para não buscar de novo, mas boa o bastante para mostrar sem
+ * alarme quando a fonte ao vivo falha: no pregão, até 75 min (o job do
+ * GitHub roda de 15 em 15 e o agendador atrasa); fora dele, a do fechamento.
+ */
+function cotacaoAceitavel(doc, agora, ehCripto) {
+  if (!doc || typeof doc.price !== 'number' || typeof doc.fetchedAtMs !== 'number') return false;
+  const idade = agora - doc.fetchedAtMs;
+  if (idade < 0) return false;
+  if (ehCripto || pregaoAberto(agora)) return idade < 75 * 60 * 1000;
+  return doc.fetchedAtMs >= ultimoFechamentoMs(agora) - 30 * 60 * 1000;
+}
+
 function cotacaoFresca(doc, agora, ehCripto) {
   if (!doc || typeof doc.price !== 'number' || typeof doc.fetchedAtMs !== 'number') return false;
   const idade = agora - doc.fetchedAtMs;
@@ -179,8 +192,30 @@ function cotacaoFresca(doc, agora, ehCripto) {
   return doc.fetchedAtMs >= ultimoFechamentoMs(agora);
 }
 
+/**
+ * BRAPI com o lote inteiro num pedido. O plano GRATUITO (com token, sem
+ * custo) aceita um ativo por pedido e recusa o lote: aí cai para um por um,
+ * quatro em paralelo. Assim "criar a conta grátis e pôr o BRAPI_TOKEN" já
+ * resolve a cotação, sem esperar o plano pago.
+ */
 async function fetchBrapi(tickers) {
   if (!tickers.length) return {};
+  try {
+    return await fetchBrapiLote(tickers);
+  } catch (e) {
+    if (tickers.length < 2 || !/brapi_(400|401|402|403)/.test(e.message)) throw e;
+  }
+  const out = {};
+  for (let i = 0; i < tickers.length; i += 4) {
+    const res = await Promise.all(
+      tickers.slice(i, i + 4).map((t) => fetchBrapiLote([t]).catch(() => ({})))
+    );
+    for (const r of res) Object.assign(out, r);
+  }
+  return out;
+}
+
+async function fetchBrapiLote(tickers) {
   const url = `${BRAPI_BASE}/${encodeURIComponent(tickers.join(','))}`;
   const token = process.env.BRAPI_TOKEN;
   const headers = { Accept: 'application/json' };
@@ -249,9 +284,13 @@ async function handleQuote(req, res) {
   const fresh = {};
   const antigos = {};
   const stale = [];
+  const marcarPedido = [];
   snaps.forEach((snap, i) => {
     const t = requested[i];
     const d = snap.data();
+    // O job de cotações (GitHub Actions) cota o que alguém pediu nos últimos
+    // 30 dias. A marca é renovada no máximo uma vez por dia por ticker.
+    if (!d || !(d.ultimoPedidoMs > agora - 24 * 3600 * 1000)) marcarPedido.push(t);
     if (cotacaoFresca(d, agora, !!CRYPTO_MAP[t])) fresh[t] = d;
     else {
       stale.push(t);
@@ -292,6 +331,17 @@ async function handleQuote(req, res) {
     }
   }
 
+  if (marcarPedido.length) {
+    const batch = database.batch();
+    for (const t of marcarPedido)
+      batch.set(
+        database.collection(CACHE_COLLECTION).doc(t),
+        { ultimoPedidoMs: agora },
+        { merge: true }
+      );
+    await batch.commit().catch((e) => console.warn('[market/quote] marca_pedido', e.message));
+  }
+
   const quotes = {};
   const semCotacao = [];
   for (const t of requested) {
@@ -302,8 +352,13 @@ async function handleQuote(req, res) {
       quotes[t] = {
         ...antigos[t],
         cached: true,
-        stale: true,
-        asOfMs: antigos[t].fetchedAtMs || null,
+        // Gravado pelo job há pouco (ele atrasa alguns minutos): é a cotação
+        // do momento, não um preço velho para alarmar a pessoa.
+        stale: !cotacaoAceitavel(antigos[t], agora, !!CRYPTO_MAP[t]),
+        // Documento gravado antes de existir fetchedAtMs: a data vem do
+        // updatedAt (ou do dia). Sem ela o app mostrava preço velho sem dizer
+        // de quando era — "WEGE3 a R$ 51,27" com o fechamento a R$ 47,67.
+        asOfMs: asOfDoDocumento(antigos[t]),
       };
     } else {
       quotes[t] = { ticker: t, price: null, cached: false, error: 'unavailable' };
@@ -327,7 +382,34 @@ async function handleQuote(req, res) {
     quotes,
     semCotacao,
     fetchError,
+    // O porquê de cada ativo sem preço novo (ex.: "yahoo_chart_429"). Sem
+    // isto, "o valor não aparece" não tinha como ser diagnosticado de fora.
+    erros: resumirErrosCotacao(erros),
   });
+}
+
+function asOfDoDocumento(d) {
+  if (!d) return null;
+  if (typeof d.fetchedAtMs === 'number') return d.fetchedAtMs;
+  const u = d.updatedAt;
+  if (u && typeof u.toMillis === 'function') return u.toMillis();
+  if (u && typeof u._seconds === 'number') return u._seconds * 1000;
+  if (typeof d.dateYmd === 'string') {
+    const t = Date.parse(d.dateYmd + 'T18:00:00-03:00');
+    if (isFinite(t)) return t;
+  }
+  return null;
+}
+
+/** { TICKER: ['yahoo_chart_429', 'google_sem_preco'] } — no máximo 50 tickers. */
+function resumirErrosCotacao(erros) {
+  const out = {};
+  for (const e of erros || []) {
+    const chave = e.ticker || '_geral';
+    if (!out[chave] && Object.keys(out).length >= 50) continue;
+    (out[chave] = out[chave] || []).push(String(e.erro || e.fonte).slice(0, 60));
+  }
+  return out;
 }
 
 // ---------- op=dividends ----------
@@ -1859,7 +1941,7 @@ const YAHOO_ORCAMENTO_MS = 6000;
 
 let yahooAuth = { cookie: null, crumb: null, at: 0 };
 
-async function obterAuthYahoo() {
+async function obterAuthYahoo(fetchImpl = fetch) {
   if (yahooAuth.crumb && Date.now() - yahooAuth.at < YAHOO_AUTH_TTL_MS) return yahooAuth;
 
   const ctrl = new AbortController();
@@ -1867,7 +1949,7 @@ async function obterAuthYahoo() {
   try {
     // fc.yahoo.com responde 404 e mesmo assim carimba o cookie. Checar res.ok
     // aqui reprovaria o caminho feliz.
-    const resCookie = await fetch('https://fc.yahoo.com/', {
+    const resCookie = await fetchImpl('https://fc.yahoo.com/', {
       redirect: 'manual',
       headers: { 'User-Agent': YAHOO_UA },
       signal: ctrl.signal,
@@ -1876,10 +1958,11 @@ async function obterAuthYahoo() {
     const cookie = bruto ? bruto.split(';')[0] : null;
     if (!cookie) throw new Error('yahoo_sem_cookie');
 
-    const resCrumb = await fetch('https://query2.finance.yahoo.com/v1/test/getcrumb', {
+    const resCrumb = await fetchImpl('https://query2.finance.yahoo.com/v1/test/getcrumb', {
       headers: { Cookie: cookie, 'User-Agent': YAHOO_UA },
       signal: ctrl.signal,
     });
+    if (resCrumb.status === 429) throw new Error('yahoo_crumb_429');
     const crumb = (await resCrumb.text()).trim();
     // Um crumb é uma string curta. Corpo grande aqui é página de erro ou de
     // consentimento — aceitar isso faria todas as requisições seguintes
@@ -2096,12 +2179,12 @@ const YAHOO_CHART_TIMEOUT_MS = 6000;
 const YAHOO_COTACAO_ORCAMENTO_MS = 9000;
 
 /** Uma cotação pelo v8/chart. Sem autenticação. */
-async function fetchYahooCotacaoUma(ticker) {
+async function fetchYahooChartJson(ticker, host) {
   // range=5d dá o volume dos últimos pregões; o meta sozinho nem sempre traz.
-  const url = `${YAHOO_BASE}/${encodeURIComponent(ticker + '.SA')}?range=5d&interval=1d`;
+  const base = YAHOO_BASE.replace('query1.', host + '.');
+  const url = `${base}/${encodeURIComponent(ticker + '.SA')}?range=5d&interval=1d`;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), YAHOO_CHART_TIMEOUT_MS);
-  let json;
   try {
     // Sem User-Agent o Yahoo trata o pedido como robô e devolve 429 com mais
     // facilidade — e os IPs da Vercel são compartilhados.
@@ -2110,9 +2193,20 @@ async function fetchYahooCotacaoUma(ticker) {
       signal: ctrl.signal,
     });
     if (!res.ok) throw new Error(`yahoo_chart_${res.status}`);
-    json = await res.json();
+    return await res.json();
   } finally {
     clearTimeout(timer);
+  }
+}
+
+async function fetchYahooCotacaoUma(ticker) {
+  let json;
+  try {
+    json = await fetchYahooChartJson(ticker, 'query1');
+  } catch (e) {
+    // query1 e query2 têm limites separados: a recusa de um não é a do outro.
+    if (!/yahoo_chart_(429|403|5\d\d)|abort/i.test(e.message)) throw e;
+    json = await fetchYahooChartJson(ticker, 'query2');
   }
   const r = json && json.chart && json.chart.result && json.chart.result[0];
   if (!r || !r.meta) throw new Error('yahoo_chart_sem_resultado');
@@ -2151,6 +2245,164 @@ async function fetchYahooCotacaoUma(ticker) {
     volume,
     fonteCotacao: 'yahoo',
   };
+}
+
+// ---------- Cotação de reserva: Google Finance ----------
+// O Yahoo limita pedidos vindos de IPs de nuvem (429), e a Vercel é nuvem:
+// num dia ruim, TODO ativo ficava sem preço. A página pública do Google
+// Finance traz o último preço num atributo estável (data-last-price) e não
+// pede chave nem cookie. É a reserva: só vai a ela o que o Yahoo não trouxe.
+const GOOGLE_FINANCE_URL = 'https://www.google.com/finance/quote';
+const GOOGLE_TIMEOUT_MS = 6000;
+
+/** Extrai preço e nome da página do Google Finance. Pura (testável). */
+function parseGoogleFinance(html, ticker) {
+  const texto = String(html || '');
+  // A página de um ativo traz o preço dele num `data-last-price`, junto com
+  // a moeda; a dos relacionados também, então vale o primeiro em BRL.
+  const m =
+    /data-last-price="([0-9.]+)"[^>]*data-currency-code="BRL"/.exec(texto) ||
+    /data-currency-code="BRL"[^>]*data-last-price="([0-9.]+)"/.exec(texto);
+  const preco = m ? Number(m[1]) : NaN;
+  if (!(preco > 0)) return null;
+  const anterior = /data-previous-close="([0-9.]+)"/.exec(texto);
+  const prev = anterior ? Number(anterior[1]) : null;
+  const nome = /<div class="zzDege">([^<]{2,120})<\/div>/.exec(texto);
+  return {
+    ticker,
+    price: preco,
+    previousClose: prev > 0 ? prev : null,
+    change: prev > 0 ? preco - prev : null,
+    changePct: prev > 0 ? ((preco - prev) / prev) * 100 : null,
+    currency: 'BRL',
+    shortName: nome ? nome[1].replace(/&amp;/g, '&').trim() : null,
+    marketTime: null,
+    marketCap: null,
+    volume: null,
+    fonteCotacao: 'google',
+  };
+}
+
+async function fetchGoogleCotacaoUma(ticker, fetchImpl = fetch) {
+  const url = `${GOOGLE_FINANCE_URL}/${encodeURIComponent(ticker)}:BVMF?hl=pt`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), GOOGLE_TIMEOUT_MS);
+  let html;
+  try {
+    const res = await fetchImpl(url, {
+      headers: { 'User-Agent': YAHOO_UA, 'Accept-Language': 'pt-BR,pt;q=0.9' },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) throw new Error(`google_${res.status}`);
+    html = await res.text();
+  } finally {
+    clearTimeout(timer);
+  }
+  const q = parseGoogleFinance(html, ticker);
+  if (!q) throw new Error('google_sem_preco');
+  return q;
+}
+
+async function fetchGoogleCotacoes(tickers, erros, orcamentoMs, fetchImpl = fetch) {
+  const out = {};
+  const limite = Date.now() + (orcamentoMs || 6000);
+  const PARALELO = 4;
+  for (let i = 0; i < tickers.length; i += PARALELO) {
+    if (Date.now() > limite) {
+      if (erros)
+        erros.push({ fonte: 'google', erro: 'orcamento_esgotado', restantes: tickers.length - i });
+      break;
+    }
+    const lote = tickers.slice(i, i + PARALELO);
+    const res = await Promise.all(
+      lote.map((t) =>
+        fetchGoogleCotacaoUma(t, fetchImpl)
+          .then((q) => ({ t, q }))
+          .catch((e) => {
+            if (erros) erros.push({ fonte: 'google', ticker: t, erro: e.message });
+            return null;
+          })
+      )
+    );
+    for (const item of res) if (item) out[item.t] = item.q;
+  }
+  return out;
+}
+
+// ---------- Yahoo em lote: v7/finance/quote com cookie + crumb ----------
+// Um pedido traz até 50 ativos. O v8/chart é um pedido POR ativo, e é a
+// quantidade de pedidos por IP que faz o Yahoo responder 429. Com o lote, a
+// carteira inteira de alguém é um pedido só — e o job de cotações
+// (scripts/cotacoes-job.js, GitHub Actions) cobre a bolsa em meia dúzia.
+const YAHOO_QUOTE_URL = 'https://query2.finance.yahoo.com/v7/finance/quote';
+const YAHOO_LOTE = 50;
+
+/** Item do v7/finance/quote → o formato de cotação do app. Pura (testável). */
+function mapYahooQuoteV7(r) {
+  if (!r || typeof r.symbol !== 'string') return null;
+  const preco = fundNum(r.regularMarketPrice);
+  if (preco === null || !(preco > 0)) return null;
+  const ticker = r.symbol.replace(/\.SA$/i, '').toUpperCase();
+  const anterior = fundNum(r.regularMarketPreviousClose);
+  return {
+    ticker,
+    price: preco,
+    previousClose: anterior,
+    change: fundNum(r.regularMarketChange) ?? (anterior !== null ? preco - anterior : null),
+    changePct:
+      fundNum(r.regularMarketChangePercent) ??
+      (anterior ? ((preco - anterior) / anterior) * 100 : null),
+    currency: r.currency || 'BRL',
+    shortName: r.shortName || r.longName || null,
+    marketTime: r.regularMarketTime || null,
+    marketCap: fundNum(r.marketCap),
+    volume: fundNum(r.regularMarketVolume),
+    fonteCotacao: 'yahoo',
+  };
+}
+
+async function fetchYahooQuoteLote(tickers, fetchImpl = fetch, renovar = false) {
+  if (renovar) yahooAuth = { cookie: null, crumb: null, at: 0 };
+  const auth = await obterAuthYahoo(fetchImpl);
+  const simbolos = tickers.map((t) => t + '.SA').join(',');
+  const url = `${YAHOO_QUOTE_URL}?symbols=${encodeURIComponent(simbolos)}&crumb=${encodeURIComponent(auth.crumb)}`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), YAHOO_CHART_TIMEOUT_MS);
+  let res;
+  try {
+    res = await fetchImpl(url, {
+      headers: { Accept: 'application/json', 'User-Agent': YAHOO_UA, Cookie: auth.cookie },
+      signal: ctrl.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+  // Crumb vencido responde 401: renova a sessão uma vez.
+  if (res.status === 401 && !renovar) return fetchYahooQuoteLote(tickers, fetchImpl, true);
+  if (!res.ok) throw new Error(`yahoo_quote_${res.status}`);
+  const json = await res.json();
+  const out = {};
+  for (const r of (json && json.quoteResponse && json.quoteResponse.result) || []) {
+    const q = mapYahooQuoteV7(r);
+    if (q) out[q.ticker] = q;
+  }
+  return out;
+}
+
+/** Cotações em lotes de 50. Falha do lote não derruba nada: quem chama segue para o v8. */
+async function fetchYahooCotacoesLote(tickers, erros, fetchImpl = fetch) {
+  const out = {};
+  for (let i = 0; i < tickers.length; i += YAHOO_LOTE) {
+    const lote = tickers.slice(i, i + YAHOO_LOTE);
+    try {
+      Object.assign(out, await fetchYahooQuoteLote(lote, fetchImpl));
+    } catch (e) {
+      if (erros) erros.push({ fonte: 'yahoo_quote', erro: e.message, ativos: lote.length });
+      // Sessão recusada (429 no crumb): os lotes seguintes falhariam igual.
+      if (/429|sem_crumb|sem_cookie/.test(e.message)) break;
+    }
+  }
+  return out;
 }
 
 /** Várias cotações pelo Yahoo, com paralelismo baixo e orçamento. */
@@ -2230,7 +2482,22 @@ async function fetchCotacoesMercado(tickers, erros, orcamentoMs) {
       if (erros) erros.push({ fonte: 'brapi_cotacao', erro: e.message, degradou: true });
     }
   }
-  if (faltam.length) Object.assign(daB3, await fetchYahooCotacoes(faltam, erros, orcamentoMs));
+  const inicio = Date.now();
+  const orcamento = orcamentoMs != null ? orcamentoMs : YAHOO_COTACAO_ORCAMENTO_MS;
+  if (faltam.length) {
+    // Lote primeiro: um pedido para até 50 ativos.
+    Object.assign(daB3, await fetchYahooCotacoesLote(faltam, erros));
+    faltam = faltam.filter((t) => !(daB3[t] && typeof daB3[t].price === 'number'));
+  }
+  if (faltam.length) {
+    // O Yahoo fica com até dois terços do tempo; o resto é da reserva.
+    Object.assign(daB3, await fetchYahooCotacoes(faltam, erros, Math.round(orcamento * 0.6)));
+    faltam = faltam.filter((t) => !(daB3[t] && typeof daB3[t].price === 'number'));
+  }
+  if (faltam.length) {
+    const resta = Math.max(1500, orcamento - (Date.now() - inicio));
+    Object.assign(daB3, await fetchGoogleCotacoes(faltam, erros, resta));
+  }
   for (const base of bases) {
     if (!daB3[base]) continue;
     for (const t of porBase[base]) out[t] = t === base ? daB3[base] : { ...daB3[base], ticker: t };
@@ -3847,6 +4114,16 @@ module.exports.fontes = {
   mapYahooFundamental,
   diagnosticarErrosDeFonte,
   fetchProventos,
+  sanitizeTicker,
+  todayYmdBRT,
+};
+module.exports.brapi = { fetchBrapi };
+module.exports.yahooLote = { mapYahooQuoteV7, fetchYahooCotacoesLote, cotacaoAceitavel };
+module.exports.cotacaoReserva = {
+  parseGoogleFinance,
+  fetchGoogleCotacoes,
+  resumirErrosCotacao,
+  asOfDoDocumento,
 };
 module.exports.historico = { fetchHistorySource, indiceDeSgsMensal };
 module.exports.catalogo = {

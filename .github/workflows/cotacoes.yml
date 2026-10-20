@@ -1,0 +1,67 @@
+name: Cotações
+
+# Cota os ativos dos usuários e grava em marketQuotes (scripts/cotacoes-job.js).
+#
+# POR QUE AQUI E NÃO NA VERCEL
+#   O Yahoo limita pedidos pelo IP de saída; o da Vercel é partilhado e leva
+#   429 (medido). O op=quote continua tentando ao vivo, mas quem garante o
+#   preço do dia é este job, a partir do runner do GitHub.
+#
+# QUANDO (horário de Brasília = UTC−3)
+#   De 15 em 15 minutos no pregão (10h–18h) e às 18:20, para o fechamento.
+#   O agendador do GitHub atrasa às vezes; o op=quote aceita o que o job
+#   gravou há até 75 min sem marcar "atrasado".
+#
+# PRECISA DE: FIREBASE_SERVICE_ACCOUNT_BASE64 e FIREBASE_PROJECT_ID (os mesmos
+# do job "Ingestão CVM"). BRAPI_TOKEN é opcional.
+
+on:
+  schedule:
+    - cron: '4,19,34,49 13-20 * * 1-5'
+    - cron: '20 21 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      tickers:
+        description: 'Só estes (ex.: WEGE3,ITUB4). Vazio = todos os pedidos nos últimos 30 dias'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cotacoes
+  cancel-in-progress: true
+
+jobs:
+  cotar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --omit=dev --ignore-scripts
+
+      - name: Cotar e gravar
+        env:
+          FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          BRAPI_TOKEN: ${{ secrets.BRAPI_TOKEN }}
+          TICKERS: ${{ inputs.tickers }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT_BASE64" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_BASE64 não configurado nos secrets do repositório."
+            exit 1
+          fi
+          if [ -n "$TICKERS" ]; then
+            node scripts/cotacoes-job.js --gravar --tickers="$TICKERS"
+          else
+            node scripts/cotacoes-job.js --gravar
+          fi

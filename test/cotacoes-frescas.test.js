@@ -127,7 +127,8 @@ test('fracionário usa o preço do lote padrão e volta com o código da pessoa'
     const r = await fetchCotacoesMercado(['PETR4F'], []);
     assert.equal(r.PETR4F.price, 37.2);
     assert.equal(r.PETR4F.ticker, 'PETR4F');
-    assert.ok(urls[0].includes('PETR4.SA'));
+    assert.ok(urls.some((u) => u.includes('PETR4.SA')));
+    assert.ok(!urls.some((u) => u.includes('PETR4F')), 'o fracionário não vai à fonte');
   } finally {
     restaurar();
   }

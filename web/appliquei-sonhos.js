@@ -2389,7 +2389,7 @@ function abrirEscolhaAtivoMigracao(sonhoId, valor, dataStr) {
         typeof mockAtivosMercado !== 'undefined'
           ? mockAtivosMercado.find((x) => x.ticker === t)
           : null;
-      const preco = am ? am.preco_atual : a.precoMedio;
+      const preco = am && am.preco_atual > 0 ? am.preco_atual : a.precoMedio;
       const saldo = a.qtdTotal * preco;
       return `<option value="${t}">${t} — ${formatarMoeda(saldo)} (${a.qtdTotal} cotas)</option>`;
     })

@@ -187,7 +187,7 @@ function rendCarteiraEm(refMs) {
             return a.ticker === ticker;
           })
         : null;
-    var precoHoje = ativoMercado ? ativoMercado.preco_atual : p.pm;
+    var precoHoje = ativoMercado && ativoMercado.preco_atual > 0 ? ativoMercado.preco_atual : p.pm;
     if (!rendTemHistorico(ticker)) estimado = true;
     mercado += p.qtd * rendPrecoEm(ticker, refMs, precoHoje);
   });

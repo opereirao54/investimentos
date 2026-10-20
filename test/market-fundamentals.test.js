@@ -1503,7 +1503,12 @@ test('a escolha da fonte de cotação é feita num lugar só', async () => {
   try {
     delete process.env.BRAPI_TOKEN;
     await fetchCotacoesMercado(['BBAS3'], []);
-    assert.ok(urls[0].includes('finance/chart'), 'sem token vai para o Yahoo');
+    // Primeiro o lote (v7/quote, com a sessão do Yahoo), depois o v8/chart.
+    assert.ok(
+      urls.some((u) => u.includes('finance/chart') || u.includes('finance/quote')),
+      'sem token vai para o Yahoo'
+    );
+    assert.ok(!urls.some((u) => u.includes('brapi.dev')), 'sem token não pede à BRAPI');
   } finally {
     restaurar();
     if (tokenAntes !== undefined) process.env.BRAPI_TOKEN = tokenAntes;

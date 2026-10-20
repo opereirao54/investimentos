@@ -11,39 +11,44 @@
  */
 
 // --- BASE DE DADOS DOS ATIVOS ---
+// Lista inicial: nomes e tipos dos ativos mais comuns, para a busca e as
+// sugestões. SEM preço: o número que ficava aqui era de exemplo, e quando a
+// cotação do servidor falhava ele aparecia na tela como se fosse o de
+// mercado (ITUB4 a R$ 33,40, WEGE3 a R$ 38,90, longe do fechamento do dia).
+// preco_atual 0 = sem cotação; quem lê cai no preço médio e o selo avisa.
 var mockAtivosMercado = [
-  { ticker: 'PETR4', nome: 'Petrobras PN', tipo: 'Ação', preco_atual: 38.5 },
-  { ticker: 'PETR3', nome: 'Petrobras ON', tipo: 'Ação', preco_atual: 39.1 },
-  { ticker: 'VALE3', nome: 'Vale ON', tipo: 'Ação', preco_atual: 62.1 },
-  { ticker: 'ITUB4', nome: 'Itaú Unibanco PN', tipo: 'Ação', preco_atual: 33.4 },
-  { ticker: 'BBDC4', nome: 'Bradesco PN', tipo: 'Ação', preco_atual: 14.2 },
-  { ticker: 'BBAS3', nome: 'Banco do Brasil ON', tipo: 'Ação', preco_atual: 55.8 },
-  { ticker: 'WEGE3', nome: 'WEG ON', tipo: 'Ação', preco_atual: 38.9 },
-  { ticker: 'EGIE3', nome: 'Engie Brasil ON', tipo: 'Ação', preco_atual: 41.2 },
-  { ticker: 'TAEE11', nome: 'Taesa Unit', tipo: 'Ação', preco_atual: 35.6 },
-  { ticker: 'ABEV3', nome: 'Ambev ON', tipo: 'Ação', preco_atual: 12.5 },
-  { ticker: 'B3SA3', nome: 'B3 ON', tipo: 'Ação', preco_atual: 11.8 },
-  { ticker: 'JBSS3', nome: 'JBS ON', tipo: 'Ação', preco_atual: 22.4 },
-  { ticker: 'SUZB3', nome: 'Suzano ON', tipo: 'Ação', preco_atual: 52.3 },
-  { ticker: 'RENT3', nome: 'Localiza ON', tipo: 'Ação', preco_atual: 51.2 },
-  { ticker: 'RADL3', nome: 'RaiaDrogasil ON', tipo: 'Ação', preco_atual: 26.7 },
-  { ticker: 'MXRF11', nome: 'Maxi Renda', tipo: 'FII', preco_atual: 10.35 },
-  { ticker: 'BTLG11', nome: 'BTLG Logística', tipo: 'FII', preco_atual: 104.2 },
-  { ticker: 'HGLG11', nome: 'CSHG Logística', tipo: 'FII', preco_atual: 162.8 },
-  { ticker: 'KNRI11', nome: 'Kinea Renda', tipo: 'FII', preco_atual: 158.9 },
-  { ticker: 'CPTS11', nome: 'Capitania Securities', tipo: 'FII', preco_atual: 8.5 },
-  { ticker: 'VGHF11', nome: 'Valora Hedge', tipo: 'FII', preco_atual: 9.2 },
-  { ticker: 'XPLG11', nome: 'XP Log', tipo: 'FII', preco_atual: 108.5 },
-  { ticker: 'VISC11', nome: 'Vinci Fundo', tipo: 'FII', preco_atual: 11.8 },
-  { ticker: 'IRDM11', nome: 'Iridium', tipo: 'FII', preco_atual: 78.4 },
-  { ticker: 'ALZR11', nome: 'Alianza Trust', tipo: 'FII', preco_atual: 114.6 },
-  { ticker: 'BOVA11', nome: 'iShares Ibovespa', tipo: 'ETF', preco_atual: 125.4 },
-  { ticker: 'IVVB11', nome: 'iShares S&P 500', tipo: 'ETF', preco_atual: 295.1 },
-  { ticker: 'SMAL11', nome: 'iShares Small Cap', tipo: 'ETF', preco_atual: 105.2 },
-  { ticker: 'HASH11', nome: 'Hashdex Crypto', tipo: 'ETF', preco_atual: 45.3 },
-  { ticker: 'AAPL34', nome: 'Apple', tipo: 'BDR', preco_atual: 42.1 },
-  { ticker: 'MSFT34', nome: 'Microsoft', tipo: 'BDR', preco_atual: 58.2 },
-  { ticker: 'AMZO34', nome: 'Amazon', tipo: 'BDR', preco_atual: 33.5 },
+  { ticker: 'PETR4', nome: 'Petrobras PN', tipo: 'Ação', preco_atual: 0 },
+  { ticker: 'PETR3', nome: 'Petrobras ON', tipo: 'Ação', preco_atual: 0 },
+  { ticker: 'VALE3', nome: 'Vale ON', tipo: 'Ação', preco_atual: 0 },
+  { ticker: 'ITUB4', nome: 'Itaú Unibanco PN', tipo: 'Ação', preco_atual: 0 },
+  { ticker: 'BBDC4', nome: 'Bradesco PN', tipo: 'Ação', preco_atual: 0 },
+  { ticker: 'BBAS3', nome: 'Banco do Brasil ON', tipo: 'Ação', preco_atual: 0 },
+  { ticker: 'WEGE3', nome: 'WEG ON', tipo: 'Ação', preco_atual: 0 },
+  { ticker: 'EGIE3', nome: 'Engie Brasil ON', tipo: 'Ação', preco_atual: 0 },
+  { ticker: 'TAEE11', nome: 'Taesa Unit', tipo: 'Ação', preco_atual: 0 },
+  { ticker: 'ABEV3', nome: 'Ambev ON', tipo: 'Ação', preco_atual: 0 },
+  { ticker: 'B3SA3', nome: 'B3 ON', tipo: 'Ação', preco_atual: 0 },
+  { ticker: 'JBSS3', nome: 'JBS ON', tipo: 'Ação', preco_atual: 0 },
+  { ticker: 'SUZB3', nome: 'Suzano ON', tipo: 'Ação', preco_atual: 0 },
+  { ticker: 'RENT3', nome: 'Localiza ON', tipo: 'Ação', preco_atual: 0 },
+  { ticker: 'RADL3', nome: 'RaiaDrogasil ON', tipo: 'Ação', preco_atual: 0 },
+  { ticker: 'MXRF11', nome: 'Maxi Renda', tipo: 'FII', preco_atual: 0 },
+  { ticker: 'BTLG11', nome: 'BTLG Logística', tipo: 'FII', preco_atual: 0 },
+  { ticker: 'HGLG11', nome: 'CSHG Logística', tipo: 'FII', preco_atual: 0 },
+  { ticker: 'KNRI11', nome: 'Kinea Renda', tipo: 'FII', preco_atual: 0 },
+  { ticker: 'CPTS11', nome: 'Capitania Securities', tipo: 'FII', preco_atual: 0 },
+  { ticker: 'VGHF11', nome: 'Valora Hedge', tipo: 'FII', preco_atual: 0 },
+  { ticker: 'XPLG11', nome: 'XP Log', tipo: 'FII', preco_atual: 0 },
+  { ticker: 'VISC11', nome: 'Vinci Fundo', tipo: 'FII', preco_atual: 0 },
+  { ticker: 'IRDM11', nome: 'Iridium', tipo: 'FII', preco_atual: 0 },
+  { ticker: 'ALZR11', nome: 'Alianza Trust', tipo: 'FII', preco_atual: 0 },
+  { ticker: 'BOVA11', nome: 'iShares Ibovespa', tipo: 'ETF', preco_atual: 0 },
+  { ticker: 'IVVB11', nome: 'iShares S&P 500', tipo: 'ETF', preco_atual: 0 },
+  { ticker: 'SMAL11', nome: 'iShares Small Cap', tipo: 'ETF', preco_atual: 0 },
+  { ticker: 'HASH11', nome: 'Hashdex Crypto', tipo: 'ETF', preco_atual: 0 },
+  { ticker: 'AAPL34', nome: 'Apple', tipo: 'BDR', preco_atual: 0 },
+  { ticker: 'MSFT34', nome: 'Microsoft', tipo: 'BDR', preco_atual: 0 },
+  { ticker: 'AMZO34', nome: 'Amazon', tipo: 'BDR', preco_atual: 0 },
   {
     ticker: 'TESOURO_IPCA_2035',
     nome: 'Tesouro IPCA+ 2035',
@@ -80,11 +85,11 @@ var mockAtivosMercado = [
     tipo: 'Renda Fixa',
     preco_atual: 490.0,
   },
-  { ticker: 'BTC', nome: 'Bitcoin', tipo: 'Cripto', preco_atual: 540000.0 },
-  { ticker: 'ETH', nome: 'Ethereum', tipo: 'Cripto', preco_atual: 18500.0 },
-  { ticker: 'SOL', nome: 'Solana', tipo: 'Cripto', preco_atual: 950.0 },
-  { ticker: 'ADA', nome: 'Cardano', tipo: 'Cripto', preco_atual: 3.2 },
-  { ticker: 'BNB', nome: 'BNB', tipo: 'Cripto', preco_atual: 3450.0 },
+  { ticker: 'BTC', nome: 'Bitcoin', tipo: 'Cripto', preco_atual: 0 },
+  { ticker: 'ETH', nome: 'Ethereum', tipo: 'Cripto', preco_atual: 0 },
+  { ticker: 'SOL', nome: 'Solana', tipo: 'Cripto', preco_atual: 0 },
+  { ticker: 'ADA', nome: 'Cardano', tipo: 'Cripto', preco_atual: 0 },
+  { ticker: 'BNB', nome: 'BNB', tipo: 'Cripto', preco_atual: 0 },
 ];
 
 // ============================================================
@@ -114,6 +119,7 @@ var cotacoesEstado = {
   falhou: false,
   semCotacao: [],
   atrasadas: [],
+  motivos: {}, // { TICKER: ['yahoo_chart_429', 'google_sem_preco'] } — do servidor
 };
 var _promessaCotacoes = null;
 var _cotacoesTimer = null;
@@ -178,9 +184,10 @@ function aplicarCotacao(t, q) {
   cotacoesEstado.porTicker[t] = {
     price: q.price,
     changePct: typeof q.changePct === 'number' ? q.changePct : null,
-    asOfMs: q.asOfMs || Date.now(),
+    asOfMs: q.asOfMs || (q.stale ? null : Date.now()),
     stale: !!q.stale,
     nome: ativo.nome,
+    fonte: q.fonteCotacao || q.source || null,
   };
   if (typeof mpEstado !== 'undefined' && mpEstado) {
     mpEstado.cotacoes = mpEstado.cotacoes || {};
@@ -218,6 +225,81 @@ function restaurarCotacoesSalvas() {
     });
     cotacoesEstado.atualizadoEm = Number(bruto.atualizadoEm) || 0;
   } catch (_) {}
+}
+
+/**
+ * O porquê, em português, a partir do que o servidor relatou: o selo é o
+ * único lugar onde a pessoa vê que algo falhou, e "atrasada" sem motivo não
+ * ajuda ninguém a diagnosticar.
+ */
+function motivoCotacaoTexto(tickers) {
+  var m = cotacoesEstado.motivos || {};
+  var todos = [];
+  (tickers || []).forEach(function (t) {
+    (m[t] || []).forEach(function (x) {
+      todos.push(x);
+    });
+  });
+  if (!todos.length) return '';
+  var limitado = todos.some(function (x) {
+    return /429|403/.test(x);
+  });
+  var fora = todos.some(function (x) {
+    return /5\d\d|abort|fetch failed|timeout/i.test(x);
+  });
+  var naoExiste = todos.some(function (x) {
+    return /sem_resultado|sem_preco|404/.test(x);
+  });
+  var partes = [];
+  if (limitado) partes.push('a fonte de cotações limitou os pedidos agora');
+  if (fora) partes.push('a fonte de cotações não respondeu');
+  if (naoExiste && !limitado && !fora) partes.push('a fonte não tem preço para esse código');
+  if (!partes.length) partes.push(todos.slice(0, 2).join(', '));
+  return ' Motivo: ' + partes.join('; ') + '.';
+}
+
+/**
+ * De quando é o preço que o formulário preencheu, e de onde veio. Preço
+ * atrasado diz isso com todas as letras: a pessoa vai gravar uma operação
+ * com ele.
+ */
+function textoCotacaoDoAtivo(ticker) {
+  var t = normalizarTickerCotacao(ticker);
+  var base = t.replace(/^([A-Z0-9]{4}\d{1,2})F$/, '$1');
+  var c = cotacoesEstado.porTicker[t] || cotacoesEstado.porTicker[base];
+  if (!c || !(c.price > 0)) return null;
+  var quando = '';
+  if (c.asOfMs) {
+    var d = new Date(c.asOfMs);
+    quando =
+      String(d.getDate()).padStart(2, '0') +
+      '/' +
+      String(d.getMonth() + 1).padStart(2, '0') +
+      ' às ' +
+      _horaCurta(c.asOfMs);
+  }
+  var fonte = { yahoo: 'Yahoo', google: 'Google Finance', brapi: 'BRAPI', coingecko: 'CoinGecko' }[
+    c.fonte
+  ];
+  if (c.stale) {
+    return {
+      alerta: true,
+      texto:
+        'Atenção: último preço conhecido' +
+        (quando ? ', de ' + quando : ', de data desconhecida') +
+        '. Não conseguimos a cotação de agora.' +
+        motivoCotacaoTexto([t]) +
+        ' Confira o preço antes de salvar.',
+    };
+  }
+  return {
+    alerta: false,
+    texto:
+      'Cotação' +
+      (quando ? ' de ' + quando : '') +
+      (fonte ? ' · ' + fonte : '') +
+      ' (você pode editar).',
+  };
 }
 
 /** Mesmo relógio do servidor: dia útil, 10:00–18:10 de Brasília. */
@@ -262,7 +344,8 @@ function renderStatusCotacoes() {
       titulo =
         'Sem preço novo agora para: ' +
         e.semCotacao.concat(e.atrasadas).join(', ') +
-        '. Mostrando o último preço conhecido.';
+        '. Mostrando o último preço conhecido.' +
+        motivoCotacaoTexto(e.semCotacao.concat(e.atrasadas));
     } else {
       titulo = pregaoAbertoAgora()
         ? 'Atualiza sozinho a cada 5 minutos durante o pregão. Toque para atualizar agora.'
@@ -322,6 +405,7 @@ function atualizarCotacoes(forcar, opcoes) {
     var mudou = false;
     var semCotacao = [];
     var atrasadas = [];
+    var motivos = {};
     try {
       var token = await u.getIdToken();
       for (var i = 0; i < tickers.length; i += COTACOES_POR_PEDIDO) {
@@ -337,6 +421,10 @@ function atualizarCotacoes(forcar, opcoes) {
         });
         if (!res.ok || !data || !data.quotes)
           throw new Error((data && data.error) || 'http_' + res.status);
+        if (data.erros && typeof data.erros === 'object')
+          Object.keys(data.erros).forEach(function (t) {
+            motivos[t] = data.erros[t];
+          });
         lote.forEach(function (t) {
           var q = data.quotes[t];
           if (q && typeof q.price === 'number') {
@@ -351,6 +439,9 @@ function atualizarCotacoes(forcar, opcoes) {
       cotacoesEstado.falhou = false;
       cotacoesEstado.semCotacao = semCotacao;
       cotacoesEstado.atrasadas = atrasadas;
+      cotacoesEstado.motivos = motivos;
+      if (semCotacao.length || atrasadas.length)
+        console.warn('[cotações] sem preço novo:', JSON.stringify(motivos));
       salvarCotacoesNoAparelho();
       atualizarBadgeEstimados(semCotacao);
     } catch (err) {
@@ -599,6 +690,19 @@ function _redesenharFormularioAtivo() {
       : null;
   if (sub && selSub && !selSub.dataset.touched) selSub.value = sub;
   if (typeof preencherPrecoAutomatico === 'function') preencherPrecoAutomatico();
+  atualizarDicaCotacao();
+}
+
+/** Texto sob o campo de ticker: de quando é o preço e, se velho, o aviso. */
+function atualizarDicaCotacao() {
+  var el = document.getElementById('compraTicker');
+  var dica = document.getElementById('dicaTicker');
+  var sel = document.getElementById('compraCategoria');
+  if (!el || !dica || (sel && sel.value !== 'renda_variavel')) return;
+  var info = textoCotacaoDoAtivo(el.value);
+  if (!info) return;
+  dica.innerText = info.texto;
+  if (dica.classList) dica.classList.toggle('dica-alerta', !!info.alerta);
 }
 
 /** Cota um código avulso (que a pessoa ainda não tem). */
@@ -609,6 +713,7 @@ async function _consultarCodigo(t) {
     var data = await _getMercado('op=quote&tickers=' + encodeURIComponent(t));
     if (!data) return;
     var q = data.quotes && data.quotes[t];
+    if (data.erros && data.erros[t]) cotacoesEstado.motivos[t] = data.erros[t];
     if (q && typeof q.price === 'number' && q.price > 0) {
       aplicarCotacao(t, q);
       var k = typeof classificarAtivoB3 === 'function' ? classificarAtivoB3(t, q.shortName) : null;
@@ -665,7 +770,9 @@ function consultarAtivoDigitado(texto) {
     if (t) {
       var base = t.replace(/F$/, '');
       var cotado = cotacoesEstado.porTicker[t] || cotacoesEstado.porTicker[base];
-      if (cotado || _consultaAtivo.feitas[t]) return;
+      // Preço guardado e atrasado (do aparelho ou devolvido como "stale"):
+      // pergunta de novo — é ele que ia parar no campo "Preço pago".
+      if ((cotado && !cotado.stale) || _consultaAtivo.feitas[t]) return;
       _consultaAtivo.feitas[t] = true;
       _consultarCodigo(t);
       return;
