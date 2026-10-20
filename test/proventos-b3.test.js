@@ -168,3 +168,36 @@ test('proventos: B3 sem nenhum provento vira erro com o formato (não grava list
     if (antes !== undefined) process.env.BRAPI_TOKEN = antes;
   }
 });
+
+test('job: lista vazia gravada pela B3 é buscada de novo; lista em dia não', async () => {
+  const { atualizarProventos } = require('../scripts/cotacoes-job.js');
+  const agora = Date.now();
+  const docs = {
+    PETR4: { pagamentos: [], fonte: 'b3', fetchedAtMs: agora },
+    ITUB4: { pagamentos: [{ valor: 1 }], fonte: 'b3', fetchedAtMs: agora },
+  };
+  const gravados = {};
+  const database = {
+    collection: () => ({ doc: (id) => ({ id }) }),
+    getAll: async (...refs) => refs.map((r) => ({ data: () => docs[r.id] })),
+    batch: () => ({ set: (ref, v) => (gravados[ref.id] = v), commit: async () => {} }),
+  };
+  const pedidos = [];
+  const market = {
+    fontes: {
+      fetchProventos: async (ts) => {
+        pedidos.push(...ts);
+        return {};
+      },
+    },
+  };
+  const log = console.log;
+  console.log = () => {};
+  try {
+    await atualizarProventos(database, market, ['ITUB4', 'PETR4']);
+  } finally {
+    console.log = log;
+  }
+  assert.deepEqual(pedidos, ['PETR4']);
+  assert.deepEqual(gravados, {});
+});
