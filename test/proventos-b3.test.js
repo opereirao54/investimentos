@@ -201,3 +201,28 @@ test('job: lista vazia gravada pela B3 é buscada de novo; lista em dia não', a
   assert.deepEqual(pedidos, ['PETR4']);
   assert.deepEqual(gravados, {});
 });
+
+test('B3: resposta com o JSON dentro de uma string (ou base64) é desembrulhada', async () => {
+  const embrulhos = [
+    JSON.stringify(JSON.stringify(RESPOSTA_PETR)),
+    JSON.stringify(Buffer.from(JSON.stringify(RESPOSTA_PETR)).toString('base64')),
+  ];
+  for (const corpo of embrulhos) {
+    const f = async () => ({ ok: true, status: 200, text: async () => corpo });
+    const out = await fetchB3Proventos('PETR4', f);
+    assert.equal(out.length, 2);
+  }
+  const erros = [];
+  const antes = process.env.BRAPI_TOKEN;
+  delete process.env.BRAPI_TOKEN;
+  try {
+    const opaco = async (url) =>
+      /b3\.com\.br/.test(url)
+        ? { ok: true, status: 200, text: async () => JSON.stringify('???') }
+        : { ok: false, status: 429, json: async () => ({}) };
+    await market.fontes.fetchProventos(['PETR4'], erros, 5000, opaco);
+  } finally {
+    if (antes !== undefined) process.env.BRAPI_TOKEN = antes;
+  }
+  assert.equal(erros[0].erro, 'b3_vazio string(3) ???');
+});
