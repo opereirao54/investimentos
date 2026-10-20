@@ -370,7 +370,7 @@ function atualizarProximoEvento(carteiraConsolidada) {
       proximoTs = ultimo;
       // Já realizado: usa qty na DATA DO PAGAMENTO (e não a posição atual),
       // para refletir o que de fato caiu/cai considerando compras posteriores.
-      qtdEvento = ultimoPag ? qtdNaData(ticker, ultimoPag.data) : ativo.qtdTotal;
+      qtdEvento = ultimoPag ? qtdNoProvento(ticker, ultimoPag) : ativo.qtdTotal;
     } else {
       let intervaloDias = 30;
       if (datasOrd.length >= 2) {
@@ -389,7 +389,7 @@ function atualizarProximoEvento(carteiraConsolidada) {
       qtdEvento = ativo.qtdTotal;
     }
     if (qtdEvento <= 0) continue;
-    const valorPorAcao = ultimoPag ? ultimoPag.valor : 0;
+    const valorPorAcao = ultimoPag ? valorCotaLiquido(ultimoPag) : 0;
     const valorEstim = valorPorAcao * qtdEvento;
     previstos.push({ ticker, ts: proximoTs, valor: valorEstim, valorPorAcao, qtd: qtdEvento });
   }

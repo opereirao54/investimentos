@@ -439,6 +439,9 @@ function iniciarAtualizacaoAutomaticaCotacoes() {
         if (u)
           setTimeout(function () {
             atualizarCotacoes(true);
+            // Os proventos não dependem da cotação: projeção e "Dividendos do
+            // mês" saem da quantidade de cotas.
+            if (typeof prepararDividendos === 'function') prepararDividendos();
           }, 1200);
       });
       return;
@@ -450,6 +453,7 @@ function iniciarAtualizacaoAutomaticaCotacoes() {
 // ── Inicialização (window.onload em app.js) ──
 function buscarCotacoesReais() {
   restaurarCotacoesSalvas();
+  if (typeof restaurarDividendosSalvos === 'function') restaurarDividendosSalvos();
   inicializarDatalistAtivos();
   renderStatusCotacoes();
   iniciarAtualizacaoAutomaticaCotacoes();

@@ -209,16 +209,13 @@ function buildMonthlyReport(yyyymm) {
           if (!p.data) return;
           const ts = new Date(p.data.length === 10 ? p.data + 'T12:00:00' : p.data).getTime();
           if (ts < iniMs || ts > fimMs) return;
-          // Quantidade na data do pagamento
-          let qtd = 0;
-          historicoCompras.forEach((op) => {
-            if (op.ticker !== ticker || !op.data) return;
-            const tsOp = new Date(op.data).getTime();
-            if (tsOp > ts) return;
-            if (op.tipo === 'compra') qtd += op.qtd || 0;
-            else if (op.tipo === 'venda') qtd -= op.qtd || 0;
-          });
-          if (qtd > 0) dividendos += qtd * (p.valor || 0);
+          // Cotas com direito ao provento (fim da data-com). Antes este bloco
+          // lia op.data/op.qtd — campos que não existem (as operações usam
+          // data_op/quantidade) — e o relatório mostrava sempre R$ 0.
+          const qtd = typeof qtdNoProvento === 'function' ? qtdNoProvento(ticker, p) : 0;
+          if (qtd > 0)
+            dividendos +=
+              qtd * (typeof valorCotaLiquido === 'function' ? valorCotaLiquido(p) : p.valor || 0);
         });
       });
     }

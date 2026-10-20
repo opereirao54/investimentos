@@ -5,7 +5,7 @@
  * DEPOIS de app.js porque depende de state global (historicoCompras,
  * carteira) e helpers (formatarMoeda em app.js, formatarQtd em utils).
  *
- * Cache em memória para evitar chamadas repetidas BRAPI/YAHOO. Estados
+ * Proventos vêm do servidor (op=dividends); cópia no aparelho. Estados
  * top-level (cacheDividendos, cacheDividendosTTLms) viram globais — sem
  * impacto pelo prefixo único.
  */
@@ -15,7 +15,7 @@
 // ============================================================
 // Cache em memória para evitar repetir chamadas no mesmo carregamento.
 var cacheDividendos = {}; // { ticker: { fetchedAt, pagamentos: [{data, valor}] } }
-var cacheDividendosTTLms = 30 * 60 * 1000; // 30 minutos
+var cacheDividendosTTLms = 6 * 60 * 60 * 1000; // 6 h (o servidor guarda 24 h)
 
 // Pagamentos já agregados por (ticker, mês) — alimentado por carregarDividendos.
 // Cada item: { ticker, ano, mes, qtdMes, somaValorCota, total, eventos, tsMaisRecente }
@@ -114,76 +114,273 @@ function tickerElegivelDividendos(ticker, ativoMercado) {
   return true;
 }
 
-async function buscarDividendosBrapi(ticker) {
+// ── Proventos vêm do servidor (/api/market?op=dividends) ──
+// Antes o navegador ia sozinho à BRAPI sem token (401 sempre) e à Yahoo por
+// proxies CORS gratuitos, com 12 meses de histórico. O servidor traz 5 anos,
+// guarda 24 h e escolhe a fonte (Yahoo hoje; BRAPI quando houver token, com
+// data-com, data de pagamento e tipo). A cópia no aparelho faz o card
+// "Dividendos do mês" e a projeção aparecerem sem abrir a aba Dividendos.
+var DIVIDENDOS_CACHE_KEY = 'apq-dividendos-v1';
+var DIVIDENDOS_POR_PEDIDO = 40;
+var _promessaDividendos = null;
+var fonteDividendos = null;
+
+function restaurarDividendosSalvos() {
   try {
-    const url = `https://brapi.dev/api/quote/${ticker}?modules=dividendsHistory&range=1y&interval=1mo`;
-    const res = await fetchTimeout(url, 10000);
-    if (!res.ok) return null;
-    const json = await res.json();
-    const result = json?.results?.[0];
-    // Só dividendos em dinheiro (rate em R$/ação). stockDividends.factor é
-    // multiplicador de bonificação em ações, não valor monetário.
-    const cashDiv = result?.dividendsHistory?.cashDividends || [];
-    const todos = cashDiv
-      .map((d) => ({
-        data: d.paymentDate || d.lastDatePrior || d.approvedOn,
-        valor: parseFloat(d.rate || 0),
-      }))
-      .filter((d) => d.data && d.valor > 0);
-    return todos;
-  } catch (err) {
-    console.warn(`BRAPI falhou para ${ticker}:`, err.message);
-    return null;
-  }
+    var salvo = JSON.parse(localStorage.getItem(DIVIDENDOS_CACHE_KEY) || 'null');
+    if (!salvo || typeof salvo !== 'object') return;
+    Object.keys(salvo).forEach(function (t) {
+      var c = salvo[t];
+      if (c && Array.isArray(c.pagamentos) && !cacheDividendos[t]) cacheDividendos[t] = c;
+    });
+  } catch (_) {}
 }
 
-async function buscarDividendosYahoo(ticker) {
+function salvarDividendosNoAparelho() {
   try {
-    const inicio = Math.floor((Date.now() - 365 * 24 * 60 * 60 * 1000) / 1000);
-    const fim = Math.floor(Date.now() / 1000);
-    const urlYahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}.SA?period1=${inicio}&period2=${fim}&interval=1mo&events=div`;
-    const json = await fetchComFallback(urlYahoo);
-    if (!json) return null;
-    const eventos = json?.chart?.result?.[0]?.events?.dividends || {};
-    // Formata a data no fuso da B3 (São Paulo) — toISOString() jogava
-    // pagamentos do início do dia BRT (ex: 01/04 00:00 BRT = 31/03 21:00 UTC)
-    // para o mês anterior, sumindo do bucket correto.
-    const fmtSP = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/Sao_Paulo',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-    const lista = Object.values(eventos)
-      .map((d) => ({
-        data: fmtSP.format(new Date(d.date * 1000)),
-        valor: d.amount,
-      }))
-      .filter((d) => d.valor > 0);
-    return lista;
-  } catch (err) {
-    console.warn(`Yahoo dividendos falhou para ${ticker}:`, err.message);
-    return null;
-  }
+    localStorage.setItem(DIVIDENDOS_CACHE_KEY, JSON.stringify(cacheDividendos));
+  } catch (_) {}
+}
+
+function _dividendosPrecisaBuscar(t, forcar) {
+  var c = cacheDividendos[t];
+  return (
+    forcar || !c || !Array.isArray(c.pagamentos) || Date.now() - c.fetchedAt > cacheDividendosTTLms
+  );
+}
+
+/** Busca no servidor os proventos dos tickers que faltam (ou todos, se forcar). */
+function carregarDividendosServidor(tickers, forcar) {
+  var faltam = (tickers || []).filter(function (t) {
+    return t && tickerElegivelDividendos(t) && _dividendosPrecisaBuscar(t, forcar);
+  });
+  if (!faltam.length) return Promise.resolve(false);
+  if (_promessaDividendos) return _promessaDividendos;
+  var fb = window.AppliqueiFirebase;
+  var u = fb && fb.auth && fb.auth.currentUser;
+  // O relatório em PDF abre o app fora do navegador, sem login: ele injeta a
+  // fonte do servidor (fetchProventos de api/market.js) em fonteDividendos.
+  var direta = typeof fonteDividendos === 'function' ? fonteDividendos : null;
+  if (!u && !direta) return Promise.resolve(false);
+  _promessaDividendos = (async function () {
+    var mudou = false;
+    try {
+      var token = direta ? null : await u.getIdToken();
+      for (var i = 0; i < faltam.length; i += DIVIDENDOS_POR_PEDIDO) {
+        var lote = faltam.slice(i, i + DIVIDENDOS_POR_PEDIDO);
+        var data;
+        if (direta) {
+          data = { dividendos: (await direta(lote)) || {} };
+        } else {
+          var res = await fetch(
+            '/api/market?op=dividends&tickers=' + encodeURIComponent(lote.join(',')),
+            {
+              headers: { Authorization: 'Bearer ' + token },
+            }
+          );
+          data = await res.json().catch(function () {
+            return {};
+          });
+          if (!res.ok || !data || !data.dividendos)
+            throw new Error((data && data.error) || 'http_' + res.status);
+        }
+        lote.forEach(function (t) {
+          var d = data.dividendos[t];
+          if (d && Array.isArray(d.pagamentos)) {
+            cacheDividendos[t] = {
+              fetchedAt: Date.now(),
+              pagamentos: d.pagamentos,
+              stale: !!d.stale,
+            };
+            mudou = true;
+          }
+        });
+      }
+      if (mudou) salvarDividendosNoAparelho();
+    } catch (err) {
+      console.warn('[dividendos] falha ao buscar:', err && err.message);
+    } finally {
+      _promessaDividendos = null;
+    }
+    return mudou;
+  })();
+  return _promessaDividendos;
 }
 
 async function obterDividendosDoAtivo(ticker, forcar = false) {
-  const agora = Date.now();
-  if (
-    !forcar &&
-    cacheDividendos[ticker] &&
-    agora - cacheDividendos[ticker].fetchedAt < cacheDividendosTTLms
-  ) {
-    return cacheDividendos[ticker].pagamentos;
+  if (_dividendosPrecisaBuscar(ticker, forcar)) await carregarDividendosServidor([ticker], forcar);
+  var c = cacheDividendos[ticker];
+  return (c && c.pagamentos) || [];
+}
+
+/**
+ * Quantas cotas davam direito ao provento: as que a pessoa tinha no FIM da
+ * data-com. Antes contava a data do pagamento — quem comprava depois da
+ * data-com "recebia" o que não tinha direito.
+ */
+function qtdNoProvento(ticker, p) {
+  var base = (p && (p.dataCom || p.data)) || '';
+  if (!base) return 0;
+  return qtdNaData(ticker, base.length === 10 ? base + 'T23:59:59-03:00' : base);
+}
+
+/** JCP tem 15% de IR retido na fonte: o que cai na conta é 85%. */
+function valorCotaLiquido(p) {
+  var v = Number(p && p.valor) || 0;
+  return p && p.tipo === 'JCP' ? v * 0.85 : v;
+}
+
+function _tsProvento(s) {
+  return new Date(s && s.length === 10 ? s + 'T12:00:00' : s).getTime();
+}
+
+/**
+ * Projeção dos próximos 12 meses (do mês que vem em diante). Regra simples e
+ * explicável: os proventos pagos nos últimos 12 meses se repetem no mesmo mês
+ * do ano que vem, com a
+ * quantidade que a pessoa tem HOJE. Pega FII mensal, ação trimestral e
+ * semestral sem precisar adivinhar a frequência.
+ */
+function projecaoProventos12m(carteira) {
+  var hoje = new Date();
+  var iniJanela = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
+  var meses = [];
+  for (var k = 0; k < 12; k++) {
+    var dm = new Date(iniJanela.getFullYear(), iniJanela.getMonth() + k, 1);
+    meses.push({ ano: dm.getFullYear(), mes: dm.getMonth(), valor: 0, itens: {} });
   }
-  // Tenta BRAPI primeiro (mais consistente para BR), Yahoo como fallback
-  let pagamentos = await buscarDividendosBrapi(ticker);
-  if (!pagamentos || pagamentos.length === 0) {
-    pagamentos = await buscarDividendosYahoo(ticker);
+  var porAtivo = {};
+  var limite = Date.now() - 365 * 24 * 3600 * 1000;
+  Object.keys(carteira || {}).forEach(function (t) {
+    var ativo = carteira[t];
+    if (!ativo || !(ativo.qtdTotal > 0)) return;
+    var c = cacheDividendos[t];
+    if (!c || !Array.isArray(c.pagamentos)) return;
+    c.pagamentos.forEach(function (p) {
+      var ts = _tsProvento(p.data);
+      if (!(ts >= limite)) return;
+      var d = new Date(ts);
+      var alvo = new Date(d.getFullYear() + 1, d.getMonth(), 1);
+      var idx =
+        (alvo.getFullYear() - iniJanela.getFullYear()) * 12 +
+        (alvo.getMonth() - iniJanela.getMonth());
+      // O mês corrente fica de fora (é o card "Dividendos do mês"): a janela
+      // vai do próximo mês a 12 meses daqui, e cada mês do calendário entra
+      // uma vez só — o pagamento deste mês vira o último da janela.
+      if (idx < 0 || idx > 11) return;
+      var v = ativo.qtdTotal * valorCotaLiquido(p);
+      meses[idx].valor += v;
+      meses[idx].itens[t] = (meses[idx].itens[t] || 0) + v;
+      porAtivo[t] = (porAtivo[t] || 0) + v;
+    });
+  });
+  var total = meses.reduce(function (a, m) {
+    return a + m.valor;
+  }, 0);
+  var ranking = Object.keys(porAtivo)
+    .map(function (t) {
+      return { ticker: t, valor: porAtivo[t] };
+    })
+    .sort(function (a, b) {
+      return b.valor - a.valor;
+    });
+  return { total: total, mediaMensal: total / 12, meses: meses, porAtivo: ranking };
+}
+
+/** Card "Próximos 12 meses" (aba Dividendos e tela Patrimônio do celular). */
+function htmlProjecaoProventos(proj, opcoes) {
+  if (!proj || !(proj.total > 0)) return '';
+  var max = proj.meses.reduce(function (a, m) {
+    return Math.max(a, m.valor);
+  }, 0);
+  var barras = proj.meses
+    .map(function (m) {
+      var h = max > 0 ? Math.max(4, Math.round((m.valor / max) * 100)) : 4;
+      var titulo =
+        MES_LABEL_CURTO[m.mes] + '/' + String(m.ano).slice(2) + ': ' + formatarMoeda(m.valor);
+      return (
+        '<div class="pp-div-col" title="' +
+        titulo +
+        '"><div class="pp-div-barra" style="height:' +
+        h +
+        '%"></div><span>' +
+        MES_LABEL_CURTO[m.mes].charAt(0).toUpperCase() +
+        '</span></div>'
+      );
+    })
+    .join('');
+  var top = proj.porAtivo
+    .slice(0, 3)
+    .map(function (a) {
+      return a.ticker + ' ' + formatarMoeda(a.valor);
+    })
+    .join(' · ');
+  var link =
+    opcoes && opcoes.link
+      ? '<button type="button" class="pp-div-link" onclick="' +
+        opcoes.link +
+        '">Detalhes <i class="ph ph-caret-right"></i></button>'
+      : '';
+  return (
+    '<div class="pp-div-proj">' +
+    '<div class="pp-div-cab"><span class="pp-div-rot"><i class="ph ph-coins"></i> Previsão de proventos · 12 meses</span>' +
+    link +
+    '</div>' +
+    '<div class="pp-div-total"><b class="valor-mascarado">' +
+    formatarMoeda(proj.total) +
+    '</b><small>≈ <span class="valor-mascarado">' +
+    formatarMoeda(proj.mediaMensal) +
+    '</span>/mês</small></div>' +
+    '<div class="pp-div-barras">' +
+    barras +
+    '</div>' +
+    (top ? '<p class="pp-div-top">Maiores: ' + top + '</p>' : '') +
+    '<p class="pp-div-nota">Estimativa: repete os proventos dos últimos 12 meses com a quantidade de hoje. Não é garantia de pagamento.</p>' +
+    '</div>'
+  );
+}
+
+function renderizarProjecaoProventos() {
+  var carteira = typeof obterResumoCarteira === 'function' ? obterResumoCarteira() : {};
+  var proj = projecaoProventos12m(carteira);
+  var el = document.getElementById('cardProjecaoProventos');
+  if (el) {
+    var html = htmlProjecaoProventos(proj);
+    el.innerHTML = html;
+    el.style.display = html ? '' : 'none';
   }
-  pagamentos = pagamentos || [];
-  cacheDividendos[ticker] = { fetchedAt: agora, pagamentos };
-  return pagamentos;
+  return proj;
+}
+
+/**
+ * Chamada ao abrir o app (depois das cotações): baixa os proventos dos
+ * ativos da pessoa e redesenha o que depende deles — "Dividendos do mês",
+ * "Dividendos (3M)", projeção e o card do celular.
+ */
+async function prepararDividendos() {
+  if (typeof historicoCompras === 'undefined' || !Array.isArray(historicoCompras)) return;
+  var tickers = Array.from(
+    new Set(
+      historicoCompras
+        .filter(function (o) {
+          return o && o.ticker && (!o.categoria || o.categoria === 'renda_variavel');
+        })
+        .map(function (o) {
+          return String(o.ticker).toUpperCase();
+        })
+    )
+  ).filter(function (t) {
+    return !/^(BTC|ETH|SOL|ADA|BNB|XRP|DOT|AVAX|LINK|MATIC)$/.test(t);
+  });
+  if (!tickers.length) return;
+  await carregarDividendosServidor(tickers, false);
+  try {
+    var carteira = typeof obterResumoCarteira === 'function' ? obterResumoCarteira() : null;
+    if (carteira && typeof atualizarProximoEvento === 'function') atualizarProximoEvento(carteira);
+    if (typeof atualizarChipDividendosPeriodo === 'function') atualizarChipDividendosPeriodo();
+    renderizarProjecaoProventos();
+    if (typeof mobPatDesenharProventos === 'function') mobPatDesenharProventos();
+  } catch (_) {}
 }
 
 function inferirFrequencia(pagamentos) {
@@ -271,7 +468,8 @@ async function carregarDividendos(forcar = false) {
   msgVaziaAtivos.style.display = 'none';
   msgVaziaPag.style.display = 'none';
 
-  // Busca em paralelo
+  // Um pedido ao servidor para todos; depois cada ativo lê do cache.
+  await carregarDividendosServidor(tickers, forcar);
   const resultados = await Promise.all(
     tickers.map(async (t) => {
       const pagamentos = await obterDividendosDoAtivo(t, forcar);
@@ -306,12 +504,13 @@ async function carregarDividendos(forcar = false) {
       if (!p.data) return;
       const dataMs = new Date(p.data).getTime();
       if (dataMs < limitePrimeiraCompraMs) return; // antes da 1ª compra → não recebeu
-      const qtd = qtdNaData(ticker, p.data);
+      const qtd = qtdNoProvento(ticker, p);
       if (qtd <= 0) return;
-      const totalPag = qtd * p.valor;
+      const valorCota = valorCotaLiquido(p);
+      const totalPag = qtd * valorCota;
       recebidoTotal += totalPag;
       if (dataMs >= limite12m) recebido12m += totalPag;
-      todosPagamentos.push({ data: p.data, ticker, qtd, valorCota: p.valor, total: totalPag });
+      todosPagamentos.push({ data: p.data, ticker, qtd, valorCota, total: totalPag });
     });
 
     if (recebidoTotal === 0 && pagamentos.length === 0) return; // sem dados nem provento
@@ -460,6 +659,7 @@ async function carregarDividendos(forcar = false) {
   atualizarProximoEvento(carteira);
   // O chip "Dividendos" no KPI usa pagamentosMensaisAgregados — refresha agora.
   atualizarChipDividendosPeriodo();
+  renderizarProjecaoProventos();
   // New: render bar chart and ranking
   renderizarDividendosMensal(todosPagamentosFiltrados);
   renderizarRankingDividendos(linhasAtivosFiltradas);

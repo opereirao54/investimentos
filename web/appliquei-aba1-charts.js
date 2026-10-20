@@ -478,9 +478,9 @@ function calcularSerieEvolucao(filtroTipo, filtroAtivo) {
         ).getTime();
         const iniMes = new Date(m.getFullYear(), m.getMonth(), 1).getTime();
         if (tsPag < iniMes || tsPag > fimMes) return;
-        const qtdNoPag = qtdNaData(ticker, pag.data);
+        const qtdNoPag = qtdNoProvento(ticker, pag);
         if (qtdNoPag <= 0) return;
-        div += qtdNoPag * pag.valor;
+        div += qtdNoPag * valorCotaLiquido(pag);
       });
     });
     dividendos.push(div);
