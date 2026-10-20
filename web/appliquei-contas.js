@@ -614,10 +614,44 @@ function salvarFormConta() {
   renderMinhasContas();
 }
 
-function arquivarContaUI(id) {
+// Arquivar some com a conta das listas e do formulário — com um clique só, sem
+// dizer o que ainda depende dela. Agora confirma e conta as contas a pagar que
+// continuam saindo dali.
+function arquivarContaUI(id, confirmado) {
+  var c = (typeof contas !== 'undefined' ? contas : []).find(function (x) {
+    return x.id === id;
+  });
+  if (!c) return;
+  if (!confirmado && document.getElementById('modalConfirmacao')) {
+    var pendentes = (typeof transacoes !== 'undefined' ? transacoes : []).filter(function (t) {
+      return t.contaId === id && !t.pago && t.categoria !== 'receita';
+    }).length;
+    document.getElementById('modalTitulo').innerHTML =
+      '<i class="ph-fill ph-archive" style="color:var(--tinta-ambar);"></i> Arquivar "' +
+      escaparHtmlAtivo(c.nome) +
+      '"?';
+    document.getElementById('modalMensagem').innerHTML =
+      'A conta sai das listas e do formulário de lançamento. O histórico continua e dá para restaurar depois.' +
+      (pendentes
+        ? '<br><br><strong>' +
+          pendentes +
+          (pendentes === 1 ? ' conta a pagar ainda sai' : ' contas a pagar ainda saem') +
+          ' dela</strong> — elas continuam no Controle.'
+        : '');
+    document.getElementById('modalAcoes').innerHTML =
+      '<button class="btn-acao" style="background:#f59e0b;" onclick="fecharModal();arquivarContaUI(\'' +
+      id +
+      '\', true)"><i class="ph ph-archive"></i> Arquivar</button>' +
+      '<button class="btn-secundario" onclick="fecharModal()">Cancelar</button>';
+    document.getElementById('modalConfirmacao').style.display = 'flex';
+    return;
+  }
   arquivarConta(id);
   renderMinhasContas();
-  mostrarToast('Conta arquivada (histórico mantido).', 'aviso');
+  mostrarToast(
+    'Conta arquivada (histórico mantido). Para trazer de volta, use Restaurar.',
+    'aviso'
+  );
 }
 
 function restaurarContaUI(id) {

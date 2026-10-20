@@ -156,7 +156,7 @@ var cartSubtituloPadrao = null;
 // ── Estado da sessão ──
 var cartEstado = {
   perfil: null, // 'Conservador' | 'Moderado' | 'Arrojado'
-  capital: 10000, // aporte mensal
+  capital: 1000, // aporte mensal (padrão realista; era 10 mil, que ancorava alto demais)
   objetivo: null, // 'preservar' | 'renda' | 'aposentadoria' | 'aumentar'
   prazoAnos: 10,
   // O universo vem SEMPRE do ranking. A carteira modelo continua a existir
@@ -378,7 +378,7 @@ function cartConcluirQuestionario() {
   cartEstado.objetivo = objetivo;
   var prazoEl = document.querySelector('.cart-q-opt[data-q="prazo"].selected');
   cartEstado.prazoAnos = prazoEl ? parseFloat(prazoEl.dataset.val) : 10;
-  cartEstado.capital = parseBRL(document.getElementById('cartQCapital').value) || 10000;
+  cartEstado.capital = parseBRL(document.getElementById('cartQCapital').value) || 1000;
   var patrimonioEl = document.getElementById('cartQPatrimonio');
   var patrimonioDigitado = patrimonioEl ? parseBRL(patrimonioEl.value) : 0;
   // Campo em branco continua null (o motor usa o patrimônio real da aba Meu
@@ -2027,7 +2027,7 @@ function cartRenderizarMotorStatus() {
       '<span><strong>' +
       nomes.join(' e ') +
       ':</strong> nenhum ativo passou pelo ranking de mercado, então a classe está usando a ' +
-      'carteira do consultor como reserva. Isso acontece enquanto a ingestão de dados da CVM ' +
+      'carteira de referência da Appliquei como reserva. Isso acontece enquanto a ingestão de dados da CVM ' +
       'não tiver rodado — assim que rodar, os candidatos passam a sair do mercado inteiro.</span></div>';
   } else if (pontuados < ranking.length) {
     alerta =

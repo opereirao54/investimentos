@@ -1065,6 +1065,23 @@ function mensagemLancamentoSalvo(categoria, ymdVenc, qtdLancamentos, hoje) {
   );
 }
 
+/** O que o app decidiu sozinho ao salvar, dito em uma frase: gasto à vista já
+ *  sai do saldo; "repetir" cria a série inteira. Sem isso, a pessoa não sabe
+ *  que o gasto já conta como pago nem que a conta vai aparecer por 5 anos. */
+function complementoLancamentoSalvo(novos, dados) {
+  if (!Array.isArray(novos) || !novos.length) return '';
+  const p = novos[0];
+  const banco = dados && dados.banco ? dados.banco : '';
+  if (novos.length > 1 && !(p.categoria === 'cartao_credito' && !p.cartaoFixoMensal)) {
+    const anos = Math.round(novos.length / 12);
+    return ` Repete todo mês pelos próximos ${anos >= 1 ? anos + (anos === 1 ? ' ano' : ' anos') : novos.length + ' meses'} — para parar, exclua "este e os futuros".`;
+  }
+  if (p.categoria === 'despesa_variavel' && p.pago)
+    return banco ? ` Já conta como pago e saiu de ${banco}.` : ' Já conta como pago.';
+  if (p.categoria === 'despesa_variavel' && !p.pago) return ' Fica a pagar até o vencimento.';
+  return '';
+}
+
 function preencherVencimentoPorCartao() {
   const inputVenc = document.getElementById('dataVencimento');
   const grupo = document.getElementById('grupoSeletorFatura');
@@ -1285,6 +1302,11 @@ function salvarNovoCartaoInline() {
     diaFechamento: diaFech,
     diaVencimento: diaVenc,
   };
+  // Nas Configurações o cartão nasce com a conta que paga a fatura; aqui não
+  // nascia, e a baixa da fatura ficava sem conta de onde sai o dinheiro. Usa a
+  // principal (ou a única); sem como saber, avisa onde escolher.
+  const pagadora = contaPagadoraPadrao();
+  if (pagadora) novo.contaPagadoraId = pagadora.id;
   cartoes.push(novo);
   salvarCartoes();
   atualizarSelectCartoesForm();
@@ -1292,7 +1314,20 @@ function salvarNovoCartaoInline() {
   document.getElementById('formNovoCartaoInline').style.display = 'none';
   preencherVencimentoPorCartao();
   renderizarListaCartoesConfig();
-  mostrarToast('Cartão adicionado.', 'sucesso');
+  mostrarToast(
+    pagadora
+      ? `Cartão adicionado. A fatura sai de ${pagadora.nome} — dá para trocar em Configurações › Cartões.`
+      : 'Cartão adicionado. Escolha em Configurações › Cartões de qual conta a fatura é paga.',
+    'sucesso',
+    6000
+  );
+}
+
+function contaPagadoraPadrao() {
+  const caixa = (typeof contas !== 'undefined' ? contas : []).filter(
+    (c) => c && !c.arquivada && c.tipo !== 'corretora'
+  );
+  return caixa.find((c) => c.principal === true) || (caixa.length === 1 ? caixa[0] : null);
 }
 
 function selecionarTipoCartao(tipo) {
@@ -1685,6 +1720,7 @@ function executarEdicao(modo) {
   // sem esta guarda ele voltaria a exigir categoria e a virar despesa.
   const txSonho = transacaoEmEdicao();
   if (transacaoEhSonho(txSonho)) return salvarEdicaoSonhoDoControle(txSonho);
+  let saiuDaSerie = false;
 
   const desc = (document.getElementById('descTransacao').value || '').trim();
   const valorTotal = Number(parseBRL(document.getElementById('valorTransacao').value));
@@ -1776,7 +1812,10 @@ function executarEdicao(modo) {
       transAtual.contaId = contaIdNovo;
     }
     if (categoriaDespesaUsada(categoria)) transAtual.categoriaDespesa = catDespesaNovo || undefined;
-    if (transAtual.groupId) transAtual.groupId = null;
+    if (transAtual.groupId) {
+      transAtual.groupId = null;
+      saiuDaSerie = true;
+    }
   }
 
   cancelarEdicaoControle();
@@ -1788,7 +1827,12 @@ function executarEdicao(modo) {
       AppliqueiCloudSync.forceFlush();
     }
   } catch (_) {}
-  mostrarToast('Lançamento atualizado!', 'sucesso');
+  mostrarToast(
+    saiuDaSerie
+      ? 'Lançamento atualizado só neste mês — os outros meses continuam como estavam.'
+      : 'Lançamento atualizado!',
+    'sucesso'
+  );
   atualizarTelaControle();
   atualizarDatalistDescricoes();
   fecharPainelLancamento();
@@ -2006,7 +2050,12 @@ function executarInsercao() {
   const grupoCatDesp = document.getElementById('grupoCategoriaDespesa');
   if (grupoCatDesp) grupoCatDesp.style.display = 'none';
   selecionarTipoCartao('parcelado');
-  mostrarToast(mensagemLancamentoSalvo(categoria, dataVencInput, mesesGerar), 'sucesso');
+  mostrarToast(
+    mensagemLancamentoSalvo(categoria, dataVencInput, mesesGerar) +
+      complementoLancamentoSalvo(novos, dados),
+    'sucesso',
+    6000
+  );
   atualizarTelaControle();
   atualizarDatalistDescricoes();
   fecharPainelLancamento();
@@ -2756,9 +2805,44 @@ function atualizarBannerSaldoMesAnterior(mesAtual, anoAtual) {
 
 var itemParaDeletar = null;
 
+// Parcela e aporte de sonho não se excluem pelo Controle: a exclusão só tirava
+// o lançamento, e o dinheiro continuava contado no sonho (ou o plano ficava
+// apontando para parcelas que não existem). Os caminhos certos já existem.
+function avisarExclusaoParcelaSonho(t) {
+  const s = typeof sonhos !== 'undefined' ? sonhos.find((x) => x.id === t.sonhoId) : null;
+  const nome = s ? s.nome : 'seu sonho';
+  const opcoes = [];
+  if (!t.pago && typeof controlePodePularSonho === 'function' && controlePodePularSonho(t))
+    opcoes.push(
+      `<button class="btn-acao" style="background:#f59e0b;" onclick="fecharModal();pularParcelaSonho('${t.id}')"><i class="ph-bold ph-skip-forward"></i> Pular este mês</button>`
+    );
+  if (t.pago && controlePodeReverterPagamento(t))
+    opcoes.push(
+      `<button class="btn-acao" style="background-color: var(--cor-texto-principal);" onclick="fecharModal();reverterPagamento('${t.id}')"><i class="ph ph-arrow-counter-clockwise"></i> Desfazer o pagamento</button>`
+    );
+  opcoes.push(
+    `<button class="btn-acao" style="background-color: var(--cor-primaria);" onclick="fecharModal();controleIrParaSonhos()"><i class="ph ph-shooting-star"></i> Abrir Meus sonhos</button>`,
+    `<button class="btn-secundario" onclick="fecharModal()">Cancelar</button>`
+  );
+  document.getElementById('modalTitulo').innerHTML =
+    `<i class="ph-fill ph-shooting-star" style="color:var(--cor-primaria);"></i> Este lançamento é do sonho "${escaparHtmlAtivo(nome)}"`;
+  document.getElementById('modalMensagem').innerHTML = t.pago
+    ? `Excluir daqui deixaria o valor contado no sonho. Para tirar o dinheiro do sonho, <strong>desfaça o pagamento</strong>; para mudar o plano ou apagar o sonho, use <strong>Meus sonhos</strong>.`
+    : `Excluir daqui faria o plano do sonho deixar de fechar no prazo. Se não vai guardar este mês, <strong>pule o mês</strong> — a falta é redistribuída. Para mudar o plano ou apagar o sonho, use <strong>Meus sonhos</strong>.`;
+  document.getElementById('modalAcoes').innerHTML = opcoes.join('');
+  document.getElementById('modalConfirmacao').style.display = 'flex';
+}
+
+function controleIrParaSonhos() {
+  if (typeof mobEhCelular === 'function' && mobEhCelular() && typeof mobIrPara === 'function')
+    return mobIrPara('meus_sonhos');
+  if (typeof ppNavegarPara === 'function') ppNavegarPara('meus_sonhos');
+}
+
 function deletarTransacao(idStr) {
   const transacao = transacoes.find((t) => t.id == idStr);
   if (!transacao) return;
+  if (transacao.sonhoId) return avisarExclusaoParcelaSonho(transacao);
 
   itemParaDeletar = transacao;
   const modal = document.getElementById('modalConfirmacao');
@@ -2790,6 +2874,7 @@ function fecharModal() {
 
 function executarDelecao(modo) {
   if (!itemParaDeletar) return;
+  if (itemParaDeletar.sonhoId) return avisarExclusaoParcelaSonho(itemParaDeletar);
   if (modo === 'todas') {
     transacoes = transacoes.filter(
       (t) =>
@@ -2980,6 +3065,41 @@ function pagoEmDoDia(diaPago) {
   return isFinite(d.getTime()) ? d.toISOString() : new Date().toISOString();
 }
 
+function oferecerAlternativaBaixaZero(t) {
+  itemParaDeletar = t;
+  const prox = new Date(t.ano, t.mes + 1, 1);
+  const nomeMes = prox.toLocaleDateString('pt-BR', { month: 'long' });
+  document.getElementById('modalTitulo').innerHTML =
+    `<i class="ph-fill ph-question" style="color:var(--tinta-ambar);"></i> Não pagou "${escaparHtmlAtivo(t.descricao || 'esta conta')}"?`;
+  document.getElementById('modalMensagem').innerHTML =
+    `Marcar como paga com R$ 0 tiraria a conta de "a pagar" sem que nada tenha sido pago. O que você quer fazer?`;
+  document.getElementById('modalAcoes').innerHTML = `
+        <button class="btn-acao" style="background:#f59e0b;" onclick="adiarLancamentoUmMes('${t.id}')"><i class="ph-bold ph-calendar-plus"></i> Passar para ${nomeMes}</button>
+        <button class="btn-acao" style="background-color: var(--cor-erro);" onclick="executarDelecao('unica')"><i class="ph ph-trash"></i> Não vou pagar — excluir este mês</button>
+        <button class="btn-secundario" onclick="fecharModal()">Continua a pagar</button>`;
+  document.getElementById('modalConfirmacao').style.display = 'flex';
+}
+
+// Leva a conta (ainda não paga) para o mês seguinte, com o vencimento junto.
+function adiarLancamentoUmMes(id) {
+  const t = transacoes.find((x) => x.id === id);
+  fecharModal();
+  if (!t || t.pago) return;
+  const m = t.mes + 1;
+  t.mes = m % 12;
+  t.ano = t.ano + Math.floor(m / 12);
+  if (t.dataVencimento && /^\d{4}-\d{2}-\d{2}$/.test(t.dataVencimento)) {
+    const [a, mm, d] = t.dataVencimento.split('-').map(Number);
+    const ultimo = new Date(a, mm + 1, 0).getDate(); // último dia do mês seguinte
+    const nv = new Date(a, mm, Math.min(d, ultimo));
+    t.dataVencimento = `${nv.getFullYear()}-${String(nv.getMonth() + 1).padStart(2, '0')}-${String(nv.getDate()).padStart(2, '0')}`;
+  }
+  salvarTransacoes();
+  const nomeMes = new Date(t.ano, t.mes, 1).toLocaleDateString('pt-BR', { month: 'long' });
+  mostrarToast(`"${t.descricao}" passou para ${nomeMes} e continua a pagar.`, 'sucesso');
+  atualizarTelaControle();
+}
+
 function confirmarPagamento(id) {
   const inputVal = document.getElementById(`input-pago-${id}`).value;
   const novoValor = parseBRL(inputVal);
@@ -3013,11 +3133,17 @@ function confirmarPagamento(id) {
     pularMesSonho(alvo.sonhoId, alvo.id);
     return;
   }
+  // R$ 0 em qualquer outra conta: "paga" com zero sumia de "a pagar" sem que
+  // nada tivesse sido pago. Quem digita zero quase sempre quer dizer "não
+  // paguei" — o app pergunta o que fazer em vez de registrar.
+  if (novoValor === 0 && alvo) return oferecerAlternativaBaixaZero(alvo);
 
   let txPaga = null;
+  let valorPrevistoSerie = null; // a série seguiu com o valor antigo
   transacoes = transacoes.map((t) => {
     if (t.id === id) {
       if (t.valor !== novoValor) {
+        if (t.groupId) valorPrevistoSerie = t.valor;
         t.valor = novoValor;
         if (t.groupId) t.groupId = null; // Isola o registro
       }
@@ -3032,6 +3158,8 @@ function confirmarPagamento(id) {
   let toastMsg = 'Pagamento confirmado!';
   if (efeito === 'sonho') toastMsg = 'Pagamento confirmado e aporte registrado no sonho!';
   if (efeito === 'compromisso') toastMsg = 'Aporte confirmado e somado ao seu patrimônio!';
+  if (valorPrevistoSerie != null && efeito !== 'sonho')
+    toastMsg += ` Só este mês ficou ${formatarMoeda(novoValor)}; os próximos continuam ${formatarMoeda(valorPrevistoSerie)}.`;
 
   mostrarToast(toastMsg, 'sucesso');
   atualizarTelaControle();
