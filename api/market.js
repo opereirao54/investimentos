@@ -652,6 +652,7 @@ async function fetchB3Json(url, ticker, fetchImpl) {
   } finally {
     clearTimeout(timer);
   }
+  json = desembrulharB3(json);
   const lista = mapB3Proventos(json, ticker);
   // Nenhum provento é quase sempre resposta num formato que não lemos (a 1ª
   // rodada gravou 35 listas vazias): vira erro com o formato no motivo, para o
@@ -660,8 +661,31 @@ async function fetchB3Json(url, ticker, fetchImpl) {
   return lista;
 }
 
+/**
+ * Os proxies da B3 devolvem o JSON dentro de uma string (o log do job mostrou
+ * "b3_vazio string"): às vezes JSON de novo, às vezes base64 do JSON.
+ */
+function desembrulharB3(json) {
+  for (let i = 0; i < 3 && typeof json === 'string'; i++) {
+    const s = json.trim();
+    try {
+      json = JSON.parse(s);
+      continue;
+    } catch (_) {
+      /* tenta base64 */
+    }
+    try {
+      json = JSON.parse(Buffer.from(s, 'base64').toString('utf8'));
+    } catch (_) {
+      break;
+    }
+  }
+  return json;
+}
+
 /** Resumo curto do formato da resposta da B3, para o log do job. */
 function formatoB3(json) {
+  if (typeof json === 'string') return `string(${json.length}) ${json.slice(0, 120)}`;
   const raiz = Array.isArray(json) ? json[0] : json;
   const tipo = Array.isArray(json) ? `array[${json.length}]` : typeof json;
   const chaves = raiz && typeof raiz === 'object' ? Object.keys(raiz).slice(0, 8).join(',') : '';
@@ -4434,7 +4458,14 @@ module.exports.fontes = {
   todayYmdBRT,
 };
 module.exports.brapi = { fetchBrapi };
-module.exports.proventosB3 = { mapB3Proventos, fetchB3Proventos, classeIsinB3, b3Data, b3Num };
+module.exports.proventosB3 = {
+  mapB3Proventos,
+  fetchB3Proventos,
+  classeIsinB3,
+  b3Data,
+  b3Num,
+  desembrulharB3,
+};
 module.exports.planilha = {
   mapPlanilhaLinhas,
   fetchPlanilhaCotacoes,
