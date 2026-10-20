@@ -24,6 +24,7 @@ const { fontes } = require('../../api/market');
 // (a ordem importa: classic scripts compartilham estado por window).
 const ORDEM_RELATORIO = [
   'web/appliquei-utils.js',
+  'web/appliquei-catalogo-b3.js',
   'web/appliquei-yahoo-finance.js',
   'web/appliquei-app.js',
   'web/appliquei-combobox.js',

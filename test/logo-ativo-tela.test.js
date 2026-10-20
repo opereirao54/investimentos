@@ -224,7 +224,7 @@ test('o drawer confirma qual empresa foi digitada', () => {
   assert.match(app, /atualizarIdentidadeAtivo\(/, 'ninguém chama a atualização');
   assert.match(
     app,
-    /if \(alvo\.dataset\.ticker === tk\) return;/,
+    /if \(alvo\.dataset\.ticker === chave\) return;/,
     'sem guarda, oninput recria o <img> a cada tecla — uma requisição por tecla'
   );
 });
