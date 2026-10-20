@@ -13,10 +13,12 @@
 // aqui, pelas funções do app:
 //   - os lançamentos do Telegram ainda na caixa de entrada são aplicados
 //     (telegramAplicarItens) — sem gravar nada de volta;
-//   - os dividendos são buscados na mesma fonte (carregarDividendos → brapi,
-//     Yahoo de reserva), porque o app não os guarda.
+//   - os dividendos são buscados na mesma fonte do servidor (fetchProventos de
+//     api/market.js: Yahoo, ou BRAPI com BRAPI_TOKEN), entregue ao app em
+//     fonteDividendos, e o app os aplica com as próprias regras (prepararDividendos).
 
 const { carregarApp } = require('./app-sandbox');
+const { fontes } = require('../../api/market');
 
 // Os scripts que o relatório consome, na ordem do Appliquei_v13.0.html
 // (a ordem importa: classic scripts compartilham estado por window).
@@ -75,16 +77,13 @@ async function documentoDoRelatorio(o) {
   // Dividendos: o app busca ao abrir. Com prazo — uma fonte lenta não pode
   // segurar o relatório; sem eles o KPI sai R$ 0,00, como no app offline.
   let dividendos = false;
-  if (o.fetch && typeof w.carregarDividendos === 'function') {
+  if (o.fetch && typeof w.prepararDividendos === 'function') {
+    const prazo = o.prazoDividendosMs || DIVIDENDOS_PRAZO_MS;
+    w.fonteDividendos = (tickers) => fontes.fetchProventos(tickers, null, prazo, o.fetch);
     try {
       await Promise.race([
-        w.carregarDividendos(),
-        new Promise((_, rej) =>
-          setTimeout(
-            () => rej(new Error('prazo')),
-            o.prazoDividendosMs || DIVIDENDOS_PRAZO_MS
-          ).unref()
-        ),
+        w.prepararDividendos(),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('prazo')), prazo).unref()),
       ]);
       dividendos = true;
     } catch (_) {

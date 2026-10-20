@@ -12010,6 +12010,21 @@
             body.mob-story-aberta .mob-tabbar { visibility: hidden; }
         }
 
+        /* Proventos nos próximos 12 meses (appliquei-aba-dividendos.js) */
+        .pp-div-proj { background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 18px; padding: 16px 18px; margin-bottom: 16px; }
+        .pp-div-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .pp-div-rot { min-width: 0; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--cor-texto-mutado); }
+        .pp-div-link { border: 0; background: transparent; color: var(--cor-primaria); font: 700 13px 'Figtree', sans-serif; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; min-height: 36px; padding: 0; white-space: nowrap; flex-shrink: 0; }
+        .pp-div-total { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin: 6px 0 12px; }
+        .pp-div-total b { font-family: 'DM Mono', monospace; font-size: 24px; font-weight: 500; color: var(--cor-texto); }
+        .pp-div-total small { font-size: 13px; color: var(--cor-texto-mutado); }
+        .pp-div-barras { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px; height: 84px; align-items: end; }
+        .pp-div-col { height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; }
+        .pp-div-barra { width: 100%; max-width: 22px; border-radius: 5px 5px 2px 2px; background: var(--cor-patrimonio, #10b981); opacity: .85; }
+        .pp-div-col span { font-size: 10px; font-weight: 600; color: var(--cor-texto-mutado); line-height: 1; }
+        .pp-div-top { margin: 12px 0 0; font-size: 13px; color: var(--cor-texto); }
+        .pp-div-nota { margin: 6px 0 0; font-size: 11.5px; color: var(--cor-texto-mutado); line-height: 1.4; }
+
         /* ============================================================ */
         /* MEU PATRIMÔNIO NO CELULAR (appliquei-mobile.js)               */
         /* ============================================================ */
@@ -13869,6 +13884,8 @@
                     </div>
                 </div>
 
+                <div id="cardProjecaoProventos" style="display:none;"></div>
+
                 <div class="inv-bloco">
                     <div class="inv-bloco-cab" style="cursor:default;">
                         <span class="inv-eyebrow">Recebimentos por mês</span>
@@ -15541,6 +15558,7 @@
 
             <div id="mpMobCarteiras" class="mob-inicio mob-pat"></div>
             <div id="mpMobClasses" class="mob-inicio mob-pat"></div>
+            <div id="mpMobProventos" class="mob-inicio mob-pat"></div>
             <div id="mpMobContas" class="mob-inicio mob-pat"></div>
             <div id="mpMobBens" class="mob-inicio mob-pat"></div>
 
@@ -16560,7 +16578,7 @@
 
             <h2 class="mob-grupo">Planejar</h2>
             <div class="mob-tiles">
-                <button type="button" class="mob-tile" onclick="mobIrPara('patrimonio')"><span class="mob-tile-ic azul"><i class="ph ph-trend-up"></i></span><b>Meus investimentos</b><small>Carteira e operações</small></button>
+                <button type="button" class="mob-tile" onclick="mobIrPara('patrimonio')"><span class="mob-tile-ic azul"><i class="ph ph-trend-up"></i></span><b>Meus investimentos</b><small>Carteira, operações e dividendos</small></button>
                 <button type="button" class="mob-tile" onclick="mobIrPara('meus_sonhos')"><span class="mob-tile-ic roxo"><i class="ph ph-star"></i></span><b>Meus sonhos</b><small>Metas e aportes</small></button>
                 <button type="button" class="mob-tile" onclick="mobIrPara('simulador')"><span class="mob-tile-ic azul"><i class="ph ph-calculator"></i></span><b>Simule sua liberdade</b><small>Projeção e meta</small></button>
                 <button type="button" class="mob-tile" onclick="mobIrPara('relatorio_mensal')"><span class="mob-tile-ic ambar"><i class="ph ph-file-text"></i></span><b>Relatório mensal</b><small>Termômetro do mês</small></button>

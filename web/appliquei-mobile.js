@@ -2017,6 +2017,20 @@ function mobRenderPatrimonio(d) {
   _mobPatDesenharTopo();
   mobPatrimonioRedesenharCarteiras();
   _mobPatDesenharClasses();
+  mobPatDesenharProventos();
+}
+
+/** Proventos previstos para 12 meses. Também chamada quando os dividendos chegam. */
+function mobPatDesenharProventos() {
+  const wrap = document.getElementById('mpMobProventos');
+  if (!wrap) return;
+  if (typeof projecaoProventos12m !== 'function' || typeof obterResumoCarteira !== 'function') {
+    wrap.innerHTML = '';
+    return;
+  }
+  wrap.innerHTML = htmlProjecaoProventos(projecaoProventos12m(obterResumoCarteira()), {
+    link: "mobIrPara('patrimonio');mudarSubAbaPatrimonio('dividendos');document.getElementById('subtabBtnDividendos').scrollIntoView({block:'start'})",
+  });
 }
 
 function mobPatAlternarLiquido(liq) {

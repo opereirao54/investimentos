@@ -11,6 +11,7 @@ const SETORES_B3 = require('../scripts/lib/setores-b3.json');
 // limite de 12 functions do Vercel Hobby. Sub-roteamento via ?op=:
 //   - GET  /api/market?op=quote&tickers=PETR4,VALE3              (auth: Firebase Bearer)
 //   - GET  /api/market?op=history&ticker=PETR4&range=1y          (auth: Firebase Bearer)
+//   - GET  /api/market?op=dividends&tickers=PETR4,MXRF11         (auth: Firebase Bearer)
 //   - GET  /api/market?op=news                                    (auth: Firebase Bearer)
 //   - GET  /api/market?op=logo&ticker=PETR4                       (público; proxy de imagem)
 //   - POST /api/market?op=warmup                                  (auth: Bearer CRON_SECRET)
@@ -326,6 +327,264 @@ async function handleQuote(req, res) {
     quotes,
     semCotacao,
     fetchError,
+  });
+}
+
+// ---------- op=dividends ----------
+// Histórico de proventos (5 anos) dos ativos da pessoa. Antes o navegador
+// buscava sozinho: BRAPI sem token (sempre 401) e Yahoo por proxies CORS
+// gratuitos, com só 12 meses de histórico — "Recebido total" e yield on cost
+// ficavam cortados para quem tem o ativo há mais de um ano.
+//
+// Fonte: Yahoo v8/chart (events=div), grátis, sem cookie nem crumb. Com
+// BRAPI_TOKEN, a BRAPI (dividends=true) é preferida porque traz data-com,
+// data de pagamento e o tipo (JCP × dividendo × rendimento); o que ela não
+// trouxer vai ao Yahoo. Cache marketDividends/{TICKER} por 24 h.
+const DIVIDENDS_COLLECTION = 'marketDividends';
+const DIVIDENDOS_TTL_MS = 24 * 3600 * 1000;
+const DIVIDENDOS_MAX_TICKERS = 40;
+
+function ymdSP(ms) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(ms));
+}
+
+/** Dia útil anterior (para a data-com estimada a partir da data-ex). */
+function diaUtilAnteriorYmd(ymd) {
+  const d = new Date(ymd + 'T12:00:00Z');
+  do d.setUTCDate(d.getUTCDate() - 1);
+  while (d.getUTCDay() === 0 || d.getUTCDay() === 6);
+  return d.toISOString().slice(0, 10);
+}
+
+function ymdDe(v) {
+  if (!v) return null;
+  const s = String(v);
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const t = Date.parse(s);
+  return Number.isFinite(t) ? ymdSP(t) : null;
+}
+
+/** Remove o mesmo evento repetido (mesma data e mesmo valor) e ordena. */
+function deduplicarProventos(lista) {
+  const vistos = new Set();
+  const out = [];
+  for (const p of lista) {
+    if (!p || !p.data || !(p.valor > 0)) continue;
+    const chave = p.data + '|' + (p.tipo || '') + '|' + Math.round(p.valor * 1e8);
+    if (vistos.has(chave)) continue;
+    vistos.add(chave);
+    out.push(p);
+  }
+  return out.sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0));
+}
+
+/** Converte o cashDividends da BRAPI no formato do app. */
+function mapBrapiProventos(cash) {
+  return deduplicarProventos(
+    (cash || []).map((d) => {
+      const tipoBruto = String(d.label || '').toUpperCase();
+      const tipo = /JCP|JUROS/.test(tipoBruto)
+        ? 'JCP'
+        : /REND/.test(tipoBruto)
+          ? 'RENDIMENTO'
+          : tipoBruto
+            ? 'DIVIDENDO'
+            : null;
+      const dataCom = ymdDe(d.lastDatePrior);
+      const dataPagamento = ymdDe(d.paymentDate);
+      return {
+        // O mês do provento é o do PAGAMENTO (quando o dinheiro cai). Sem ele,
+        // a data-com é a melhor aproximação.
+        data: dataPagamento || dataCom || ymdDe(d.approvedOn),
+        dataCom,
+        dataPagamento,
+        valor: Number(d.rate) || 0,
+        tipo,
+        fonte: 'brapi',
+      };
+    })
+  );
+}
+
+async function fetchBrapiProventos(ticker, fetchImpl = fetch) {
+  const url = `${BRAPI_BASE}/${encodeURIComponent(ticker)}?dividends=true&fundamental=false`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8000);
+  let res;
+  try {
+    res = await fetchImpl(url, {
+      headers: { Accept: 'application/json', Authorization: `Bearer ${process.env.BRAPI_TOKEN}` },
+      signal: ctrl.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) throw new Error(`brapi_div_${res.status}`);
+  const json = await res.json();
+  const r = json && json.results && json.results[0];
+  const cash = r && r.dividendsData && r.dividendsData.cashDividends;
+  if (!Array.isArray(cash)) throw new Error('brapi_div_sem_dados');
+  return mapBrapiProventos(cash);
+}
+
+/** Converte events.dividends do Yahoo (data = data-ex) no formato do app. */
+function mapYahooProventos(eventos) {
+  return deduplicarProventos(
+    Object.values(eventos || {}).map((d) => {
+      const dataEx = ymdSP((Number(d.date) || 0) * 1000);
+      return {
+        // O Yahoo só traz a data-ex: o pagamento costuma vir semanas depois,
+        // mas a data exata não está na fonte. A data-com é o dia útil antes.
+        data: dataEx,
+        dataCom: diaUtilAnteriorYmd(dataEx),
+        dataPagamento: null,
+        valor: Number(d.amount) || 0,
+        tipo: null,
+        fonte: 'yahoo',
+      };
+    })
+  );
+}
+
+async function fetchYahooProventos(ticker, fetchImpl = fetch) {
+  const simbolo = ticker.replace(/^([A-Z]{4}\d{1,2})F$/, '$1') + '.SA';
+  const url = `${YAHOO_BASE}/${encodeURIComponent(simbolo)}?range=5y&interval=1mo&events=div`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), YAHOO_CHART_TIMEOUT_MS);
+  let json;
+  try {
+    const res = await fetchImpl(url, {
+      headers: { Accept: 'application/json', 'User-Agent': YAHOO_UA },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) throw new Error(`yahoo_div_${res.status}`);
+    json = await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+  const r = json && json.chart && json.chart.result && json.chart.result[0];
+  if (!r) throw new Error('yahoo_div_sem_resultado');
+  return mapYahooProventos(r.events && r.events.dividends);
+}
+
+/** Proventos de vários tickers, pela via disponível, com orçamento de tempo. */
+// fetchImpl: o relatório em PDF (scripts/lib/relatorio-pdf.js) roda fora do
+// request e injeta o fetch dele.
+async function fetchProventos(tickers, erros, orcamentoMs, fetchImpl = fetch) {
+  const out = {};
+  const limite = Date.now() + (orcamentoMs || 9000);
+  const PARALELO = 4;
+  for (let i = 0; i < tickers.length; i += PARALELO) {
+    if (Date.now() > limite) {
+      if (erros)
+        erros.push({
+          fonte: 'proventos',
+          erro: 'orcamento_esgotado',
+          restantes: tickers.length - i,
+        });
+      break;
+    }
+    const lote = tickers.slice(i, i + PARALELO);
+    const res = await Promise.all(
+      lote.map(async (t) => {
+        if (process.env.BRAPI_TOKEN) {
+          try {
+            return { t, lista: await fetchBrapiProventos(t, fetchImpl), fonte: 'brapi' };
+          } catch (e) {
+            if (erros) erros.push({ fonte: 'brapi_div', ticker: t, erro: e.message });
+          }
+        }
+        try {
+          return { t, lista: await fetchYahooProventos(t, fetchImpl), fonte: 'yahoo' };
+        } catch (e) {
+          if (erros) erros.push({ fonte: 'yahoo_div', ticker: t, erro: e.message });
+          return null;
+        }
+      })
+    );
+    for (const item of res) if (item) out[item.t] = { pagamentos: item.lista, fonte: item.fonte };
+  }
+  return out;
+}
+
+async function handleDividends(req, res) {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const requested = Array.from(
+    new Set(
+      (req.query.tickers || '')
+        .toString()
+        .split(',')
+        .map(sanitizeTicker)
+        .filter((t) => t && !CRYPTO_MAP[t])
+    )
+  ).slice(0, DIVIDENDOS_MAX_TICKERS);
+  if (!requested.length) return res.status(400).json({ error: 'missing_tickers' });
+
+  const agora = Date.now();
+  const database = db();
+  const snaps = await database.getAll(
+    ...requested.map((t) => database.collection(DIVIDENDS_COLLECTION).doc(t))
+  );
+  const frescos = {};
+  const antigos = {};
+  const buscar = [];
+  snaps.forEach((snap, i) => {
+    const t = requested[i];
+    const d = snap.data();
+    if (d && Array.isArray(d.pagamentos) && agora - (d.fetchedAtMs || 0) < DIVIDENDOS_TTL_MS)
+      frescos[t] = d;
+    else {
+      buscar.push(t);
+      if (d && Array.isArray(d.pagamentos)) antigos[t] = d;
+    }
+  });
+
+  const erros = [];
+  const novos = buscar.length ? await fetchProventos(buscar, erros, 9000) : {};
+  if (Object.keys(novos).length) {
+    const lote = database.batch();
+    for (const t of Object.keys(novos)) {
+      lote.set(database.collection(DIVIDENDS_COLLECTION).doc(t), {
+        pagamentos: novos[t].pagamentos,
+        fonte: novos[t].fonte,
+        fetchedAtMs: agora,
+        updatedAt: timestamp().now(),
+      });
+    }
+    await lote
+      .commit()
+      .catch((e) => console.warn('[market/dividends] cache_write_failed', e.message));
+  }
+
+  const dividendos = {};
+  for (const t of requested) {
+    if (frescos[t])
+      dividendos[t] = {
+        pagamentos: frescos[t].pagamentos,
+        fonte: frescos[t].fonte,
+        asOfMs: frescos[t].fetchedAtMs,
+      };
+    else if (novos[t])
+      dividendos[t] = { pagamentos: novos[t].pagamentos, fonte: novos[t].fonte, asOfMs: agora };
+    else if (antigos[t])
+      dividendos[t] = {
+        pagamentos: antigos[t].pagamentos,
+        fonte: antigos[t].fonte,
+        asOfMs: antigos[t].fetchedAtMs,
+        stale: true,
+      };
+    else dividendos[t] = { pagamentos: null, error: 'unavailable' };
+  }
+  return res.json({
+    success: true,
+    dividendos,
+    erros: erros.length ? diagnosticarErrosDeFonte(erros) : null,
   });
 }
 
@@ -3146,6 +3405,10 @@ module.exports = handler({
       if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
       return handleHistory(req, res);
     }
+    if (op === 'dividends') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return handleDividends(req, res);
+    }
     if (op === 'news') {
       if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
       return handleNews(req, res);
@@ -3180,7 +3443,7 @@ module.exports = handler({
     return res.status(400).json({
       error: 'unknown_op',
       detail:
-        'Use ?op=quote, ?op=history, ?op=news, ?op=fundamentals, ?op=ranking, ?op=diagnostico, ?op=indicadores, ?op=rendafixa, ?op=logo or ?op=warmup',
+        'Use ?op=quote, ?op=history, ?op=dividends, ?op=news, ?op=fundamentals, ?op=ranking, ?op=diagnostico, ?op=indicadores, ?op=rendafixa, ?op=logo or ?op=warmup',
     });
   },
 });
@@ -3194,6 +3457,7 @@ module.exports.fontes = {
   fetchYahooFundamentals,
   mapYahooFundamental,
   diagnosticarErrosDeFonte,
+  fetchProventos,
 };
 
 // Internos do parse de RSS expostos para teste. São regex sobre XML de
@@ -3227,6 +3491,10 @@ module.exports.__test = {
   fetchYahooCotacoes,
   fetchCotacoesMercado,
   fetchCriptoCotacoes,
+  mapYahooProventos,
+  mapBrapiProventos,
+  deduplicarProventos,
+  fetchProventos,
   cotacaoFresca,
   pregaoAberto,
   ultimoFechamentoMs,

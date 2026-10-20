@@ -93,7 +93,7 @@ test('lançamento do Telegram ainda na caixa de entrada entra no relatório, com
   );
 });
 
-test('dividendos: busca pela função do app (brapi), com prazo; sem rede o relatório sai igual', async () => {
+test('dividendos: busca pela fonte do servidor (Yahoo sem BRAPI_TOKEN), com prazo; sem rede o relatório sai igual', async () => {
   const { chaves } = chavesDoMundo();
   const urls = [];
   const r = await G.documentoDoRelatorio({
@@ -104,12 +104,15 @@ test('dividendos: busca pela função do app (brapi), com prazo; sem rede o rela
       return {
         ok: true,
         status: 200,
-        json: async () => ({ results: [{ dividendsHistory: { cashDividends: [] } }] }),
+        json: async () => ({ chart: { result: [{ events: { dividends: {} } }] } }),
       };
     },
   });
   assert.equal(r.dividendos, true);
-  assert.ok(urls.some((u) => u.startsWith('https://brapi.dev/api/quote/PETR4')));
+  assert.ok(
+    urls.some((u) => /\/v8\/finance\/chart\/PETR4\.SA\?range=5y/.test(u)),
+    urls.join()
+  );
 
   // Fonte pendurada: o prazo vence e o relatório sai mesmo assim.
   const lento = await G.documentoDoRelatorio({
