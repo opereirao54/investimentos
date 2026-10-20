@@ -1,6 +1,6 @@
 """Trilha original do anúncio de 18 s "o Appliquei te avisa dias antes".
 
-    python3 marketing/ferramentas/shorts/trilha-aviso.py <saida.wav>
+    python3 marketing/ferramentas/shorts/trilha-aviso.py <saida.wav> [--sonhos]
 
 Composta em código (sem licença de terceiros) e sincronizada com as cenas de
 marketing/comercial-mesmo-salario/anuncio-aviso-18s.html:
@@ -27,6 +27,8 @@ import wave
 import numpy as np
 
 SR = 48000
+# --sonhos: abertura com caixinha de música no lugar do bip de erro (anuncio-sonhos-18s).
+TEMA = 'sonhos' if '--sonhos' in sys.argv else 'aviso'
 DUR = 18.0
 N = int(SR * DUR)
 rng = np.random.default_rng(7)
@@ -92,9 +94,13 @@ add(musica, 0, drone, 0.16)
 for k in range(7):  # tique-taque a cada 0,5 s
     tick = rng.standard_normal(int(0.03 * SR)) * env(int(0.03 * SR), 0.001, 0.008)
     add(musica, 0.05 + k * 0.5, np.diff(tick, prepend=0), 0.5 if k % 2 == 0 else 0.3)
-for t0 in (0.15, 1.6):  # bip de erro: dois toques graves e ásperos
-    for d, f in ((0.0, 330), (0.16, 262)):
-        add(efeitos, t0 + d, nota(f, 0.14, 'square', 0.003, 0.09), 0.22)
+if TEMA == 'sonhos':  # caixinha de música em lá menor: "um dia…"
+    for k2, m in enumerate((81, 76, 84, 83, 79, 76)):
+        add(efeitos, 0.2 + k2 * 0.5, nota(hz(m), 1.0, 'sine', 0.002, 0.45) + 0.3 * nota(hz(m + 12), 1.0, 'sine', 0.002, 0.2), 0.10)
+else:
+    for t0 in (0.15, 1.6):  # bip de erro: dois toques graves e ásperos
+        for d, f in ((0.0, 330), (0.16, 262)):
+            add(efeitos, t0 + d, nota(f, 0.14, 'square', 0.003, 0.09), 0.22)
 riser = rng.standard_normal(int(0.6 * SR))
 riser = lowpass(riser, 3000) * np.linspace(0, 1, len(riser)) ** 2
 add(musica, 2.8, riser, 0.35)
@@ -186,7 +192,8 @@ est = np.stack([mix, mix], axis=1)
 # leve abertura estéreo: arpejo/efeitos defasados 6 ms num canal
 est[:, 1] = np.roll(mix, int(0.006 * SR)) * 0.35 + mix * 0.65
 
-saida = sys.argv[1] if len(sys.argv) > 1 else 'trilha-aviso.wav'
+args = [a for a in sys.argv[1:] if not a.startswith('--')]
+saida = args[0] if args else 'trilha-aviso.wav'
 with wave.open(saida, 'wb') as w:
     w.setnchannels(2)
     w.setsampwidth(2)
