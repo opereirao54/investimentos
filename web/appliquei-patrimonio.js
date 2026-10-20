@@ -452,62 +452,17 @@ function mpCalcularSaldoPorInstituicao(refMs) {
   return mapa;
 }
 
-// Coleta tickers únicos de RV referenciados em historicoCompras.
-function mpTickersRVUnicos() {
-  if (typeof historicoCompras === 'undefined') return [];
-  const s = new Set();
-  historicoCompras.forEach((op) => {
-    if (op.categoria === 'renda_variavel' && op.ticker && /^[A-Z]{4}\d{1,2}$/.test(op.ticker)) {
-      s.add(op.ticker);
-    }
-  });
-  return Array.from(s);
-}
-
+// Cotações: a mesma fonte das outras telas (atualizarCotacoes, em
+// appliquei-yahoo-finance.js), que cota TODOS os ativos de renda variável e
+// preenche mpEstado.cotacoes. Antes esta tela tinha a própria busca, com
+// outro filtro de ticker e um selo de horário apontando para um elemento
+// que não existia na página.
 async function mpFetchCotacoes() {
-  const tickers = mpTickersRVUnicos();
-  if (!tickers.length) {
-    mpEstado.ultimaCotacao = null;
-    mpAtualizarMetaCotacao();
-    return {};
-  }
-  const meta = document.getElementById('mp-cotacao-meta');
-  if (meta) meta.innerHTML = '<i class="ph ph-arrows-clockwise"></i>Atualizando cotações…';
-  try {
-    const token =
-      typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser
-        ? await firebase.auth().currentUser.getIdToken()
-        : null;
-    if (!token) throw new Error('sem_token');
-    const url = '/api/market?op=quote&tickers=' + encodeURIComponent(tickers.join(','));
-    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'falha');
-    mpEstado.cotacoes = data.quotes || {};
-    mpEstado.ultimaCotacao = Date.now();
-    mpAtualizarMetaCotacao(data);
-    return mpEstado.cotacoes;
-  } catch (err) {
-    console.warn('[meu_patrimonio] cotações falharam:', err.message);
-    if (meta)
-      meta.innerHTML =
-        '<i class="ph ph-warning" style="color:var(--cor-erro)"></i>Cotações indisponíveis — usando preço médio';
-    return {};
-  }
-}
-
-function mpAtualizarMetaCotacao(data) {
-  const meta = document.getElementById('mp-cotacao-meta');
-  if (!meta) return;
-  if (!mpEstado.ultimaCotacao) {
-    meta.innerHTML = '<i class="ph ph-info"></i>Sem ativos de Renda Variável';
-    return;
-  }
-  const t = new Date(mpEstado.ultimaCotacao);
-  const hh = String(t.getHours()).padStart(2, '0'),
-    mm = String(t.getMinutes()).padStart(2, '0');
-  const cache = data && data.fromCache ? ` · ${data.fromCache} em cache` : '';
-  meta.innerHTML = `<i class="ph ph-check-circle" style="color:var(--cor-primaria)"></i>Cotações atualizadas ${hh}:${mm}${cache}`;
+  if (typeof atualizarCotacoes !== 'function') return mpEstado.cotacoes || {};
+  await atualizarCotacoes(false, { semRender: true });
+  mpEstado.ultimaCotacao =
+    typeof cotacoesEstado !== 'undefined' ? cotacoesEstado.atualizadoEm || null : null;
+  return mpEstado.cotacoes || {};
 }
 
 // Consolida tudo numa única passagem: { porCategoria:{cat:{investido, atual}}, porInstituicao, totalInvestido, totalAtual }
