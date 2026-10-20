@@ -1,0 +1,478 @@
+<!doctype html>
+<!--
+  Comercial de 30 s (1080×1920) da Appliquei — "Mesmo salário. Mês diferente."
+  Dois personagens fictícios: Lucas (sem o app) e Marina (com o Appliquei).
+  Mesma mecânica do video.html: cenas em CENAS, movimentos em cenaExtra(),
+  render(t) desenha o segundo t. As telas são reais (telas-app.js, dados de
+  demonstração) e entram recortadas no trecho que importa.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root {
+    --campo1: #0b1410; --campo2: #0f1f18; --campo3: #112720;
+    --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa;
+    --sinal: #34d399; --verde: #10b981; --primaria: #059669; --ambar: #fbbf24; --vermelho: #f87171;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--campo1); }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: linear-gradient(150deg, var(--campo1) 0%, var(--campo2) 50%, var(--campo3) 100%); }
+  .halo { position: absolute; inset: -20%;
+    background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.20), transparent 70%),
+                radial-gradient(40% 35% at 10% 90%, rgba(5,150,105,.16), transparent 70%); }
+  .malha { position: absolute; inset: 0; }
+  .cena { position: absolute; inset: 0; opacity: 0; }
+  .tit { font-weight: 900; letter-spacing: -.035em; line-height: .98; color: var(--tinta); }
+  .tit em { font-style: normal; color: var(--sinal); }
+  .sub { font-size: 44px; line-height: 1.32; color: var(--deck); font-weight: 500; }
+  .linha { display: block; will-change: transform, opacity; }
+  .rot { font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .16em; text-transform: uppercase; color: var(--sinal); }
+
+  /* Legenda do topo nas cenas divididas */
+  .legenda { position: absolute; left: 70px; right: 70px; top: 70px; height: 150px; display: flex; align-items: center; justify-content: center; text-align: center; }
+  .legenda .tit { font-size: 70px; }
+
+  /* Painéis */
+  .painel { position: absolute; left: 40px; right: 40px; height: 800px; border-radius: 48px; overflow: hidden; }
+  .painel.sem { top: 240px; background: linear-gradient(160deg, #2a1f1a, #1d1714); border: 2px solid rgba(248,113,113,.22); }
+  .painel.com { top: 1070px; background: linear-gradient(160deg, #11281f, #0d1f18); border: 2px solid rgba(52,211,153,.30); }
+  .painel .chipnome { position: absolute; left: 34px; top: 30px; display: inline-flex; align-items: center; gap: 14px; padding: 14px 26px; border-radius: 99px;
+    font-family: 'DM Mono', monospace; font-size: 26px; letter-spacing: .12em; text-transform: uppercase; z-index: 5; }
+  .sem .chipnome { background: rgba(248,113,113,.14); color: #fca5a5; border: 2px solid rgba(248,113,113,.35); }
+  .com .chipnome { background: rgba(52,211,153,.14); color: var(--sinal); border: 2px solid rgba(52,211,153,.4); }
+  .chipnome .pt { width: 14px; height: 14px; border-radius: 50%; }
+  .sem .chipnome .pt { background: #f87171; }
+  .com .chipnome .pt { background: var(--sinal); box-shadow: 0 0 14px var(--sinal); }
+  .data { position: absolute; right: 34px; top: 30px; font-family: 'DM Mono', monospace; font-size: 26px; letter-spacing: .1em; color: var(--mudo);
+    padding: 14px 22px; border-radius: 16px; background: rgba(240,250,244,.06); z-index: 5; }
+  .chao { position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: rgba(0,0,0,.18); }
+  .pessoa { position: absolute; bottom: 60px; width: 300px; height: 650px; }
+  .pessoa svg { width: 100%; height: 100%; overflow: visible; }
+
+  /* Recorte de tela real (callout) */
+  .callout { position: absolute; border-radius: 30px; overflow: hidden; background: #fff;
+    box-shadow: 0 30px 70px rgba(0,0,0,.5), 0 0 0 3px rgba(52,211,153,.55), 0 0 80px rgba(52,211,153,.25); }
+  .callout img { position: absolute; display: block; }
+  .selo { position: absolute; display: inline-flex; align-items: center; gap: 12px; padding: 10px 20px; border-radius: 99px;
+    background: var(--primaria); color: #fff; font-weight: 800; font-size: 26px; box-shadow: 0 10px 30px rgba(5,150,105,.5); z-index: 6; }
+
+  /* Telegram mini */
+  .tg { position: absolute; border-radius: 34px; overflow: hidden; background: #0e1621; box-shadow: 0 30px 70px rgba(0,0,0,.5); border: 2px solid rgba(240,250,244,.1); }
+  .tg-cab { display: flex; align-items: center; gap: 16px; padding: 20px 24px; background: #17212b; }
+  .tg-av { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #047857);
+    display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 30px; color: #fff; }
+  .tg-cab b { display: block; font-size: 30px; color: #fff; }
+  .tg-cab small { font-size: 22px; color: #7f91a4; }
+  .tg-corpo { padding: 26px 22px 30px; display: flex; flex-direction: column; gap: 18px; min-height: 360px; }
+  .bolha { max-width: 86%; padding: 18px 22px; border-radius: 24px; font-size: 30px; line-height: 1.32; }
+  .bolha.eu { align-self: flex-end; background: #2b5278; color: #fff; border-bottom-right-radius: 8px; }
+  .bolha.bot { align-self: flex-start; background: #182533; color: #e8eef4; border-bottom-left-radius: 8px; }
+  .bolha.bot b { color: #fff; }
+  .digitando { align-self: flex-start; display: flex; gap: 8px; padding: 20px 24px; border-radius: 24px; background: #182533; }
+  .digitando span { width: 13px; height: 13px; border-radius: 50%; background: #7f91a4; }
+
+  /* Props do Lucas */
+  .maquininha { position: absolute; width: 230px; height: 330px; border-radius: 34px; background: #2d3436; border: 4px solid #3f4a4d; box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+  .maquininha .vis { position: absolute; left: 22px; right: 22px; top: 26px; height: 120px; border-radius: 14px; background: #9be7c4;
+    display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-weight: 700; font-size: 30px; color: #12352a; text-align: center; line-height: 1.1; }
+  .maquininha .teclas { position: absolute; left: 30px; right: 30px; bottom: 26px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .maquininha .teclas i { height: 34px; border-radius: 9px; background: #4b5659; }
+  .balao { position: absolute; padding: 18px 26px; border-radius: 28px; background: #fff; color: #1d2b25; font-weight: 800; font-size: 36px; box-shadow: 0 16px 40px rgba(0,0,0,.35); }
+  .balao::after { content: ''; position: absolute; left: 40px; bottom: -18px; border: 12px solid transparent; border-top: 16px solid #fff; }
+  .pensa { position: absolute; padding: 20px 28px; border-radius: 40px; background: rgba(240,250,244,.92); color: #34413b; font-weight: 700; font-size: 34px; font-style: italic; }
+  .recibo { position: absolute; width: 90px; height: 120px; background: #fdfbf3; border-radius: 6px; box-shadow: 0 6px 16px rgba(0,0,0,.35);
+    background-image: repeating-linear-gradient(180deg, transparent 0 18px, rgba(0,0,0,.12) 18px 21px); background-size: 70% 100%; background-repeat: no-repeat; background-position: 50% 24px; }
+  .gaveta { position: absolute; width: 360px; height: 200px; border-radius: 18px; background: #6b4f3a; border: 6px solid #574030; box-shadow: inset 0 18px 0 rgba(0,0,0,.25); }
+  .gaveta::after { content: ''; position: absolute; left: 140px; top: 120px; width: 80px; height: 16px; border-radius: 8px; background: #3d2c20; }
+  .note { position: absolute; width: 470px; height: 300px; border-radius: 18px; background: #1f2427; border: 8px solid #2c3236; box-shadow: 0 20px 50px rgba(0,0,0,.5); overflow: hidden; }
+  .note .barra { height: 40px; background: #1e6f43; color: #fff; font-family: 'DM Mono', monospace; font-size: 18px; display: flex; align-items: center; padding: 0 14px; }
+  .note table { border-collapse: collapse; width: 100%; background: #fff; font-family: 'DM Mono', monospace; font-size: 22px; color: #333; }
+  .note td { border: 1px solid #d5d5d5; padding: 8px 10px; height: 46px; }
+  .note td.erro { color: #c0392b; font-weight: 700; }
+  .note .rodape { position: absolute; left: 0; right: 0; bottom: 0; padding: 8px 14px; background: #f2f2f2; color: #888; font-family: 'DM Mono', monospace; font-size: 17px; }
+  .poster { position: absolute; width: 300px; height: 400px; border-radius: 14px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,.5);
+    background: linear-gradient(180deg, #f7c6b8 0%, #f2a38f 55%, #e9826b 100%); }
+  .poster .sol { position: absolute; left: 95px; top: 70px; width: 110px; height: 110px; border-radius: 50%; background: #e2463b; }
+  .poster .monte { position: absolute; left: -20px; right: -20px; bottom: 90px; height: 170px; background: #5b6d8a; clip-path: polygon(0 100%, 50% 0, 100% 100%); }
+  .poster .neve { position: absolute; left: 112px; bottom: 213px; width: 76px; height: 48px; background: #fff; clip-path: polygon(0 100%, 50% 0, 100% 100%); }
+  .poster .base { position: absolute; left: 0; right: 0; bottom: 0; height: 90px; background: #253248; color: #fff; font-weight: 900; font-size: 44px; letter-spacing: .2em; display: flex; align-items: center; justify-content: center; }
+  .carrinho { position: absolute; width: 200px; height: 170px; }
+  .item { position: absolute; font-size: 58px; }
+
+  /* Cena final */
+  .marca { width: 440px; margin: 0 auto; display: block; }
+  .cta { display: inline-flex; align-items: center; gap: 24px; padding: 38px 54px; border-radius: 36px; background: var(--primaria);
+    font-weight: 900; font-size: 56px; letter-spacing: -.02em; color: #fff; box-shadow: 0 30px 70px rgba(5,150,105,.45); }
+  .cta svg { width: 52px; height: 52px; }
+  .aviso { position: absolute; left: 60px; right: 60px; bottom: 70px; text-align: center; font-family: 'DM Mono', monospace; font-size: 21px; letter-spacing: .02em; color: var(--mudo); }
+  .notif { position: absolute; display: flex; align-items: center; gap: 16px; padding: 20px 26px; border-radius: 26px; background: rgba(240,250,244,.95); color: #12241c;
+    font-size: 30px; font-weight: 700; box-shadow: 0 18px 40px rgba(0,0,0,.4); white-space: nowrap; }
+  .notif small { display: block; font-weight: 500; font-size: 22px; color: #51655b; }
+  .notif i { font-style: normal; font-size: 40px; }
+  .nome { position: absolute; font-family: 'DM Mono', monospace; font-size: 32px; letter-spacing: .14em; text-transform: uppercase; text-align: center; width: 360px; }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <div class="halo"></div>
+  <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
+
+  <!-- 1. GANCHO: mesmo salário -->
+  <div class="cena" id="c1">
+    <div style="position:absolute;left:80px;right:80px;top:170px;text-align:center;">
+      <div class="rot linha" data-in="0.1">Dia 5. Caiu o salário.</div>
+      <div class="tit linha" data-in="0.3" style="font-size:132px;margin-top:34px;">Mesmo salário.</div>
+      <div class="tit linha" data-in="0.6" style="font-size:132px;"><em>Mês diferente.</em></div>
+    </div>
+    <div class="pessoa" id="p1l" style="left:120px;bottom:300px;"></div>
+    <div class="pessoa" id="p1m" style="left:660px;bottom:300px;"></div>
+    <div class="notif" id="n1l" style="left:60px;top:900px;"><i>💸</i><span>Salário recebido<small>R$ 4.500,00</small></span></div>
+    <div class="notif" id="n1m" style="left:600px;top:900px;"><i>💸</i><span>Salário recebido<small>R$ 4.500,00</small></span></div>
+    <div class="nome" style="left:90px;top:1660px;color:#fca5a5;" id="nm1l">Lucas</div>
+    <div class="nome" style="left:630px;top:1660px;color:var(--sinal);" id="nm1m">Marina</div>
+  </div>
+
+  <!-- 2. MERCADO: aviso de aperto -->
+  <div class="cena" id="c2">
+    <div class="legenda"><div class="tit linha" data-in="0.1">Um descobre no caixa.<br><em>A outra, dias antes.</em></div></div>
+    <div class="painel sem">
+      <div class="chipnome"><span class="pt"></span>Lucas · sem controle</div>
+      <div class="data">25/10 · mercado</div>
+      <div class="chao"></div>
+      <div class="pessoa" id="p2l" style="left:70px;"></div>
+      <div class="maquininha" id="maq" style="left:560px;top:300px;"><div class="vis" id="maqvis">INSIRA<br>O CARTÃO</div><div class="teclas"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+      <div class="balao" id="bal2" style="left:330px;top:150px;">Como assim?!</div>
+    </div>
+    <div class="painel com">
+      <div class="chipnome"><span class="pt"></span>Marina · usa o Appliquei</div>
+      <div class="data">20/10 · em casa</div>
+      <div class="chao"></div>
+      <div class="pessoa" id="p2m" style="left:40px;"></div>
+      <div class="callout" id="co2" style="left:360px;top:170px;"></div>
+      <div class="selo" id="selo2" style="left:430px;top:600px;">✓ Adiou a compra grande</div>
+    </div>
+  </div>
+
+  <!-- 3. LANÇAR: recibos × Telegram -->
+  <div class="cena" id="c3">
+    <div class="legenda"><div class="tit linha" data-in="0.1">Gastou? <em>Anotou</em><br>em 3 segundos.</div></div>
+    <div class="painel sem">
+      <div class="chipnome"><span class="pt"></span>Lucas · sem controle</div>
+      <div class="chao"></div>
+      <div class="pessoa" id="p3l" style="left:70px;"></div>
+      <div class="gaveta" id="gav" style="left:540px;top:500px;"></div>
+      <div id="recibos"></div>
+      <div class="pensa" id="pensa3" style="left:420px;top:150px;">“Depois eu vejo…”</div>
+    </div>
+    <div class="painel com">
+      <div class="chipnome"><span class="pt"></span>Marina · usa o Appliquei</div>
+      <div class="chao"></div>
+      <div class="pessoa" id="p3m" style="left:40px;"></div>
+      <div class="tg" id="tg3" style="left:370px;top:140px;width:590px;">
+        <div class="tg-cab"><div class="tg-av">A</div><div><b>Appliquei</b><small>bot no Telegram</small></div></div>
+        <div class="tg-corpo">
+          <div class="bolha eu" id="tb1">mercado 52,90</div>
+          <div class="digitando" id="tdig"><span></span><span></span><span></span></div>
+          <div class="bolha bot" id="tb2">✅ <b>Despesa lançada</b><br>Mercado · <b>R$ 52,90</b><br>Alimentação</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. QUANTO SOBRA: planilha × Início -->
+  <div class="cena" id="c4">
+    <div class="legenda"><div class="tit linha" data-in="0.1">Quanto ainda dá<br>pra gastar <em>este mês?</em></div></div>
+    <div class="painel sem">
+      <div class="chipnome"><span class="pt"></span>Lucas · sem controle</div>
+      <div class="chao"></div>
+      <div class="pessoa" id="p4l" style="left:70px;"></div>
+      <div class="note" id="note" style="left:440px;top:260px;">
+        <div class="barra">controle_FINAL_v3.xlsx</div>
+        <table>
+          <tr><td>Mercado</td><td>???</td></tr>
+          <tr><td>Cartão</td><td class="erro">#REF!</td></tr>
+          <tr><td>Aluguel</td><td>1.800</td></tr>
+          <tr><td>Sobra</td><td class="erro">#VALOR!</td></tr>
+        </table>
+        <div class="rodape">última edição: março</div>
+      </div>
+      <div class="balao" id="bal4" style="left:300px;top:130px;">Sei lá…</div>
+    </div>
+    <div class="painel com">
+      <div class="chipnome"><span class="pt"></span>Marina · usa o Appliquei</div>
+      <div class="chao"></div>
+      <div class="pessoa" id="p4m" style="left:40px;"></div>
+      <div class="callout" id="co4" style="left:360px;top:180px;"></div>
+    </div>
+  </div>
+
+  <!-- 5. SONHO: pôster × Sonhos -->
+  <div class="cena" id="c5">
+    <div class="legenda"><div class="tit linha" data-in="0.1">E aquela viagem?<br><em>Com prazo e parcela.</em></div></div>
+    <div class="painel sem">
+      <div class="chipnome"><span class="pt"></span>Lucas · sem controle</div>
+      <div class="chao"></div>
+      <div class="pessoa" id="p5l" style="left:70px;"></div>
+      <div class="poster" id="poster" style="left:560px;top:170px;"><div class="sol"></div><div class="monte"></div><div class="neve"></div><div class="base">JAPÃO</div></div>
+      <div class="pensa" id="pensa5" style="left:330px;top:120px;">“Um dia…”</div>
+    </div>
+    <div class="painel com">
+      <div class="chipnome"><span class="pt"></span>Marina · usa o Appliquei</div>
+      <div class="chao"></div>
+      <div class="pessoa" id="p5m" style="left:40px;"></div>
+      <div class="callout" id="co5" style="left:360px;top:210px;"></div>
+      <div class="selo" id="selo5" style="left:470px;top:600px;">✈️ Já guardando todo mês</div>
+    </div>
+  </div>
+
+  <!-- 6. MARCA + CTA -->
+  <div class="cena" id="c6">
+    <div style="position:absolute;left:0;right:0;top:250px;text-align:center;">
+      <img class="marca linha" data-in="0.05" src="wordmark.svg" alt="Appliquei">
+      <div class="tit linha" data-in="0.3" style="font-size:104px;margin-top:70px;">Seu dinheiro inteiro,<br><em>numa tela só.</em></div>
+    </div>
+    <div class="pessoa" id="p6m" style="left:420px;top:820px;bottom:auto;width:240px;height:520px;"></div>
+    <div style="position:absolute;left:0;right:0;top:1440px;text-align:center;">
+      <div class="sub linha" data-in="1.0"><b style="color:var(--tinta)">Teste grátis por 7 dias.</b> Sem cartão.</div>
+      <div class="linha" data-in="1.3" style="margin-top:44px;"><span class="cta">Link na bio
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span></div>
+    </div>
+    <div class="aviso linha" data-in="0.6">Personagens e situações fictícios · telas com dados de demonstração</div>
+  </div>
+
+  <div class="barra-t" id="barraT"></div>
+</div>
+
+<script>
+  (function () {
+    const L = 1080, A = 1920, t = [];
+    for (let x = 60; x < L; x += 60) t.push(`<line x1="${x}" y1="0" x2="${x}" y2="${A}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 60; y < A; y += 60) t.push(`<line x1="0" y1="${y}" x2="${L}" y2="${y}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 120; y < A; y += 120) {
+      t.push(`<line x1="0" y1="${y}" x2="16" y2="${y}" stroke="#34d399" stroke-opacity=".18" stroke-width="2"/>`);
+      t.push(`<line x1="${L - 16}" y1="${y}" x2="${L}" y2="${y}" stroke="#34d399" stroke-opacity=".18" stroke-width="2"/>`);
+    }
+    document.getElementById('malha').innerHTML = t.join('');
+  })();
+
+  // ───────── Personagens (SVG, viewBox 0 0 300 650) ─────────
+  const LUCAS = { pele: '#c98e66', cabelo: '#2b1d14', camisa: '#c2593f', calca: '#2f3b52', sapato: '#1b1b1b', estilo: 'curto' };
+  const MARINA = { pele: '#a8714f', cabelo: '#1f130d', camisa: '#0f9f6e', calca: '#24324a', sapato: '#2b2b2b', estilo: 'longo' };
+
+  function rosto(humor) {
+    // olhos, sobrancelhas e boca por humor
+    const olhos = humor === 'surpreso'
+      ? '<circle cx="132" cy="128" r="7" fill="#1b1b1b"/><circle cx="168" cy="128" r="7" fill="#1b1b1b"/>'
+      : '<circle cx="132" cy="130" r="5.5" fill="#1b1b1b"/><circle cx="168" cy="130" r="5.5" fill="#1b1b1b"/>';
+    const sob = {
+      feliz: '<path d="M122 114q10-7 20 0M158 114q10-7 20 0"/>',
+      neutro: '<path d="M122 115h20M158 115h20"/>',
+      preocupado: '<path d="M122 112l20 6M178 112l-20 6"/>',
+      triste: '<path d="M122 118l20-6M178 118l-20-6"/>',
+      surpreso: '<path d="M122 106q10-6 20 0M158 106q10-6 20 0"/>',
+      confuso: '<path d="M122 112l20 4M158 116q10-8 20-2"/>',
+    }[humor];
+    const boca = {
+      feliz: '<path d="M134 152q16 16 32 0" fill="#7a2e2e" stroke="#5a1f1f"/>',
+      neutro: '<path d="M138 156h24"/>',
+      preocupado: '<path d="M136 160q7-8 14 0t14 0"/>',
+      triste: '<path d="M136 162q14-12 28 0"/>',
+      surpreso: '<ellipse cx="150" cy="158" rx="9" ry="11" fill="#5a1f1f" stroke="none"/>',
+      confuso: '<path d="M136 158q10-6 28 2"/>',
+    }[humor];
+    const gota = humor === 'preocupado' || humor === 'surpreso'
+      ? '<path d="M206 96q8 12 0 18q-8-6 0-18z" fill="#8fd3ff" stroke="none"/>' : '';
+    return `<g fill="none" stroke="#1b1b1b" stroke-width="4" stroke-linecap="round">${sob}</g>${olhos}
+      <g fill="none" stroke="#3a1f1f" stroke-width="4.5" stroke-linecap="round">${boca}</g>${gota}`;
+  }
+
+  function cabelo(c, frente) {
+    if (c.estilo === 'curto')
+      return frente ? `<path d="M96 116q-4-62 54-66q58 4 54 66q-12-30-54-30q-40 0-54 30z" fill="${c.cabelo}"/>` : '';
+    // longo: parte de trás atrás da cabeça, franja na frente
+    return frente
+      ? `<path d="M94 128q-2-74 56-76q60 2 56 76q-10-40-56-44q-30 2-44 26q-6 8-12 18z" fill="${c.cabelo}"/>`
+      : `<path d="M88 120q-6 120 8 170h108q14-50 8-170q-8-70-62-70t-62 70z" fill="${c.cabelo}"/>`;
+  }
+
+  // pose: 'baixo' | 'celular' | 'cabeca' | 'comemora' | 'joga'
+  function personagem(c, humor, pose) {
+    const braco = (d) => `<path d="${d}" fill="none" stroke="${c.camisa}" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>`;
+    const mao = (x, y) => `<circle cx="${x}" cy="${y}" r="17" fill="${c.pele}"/>`;
+    let esq = '', dir = '', extra = '';
+    // ombros em (96,238) e (204,238)
+    if (pose === 'baixo') { esq = braco('M96 238 L80 330 L84 400') + mao(84, 410); dir = braco('M204 238 L220 330 L216 400') + mao(216, 410); }
+    if (pose === 'celular') {
+      esq = braco('M96 238 L80 330 L84 400') + mao(84, 410);
+      dir = braco('M204 238 L226 320 L186 300') + mao(178, 296);
+      extra = `<g transform="rotate(-12 176 270)"><rect x="150" y="226" width="56" height="96" rx="10" fill="#111"/><rect x="155" y="233" width="46" height="80" rx="6" fill="#34d399"/></g>`;
+    }
+    if (pose === 'cabeca') { esq = braco('M96 238 L64 190 L92 120') + mao(96, 112); dir = braco('M204 238 L220 330 L216 400') + mao(216, 410); }
+    if (pose === 'comemora') { esq = braco('M96 238 L66 170 L60 96') + mao(60, 86); dir = braco('M204 238 L234 170 L240 96') + mao(240, 86); }
+    if (pose === 'joga') { esq = braco('M96 238 L80 330 L84 400') + mao(84, 410); dir = braco('M204 238 L262 250 L300 236') + mao(306, 234); }
+    return `<svg viewBox="0 0 300 650">
+      <ellipse cx="150" cy="636" rx="100" ry="12" fill="rgba(0,0,0,.28)"/>
+      ${cabelo(c, false)}
+      <rect x="112" y="400" width="34" height="210" rx="16" fill="${c.calca}"/>
+      <rect x="154" y="400" width="34" height="210" rx="16" fill="${c.calca}"/>
+      <ellipse cx="124" cy="618" rx="30" ry="14" fill="${c.sapato}"/><ellipse cx="178" cy="618" rx="30" ry="14" fill="${c.sapato}"/>
+      <path d="M92 236q0-26 26-30h64q26 4 26 30v178q0 10-10 10H102q-10 0-10-10z" fill="${c.camisa}"/>
+      <rect x="138" y="178" width="24" height="32" fill="${c.pele}"/>
+      <path d="M128 206l22 22 22-22" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="5" stroke-linecap="round"/>
+      ${esq}${dir}
+      <circle cx="150" cy="128" r="56" fill="${c.pele}"/>
+      <circle cx="96" cy="134" r="11" fill="${c.pele}"/><circle cx="204" cy="134" r="11" fill="${c.pele}"/>
+      ${cabelo(c, true)}
+      ${rosto(humor)}
+      <circle cx="122" cy="148" r="8" fill="#e8846b" opacity=".35"/><circle cx="178" cy="148" r="8" fill="#e8846b" opacity=".35"/>
+      ${extra}
+    </svg>`;
+  }
+
+  const cache = {};
+  function desenha(id, c, humor, pose, t) {
+    const el = document.getElementById(id);
+    const k = humor + pose;
+    if (cache[id] !== k) { el.innerHTML = personagem(c, humor, pose); cache[id] = k; }
+    const bob = Math.sin(t * 2.4 + id.length) * 5;
+    el.style.transform = `translateY(${bob}px)`;
+  }
+
+  // ───────── Recortes das telas reais ─────────
+  // [arquivo, x, y, largura, altura] na imagem original; largura de exibição
+  function recorte(id, arq, x, y, w, h, larg) {
+    const el = document.getElementById(id);
+    if (el.dataset.ok) return;
+    const s = larg / w;
+    el.style.width = larg + 'px';
+    el.style.height = Math.round(h * s) + 'px';
+    el.innerHTML = `<img src="${arq}" style="left:${-x * s}px;top:${-y * s}px;width:${Math.round(s * (arq === 'card-aviso.png' ? 1074 : 1170))}px">`;
+    el.dataset.ok = '1';
+  }
+
+  const DUR = 30;
+  const CENAS = [['c1', 0, 3.8], ['c2', 3.8, 9.4], ['c3', 9.4, 14.4], ['c4', 14.4, 19.4], ['c5', 19.4, 24.6], ['c6', 24.6, 30.2]];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+
+  function render(t) {
+    for (const [id, a, b] of CENAS) {
+      const el = document.getElementById(id);
+      const dentro = t >= a - 0.01 && t < b;
+      const fadeIn = easeOut(prog(t, a, a + 0.3));
+      const fadeOut = 1 - prog(t, b - 0.25, b);
+      el.style.opacity = dentro ? Math.min(fadeIn, fadeOut) : 0;
+      el.style.display = dentro ? 'block' : 'none';
+      if (!dentro) continue;
+      const lt = t - a;
+      el.querySelectorAll('.linha').forEach((ln) => {
+        const d = Number(ln.dataset.in || 0);
+        const p = easeOut(prog(lt, d, d + 0.45));
+        ln.style.opacity = p;
+        ln.style.transform = `translateY(${(1 - p) * 50}px)`;
+      });
+      cenaExtra(id, lt);
+    }
+    document.getElementById('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+
+  function surge(el, lt, a, dur, dy) {
+    const p = easeBack(prog(lt, a, a + (dur || 0.45)));
+    el.style.opacity = clamp(p, 0, 1);
+    el.style.transform = `translateY(${(1 - p) * (dy == null ? 40 : dy)}px) scale(${0.85 + 0.15 * p})`;
+  }
+
+  function cenaExtra(id, lt) {
+    if (id === 'c1') {
+      const feliz = lt > 1.2;
+      desenha('p1l', LUCAS, feliz ? 'feliz' : 'neutro', lt > 1.2 ? 'comemora' : 'baixo', lt);
+      desenha('p1m', MARINA, feliz ? 'feliz' : 'neutro', lt > 1.2 ? 'comemora' : 'baixo', lt);
+      surge(document.getElementById('n1l'), lt, 0.8);
+      surge(document.getElementById('n1m'), lt, 0.8);
+      ['nm1l', 'nm1m'].forEach((n) => { document.getElementById(n).style.opacity = easeOut(prog(lt, 0.4, 0.8)); });
+    }
+    if (id === 'c2') {
+      const recusa = lt > 2.0;
+      desenha('p2l', LUCAS, recusa ? 'surpreso' : 'neutro', recusa ? 'cabeca' : 'baixo', lt);
+      const vis = document.getElementById('maqvis');
+      if (recusa) {
+        const pisca = Math.sin(lt * 12) > -0.3;
+        vis.innerHTML = 'TRANSAÇÃO<br>NEGADA';
+        vis.style.background = pisca ? '#f87171' : '#c94b4b';
+        vis.style.color = '#fff';
+      } else {
+        vis.innerHTML = lt > 1.2 ? 'APROXIME<br>O CARTÃO' : 'R$ 312,40';
+        vis.style.background = '#9be7c4'; vis.style.color = '#12352a';
+      }
+      const maq = document.getElementById('maq');
+      maq.style.transform = recusa && lt < 2.6 ? `translateX(${Math.sin(lt * 60) * 6}px)` : '';
+      surge(document.getElementById('bal2'), lt, 2.3);
+      // Marina vê o aviso no celular
+      desenha('p2m', MARINA, lt > 3.4 ? 'feliz' : 'neutro', 'celular', lt);
+      recorte('co2', 'card-aviso.png', 0, 0, 1074, 380, 620);
+      surge(document.getElementById('co2'), lt, 0.9, 0.5, 80);
+      surge(document.getElementById('selo2'), lt, 3.4);
+    }
+    if (id === 'c3') {
+      desenha('p3l', LUCAS, lt > 2.4 ? 'confuso' : 'neutro', lt < 3.2 ? 'joga' : 'baixo', lt);
+      // recibos voando para a gaveta, um a cada 0,5 s
+      const box = document.getElementById('recibos');
+      if (!box.dataset.ok) {
+        box.innerHTML = Array.from({ length: 6 }, (_, i) => `<div class="recibo" id="rc${i}"></div>`).join('');
+        box.dataset.ok = '1';
+      }
+      for (let i = 0; i < 6; i++) {
+        const r = document.getElementById('rc' + i);
+        const p = easeOut(prog(lt, 0.4 + i * 0.45, 1.0 + i * 0.45));
+        const x0 = 330, y0 = 260, x1 = 560 + (i % 3) * 80, y1 = 430 - Math.floor(i / 3) * 30;
+        const x = x0 + (x1 - x0) * p, y = y0 + (y1 - y0) * p - Math.sin(p * Math.PI) * 160;
+        r.style.left = x + 'px'; r.style.top = y + 'px';
+        r.style.opacity = lt > 0.4 + i * 0.45 ? 1 : 0;
+        r.style.transform = `rotate(${(i % 2 ? 1 : -1) * (20 + p * 25)}deg)`;
+      }
+      surge(document.getElementById('pensa3'), lt, 3.0);
+      // Marina manda no Telegram
+      desenha('p3m', MARINA, lt > 2.6 ? 'feliz' : 'neutro', 'celular', lt);
+      surge(document.getElementById('tg3'), lt, 0.4, 0.5, 80);
+      surge(document.getElementById('tb1'), lt, 1.1, 0.35, 20);
+      const dig = document.getElementById('tdig');
+      dig.style.display = lt > 1.5 && lt < 2.3 ? 'flex' : 'none';
+      dig.querySelectorAll('span').forEach((s, i) => { s.style.opacity = 0.35 + 0.65 * Math.max(0, Math.sin(lt * 9 - i * 0.9)); });
+      const b2 = document.getElementById('tb2');
+      b2.style.display = lt >= 2.3 ? 'block' : 'none';
+      surge(b2, lt, 2.3, 0.35, 20);
+    }
+    if (id === 'c4') {
+      desenha('p4l', LUCAS, lt > 1.6 ? 'confuso' : 'neutro', lt > 1.6 ? 'cabeca' : 'baixo', lt);
+      surge(document.getElementById('note'), lt, 0.3, 0.5, 60);
+      surge(document.getElementById('bal4'), lt, 2.0);
+      desenha('p4m', MARINA, lt > 1.6 ? 'feliz' : 'neutro', 'celular', lt);
+      recorte('co4', 'tela-inicio.png', 52, 925, 1066, 530, 620);
+      surge(document.getElementById('co4'), lt, 0.8, 0.5, 80);
+    }
+    if (id === 'c5') {
+      desenha('p5l', LUCAS, lt > 1.4 ? 'triste' : 'neutro', 'baixo', lt);
+      surge(document.getElementById('poster'), lt, 0.3, 0.5, 40);
+      surge(document.getElementById('pensa5'), lt, 1.6);
+      desenha('p5m', MARINA, lt > 1.2 ? 'feliz' : 'neutro', lt > 3.4 ? 'comemora' : 'celular', lt);
+      recorte('co5', 'tela-sonhos.png', 52, 1520, 1072, 380, 620);
+      surge(document.getElementById('co5'), lt, 0.8, 0.5, 80);
+      surge(document.getElementById('selo5'), lt, 3.0);
+    }
+    if (id === 'c6') {
+      desenha('p6m', MARINA, 'feliz', 'celular', lt);
+      document.getElementById('p6m').style.opacity = easeOut(prog(lt, 0.5, 1.0));
+    }
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>
