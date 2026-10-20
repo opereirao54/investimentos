@@ -142,8 +142,68 @@ async function main() {
     }
     console.log(`· gravados: ${prontos.length}`);
   }
+  if (gravar) await atualizarProventos(database, market, tickers);
+
   // Nenhum preço de nada é falha de verdade: o job fica vermelho para ser visto.
   if (!r.cotados) process.exitCode = 1;
+}
+
+const PROVENTOS_VALIDADE_MS = 20 * 3600 * 1000;
+
+/**
+ * Proventos (B3, depois Yahoo; BRAPI com token), uma vez por dia por ticker:
+ * o op=dividends do app serve deste cache (marketDividends) e não precisa
+ * mais buscar fora — a busca de lá esbarra no mesmo 429 das cotações.
+ */
+async function atualizarProventos(database, market, tickers) {
+  const { timestamp } = require(path.join(__dirname, '..', 'api', '_lib', 'firebase-admin.js'));
+  const col = database.collection('marketDividends');
+  const candidatos = tickers.filter(
+    (t) => !/^(BTC|ETH|SOL|ADA|BNB|XRP|DOT|AVAX|LINK|MATIC)$/.test(t)
+  );
+  if (!candidatos.length) return;
+  const snaps = await database.getAll(...candidatos.map((t) => col.doc(t)));
+  const agora = Date.now();
+  const vencidos = candidatos.filter((t, i) => {
+    const d = snaps[i].data();
+    return !(
+      d &&
+      Array.isArray(d.pagamentos) &&
+      agora - (d.fetchedAtMs || 0) < PROVENTOS_VALIDADE_MS
+    );
+  });
+  if (!vencidos.length) {
+    console.log('· proventos: todos em dia');
+    return;
+  }
+  const erros = [];
+  const achados = await market.fontes.fetchProventos(vencidos, erros, 90000);
+  const prontos = Object.keys(achados);
+  for (let i = 0; i < prontos.length; i += 400) {
+    const batch = database.batch();
+    for (const t of prontos.slice(i, i + 400))
+      batch.set(col.doc(t), {
+        pagamentos: achados[t].pagamentos,
+        fonte: achados[t].fonte,
+        fetchedAtMs: Date.now(),
+        updatedAt: timestamp().now(),
+      });
+    await batch.commit();
+  }
+  const porFonte = {};
+  let comPagamento = 0;
+  for (const t of prontos) {
+    porFonte[achados[t].fonte] = (porFonte[achados[t].fonte] || 0) + 1;
+    if (achados[t].pagamentos.length) comPagamento++;
+  }
+  console.log(
+    `· proventos: ${prontos.length}/${vencidos.length} buscados (${comPagamento} com pagamentos)`,
+    JSON.stringify(porFonte)
+  );
+  const motivos = {};
+  for (const e of erros)
+    motivos[`${e.fonte}: ${e.erro}`] = (motivos[`${e.fonte}: ${e.erro}`] || 0) + 1;
+  if (Object.keys(motivos).length) console.log('· motivos proventos:', JSON.stringify(motivos));
 }
 
 if (require.main === module) {
@@ -153,4 +213,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { tickersDoJob, resumo };
+module.exports = { tickersDoJob, resumo, atualizarProventos };

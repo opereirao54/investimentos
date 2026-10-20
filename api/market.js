@@ -557,6 +557,123 @@ async function fetchYahooProventos(ticker, fetchImpl = fetch) {
 /** Proventos de vários tickers, pela via disponível, com orçamento de tempo. */
 // fetchImpl: o relatório em PDF (scripts/lib/relatorio-pdf.js) roda fora do
 // request e injeta o fetch dele.
+// ---------- Proventos direto da B3 ----------
+// O Yahoo bloqueia servidor de nuvem (429), e a GOOGLEFINANCE não traz
+// proventos. A B3 publica os proventos de cada companhia na mesma API que o
+// site dela usa (listedCompaniesProxy), sem chave: data-com, data de
+// pagamento, valor por ação e tipo (dividendo, JCP, rendimento). O pedido é
+// por emissor (as 4 letras); a classe (ON, PN, unit) sai do ISIN.
+const B3_SUPLEMENTO_URL =
+  'https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetListedSupplementCompany/';
+
+function b3Param(obj) {
+  return Buffer.from(JSON.stringify(obj)).toString('base64');
+}
+
+/** '15/05/2026' → '2026-05-15'. */
+function b3Data(v) {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(String(v || '').trim());
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : ymdDe(v);
+}
+
+/** '1.234,567' → 1234.567; números passam direto. */
+function b3Num(v) {
+  if (typeof v === 'number') return v;
+  const s = String(v || '').trim();
+  if (!s) return NaN;
+  return Number(s.includes(',') ? s.replace(/\./g, '').replace(',', '.') : s);
+}
+
+/** Trecho do ISIN que identifica a classe do ticker (PETR4 → ACNPR). */
+function classeIsinB3(ticker) {
+  const n = String(ticker).slice(4);
+  return (
+    { 3: ['ACNOR'], 4: ['ACNPR'], 5: ['ACNPA'], 6: ['ACNPB'], 7: ['ACNPC'], 8: ['ACNPD'] }[n] ||
+    (n === '11' ? ['CDAM', 'CTF', 'UNT'] : null)
+  );
+}
+
+/** Resposta do GetListedSupplementCompany → proventos do ticker. Pura (testável). */
+function mapB3Proventos(json, ticker) {
+  const blocos = Array.isArray(json) ? json : json ? [json] : [];
+  const todos = [];
+  for (const b of blocos) for (const d of (b && b.cashDividends) || []) todos.push(d);
+  const emissor = String(ticker).slice(0, 4);
+  const classes = classeIsinB3(ticker);
+  const daClasse = todos.filter((d) => {
+    const isin = String(d.isinCode || d.assetIssued || '').toUpperCase();
+    if (!isin) return true;
+    if (isin.slice(2, 6) !== emissor) return false;
+    return !classes || classes.some((c) => isin.includes(c));
+  });
+  return deduplicarProventos(
+    daClasse.map((d) => {
+      const rotulo = String(d.label || '').toUpperCase();
+      const tipo = /JRS|JUROS|JCP/.test(rotulo)
+        ? 'JCP'
+        : /REND/.test(rotulo)
+          ? 'RENDIMENTO'
+          : 'DIVIDENDO';
+      const dataCom = b3Data(d.lastDatePrior);
+      const dataPagamento = b3Data(d.paymentDate);
+      const valor = b3Num(d.rate);
+      return {
+        data: dataPagamento || dataCom || b3Data(d.approvedOn),
+        dataCom,
+        dataPagamento,
+        valor: isFinite(valor) ? valor : 0,
+        tipo,
+        fonte: 'b3',
+      };
+    })
+  );
+}
+
+// FIIs moram em outro "proxy" da B3 (fundos listados, tipo 7 = imobiliário).
+const B3_FUNDOS_URL =
+  'https://sistemaswebb3-listados.b3.com.br/fundsProxy/fundsCall/GetListedSupplementFunds/';
+
+async function fetchB3Json(url, ticker, fetchImpl) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10000);
+  let json;
+  try {
+    const res = await fetchImpl(url, {
+      headers: { Accept: 'application/json', 'User-Agent': YAHOO_UA },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) throw new Error(`b3_${res.status}`);
+    const texto = await res.text();
+    try {
+      json = JSON.parse(texto);
+    } catch (_) {
+      throw new Error('b3_resposta_nao_json');
+    }
+  } finally {
+    clearTimeout(timer);
+  }
+  return mapB3Proventos(json, ticker);
+}
+
+async function fetchB3Proventos(ticker, fetchImpl = fetch) {
+  const ehOnze = /11$/.test(ticker);
+  const lista = await fetchB3Json(
+    B3_SUPLEMENTO_URL + b3Param({ issuingCompany: ticker.slice(0, 4), language: 'pt-br' }),
+    ticker,
+    fetchImpl
+  ).catch((e) => {
+    if (!ehOnze) throw e;
+    return [];
+  });
+  // Final 11 sem nada como companhia: é fundo (FII) — pergunta ao proxy de fundos.
+  if (lista.length || !ehOnze) return lista;
+  return fetchB3Json(
+    B3_FUNDOS_URL + b3Param({ cnpj: '0', identifierFund: ticker.slice(0, 4), typeFund: 7 }),
+    ticker,
+    fetchImpl
+  );
+}
+
 async function fetchProventos(tickers, erros, orcamentoMs, fetchImpl = fetch) {
   const out = {};
   const limite = Date.now() + (orcamentoMs || 9000);
@@ -580,6 +697,11 @@ async function fetchProventos(tickers, erros, orcamentoMs, fetchImpl = fetch) {
           } catch (e) {
             if (erros) erros.push({ fonte: 'brapi_div', ticker: t, erro: e.message });
           }
+        }
+        try {
+          return { t, lista: await fetchB3Proventos(t, fetchImpl), fonte: 'b3' };
+        } catch (e) {
+          if (erros) erros.push({ fonte: 'b3_div', ticker: t, erro: e.message });
         }
         try {
           return { t, lista: await fetchYahooProventos(t, fetchImpl), fonte: 'yahoo' };
@@ -4297,6 +4419,7 @@ module.exports.fontes = {
   todayYmdBRT,
 };
 module.exports.brapi = { fetchBrapi };
+module.exports.proventosB3 = { mapB3Proventos, fetchB3Proventos, classeIsinB3, b3Data, b3Num };
 module.exports.planilha = {
   mapPlanilhaLinhas,
   fetchPlanilhaCotacoes,
