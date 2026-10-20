@@ -84,7 +84,9 @@ Rode a lista de `referencias/voz-e-compliance.md#checklist`. Em especial:
 ### 5. Entregar
 
 Entregue a peça pronta para postar (arquivo + legenda + hashtags + horário
-sugerido) e, em uma linha, o que medir para saber se funcionou
+sugerido). **Sempre mande o pacote completo de imagens (ou o vídeo) na
+conversa** — todas as lâminas, na ordem de postagem, com a ferramenta de
+envio de arquivos — de novo a cada versão alterada, não só o caminho no repo e, em uma linha, o que medir para saber se funcionou
 (`referencias/calendario-e-metricas.md`). Ofereça no máximo duas variações
 (outro gancho, outro público) — não um cardápio.
 
