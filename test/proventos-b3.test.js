@@ -147,3 +147,24 @@ test('proventos: B3 antes do Yahoo; se a B3 falhar, o motivo fica e o Yahoo tent
     if (antes !== undefined) process.env.BRAPI_TOKEN = antes;
   }
 });
+
+test('proventos: B3 sem nenhum provento vira erro com o formato (não grava lista vazia)', async () => {
+  const antes = process.env.BRAPI_TOKEN;
+  delete process.env.BRAPI_TOKEN;
+  try {
+    const vazio = async (url) =>
+      /b3\.com\.br/.test(url)
+        ? {
+            ok: true,
+            status: 200,
+            text: async () => JSON.stringify([{ code: 'PETR', cashDividends: [] }]),
+          }
+        : { ok: false, status: 429, json: async () => ({}) };
+    const erros = [];
+    const r = await market.fontes.fetchProventos(['PETR4'], erros, 5000, vazio);
+    assert.equal(r.PETR4, undefined);
+    assert.match(erros[0].erro, /^b3_vazio array\[1\] \{code,cashDividends\} cash=0/);
+  } finally {
+    if (antes !== undefined) process.env.BRAPI_TOKEN = antes;
+  }
+});
