@@ -295,3 +295,152 @@ test('job de cotações: lista vem dos pedidos e dos cotados, e o resumo conta a
   assert.deepEqual(r.sem, ['VIVA3']);
   assert.deepEqual(r.motivos, { 'yahoo_quote: yahoo_quote_429': 1 });
 });
+
+// ------------------------------------------- planilha Google (GOOGLEFINANCE)
+
+function comPlanilha(id, corpo) {
+  const antes = process.env.COTACAO_PLANILHA_ID;
+  if (id) process.env.COTACAO_PLANILHA_ID = id;
+  else delete process.env.COTACAO_PLANILHA_ID;
+  market.planilha.definirTokenSheets(async () => 'tok-sheets');
+  return Promise.resolve(corpo()).finally(() => {
+    market.planilha.definirTokenSheets(null);
+    if (antes === undefined) delete process.env.COTACAO_PLANILHA_ID;
+    else process.env.COTACAO_PLANILHA_ID = antes;
+  });
+}
+
+test('planilha: linhas viram cotações; célula vazia ou "Loading" fica de fora', () => {
+  const { mapPlanilhaLinhas } = market.planilha;
+  const out = mapPlanilhaLinhas([
+    ['WEGE3', 47.67, 47.67, 0, 'WEG SA'],
+    ['XPTO3', '', '', '', ''],
+    ['VIVA3', 'Loading...'],
+  ]);
+  assert.deepEqual(Object.keys(out), ['WEGE3']);
+  assert.equal(out.WEGE3.price, 47.67);
+  assert.equal(out.WEGE3.change, 0);
+  assert.equal(out.WEGE3.shortName, 'WEG SA');
+  assert.equal(out.WEGE3.fonteCotacao, 'planilha');
+});
+
+test('planilha: fechamento anterior absurdo (PATL11 a R$ 0,01) não vira variação de +641.400%', () => {
+  const out = market.planilha.mapPlanilhaLinhas([
+    ['PATL11', 64.15, 0.01, 641400, 'Patria Log FII'],
+  ]);
+  assert.equal(out.PATL11.price, 64.15);
+  assert.equal(out.PATL11.previousClose, null);
+  assert.equal(out.PATL11.changePct, null);
+});
+
+test('planilha: o id padrão é a planilha configurada (COTACAO_PLANILHA_ID troca)', () => {
+  const antes = process.env.COTACAO_PLANILHA_ID;
+  delete process.env.COTACAO_PLANILHA_ID;
+  try {
+    assert.equal(market.planilha.planilhaId(), '1-CJ010GTW2MJe9vWTMHIsw6bZ7QJTgDnzD8W4ZQzKVQ');
+    process.env.COTACAO_PLANILHA_ID = 'outra';
+    assert.equal(market.planilha.planilhaId(), 'outra');
+  } finally {
+    if (antes === undefined) delete process.env.COTACAO_PLANILHA_ID;
+    else process.env.COTACAO_PLANILHA_ID = antes;
+  }
+});
+
+test('planilha: as fórmulas servem em qualquer linha (INDIRECT de ROW) e usam a BVMF', () => {
+  for (const f of market.planilha.PLANILHA_FORMULAS) {
+    assert.match(f, /GOOGLEFINANCE\("BVMF:"&INDIRECT\("A"&ROW\(\)\),"/);
+    assert.match(f, /^=IFERROR\(/);
+  }
+});
+
+test('planilha: lê num pedido só, com o token da conta de serviço, e acrescenta o que falta', async () => {
+  await comPlanilha('PLAN123', async () => {
+    const pedidos = [];
+    const f = async (url, opcoes) => {
+      pedidos.push({ url: String(url), opcoes });
+      if (opcoes.method === 'POST') return resp(200, {});
+      return resp(200, { values: [['WEGE3', 47.67, 47.67, 0, 'WEG SA']] });
+    };
+    const erros = [];
+    const out = await market.planilha.fetchPlanilhaCotacoes(['WEGE3', 'VIVA3'], erros, f);
+    assert.equal(out.WEGE3.price, 47.67);
+    assert.equal(out.VIVA3, undefined);
+    const leitura = pedidos[0];
+    assert.match(
+      leitura.url,
+      /spreadsheets\/PLAN123\/values\/cotacoes!A2:E2000\?valueRenderOption=UNFORMATTED_VALUE/
+    );
+    assert.equal(leitura.opcoes.headers.Authorization, 'Bearer tok-sheets');
+    const append = pedidos.find((p) => p.opcoes.method === 'POST');
+    assert.match(append.url, /:append\?valueInputOption=USER_ENTERED/);
+    const linhas = JSON.parse(append.opcoes.body).values;
+    assert.deepEqual(
+      linhas.map((l) => l[0]),
+      ['VIVA3'],
+      'só o código que não estava'
+    );
+    assert.equal(linhas[0].length, 5);
+    assert.deepEqual(erros, [{ fonte: 'planilha', ticker: 'VIVA3', erro: 'planilha_novo' }]);
+  });
+});
+
+test('planilha: sem permissão (403) vira motivo e o resto da cadeia segue', async () => {
+  const antesBrapi = process.env.BRAPI_TOKEN;
+  delete process.env.BRAPI_TOKEN;
+  try {
+    await comPlanilha('PLAN123', async () => {
+      await comFetch(
+        (url) =>
+          /sheets\.googleapis/.test(url)
+            ? resp(403, {})
+            : /query2.*v7|fc\.yahoo|getcrumb/.test(url)
+              ? resp(429, {})
+              : resp(200, chartYahoo(47.67)),
+        async () => {
+          const erros = [];
+          const out = await fetchCotacoesMercado(['WEGE3'], erros, 5000);
+          assert.equal(out.WEGE3.price, 47.67, 'o Yahoo um a um ainda responde');
+          assert.ok(erros.some((e) => e.fonte === 'planilha' && e.erro === 'planilha_403'));
+        }
+      );
+    });
+  } finally {
+    if (antesBrapi !== undefined) process.env.BRAPI_TOKEN = antesBrapi;
+  }
+});
+
+test('com a planilha, o Yahoo nem é chamado quando ela traz tudo; sem id, nada muda', async () => {
+  const antesBrapi = process.env.BRAPI_TOKEN;
+  delete process.env.BRAPI_TOKEN;
+  try {
+    await comPlanilha('PLAN123', async () => {
+      await comFetch(
+        (url) =>
+          /sheets\.googleapis/.test(url)
+            ? resp(200, {
+                values: [
+                  ['WEGE3', 47.67],
+                  ['VIVA3', 25.1],
+                ],
+              })
+            : resp(429, {}),
+        async (pedidos) => {
+          const out = await fetchCotacoesMercado(['WEGE3', 'VIVA3'], [], 5000);
+          assert.equal(out.VIVA3.fonteCotacao, 'planilha');
+          assert.ok(!pedidos.some((u) => /yahoo/.test(u)));
+        }
+      );
+    });
+    if (!market.planilha.planilhaId()) {
+      await comFetch(
+        () => resp(429, {}),
+        async (pedidos) => {
+          await fetchCotacoesMercado(['WEGE3'], [], 2000);
+          assert.ok(!pedidos.some((u) => /sheets\.googleapis/.test(u)));
+        }
+      );
+    }
+  } finally {
+    if (antesBrapi !== undefined) process.env.BRAPI_TOKEN = antesBrapi;
+  }
+});

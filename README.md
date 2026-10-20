@@ -120,20 +120,21 @@ Automático via Vercel quando push em `main`. PRs geram preview deploys.
 
 Variáveis de ambiente (Vercel Project Settings → Environment Variables):
 
-| Variável                          | Obrigatória | Descrição                                                               |
-| --------------------------------- | ----------- | ----------------------------------------------------------------------- |
-| `FIREBASE_SERVICE_ACCOUNT_BASE64` | ✓           | Service account JSON em base64                                          |
-| `FIREBASE_PROJECT_ID`             | ✓           | `appliquei-prod`                                                        |
-| `ASAAS_API_KEY`                   | ✓           | Token Asaas                                                             |
-| `ASAAS_API_URL`                   | ✓           | `https://api.asaas.com/v3`                                              |
-| `ASAAS_WEBHOOK_TOKEN`             | ✓           | Token do webhook (Asaas envia em `asaas-access-token`)                  |
-| `CRON_SECRET`                     | auto        | Vercel injeta para `api/market?op=warmup`                               |
-| `ADMIN_API_TOKEN`                 | opt         | Habilita `/api/admin/*`                                                 |
-| `BRAPI_TOKEN`                     | opt         | Cotações e proventos. Fundamentos vêm da CVM (`docs/MOTOR-CARTEIRA.md`) |
-| `SENTRY_DSN`                      | opt         | Observabilidade API (Sentry @sentry/node)                               |
-| `EMAIL_VERIFY_ENFORCE`            | opt         | `true` = bloqueia hard quem não verificou e-mail                        |
-| `ANTIFRAUD_INIT_ENABLED`          | opt         | `true` = rate-limit 5/dia IP + 3/mês device em `/init`                  |
-| `REFERRAL_BLOCK_SAME_IP`          | opt         | `true` = bloqueia referral entre mesmo IP                               |
+| Variável                          | Obrigatória | Descrição                                                                                            |
+| --------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------- |
+| `FIREBASE_SERVICE_ACCOUNT_BASE64` | ✓           | Service account JSON em base64                                                                       |
+| `FIREBASE_PROJECT_ID`             | ✓           | `appliquei-prod`                                                                                     |
+| `ASAAS_API_KEY`                   | ✓           | Token Asaas                                                                                          |
+| `ASAAS_API_URL`                   | ✓           | `https://api.asaas.com/v3`                                                                           |
+| `ASAAS_WEBHOOK_TOKEN`             | ✓           | Token do webhook (Asaas envia em `asaas-access-token`)                                               |
+| `CRON_SECRET`                     | sim         | Senha dos crons da Vercel (`op=warmup`, `op=reconcile`); a Vercel a envia depois que você a cadastra |
+| `COTACAO_PLANILHA_ID`             | não         | Troca a planilha do GOOGLEFINANCE (padrão no código; docs/COTACOES-PLANILHA.md)                      |
+| `ADMIN_API_TOKEN`                 | opt         | Habilita `/api/admin/*`                                                                              |
+| `BRAPI_TOKEN`                     | opt         | Cotações e proventos. Fundamentos vêm da CVM (`docs/MOTOR-CARTEIRA.md`)                              |
+| `SENTRY_DSN`                      | opt         | Observabilidade API (Sentry @sentry/node)                                                            |
+| `EMAIL_VERIFY_ENFORCE`            | opt         | `true` = bloqueia hard quem não verificou e-mail                                                     |
+| `ANTIFRAUD_INIT_ENABLED`          | opt         | `true` = rate-limit 5/dia IP + 3/mês device em `/init`                                               |
+| `REFERRAL_BLOCK_SAME_IP`          | opt         | `true` = bloqueia referral entre mesmo IP                                                            |
 
 Para Sentry browser, edite no HTML:
 

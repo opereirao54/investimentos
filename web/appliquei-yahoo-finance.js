@@ -278,9 +278,13 @@ function textoCotacaoDoAtivo(ticker) {
       ' às ' +
       _horaCurta(c.asOfMs);
   }
-  var fonte = { yahoo: 'Yahoo', google: 'Google Finance', brapi: 'BRAPI', coingecko: 'CoinGecko' }[
-    c.fonte
-  ];
+  var fonte = {
+    planilha: 'Google Finance',
+    yahoo: 'Yahoo',
+    google: 'Google Finance',
+    brapi: 'BRAPI',
+    coingecko: 'CoinGecko',
+  }[c.fonte];
   if (c.stale) {
     return {
       alerta: true,

@@ -13,8 +13,8 @@
 // A cada 15 minutos no pregão (e uma vez depois do fechamento), cota todo
 // ticker que alguém pediu nos últimos 30 dias — o op=quote marca
 // `ultimoPedidoMs` — e grava no mesmo documento que o op=quote lê. A busca é
-// a mesma do servidor (fetchCotacoesMercado): Yahoo em lote de 50 com cookie
-// + crumb, depois um a um, depois Google Finance; BRAPI se houver token.
+// a mesma do servidor (fetchCotacoesMercado): BRAPI se houver token, a
+// planilha Google (GOOGLEFINANCE), Yahoo em lote, Yahoo um a um, Google Finance.
 // O op=quote aceita o que o job gravou há até 75 min sem marcar "atrasado".
 //
 // USO
@@ -87,6 +87,28 @@ async function main() {
   tickers = tickers.map((t) => market.fontes.sanitizeTicker(t)).filter(Boolean);
   console.log(`· ${tickers.length} tickers para cotar`);
   if (!tickers.length) return;
+
+  // Planilha: códigos novos entram antes e o Google tem alguns segundos para
+  // calcular — assim a rodada já os traz, em vez de só a próxima.
+  if (market.planilha.planilhaId()) {
+    try {
+      const { lerServiceAccount } = require(
+        path.join(__dirname, '..', 'api', '_lib', 'firebase-admin.js')
+      );
+      console.log(
+        `· planilha ${market.planilha.planilhaId()} · conta ${lerServiceAccount().client_email}`
+      );
+      const { presentes } = await market.planilha.lerPlanilha(fetch, 15000);
+      const novos = tickers.filter((t) => !presentes.has(t));
+      if (novos.length) {
+        await market.planilha.acrescentarNaPlanilha(novos, fetch, 15000);
+        console.log(`· ${novos.length} códigos novos na planilha; aguardando o GOOGLEFINANCE`);
+        await new Promise((r) => setTimeout(r, 12000));
+      }
+    } catch (e) {
+      console.log(`· planilha indisponível: ${e.message}`);
+    }
+  }
 
   const erros = [];
   const fetched = await market.fontes.fetchCotacoesMercado(tickers, erros, ORCAMENTO_MS);
