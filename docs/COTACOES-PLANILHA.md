@@ -23,15 +23,31 @@ grátis e tem atraso de até 20 minutos, como o próprio Google Finance.
 
 ## Instalar (uma vez)
 
-1. **Crie a planilha** em <https://sheets.new> e dê o nome "Appliquei
-   cotações".
-2. **Compartilhe com a conta de serviço** como **Editor**: botão
+1. **Crie a planilha** em <https://sheets.new> (no celular, use
+   <https://docs.google.com/spreadsheets/create> ou o app Planilhas → **+**)
+   e dê o nome "Appliquei cotações".
+2. **Ative a API do Google Sheets** no projeto do Firebase:
+   <https://console.cloud.google.com/apis/library/sheets.googleapis.com?project=appliquei-prod>
+   → **Ativar**. Projetos do Firebase vêm com ela desligada, e sem ela toda
+   leitura responde 403. Depois de ativar, espere 1–2 minutos.
+3. **Compartilhe com a conta de serviço** como **Editor**: botão
    Compartilhar → cole o e-mail → Editor → desmarque "Notificar" → Enviar.
    O e-mail termina em `@<projeto>.iam.gserviceaccount.com`. Onde achar:
    - Firebase → ⚙ Configurações do projeto → **Contas de serviço**; ou
    - o log do job **Cotações** (linha `· planilha … · conta …`).
-3. **Mande o link da planilha** para quem mantém o código. A aba, as fórmulas
+4. **Mande o link da planilha** para quem mantém o código. A aba, as fórmulas
    e o id no código são configurados a partir dele.
+
+## Configuração atual
+
+- Planilha "Appliquei cotações" (id em `PLANILHA_ID_PADRAO`), aba `cotacoes`,
+  locale en_US e fuso de São Paulo.
+- Conta de serviço com acesso de Editor:
+  `firebase-adminsdk-fbsvc@appliquei-prod.iam.gserviceaccount.com`.
+- Pré-carregada com 217 ativos (ações, FIIs, ETFs e BDRs mais negociados);
+  os demais entram sozinhos quando alguém os consulta. Códigos que o
+  GOOGLEFINANCE não reconhece mais (ELET3, CCRO3, JBSS3, BRFS3, ARZZ3…) foram
+  retirados.
 
 ## Conferir
 
@@ -41,13 +57,13 @@ GitHub → **Actions** → **Cotações** → **Run workflow**. O log mostra
 
 ## Se algo der errado
 
-| No log do job / no aviso do app | O que é                                                                    |
-| ------------------------------- | -------------------------------------------------------------------------- |
-| `planilha_403`                  | A planilha não foi compartilhada com a conta de serviço (passo 2)          |
-| `planilha_404`                  | Id errado, ou planilha apagada                                             |
-| `planilha_400`                  | Falta a aba `cotacoes`                                                     |
-| `planilha_novo`                 | Código acabou de entrar; o preço vem na próxima leitura                    |
-| ativo em "sem preço"            | Código que o GOOGLEFINANCE não conhece (ativo deslistado ou código errado) |
+| No log do job / no aviso do app | O que é                                                                                                            |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `planilha_403`                  | API do Google Sheets desligada no projeto (passo 2) ou planilha não compartilhada com a conta de serviço (passo 3) |
+| `planilha_404`                  | Id errado, ou planilha apagada                                                                                     |
+| `planilha_400`                  | Falta a aba `cotacoes`                                                                                             |
+| `planilha_novo`                 | Código acabou de entrar; o preço vem na próxima leitura                                                            |
+| ativo em "sem preço"            | Código que o GOOGLEFINANCE não conhece (ativo deslistado ou código errado)                                         |
 
 ## Ordem das fontes (servidor e job)
 
