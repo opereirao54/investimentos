@@ -36,6 +36,7 @@
     "@sentry/browser": "^10.76.2",
     "@sentry/node": "^10.76.2",
     "firebase-admin": "^12.7.0",
+    "google-auth-library": "^9.15.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {

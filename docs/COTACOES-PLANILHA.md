@@ -5,72 +5,54 @@
 O Yahoo recusa (erro 429) pedidos vindos de servidores de nuvem. Foi medido
 na Vercel e no GitHub Actions: 35 de 35 ativos recusados. A página do Google
 Finance chega ao servidor sem o preço. A função `GOOGLEFINANCE` do Google
-Planilhas busca a cotação do lado do Google e não sofre esse bloqueio.
+Planilhas busca a cotação do lado do Google e não sofre esse bloqueio. É
+grátis e tem atraso de até 20 minutos, como o próprio Google Finance.
 
-Um script na sua planilha vira um endereço que o Appliquei chama com a lista
-de códigos e recebe os preços. Ele é usado pelo servidor (`op=quote`) e pelo
-job **Cotações** (GitHub Actions). É grátis e tem atraso de até 20 minutos,
-como o próprio Google Finance.
+## Como funciona
 
-## Instalar (uma vez, uns 10 minutos, de preferência no computador)
+- A planilha tem uma aba **`cotacoes`**. Cada linha é um código na coluna A;
+  as colunas B–E têm fórmulas `GOOGLEFINANCE("BVMF:"&INDIRECT("A"&ROW()), …)`
+  com preço, fechamento anterior, variação % e nome.
+- O servidor (`op=quote`) e o job **Cotações** leem a aba inteira num pedido
+  só, pela API do Google Sheets. Usam a **mesma conta de serviço do Firebase**
+  que já está na Vercel e no GitHub, então não há chave nova.
+- Código que ainda não está na planilha é acrescentado sozinho. O Google o
+  calcula em segundos, e a leitura seguinte já traz o preço.
+- O id da planilha fica em `api/market.js` (`PLANILHA_ID_PADRAO`). A
+  variável `COTACAO_PLANILHA_ID` troca de planilha sem mexer no código.
 
-O editor de scripts do Google não funciona bem no celular.
+## Instalar (uma vez)
 
-1. **Crie a planilha.** Em <https://sheets.new>, com a conta Google que vai
-   ficar dona disso, dê o nome "Appliquei cotações".
-2. **Cole o script.** Na planilha: **Extensões → Apps Script**. Apague o que
-   estiver no editor e cole todo o conteúdo de
-   [`scripts/planilha-cotacoes/Codigo.gs`](../scripts/planilha-cotacoes/Codigo.gs).
-   Na linha `var SEGREDO = 'TROQUE-ESTE-SEGREDO';`, troque o texto entre
-   aspas por uma senha longa e aleatória, de 30 caracteres ou mais, só com
-   letras e números. Salve (ícone do disquete).
-3. **Teste.** No editor, escolha a função `testar` na lista do topo e clique
-   em **Executar**. Na primeira vez o Google pede autorização: **Revisar
-   permissões** → sua conta → **Avançado** → **Acessar (não seguro)** →
-   **Permitir**. O script é seu e só mexe nesta planilha. Abra o **Registro de
-   execução**: deve aparecer algo como
-   `{"cotacoes":{"WEGE3":{"price":47.67,…},"ITUB4":{…}}}`.
-4. **Publique como app da web.** **Implantar → Nova implantação** →
-   engrenagem → **App da Web**:
-   - _Executar como_: **Eu**
-   - _Quem pode acessar_: **Qualquer pessoa**
-
-   Clique em **Implantar** e copie o **URL do app da Web**, que termina em
-   `/exec`. "Qualquer pessoa" é o necessário para o servidor conseguir chamar;
-   sem o SEGREDO, o endereço só responde `nao_autorizado`.
-
-5. **Cadastre nos dois lugares.**
-   - **Vercel** → projeto → Settings → Environment Variables (Production):
-     - `COTACAO_PLANILHA_URL` = o URL do passo 4
-     - `COTACAO_PLANILHA_SEGREDO` = o mesmo SEGREDO do passo 2
-
-     Depois faça um **Redeploy**.
-
-   - **GitHub** → repositório → Settings → Secrets and variables → Actions →
-     New repository secret: os mesmos dois nomes, com os mesmos valores.
+1. **Crie a planilha** em <https://sheets.new> e dê o nome "Appliquei
+   cotações".
+2. **Compartilhe com a conta de serviço** como **Editor**: botão
+   Compartilhar → cole o e-mail → Editor → desmarque "Notificar" → Enviar.
+   O e-mail termina em `@<projeto>.iam.gserviceaccount.com`. Onde achar:
+   - Firebase → ⚙ Configurações do projeto → **Contas de serviço**; ou
+   - o log do job **Cotações** (linha `· planilha … · conta …`).
+3. **Mande o link da planilha** para quem mantém o código. A aba, as fórmulas
+   e o id no código são configurados a partir dele.
 
 ## Conferir
 
-GitHub → **Actions** → **Cotações** → **Run workflow**. Em cerca de 1 minuto o
-log mostra `cotados: N/N {"planilha":N}`. No app, o formulário de operação
-passa a dizer "Cotação de … · Google Finance".
+GitHub → **Actions** → **Cotações** → **Run workflow**. O log mostra
+`cotados: N/N {"planilha":N}`. No app, o formulário de operação diz
+"Cotação de … · Google Finance".
 
 ## Se algo der errado
 
 | No log do job / no aviso do app | O que é                                                                    |
 | ------------------------------- | -------------------------------------------------------------------------- |
-| `planilha_nao_autorizado`       | SEGREDO diferente entre o script e a Vercel/GitHub                         |
-| `planilha_resposta_nao_json`    | A implantação não está como "Qualquer pessoa", ou o URL não é o de `/exec` |
-| `planilha_timeout`              | O Google demorou mais de 12 s; a próxima rodada tenta de novo              |
+| `planilha_403`                  | A planilha não foi compartilhada com a conta de serviço (passo 2)          |
+| `planilha_404`                  | Id errado, ou planilha apagada                                             |
+| `planilha_400`                  | Falta a aba `cotacoes`                                                     |
+| `planilha_novo`                 | Código acabou de entrar; o preço vem na próxima leitura                    |
 | ativo em "sem preço"            | Código que o GOOGLEFINANCE não conhece (ativo deslistado ou código errado) |
-
-Mudou o script? **Implantar → Gerenciar implantações → editar → Nova
-versão**. O URL continua o mesmo.
 
 ## Ordem das fontes (servidor e job)
 
 1. BRAPI, se `BRAPI_TOKEN` existir;
-2. **planilha**, se `COTACAO_PLANILHA_URL` existir;
+2. **planilha** (GOOGLEFINANCE);
 3. Yahoo em lote (`v7/quote` com cookie + crumb);
 4. Yahoo `v8/chart`, um ativo por vez;
 5. Google Finance (página).

@@ -2331,33 +2331,65 @@ async function fetchGoogleCotacoes(tickers, erros, orcamentoMs, fetchImpl = fetc
 
 // ---------- Planilha Google com GOOGLEFINANCE ----------
 // O Yahoo responde 429 a qualquer servidor de nuvem (Vercel e GitHub, os
-// dois medidos), e a página do Google Finance chega sem o preço. A função
-// GOOGLEFINANCE do Google Sheets não tem esse bloqueio: um app da web do
-// Apps Script (scripts/planilha-cotacoes/Codigo.gs) recebe a lista de
-// códigos e devolve os preços. Instalação: docs/COTACOES-PLANILHA.md.
-//   COTACAO_PLANILHA_URL      https://script.google.com/macros/s/…/exec
-//   COTACAO_PLANILHA_SEGREDO  o mesmo SEGREDO escrito no script
-const PLANILHA_LOTE = 100;
-const PLANILHA_TIMEOUT_MS = 12000;
+// dois medidos: 35/35 recusados), e a página do Google Finance chega sem o
+// preço. A função GOOGLEFINANCE do Google Planilhas não tem esse bloqueio.
+//
+// A planilha (aba "cotacoes") tem um código por linha na coluna A e, nas
+// colunas B–E, fórmulas que se referem à própria linha. O servidor lê o
+// intervalo inteiro num pedido só, pela API do Sheets, com a MESMA conta de
+// serviço do Firebase (a planilha é compartilhada com ela como editora).
+// Código que ainda não está lá é acrescentado e entra na leitura seguinte.
+// Guia: docs/COTACOES-PLANILHA.md.
+// O id da planilha não é segredo (só a conta de serviço e o dono a abrem):
+// fica aqui, e COTACAO_PLANILHA_ID troca sem mexer no código.
+const PLANILHA_ID_PADRAO = '';
+function planilhaId() {
+  return process.env.COTACAO_PLANILHA_ID || PLANILHA_ID_PADRAO;
+}
+const PLANILHA_ABA = 'cotacoes';
+const PLANILHA_TIMEOUT_MS = 6000;
+const SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets';
+// Fórmulas com INDIRECT(ROW()): servem em qualquer linha, sem reescrever.
+const PLANILHA_FORMULAS = ['price', 'closeyest', 'changepct', 'name'].map(
+  (a) => `=IFERROR(GOOGLEFINANCE("BVMF:"&INDIRECT("A"&ROW()),"${a}"),"")`
+);
 
-/** Resposta do app da planilha → cotações no formato do app. Pura (testável). */
-function mapPlanilhaCotacoes(json) {
+let sheetsCliente = null;
+async function tokenSheets() {
+  if (!sheetsCliente) {
+    const { GoogleAuth } = require('google-auth-library');
+    const { lerServiceAccount } = require('./_lib/firebase-admin');
+    sheetsCliente = new GoogleAuth({
+      credentials: lerServiceAccount(),
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+  }
+  const t = await sheetsCliente.getAccessToken();
+  if (!t) throw new Error('planilha_sem_token');
+  return t;
+}
+
+// Trocável nos testes (não há conta de serviço no CI).
+let obterTokenSheets = tokenSheets;
+
+/** Linhas [ticker, preço, fechamento, variação %, nome] → cotações. Pura (testável). */
+function mapPlanilhaLinhas(linhas) {
   const out = {};
-  const c = (json && json.cotacoes) || {};
-  for (const t of Object.keys(c)) {
-    const q = c[t] || {};
-    const preco = fundNum(q.price);
-    if (preco === null || !(preco > 0)) continue;
-    const anterior = fundNum(q.previousClose);
-    const ticker = String(t).toUpperCase();
+  for (const l of linhas || []) {
+    const ticker = String((l && l[0]) || '')
+      .trim()
+      .toUpperCase();
+    const preco = fundNum(l && l[1]);
+    if (!ticker || preco === null || !(preco > 0)) continue;
+    const anterior = fundNum(l[2]);
     out[ticker] = {
       ticker,
       price: preco,
       previousClose: anterior,
       change: anterior !== null ? preco - anterior : null,
-      changePct: fundNum(q.changePct),
+      changePct: fundNum(l[3]),
       currency: 'BRL',
-      shortName: q.name || null,
+      shortName: l[4] ? String(l[4]) : null,
       marketTime: null,
       marketCap: null,
       volume: null,
@@ -2367,43 +2399,86 @@ function mapPlanilhaCotacoes(json) {
   return out;
 }
 
+async function sheetsPedido(caminho, opcoes, fetchImpl, timeoutMs) {
+  const token = await obterTokenSheets();
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetchImpl(`${SHEETS_API}/${planilhaId()}${caminho}`, {
+      ...opcoes,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        ...(opcoes && opcoes.headers),
+      },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) throw new Error(`planilha_${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Lê a aba inteira: { cotacoes, presentes } (presentes = códigos já na planilha). */
+async function lerPlanilha(fetchImpl = fetch, timeoutMs = PLANILHA_TIMEOUT_MS) {
+  const json = await sheetsPedido(
+    `/values/${PLANILHA_ABA}!A2:E2000?valueRenderOption=UNFORMATTED_VALUE`,
+    { method: 'GET' },
+    fetchImpl,
+    timeoutMs
+  );
+  const linhas = json.values || [];
+  return {
+    cotacoes: mapPlanilhaLinhas(linhas),
+    presentes: new Set(linhas.map((l) => String(l[0] || '').toUpperCase()).filter(Boolean)),
+  };
+}
+
+/** Acrescenta códigos novos, cada um com as quatro fórmulas. */
+async function acrescentarNaPlanilha(tickers, fetchImpl = fetch, timeoutMs = PLANILHA_TIMEOUT_MS) {
+  if (!tickers.length) return;
+  await sheetsPedido(
+    `/values/${PLANILHA_ABA}!A:E:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ values: tickers.map((t) => [t, ...PLANILHA_FORMULAS]) }),
+    },
+    fetchImpl,
+    timeoutMs
+  );
+}
+
 async function fetchPlanilhaCotacoes(
   tickers,
   erros,
   fetchImpl = fetch,
   timeoutMs = PLANILHA_TIMEOUT_MS
 ) {
-  const base = process.env.COTACAO_PLANILHA_URL;
-  const out = {};
-  if (!base || !tickers.length) return out;
-  for (let i = 0; i < tickers.length; i += PLANILHA_LOTE) {
-    const lote = tickers.slice(i, i + PLANILHA_LOTE);
-    const url =
-      `${base}${base.includes('?') ? '&' : '?'}tickers=${encodeURIComponent(lote.join(','))}` +
-      `&chave=${encodeURIComponent(process.env.COTACAO_PLANILHA_SEGREDO || '')}`;
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-    try {
-      // O Apps Script responde com um redirecionamento para
-      // googleusercontent.com: o fetch o segue sozinho.
-      const res = await fetchImpl(url, { signal: ctrl.signal, redirect: 'follow' });
-      if (!res.ok) throw new Error(`planilha_${res.status}`);
-      const json = await res.json().catch(() => {
-        throw new Error('planilha_resposta_nao_json');
+  if (!planilhaId() || !tickers.length) return {};
+  try {
+    const { cotacoes, presentes } = await lerPlanilha(fetchImpl, timeoutMs);
+    const novos = tickers.filter((t) => !presentes.has(t));
+    if (novos.length) {
+      // Entram agora e são calculados pelo Google em segundos: a próxima
+      // leitura (do app ou do job) já os traz.
+      await acrescentarNaPlanilha(novos, fetchImpl, timeoutMs).catch((e) => {
+        if (erros) erros.push({ fonte: 'planilha', erro: `acrescentar_${e.message}` });
       });
-      if (json && json.error) throw new Error(`planilha_${json.error}`);
-      Object.assign(out, mapPlanilhaCotacoes(json));
-    } catch (e) {
       if (erros)
-        erros.push({
-          fonte: 'planilha',
-          erro: /abort/i.test(e.message) ? 'planilha_timeout' : e.message,
-        });
-    } finally {
-      clearTimeout(timer);
+        for (const t of novos) erros.push({ fonte: 'planilha', ticker: t, erro: 'planilha_novo' });
     }
+    const out = {};
+    for (const t of tickers) if (cotacoes[t]) out[t] = cotacoes[t];
+    return out;
+  } catch (e) {
+    if (erros)
+      erros.push({
+        fonte: 'planilha',
+        erro: /abort/i.test(e.message) ? 'planilha_timeout' : e.message,
+      });
+    return {};
   }
-  return out;
 }
 
 // ---------- Yahoo em lote: v7/finance/quote com cookie + crumb ----------
@@ -2563,7 +2638,7 @@ async function fetchCotacoesMercado(tickers, erros, orcamentoMs) {
   // tempo do Yahoo e do Google (a function tem 15 s no total).
   const inicio = Date.now();
   const orcamento = orcamentoMs != null ? orcamentoMs : YAHOO_COTACAO_ORCAMENTO_MS;
-  if (faltam.length && process.env.COTACAO_PLANILHA_URL) {
+  if (faltam.length && planilhaId()) {
     // A planilha do GOOGLEFINANCE: quem busca é o Google, sem o 429 que o
     // Yahoo dá a servidor de nuvem (medido no job: 35/35 recusados).
     // No request (orçamento de 9 s, function de 15 s) a planilha não pode
@@ -4213,7 +4288,17 @@ module.exports.fontes = {
   todayYmdBRT,
 };
 module.exports.brapi = { fetchBrapi };
-module.exports.planilha = { mapPlanilhaCotacoes, fetchPlanilhaCotacoes };
+module.exports.planilha = {
+  mapPlanilhaLinhas,
+  fetchPlanilhaCotacoes,
+  lerPlanilha,
+  acrescentarNaPlanilha,
+  PLANILHA_FORMULAS,
+  planilhaId,
+  definirTokenSheets: (fn) => {
+    obterTokenSheets = fn || tokenSheets;
+  },
+};
 module.exports.yahooLote = { mapYahooQuoteV7, fetchYahooCotacoesLote, cotacaoAceitavel };
 module.exports.cotacaoReserva = {
   parseGoogleFinance,

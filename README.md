@@ -128,8 +128,7 @@ Variáveis de ambiente (Vercel Project Settings → Environment Variables):
 | `ASAAS_API_URL`                   | ✓           | `https://api.asaas.com/v3`                                                                           |
 | `ASAAS_WEBHOOK_TOKEN`             | ✓           | Token do webhook (Asaas envia em `asaas-access-token`)                                               |
 | `CRON_SECRET`                     | sim         | Senha dos crons da Vercel (`op=warmup`, `op=reconcile`); a Vercel a envia depois que você a cadastra |
-| `COTACAO_PLANILHA_URL`            | recomendado | App da web da planilha GOOGLEFINANCE (docs/COTACOES-PLANILHA.md)                                     |
-| `COTACAO_PLANILHA_SEGREDO`        | com a URL   | O SEGREDO escrito no script da planilha                                                              |
+| `COTACAO_PLANILHA_ID`             | não         | Troca a planilha do GOOGLEFINANCE (padrão no código; docs/COTACOES-PLANILHA.md)                      |
 | `ADMIN_API_TOKEN`                 | opt         | Habilita `/api/admin/*`                                                                              |
 | `BRAPI_TOKEN`                     | opt         | Cotações e proventos. Fundamentos vêm da CVM (`docs/MOTOR-CARTEIRA.md`)                              |
 | `SENTRY_DSN`                      | opt         | Observabilidade API (Sentry @sentry/node)                                                            |
