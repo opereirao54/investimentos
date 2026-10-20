@@ -35,13 +35,18 @@ function arg(args, nome) {
 async function tickersDoJob(database, agora) {
   const desde = agora - DIAS * 24 * 3600 * 1000;
   const col = database.collection('marketQuotes');
-  const [pedidos, cotados] = await Promise.all([
+  // Documentos gravados antes do job só têm dateYmd ('2026-10-03'): sem esta
+  // terceira consulta, a primeira rodada achou "0 tickers para cotar".
+  const desdeYmd = new Date(desde - 3 * 3600 * 1000).toISOString().slice(0, 10);
+  const [pedidos, cotados, antigos] = await Promise.all([
     col.where('ultimoPedidoMs', '>', desde).get(),
     col.where('fetchedAtMs', '>', desde).get(),
+    col.where('dateYmd', '>=', desdeYmd).get(),
   ]);
   const s = new Set();
   pedidos.forEach((d) => s.add(d.id));
   cotados.forEach((d) => s.add(d.id));
+  antigos.forEach((d) => s.add(d.id));
   return Array.from(s).sort();
 }
 
