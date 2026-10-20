@@ -275,11 +275,16 @@ test('job de cotações: lista vem dos pedidos e dos cotados, e o resumo conta a
     collection: () => ({
       where: (campo) => ({
         get: async () =>
-          campo === 'ultimoPedidoMs' ? docs(['WEGE3', 'VIVA3']) : docs(['WEGE3', 'ITUB4']),
+          campo === 'ultimoPedidoMs'
+            ? docs(['WEGE3', 'VIVA3'])
+            : campo === 'dateYmd'
+              ? docs(['KLBN11'])
+              : docs(['WEGE3', 'ITUB4']),
       }),
     }),
   };
-  assert.deepEqual(await tickersDoJob(database, Date.now()), ['ITUB4', 'VIVA3', 'WEGE3']);
+  // Documento antigo (só dateYmd) também entra: a 1ª rodada achou 0 tickers.
+  assert.deepEqual(await tickersDoJob(database, Date.now()), ['ITUB4', 'KLBN11', 'VIVA3', 'WEGE3']);
   const r = resumo(
     { WEGE3: { price: 1, fonteCotacao: 'yahoo' }, ITUB4: { price: 2, fonteCotacao: 'google' } },
     ['WEGE3', 'ITUB4', 'VIVA3'],
