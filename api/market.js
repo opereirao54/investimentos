@@ -327,7 +327,21 @@ async function handleQuote(req, res) {
     quotes,
     semCotacao,
     fetchError,
+    // O porquê de cada ativo sem preço novo (ex.: "yahoo_chart_429"). Sem
+    // isto, "o valor não aparece" não tinha como ser diagnosticado de fora.
+    erros: resumirErrosCotacao(erros),
   });
+}
+
+/** { TICKER: ['yahoo_chart_429', 'google_sem_preco'] } — no máximo 50 tickers. */
+function resumirErrosCotacao(erros) {
+  const out = {};
+  for (const e of erros || []) {
+    const chave = e.ticker || '_geral';
+    if (!out[chave] && Object.keys(out).length >= 50) continue;
+    (out[chave] = out[chave] || []).push(String(e.erro || e.fonte).slice(0, 60));
+  }
+  return out;
 }
 
 // ---------- op=dividends ----------
@@ -2096,12 +2110,12 @@ const YAHOO_CHART_TIMEOUT_MS = 6000;
 const YAHOO_COTACAO_ORCAMENTO_MS = 9000;
 
 /** Uma cotação pelo v8/chart. Sem autenticação. */
-async function fetchYahooCotacaoUma(ticker) {
+async function fetchYahooChartJson(ticker, host) {
   // range=5d dá o volume dos últimos pregões; o meta sozinho nem sempre traz.
-  const url = `${YAHOO_BASE}/${encodeURIComponent(ticker + '.SA')}?range=5d&interval=1d`;
+  const base = YAHOO_BASE.replace('query1.', host + '.');
+  const url = `${base}/${encodeURIComponent(ticker + '.SA')}?range=5d&interval=1d`;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), YAHOO_CHART_TIMEOUT_MS);
-  let json;
   try {
     // Sem User-Agent o Yahoo trata o pedido como robô e devolve 429 com mais
     // facilidade — e os IPs da Vercel são compartilhados.
@@ -2110,9 +2124,20 @@ async function fetchYahooCotacaoUma(ticker) {
       signal: ctrl.signal,
     });
     if (!res.ok) throw new Error(`yahoo_chart_${res.status}`);
-    json = await res.json();
+    return await res.json();
   } finally {
     clearTimeout(timer);
+  }
+}
+
+async function fetchYahooCotacaoUma(ticker) {
+  let json;
+  try {
+    json = await fetchYahooChartJson(ticker, 'query1');
+  } catch (e) {
+    // query1 e query2 têm limites separados: a recusa de um não é a do outro.
+    if (!/yahoo_chart_(429|403|5\d\d)|abort/i.test(e.message)) throw e;
+    json = await fetchYahooChartJson(ticker, 'query2');
   }
   const r = json && json.chart && json.chart.result && json.chart.result[0];
   if (!r || !r.meta) throw new Error('yahoo_chart_sem_resultado');
@@ -2151,6 +2176,88 @@ async function fetchYahooCotacaoUma(ticker) {
     volume,
     fonteCotacao: 'yahoo',
   };
+}
+
+// ---------- Cotação de reserva: Google Finance ----------
+// O Yahoo limita pedidos vindos de IPs de nuvem (429), e a Vercel é nuvem:
+// num dia ruim, TODO ativo ficava sem preço. A página pública do Google
+// Finance traz o último preço num atributo estável (data-last-price) e não
+// pede chave nem cookie. É a reserva: só vai a ela o que o Yahoo não trouxe.
+const GOOGLE_FINANCE_URL = 'https://www.google.com/finance/quote';
+const GOOGLE_TIMEOUT_MS = 6000;
+
+/** Extrai preço e nome da página do Google Finance. Pura (testável). */
+function parseGoogleFinance(html, ticker) {
+  const texto = String(html || '');
+  // A página de um ativo traz o preço dele num `data-last-price`, junto com
+  // a moeda; a dos relacionados também, então vale o primeiro em BRL.
+  const m =
+    /data-last-price="([0-9.]+)"[^>]*data-currency-code="BRL"/.exec(texto) ||
+    /data-currency-code="BRL"[^>]*data-last-price="([0-9.]+)"/.exec(texto);
+  const preco = m ? Number(m[1]) : NaN;
+  if (!(preco > 0)) return null;
+  const anterior = /data-previous-close="([0-9.]+)"/.exec(texto);
+  const prev = anterior ? Number(anterior[1]) : null;
+  const nome = /<div class="zzDege">([^<]{2,120})<\/div>/.exec(texto);
+  return {
+    ticker,
+    price: preco,
+    previousClose: prev > 0 ? prev : null,
+    change: prev > 0 ? preco - prev : null,
+    changePct: prev > 0 ? ((preco - prev) / prev) * 100 : null,
+    currency: 'BRL',
+    shortName: nome ? nome[1].replace(/&amp;/g, '&').trim() : null,
+    marketTime: null,
+    marketCap: null,
+    volume: null,
+    fonteCotacao: 'google',
+  };
+}
+
+async function fetchGoogleCotacaoUma(ticker, fetchImpl = fetch) {
+  const url = `${GOOGLE_FINANCE_URL}/${encodeURIComponent(ticker)}:BVMF?hl=pt`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), GOOGLE_TIMEOUT_MS);
+  let html;
+  try {
+    const res = await fetchImpl(url, {
+      headers: { 'User-Agent': YAHOO_UA, 'Accept-Language': 'pt-BR,pt;q=0.9' },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) throw new Error(`google_${res.status}`);
+    html = await res.text();
+  } finally {
+    clearTimeout(timer);
+  }
+  const q = parseGoogleFinance(html, ticker);
+  if (!q) throw new Error('google_sem_preco');
+  return q;
+}
+
+async function fetchGoogleCotacoes(tickers, erros, orcamentoMs, fetchImpl = fetch) {
+  const out = {};
+  const limite = Date.now() + (orcamentoMs || 6000);
+  const PARALELO = 4;
+  for (let i = 0; i < tickers.length; i += PARALELO) {
+    if (Date.now() > limite) {
+      if (erros)
+        erros.push({ fonte: 'google', erro: 'orcamento_esgotado', restantes: tickers.length - i });
+      break;
+    }
+    const lote = tickers.slice(i, i + PARALELO);
+    const res = await Promise.all(
+      lote.map((t) =>
+        fetchGoogleCotacaoUma(t, fetchImpl)
+          .then((q) => ({ t, q }))
+          .catch((e) => {
+            if (erros) erros.push({ fonte: 'google', ticker: t, erro: e.message });
+            return null;
+          })
+      )
+    );
+    for (const item of res) if (item) out[item.t] = item.q;
+  }
+  return out;
 }
 
 /** Várias cotações pelo Yahoo, com paralelismo baixo e orçamento. */
@@ -2230,7 +2337,17 @@ async function fetchCotacoesMercado(tickers, erros, orcamentoMs) {
       if (erros) erros.push({ fonte: 'brapi_cotacao', erro: e.message, degradou: true });
     }
   }
-  if (faltam.length) Object.assign(daB3, await fetchYahooCotacoes(faltam, erros, orcamentoMs));
+  const inicio = Date.now();
+  const orcamento = orcamentoMs != null ? orcamentoMs : YAHOO_COTACAO_ORCAMENTO_MS;
+  if (faltam.length) {
+    // O Yahoo fica com até dois terços do tempo; o resto é da reserva.
+    Object.assign(daB3, await fetchYahooCotacoes(faltam, erros, Math.round(orcamento * 0.6)));
+    faltam = faltam.filter((t) => !(daB3[t] && typeof daB3[t].price === 'number'));
+  }
+  if (faltam.length) {
+    const resta = Math.max(1500, orcamento - (Date.now() - inicio));
+    Object.assign(daB3, await fetchGoogleCotacoes(faltam, erros, resta));
+  }
   for (const base of bases) {
     if (!daB3[base]) continue;
     for (const t of porBase[base]) out[t] = t === base ? daB3[base] : { ...daB3[base], ticker: t };
@@ -3848,6 +3965,7 @@ module.exports.fontes = {
   diagnosticarErrosDeFonte,
   fetchProventos,
 };
+module.exports.cotacaoReserva = { parseGoogleFinance, fetchGoogleCotacoes, resumirErrosCotacao };
 module.exports.historico = { fetchHistorySource, indiceDeSgsMensal };
 module.exports.catalogo = {
   tickerDeCatalogo,

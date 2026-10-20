@@ -114,6 +114,7 @@ var cotacoesEstado = {
   falhou: false,
   semCotacao: [],
   atrasadas: [],
+  motivos: {}, // { TICKER: ['yahoo_chart_429', 'google_sem_preco'] } — do servidor
 };
 var _promessaCotacoes = null;
 var _cotacoesTimer = null;
@@ -220,6 +221,36 @@ function restaurarCotacoesSalvas() {
   } catch (_) {}
 }
 
+/**
+ * O porquê, em português, a partir do que o servidor relatou: o selo é o
+ * único lugar onde a pessoa vê que algo falhou, e "atrasada" sem motivo não
+ * ajuda ninguém a diagnosticar.
+ */
+function motivoCotacaoTexto(tickers) {
+  var m = cotacoesEstado.motivos || {};
+  var todos = [];
+  (tickers || []).forEach(function (t) {
+    (m[t] || []).forEach(function (x) {
+      todos.push(x);
+    });
+  });
+  if (!todos.length) return '';
+  var limitado = todos.some(function (x) {
+    return /429|403/.test(x);
+  });
+  var fora = todos.some(function (x) {
+    return /5\d\d|abort|fetch failed|timeout/i.test(x);
+  });
+  var naoExiste = todos.some(function (x) {
+    return /sem_resultado|sem_preco|404/.test(x);
+  });
+  var partes = [];
+  if (limitado) partes.push('a fonte de cotações limitou os pedidos agora');
+  if (fora) partes.push('a fonte de cotações não respondeu');
+  if (naoExiste && !limitado && !fora) partes.push('a fonte não tem preço para esse código');
+  return partes.length ? ' Motivo: ' + partes.join('; ') + '.' : '';
+}
+
 /** Mesmo relógio do servidor: dia útil, 10:00–18:10 de Brasília. */
 function pregaoAbertoAgora() {
   var d = new Date(Date.now() - 3 * 3600 * 1000);
@@ -262,7 +293,8 @@ function renderStatusCotacoes() {
       titulo =
         'Sem preço novo agora para: ' +
         e.semCotacao.concat(e.atrasadas).join(', ') +
-        '. Mostrando o último preço conhecido.';
+        '. Mostrando o último preço conhecido.' +
+        motivoCotacaoTexto(e.semCotacao.concat(e.atrasadas));
     } else {
       titulo = pregaoAbertoAgora()
         ? 'Atualiza sozinho a cada 5 minutos durante o pregão. Toque para atualizar agora.'
@@ -322,6 +354,7 @@ function atualizarCotacoes(forcar, opcoes) {
     var mudou = false;
     var semCotacao = [];
     var atrasadas = [];
+    var motivos = {};
     try {
       var token = await u.getIdToken();
       for (var i = 0; i < tickers.length; i += COTACOES_POR_PEDIDO) {
@@ -337,6 +370,10 @@ function atualizarCotacoes(forcar, opcoes) {
         });
         if (!res.ok || !data || !data.quotes)
           throw new Error((data && data.error) || 'http_' + res.status);
+        if (data.erros && typeof data.erros === 'object')
+          Object.keys(data.erros).forEach(function (t) {
+            motivos[t] = data.erros[t];
+          });
         lote.forEach(function (t) {
           var q = data.quotes[t];
           if (q && typeof q.price === 'number') {
@@ -351,6 +388,9 @@ function atualizarCotacoes(forcar, opcoes) {
       cotacoesEstado.falhou = false;
       cotacoesEstado.semCotacao = semCotacao;
       cotacoesEstado.atrasadas = atrasadas;
+      cotacoesEstado.motivos = motivos;
+      if (semCotacao.length || atrasadas.length)
+        console.warn('[cotações] sem preço novo:', JSON.stringify(motivos));
       salvarCotacoesNoAparelho();
       atualizarBadgeEstimados(semCotacao);
     } catch (err) {
