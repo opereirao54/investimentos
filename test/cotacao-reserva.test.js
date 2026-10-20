@@ -324,6 +324,28 @@ test('planilha: linhas viram cotações; célula vazia ou "Loading" fica de fora
   assert.equal(out.WEGE3.fonteCotacao, 'planilha');
 });
 
+test('planilha: fechamento anterior absurdo (PATL11 a R$ 0,01) não vira variação de +641.400%', () => {
+  const out = market.planilha.mapPlanilhaLinhas([
+    ['PATL11', 64.15, 0.01, 641400, 'Patria Log FII'],
+  ]);
+  assert.equal(out.PATL11.price, 64.15);
+  assert.equal(out.PATL11.previousClose, null);
+  assert.equal(out.PATL11.changePct, null);
+});
+
+test('planilha: o id padrão é a planilha configurada (COTACAO_PLANILHA_ID troca)', () => {
+  const antes = process.env.COTACAO_PLANILHA_ID;
+  delete process.env.COTACAO_PLANILHA_ID;
+  try {
+    assert.equal(market.planilha.planilhaId(), '1-CJ010GTW2MJe9vWTMHIsw6bZ7QJTgDnzD8W4ZQzKVQ');
+    process.env.COTACAO_PLANILHA_ID = 'outra';
+    assert.equal(market.planilha.planilhaId(), 'outra');
+  } finally {
+    if (antes === undefined) delete process.env.COTACAO_PLANILHA_ID;
+    else process.env.COTACAO_PLANILHA_ID = antes;
+  }
+});
+
 test('planilha: as fórmulas servem em qualquer linha (INDIRECT de ROW) e usam a BVMF', () => {
   for (const f of market.planilha.PLANILHA_FORMULAS) {
     assert.match(f, /GOOGLEFINANCE\("BVMF:"&INDIRECT\("A"&ROW\(\)\),"/);

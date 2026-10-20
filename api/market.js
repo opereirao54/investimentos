@@ -2342,7 +2342,7 @@ async function fetchGoogleCotacoes(tickers, erros, orcamentoMs, fetchImpl = fetc
 // Guia: docs/COTACOES-PLANILHA.md.
 // O id da planilha não é segredo (só a conta de serviço e o dono a abrem):
 // fica aqui, e COTACAO_PLANILHA_ID troca sem mexer no código.
-const PLANILHA_ID_PADRAO = '';
+const PLANILHA_ID_PADRAO = '1-CJ010GTW2MJe9vWTMHIsw6bZ7QJTgDnzD8W4ZQzKVQ';
 function planilhaId() {
   return process.env.COTACAO_PLANILHA_ID || PLANILHA_ID_PADRAO;
 }
@@ -2381,13 +2381,22 @@ function mapPlanilhaLinhas(linhas) {
       .toUpperCase();
     const preco = fundNum(l && l[1]);
     if (!ticker || preco === null || !(preco > 0)) continue;
-    const anterior = fundNum(l[2]);
+    // A base do GOOGLEFINANCE às vezes traz fechamento anterior absurdo (PATL11
+    // veio com R$ 0,01 → "+641.400%"). Mais de 50% num pregão é dado ruim:
+    // fica o preço, sai a variação.
+    let anterior = fundNum(l[2]);
+    let pct = fundNum(l[3]);
+    if (anterior !== null && (anterior <= 0 || Math.abs(preco / anterior - 1) > 0.5)) {
+      anterior = null;
+      pct = null;
+    }
+    if (pct !== null && Math.abs(pct) > 50) pct = null;
     out[ticker] = {
       ticker,
       price: preco,
       previousClose: anterior,
       change: anterior !== null ? preco - anterior : null,
-      changePct: fundNum(l[3]),
+      changePct: pct,
       currency: 'BRL',
       shortName: l[4] ? String(l[4]) : null,
       marketTime: null,
