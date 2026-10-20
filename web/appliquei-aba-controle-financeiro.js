@@ -2891,6 +2891,23 @@ function confirmarBaixarGrupoCartao(key) {
   atualizarTelaControle();
 }
 
+// Parcela de sonho que dá para pular em vez de pagar: a do mês atual ou uma
+// atrasada, ainda não paga, de sonho com plano no Controle. É a mesma regra do
+// "Pular este mês" da tela de Sonhos, oferecida onde a pessoa está ao pagar.
+function controlePodePularSonho(t) {
+  if (!t || t.pago || t.categoria !== 'sonho' || t.aporteExtra || !t.sonhoId) return false;
+  if (typeof pularMesSonho !== 'function' || typeof sonhos === 'undefined') return false;
+  const s = sonhos.find((x) => x.id === t.sonhoId);
+  if (!s || !s.planoVinculado || (s.valorAtual || 0) >= s.valorTotal) return false;
+  const h = new Date();
+  return t.ano < h.getFullYear() || (t.ano === h.getFullYear() && t.mes <= h.getMonth());
+}
+
+function pularParcelaSonho(id) {
+  const t = transacoes.find((x) => x.id === id);
+  if (controlePodePularSonho(t)) pularMesSonho(t.sonhoId, t.id);
+}
+
 function prepararPagamento(id, contexto) {
   const t = transacoes.find((t) => t.id === id);
   if (!t) return;
@@ -2902,6 +2919,7 @@ function prepararPagamento(id, contexto) {
                 <input type="text" inputmode="decimal" id="input-pago-${id}" value="${formatarBRLInput(t.valor)}" oninput="aplicarMascaraBRL(this)" style="width: 90px; padding: 4px; border: 1px solid var(--cor-borda); border-radius: 4px; font-size: 13px; outline:none; color: var(--cor-texto-principal); font-weight: 600; text-align: right;">
                 <input type="date" id="input-pago-dia-${id}" value="${hojeYmdLocal()}" max="${hojeYmdLocal()}" title="Dia em que foi pago" aria-label="Dia em que foi pago" style="padding: 3px 4px; border: 1px solid var(--cor-borda); border-radius: 4px; font-size: 12px; color: var(--cor-texto-principal); background: var(--cor-superficie);">
                 <button onclick="confirmarPagamento('${id}')" style="background: var(--cor-primaria); color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; display:flex; align-items:center; gap:4px;"><i class="ph-bold ph-check"></i></button>
+                ${controlePodePularSonho(t) ? `<button onclick="pularParcelaSonho('${id}')" title="Não vai guardar este mês? A falta é redistribuída nas próximas parcelas, no mesmo prazo." style="background: #f59e0b; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; display:flex; align-items:center; gap:4px; white-space:nowrap;"><i class="ph-bold ph-skip-forward"></i> Pular mês</button>` : ''}
                 <button onclick="atualizarTelaControle()" style="background: #e2e8f0; color: var(--cor-texto-secundario); border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer;"><i class="ph-bold ph-x"></i></button>
             </div>
         `;
@@ -2971,6 +2989,30 @@ function confirmarPagamento(id) {
   const diaPago = elDia ? elDia.value : '';
   if (diaPago && diaPago > hojeYmdLocal())
     return mostrarToast('A data do pagamento não pode ser no futuro.', 'erro');
+
+  // Baixa de parcela de sonho com R$ 0 não guarda nada: virava um "aporte" de
+  // R$ 0,00 no histórico, a parcela sumia como paga e a falta não era
+  // redistribuída. O caminho certo é "Pular este mês", que avisa o que muda.
+  const alvo = transacoes.find((t) => t.id === id);
+  if (
+    novoValor === 0 &&
+    alvo &&
+    alvo.categoria === 'sonho' &&
+    alvo.sonhoId &&
+    !alvo.aporteExtra &&
+    typeof pularMesSonho === 'function'
+  ) {
+    const h = new Date();
+    const futura =
+      alvo.ano > h.getFullYear() || (alvo.ano === h.getFullYear() && alvo.mes > h.getMonth());
+    if (futura)
+      return mostrarToast(
+        'Parcela de sonho não se baixa com R$ 0. Se não for guardar nesse mês, use "Pular este mês" quando ele chegar.',
+        'aviso'
+      );
+    pularMesSonho(alvo.sonhoId, alvo.id);
+    return;
+  }
 
   let txPaga = null;
   transacoes = transacoes.map((t) => {

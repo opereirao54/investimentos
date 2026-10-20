@@ -855,32 +855,46 @@ function toggleSonhoCard(id) {
   }
 }
 
-function pularMesSonho(id) {
+// `txId` (opcional): a parcela que o usuário tentou baixar com R$ 0 no
+// Controle — pode ser a deste mês ou uma atrasada. Sem ele, é a do mês atual.
+function pularMesSonho(id, txId) {
   const s = sonhos.find((x) => x.id === id);
   if (!s) return;
-  const mesesParaDistribuir = Math.max(1, (s.mesesRestantes || s.prazoMeses) - 1);
+  const atrasada = _parcelaSonhoAtrasada(txId);
+  const mesesParaDistribuir = Math.max(1, (s.mesesRestantes || s.prazoMeses) - (atrasada ? 0 : 1));
   const novaParcelaPrevia = calcSonhoMensal(s.valorTotal, s.valorAtual, mesesParaDistribuir);
   const modal = document.getElementById('modalConfirmacao');
   document.getElementById('modalTitulo').innerHTML =
     `<i class="ph-fill ph-skip-forward" style="color:var(--tinta-ambar);"></i> Não vai conseguir separar este mês?`;
   document.getElementById('modalMensagem').innerHTML = `
         Sem problema — vamos recalcular o plano do sonho <strong>${s.nome}</strong>.<br><br>
-        O lançamento deste mês será removido e o valor que faltava será <strong>redistribuído nos meses restantes</strong> (o prazo final continua o mesmo).<br><br>
+        ${txId ? 'Dar baixa com R$ 0 não guardaria nada no sonho — e o plano deixaria de fechar no prazo. ' : ''}${atrasada ? 'A parcela atrasada' : 'O lançamento deste mês'} será removid${atrasada ? 'a' : 'o'} e o valor que faltava será <strong>redistribuído nos meses restantes</strong> (o prazo final continua o mesmo).<br><br>
         <em style="color:var(--cor-texto-mutado);">Próxima parcela estimada: <strong>${formatarMoeda(novaParcelaPrevia)}/mês</strong>.</em>
     `;
   document.getElementById('modalAcoes').innerHTML = `
-        <button class="btn-acao" style="background:#f59e0b;" onclick="confirmarPularMes('${s.id}')"><i class="ph-bold ph-check"></i> Sim, pular e recalcular</button>
+        <button class="btn-acao" style="background:#f59e0b;" onclick="confirmarPularMes('${s.id}'${txId ? `, '${txId}'` : ''})"><i class="ph-bold ph-check"></i> Sim, pular e recalcular</button>
         <button class="btn-secundario" onclick="fecharModal()">Cancelar</button>
     `;
   modal.style.display = 'flex';
 }
 
-function confirmarPularMes(id) {
+// Parcela de mês que já passou (atrasada)? Pular uma atrasada não encurta o
+// futuro: a falta vai para os meses que restam, incluindo o atual.
+function _parcelaSonhoAtrasada(txId) {
+  if (!txId) return false;
+  const t = transacoes.find((x) => x.id === txId);
+  if (!t) return false;
+  const h = new Date();
+  return t.ano < h.getFullYear() || (t.ano === h.getFullYear() && t.mes < h.getMonth());
+}
+
+function confirmarPularMes(id, txId) {
   const s = sonhos.find((x) => x.id === id);
   if (!s) {
     fecharModal();
     return;
   }
+  const atrasada = _parcelaSonhoAtrasada(txId);
   // Remove transação do mês corrente (não paga). Mantém a data final do sonho:
   // como o usuário não pagou este mês, a falta é redistribuída nos meses restantes,
   // o que aumenta a próxima parcela.
@@ -894,21 +908,24 @@ function confirmarPularMes(id) {
         t.sonhoId === s.id &&
         !t.aporteExtra &&
         !t.pago &&
-        t.mes === m0 &&
-        t.ano === a0
+        (atrasada ? t.id === txId : t.mes === m0 && t.ano === a0)
       )
   );
   salvarTransacoes();
   // Persiste o "mês pulado" — o render desconta esse contador de mesesEntre(agora, fim),
-  // garantindo que a parcela continue maior nos próximos renders.
-  s.mesesPulados = (s.mesesPulados || 0) + 1;
-  const mesesParaDistribuir = Math.max(1, (s.mesesRestantes || s.prazoMeses) - 1);
+  // garantindo que a parcela continue maior nos próximos renders. A atrasada já
+  // está fora da conta do calendário: não desconta nada.
+  if (!atrasada) s.mesesPulados = (s.mesesPulados || 0) + 1;
+  const mesesParaDistribuir = Math.max(1, (s.mesesRestantes || s.prazoMeses) - (atrasada ? 0 : 1));
   removerLancamentosFuturosSonho(s.id);
   const mensal = calcSonhoMensal(s.valorTotal, s.valorAtual, mesesParaDistribuir);
   s.aporteMensalPlano = mensal;
   s.mesesRestantes = mesesParaDistribuir;
   const mesesGerar = Math.min(60, mesesParaDistribuir);
-  for (let i = 1; i <= mesesGerar; i++) {
+  // Pulando a do mês atual, o plano recomeça no mês que vem; pulando uma
+  // atrasada, a deste mês continua valendo (com a parcela nova).
+  const ini = atrasada ? 0 : 1;
+  for (let i = ini; i < ini + mesesGerar; i++) {
     let m = m0 + i,
       a = a0;
     while (m > 11) {
@@ -916,7 +933,9 @@ function confirmarPularMes(id) {
       a++;
     }
     transacoes.push({
-      id: 'tx_' + Date.now() + '_' + i,
+      // Sufixo próprio: no mesmo milissegundo da geração do plano, '_' + i
+      // repetia o id de uma parcela que acabou de sair (pulo de atrasada).
+      id: 'tx_' + Date.now() + '_p' + i + Math.random().toString(36).slice(2, 6),
       groupId: s.groupIdControle || 'sonho_grp_' + s.id,
       sonhoId: s.id,
       descricao: `Sonho: ${s.nome}`,

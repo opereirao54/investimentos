@@ -1957,6 +1957,12 @@ function mobBaixarConta(id) {
     '<button type="button" class="mf-btn1" onclick="mobConfirmarBaixa(\'' +
     idEsc +
     '\')">Confirmar pagamento</button>' +
+    // Parcela de sonho: não guardou este mês? Pula sem precisar baixar com R$ 0.
+    (typeof controlePodePularSonho === 'function' && controlePodePularSonho(t)
+      ? '<button type="button" class="mf-btn2" onclick="mobFolhaFechar();pularParcelaSonho(\'' +
+        idEsc +
+        '\')"><i class="ph ph-skip-forward"></i> Não vou guardar este mês</button>'
+      : '') +
     '<button type="button" class="mf-btn2" onclick="mobFolhaFechar()">Cancelar</button>';
   mobFolhaAbrir(html, 'Baixar ' + (t.descricao || 'conta'));
 }
