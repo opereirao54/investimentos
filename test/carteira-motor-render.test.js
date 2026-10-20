@@ -783,7 +783,7 @@ test('a reserva é anunciada na tela, não passada por seleção do motor', () =
   `);
   const html = s.dom.els.get('cartMotorStatus').innerHTML;
   assert.ok(html.includes('Ações e FIIs'), `veio: ${html}`);
-  assert.ok(html.includes('carteira do consultor como reserva'));
+  assert.ok(html.includes('carteira de referência da Appliquei como reserva'));
   assert.ok(html.includes('ingestão de dados da CVM'), 'tem de dizer o que resolve');
 });
 

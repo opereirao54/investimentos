@@ -926,18 +926,30 @@ function editarCartaoConfig(id) {
   document.getElementById('novoCartaoNome').focus();
 }
 
-function arquivarCartaoConfig(id) {
+function arquivarCartaoConfig(id, confirmado) {
   const ativos = cartoesAtivos();
   if (ativos.length <= 1 && ativos[0]?.id === id) {
     return mostrarToast('Você precisa manter pelo menos um cartão ativo.', 'erro');
   }
   const c = cartoes.find((x) => x.id === id);
   if (!c) return;
-  const usados = transacoes.some((t) => t.cartaoId === id);
-  const msg = usados
-    ? `Arquivar "${c.nome}"? O histórico de lançamentos será preservado e continuará vinculado a este cartão. O cartão deixa de aparecer no formulário de novas despesas, mas pode ser restaurado a qualquer momento.`
-    : `Arquivar "${c.nome}"?`;
-  if (!confirm(msg)) return;
+  // Modal da casa (o confirm() do navegador não dizia que as parcelas futuras
+  // continuam a pagar).
+  if (!confirmado) {
+    const futuras = transacoes.filter((t) => t.cartaoId === id && !t.pago).length;
+    document.getElementById('modalTitulo').innerHTML =
+      `<i class="ph-fill ph-archive" style="color:var(--tinta-ambar);"></i> Arquivar "${escaparHtmlAtivo(c.nome)}"?`;
+    document.getElementById('modalMensagem').innerHTML =
+      'O cartão sai do formulário de novas despesas. O histórico continua e dá para restaurar depois.' +
+      (futuras
+        ? `<br><br><strong>${futuras} ${futuras === 1 ? 'lançamento ainda não pago continua' : 'lançamentos ainda não pagos continuam'}</strong> nas próximas faturas deste cartão.`
+        : '');
+    document.getElementById('modalAcoes').innerHTML =
+      `<button class="btn-acao" style="background:#f59e0b;" onclick="fecharModal();arquivarCartaoConfig('${id}', true)"><i class="ph ph-archive"></i> Arquivar</button>` +
+      '<button class="btn-secundario" onclick="fecharModal()">Cancelar</button>';
+    document.getElementById('modalConfirmacao').style.display = 'flex';
+    return;
+  }
   c.arquivado = true;
   salvarCartoes();
   renderizarListaCartoesConfig();
