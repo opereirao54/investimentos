@@ -166,8 +166,11 @@ async function atualizarProventos(database, market, tickers) {
   const agora = Date.now();
   const vencidos = candidatos.filter((t, i) => {
     const d = snaps[i].data();
+    // Lista vazia da B3 é a da 1ª rodada, que não leu o formato: busca de novo.
+    const vaziaB3 = d && d.fonte === 'b3' && Array.isArray(d.pagamentos) && !d.pagamentos.length;
     return !(
       d &&
+      !vaziaB3 &&
       Array.isArray(d.pagamentos) &&
       agora - (d.fetchedAtMs || 0) < PROVENTOS_VALIDADE_MS
     );

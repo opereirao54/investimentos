@@ -147,3 +147,57 @@ test('proventos: B3 antes do Yahoo; se a B3 falhar, o motivo fica e o Yahoo tent
     if (antes !== undefined) process.env.BRAPI_TOKEN = antes;
   }
 });
+
+test('proventos: B3 sem nenhum provento vira erro com o formato (não grava lista vazia)', async () => {
+  const antes = process.env.BRAPI_TOKEN;
+  delete process.env.BRAPI_TOKEN;
+  try {
+    const vazio = async (url) =>
+      /b3\.com\.br/.test(url)
+        ? {
+            ok: true,
+            status: 200,
+            text: async () => JSON.stringify([{ code: 'PETR', cashDividends: [] }]),
+          }
+        : { ok: false, status: 429, json: async () => ({}) };
+    const erros = [];
+    const r = await market.fontes.fetchProventos(['PETR4'], erros, 5000, vazio);
+    assert.equal(r.PETR4, undefined);
+    assert.match(erros[0].erro, /^b3_vazio array\[1\] \{code,cashDividends\} cash=0/);
+  } finally {
+    if (antes !== undefined) process.env.BRAPI_TOKEN = antes;
+  }
+});
+
+test('job: lista vazia gravada pela B3 é buscada de novo; lista em dia não', async () => {
+  const { atualizarProventos } = require('../scripts/cotacoes-job.js');
+  const agora = Date.now();
+  const docs = {
+    PETR4: { pagamentos: [], fonte: 'b3', fetchedAtMs: agora },
+    ITUB4: { pagamentos: [{ valor: 1 }], fonte: 'b3', fetchedAtMs: agora },
+  };
+  const gravados = {};
+  const database = {
+    collection: () => ({ doc: (id) => ({ id }) }),
+    getAll: async (...refs) => refs.map((r) => ({ data: () => docs[r.id] })),
+    batch: () => ({ set: (ref, v) => (gravados[ref.id] = v), commit: async () => {} }),
+  };
+  const pedidos = [];
+  const market = {
+    fontes: {
+      fetchProventos: async (ts) => {
+        pedidos.push(...ts);
+        return {};
+      },
+    },
+  };
+  const log = console.log;
+  console.log = () => {};
+  try {
+    await atualizarProventos(database, market, ['ITUB4', 'PETR4']);
+  } finally {
+    console.log = log;
+  }
+  assert.deepEqual(pedidos, ['PETR4']);
+  assert.deepEqual(gravados, {});
+});

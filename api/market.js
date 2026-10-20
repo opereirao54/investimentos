@@ -652,7 +652,22 @@ async function fetchB3Json(url, ticker, fetchImpl) {
   } finally {
     clearTimeout(timer);
   }
-  return mapB3Proventos(json, ticker);
+  const lista = mapB3Proventos(json, ticker);
+  // Nenhum provento é quase sempre resposta num formato que não lemos (a 1ª
+  // rodada gravou 35 listas vazias): vira erro com o formato no motivo, para o
+  // log mostrar o que veio e o cache antigo não ser sobrescrito por nada.
+  if (!lista.length) throw new Error(`b3_vazio ${formatoB3(json)}`);
+  return lista;
+}
+
+/** Resumo curto do formato da resposta da B3, para o log do job. */
+function formatoB3(json) {
+  const raiz = Array.isArray(json) ? json[0] : json;
+  const tipo = Array.isArray(json) ? `array[${json.length}]` : typeof json;
+  const chaves = raiz && typeof raiz === 'object' ? Object.keys(raiz).slice(0, 8).join(',') : '';
+  const cd = raiz && Array.isArray(raiz.cashDividends) ? raiz.cashDividends : null;
+  const ex = cd && cd[0] ? JSON.stringify(cd[0]).slice(0, 160) : '';
+  return `${tipo} {${chaves}} cash=${cd ? cd.length : '-'} ${ex}`.trim();
 }
 
 async function fetchB3Proventos(ticker, fetchImpl = fetch) {
