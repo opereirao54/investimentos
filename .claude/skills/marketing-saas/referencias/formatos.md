@@ -16,6 +16,26 @@ Legenda: gancho na 1ª linha, 3–6 linhas de valor, CTA, 3–5 hashtags de nich
 #organizacaofinanceira). No TikTok, palavras-chave na legenda valem mais que
 hashtag.
 
+## Clareza antes de tudo (lição do comercial "Mesmo salário", 10/2026)
+
+O fundador achou confusas duas versões (30 s e 42 s) com dois personagens,
+três funcionalidades e sem locução. O que funcionou, alinhado às guias de
+criativo do TikTok e da Meta:
+
+- **Uma mensagem por vídeo.** Uma funcionalidade, uma frase-promessa. Outra
+  funcionalidade = outro vídeo da série.
+- **Dor + marca nos 3 primeiros segundos**, falando com "você" (pergunta que
+  a pessoa reconhece), com o logo já na tela.
+- **Problema → solução → prova → CTA**, em 15 a 20 s.
+- **Prova = tela real grande e destacada** (contorno + número + legenda
+  do que olhar), não ilustração do app.
+- **Tudo legível sem som**: frase grande por cena, que fica na tela o tempo de
+  ler; locução repete a frase para quem liga o som.
+- Evite comparação entre dois personagens: dobra o que a pessoa precisa
+  entender.
+
+Modelo: `marketing/comercial-mesmo-salario/anuncio-aviso-18s.html`.
+
 ## Estrutura de vídeo curto (30 s)
 
 | Tempo   | Bloco      | O que fazer                                                                                |
