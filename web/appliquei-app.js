@@ -194,7 +194,7 @@ function atualizarMiniStats(aba) {
         continue;
       }
       const am = mockAtivosMercado.find((a) => a.ticker === t);
-      const p = am ? am.preco_atual : carteira[t].precoMedio;
+      const p = am && am.preco_atual > 0 ? am.preco_atual : carteira[t].precoMedio;
       saldoTotal += carteira[t].qtdTotal * p;
     }
     el.innerHTML = `<i class="ph ph-briefcase" style="font-size:13px;"></i> ${totalAtivos} ativo${totalAtivos !== 1 ? 's' : ''} · <span class="valor-mascarado" style="font-family:'DM Mono',monospace;">${formatarMoeda(saldoTotal)}</span>`;

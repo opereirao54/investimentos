@@ -100,7 +100,8 @@ test('aporte por migração: caixa parado, investimento abatido', () => {
   assert.equal(m.s.mpCalcularSaldoTotal(Date.now()), caixaAntes, 'o caixa não se move');
   const venda = m.s.historicoCompras.find((o) => o.tipo === 'venda');
   assert.ok(venda, 'a migração registra a venda do ativo de origem');
-  assert.equal(venda.quantidade * venda.preco_op, 2000);
+  // Cotas fracionárias: o produto volta com resíduo de ponto flutuante.
+  assert.ok(Math.abs(venda.quantidade * venda.preco_op - 2000) < 1e-6);
 });
 
 // ----------------------------------------------------------- editar aporte --

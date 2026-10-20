@@ -474,7 +474,8 @@ function projMontarClasses() {
       var cdiMensal = projAnualParaMensal(isFinite(taxas.cdi) ? taxas.cdi : 0.105);
       taxaContratada = projTaxaAnualContratada(ticker, ativo.categoria, cdiMensal);
     } else {
-      var preco = ativoMercado ? ativoMercado.preco_atual : ativo.precoMedio;
+      var preco =
+        ativoMercado && ativoMercado.preco_atual > 0 ? ativoMercado.preco_atual : ativo.precoMedio;
       valor = ativo.qtdTotal * preco;
     }
     if (!(valor > 0.01)) return;

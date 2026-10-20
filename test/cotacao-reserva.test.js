@@ -116,3 +116,23 @@ test('nenhuma fonte respondeu: sem preço, com o motivo de cada uma', async () =
     if (antes !== undefined) process.env.BRAPI_TOKEN = antes;
   }
 });
+
+test('a lista fixa não tem preço de exemplo: sem cotação, vale o preço médio', () => {
+  // Os preços de exemplo apareciam como se fossem de mercado quando a cotação
+  // falhava ("ITUB4 e WEGE3 diferentes do fechamento do dia").
+  const fs = require('node:fs');
+  const fonte = fs.readFileSync(
+    path.resolve(__dirname, '..', 'web', 'appliquei-yahoo-finance.js'),
+    'utf8'
+  );
+  const lista = fonte.slice(fonte.indexOf('var mockAtivosMercado = ['), fonte.indexOf('];'));
+  const comPreco = lista.match(
+    /tipo: '(?:Ação|FII|ETF|BDR|Cripto)',\s*preco_atual: (?!0\b)[0-9.]+/g
+  );
+  assert.equal(comPreco, null, 'preço de exemplo na lista: ' + (comPreco || []).join(' | '));
+  // E quem lê o preço cai no preço médio quando ele é 0.
+  for (const arq of ['appliquei-aba1-charts.js', 'appliquei-app.js', 'appliquei-projecao.js']) {
+    const src = fs.readFileSync(path.resolve(__dirname, '..', 'web', arq), 'utf8');
+    assert.doesNotMatch(src, /\b(\w+) \? \1\.preco_atual :/, arq + ' usa o preço sem checar > 0');
+  }
+});
