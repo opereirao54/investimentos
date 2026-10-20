@@ -1297,6 +1297,8 @@ function registrarOperacaoAtivo() {
 
 // --- LISTA DE OPERAÇÕES (sub-aba) — TIMELINE ---
 function renderizarOperacoes() {
+  // Card "Imposto de renda das vendas" (web/appliquei-ir.js).
+  if (typeof renderizarImpostoRenda === 'function') renderizarImpostoRenda();
   const container = document.getElementById('timelineContainer');
   const msgVazia = document.getElementById('operacoesVaziaMsg');
   const summaryEl = document.getElementById('opsSummary');

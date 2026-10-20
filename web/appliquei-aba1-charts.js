@@ -1274,6 +1274,8 @@ function moedaComCentavosDiscretos(valor) {
 }
 
 function atualizarCarteiraAtivos() {
+  // Card "Sua carteira x mercado" (web/appliquei-desempenho.js).
+  if (typeof renderizarDesempenho === 'function') renderizarDesempenho();
   const tbody = document.getElementById('tabelaCarteiraCorpo');
   const msgVazia = document.getElementById('carteiraVaziaMsg');
   tbody.innerHTML = '';

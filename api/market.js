@@ -595,19 +595,99 @@ async function handleDividends(req, res) {
 //   - Tesouro/CDI/IBOV/IFIX (synthetic): gera curva determinística baseada em yield anual
 //   - Demais (ações, FIIs, ETFs, BDRs): brapi /quote/:ticker?range=...&interval=1mo
 //   - Fallback: Yahoo Finance v8 (BDRs internacionais, ETFs US)
+// Índices reais para comparar a carteira: CDI, Selic e IPCA do Banco Central
+// (variação mensal, SGS) e Ibovespa do Yahoo. Antes os quatro eram curvas
+// sintéticas de juro constante — o "CDI" do gráfico era uma premissa, não o
+// que o CDI pagou. A curva sintética fica só como reserva, marcada.
+const SGS_MENSAL = { CDI: 4391, SELIC: 4390, IPCA: 433 };
+const YAHOO_INDICE = { IBOV: '^BVSP' };
+
+/** Série mensal do SGS (% no mês) → índice base 100, um ponto no fim de cada mês. */
+function indiceDeSgsMensal(json) {
+  const pontos = [];
+  let p = 100;
+  for (const item of json || []) {
+    const ymd = sgsData(item && item.data);
+    const v = Number(String(item && item.valor).replace(',', '.'));
+    if (!ymd || !isFinite(v)) continue;
+    const ini = Date.parse(ymd + 'T00:00:00-03:00');
+    if (!pontos.length) pontos.push({ t: ini, p: 100 });
+    p *= 1 + v / 100;
+    const d = new Date(ini);
+    const fim = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1, 3);
+    pontos.push({ t: fim, p: Number(p.toFixed(6)) });
+  }
+  return pontos;
+}
+
+async function fetchYahooMensal(simbolo, range) {
+  const yahooRange = range === '5y' ? '5y' : range === '3y' ? '5y' : range === '1y' ? '2y' : '1y';
+  const url = `${YAHOO_BASE}/${encodeURIComponent(simbolo)}?range=${yahooRange}&interval=1mo`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 12000);
+  let res;
+  try {
+    res = await fetch(url, {
+      signal: ctrl.signal,
+      headers: { Accept: 'application/json', 'User-Agent': YAHOO_UA },
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) throw new Error(`yahoo_${res.status}`);
+  const json = await res.json();
+  const result = json?.chart?.result?.[0];
+  const timestamps = result?.timestamp || [];
+  const closes = result?.indicators?.quote?.[0]?.close || [];
+  const out = [];
+  for (let i = 0; i < timestamps.length; i++) {
+    if (typeof closes[i] === 'number') out.push({ t: timestamps[i] * 1000, p: closes[i] });
+  }
+  return out;
+}
+
+function comFonte(serie, fonte) {
+  if (Array.isArray(serie)) serie.fonte = fonte;
+  return serie;
+}
+
 async function fetchHistorySource(ticker, range, premissas) {
   const months = RANGE_MONTHS[range] || 12;
   const upper = ticker.toUpperCase();
+  const SYNTH = premissas || PREMISSAS_ANUAIS;
+
+  // Índices de referência: o dado real primeiro, a premissa só de reserva.
+  if (SGS_MENSAL[upper]) {
+    try {
+      const serie = indiceDeSgsMensal(await fetchSgs(SGS_MENSAL[upper], months + 1));
+      if (serie.length >= 2) return comFonte(serie, 'bcb');
+    } catch (e) {
+      console.warn(`[market/history] sgs_failed ${upper}:`, e.message);
+    }
+  }
+  if (YAHOO_INDICE[upper]) {
+    try {
+      const serie = await fetchYahooMensal(YAHOO_INDICE[upper], range);
+      if (serie.length >= 2) return comFonte(serie, 'yahoo');
+    } catch (e) {
+      console.warn(`[market/history] yahoo_indice_failed ${upper}:`, e.message);
+    }
+  }
 
   // Synthetic benchmarks/RF — usa premissas estáveis pra simulação histórica.
-  const SYNTH = premissas || PREMISSAS_ANUAIS;
-  if (SYNTH[upper] != null) return buildSyntheticSeries(upper, SYNTH[upper], months);
+  if (SYNTH[upper] != null)
+    return comFonte(buildSyntheticSeries(upper, SYNTH[upper], months), 'estimativa');
   // Títulos do Tesouro sem série própria. Antes eram três constantes soltas
   // que ninguém revisava; agora acompanham a Selic e a inflação correntes.
-  if (upper.startsWith('TESOURO_SELIC')) return buildSyntheticSeries(upper, SYNTH.SELIC, months);
+  if (upper.startsWith('TESOURO_SELIC'))
+    return comFonte(buildSyntheticSeries(upper, SYNTH.SELIC, months), 'estimativa');
   if (upper.startsWith('TESOURO_IPCA'))
-    return buildSyntheticSeries(upper, SYNTH.IPCA + PREMIO_REAL_IPCA, months);
-  if (upper.startsWith('TESOURO_PREFIXADO')) return buildSyntheticSeries(upper, SYNTH.CDI, months);
+    return comFonte(
+      buildSyntheticSeries(upper, SYNTH.IPCA + PREMIO_REAL_IPCA, months),
+      'estimativa'
+    );
+  if (upper.startsWith('TESOURO_PREFIXADO'))
+    return comFonte(buildSyntheticSeries(upper, SYNTH.CDI, months), 'estimativa');
 
   // Cripto via CoinGecko
   if (CRYPTO_MAP[upper]) {
@@ -624,62 +704,55 @@ async function fetchHistorySource(ticker, range, premissas) {
       if (!res.ok) throw new Error(`coingecko_${res.status}`);
       const json = await res.json();
       const prices = (json.prices || []).map(([ts, p]) => ({ t: ts, p }));
-      return downsampleMonthly(prices);
+      return comFonte(downsampleMonthly(prices), 'coingecko');
     } finally {
       clearTimeout(timer);
     }
   }
 
-  // Brapi (ações, FIIs, ETFs, BDRs BR)
-  try {
-    const url = `${BRAPI_BASE}/${encodeURIComponent(upper)}?range=${range}&interval=1mo&fundamental=false`;
-    const token = process.env.BRAPI_TOKEN;
-    const headers = { Accept: 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 12000);
-    let res;
+  // Fracionário (PETR4F) tem a série do lote padrão.
+  const base = upper.replace(/^([A-Z0-9]{4}\d{1,2})F$/, '$1');
+
+  // BRAPI só com token: sem ele o plano grátis recusa quase todo ticker, e a
+  // tentativa só atrasava o Yahoo (a mesma escolha das cotações).
+  if (process.env.BRAPI_TOKEN) {
     try {
-      res = await fetch(url, { headers, signal: ctrl.signal });
-    } finally {
-      clearTimeout(timer);
-    }
-    if (res.ok) {
-      const json = await res.json();
-      const hist = json?.results?.[0]?.historicalDataPrice || [];
-      if (hist.length) {
-        return hist
-          .filter((d) => typeof d.close === 'number' && d.date)
-          .map((d) => ({ t: d.date * 1000, p: d.close }))
-          .sort((a, b) => a.t - b.t);
+      const url = `${BRAPI_BASE}/${encodeURIComponent(base)}?range=${range}&interval=1mo&fundamental=false`;
+      const headers = {
+        Accept: 'application/json',
+        Authorization: `Bearer ${process.env.BRAPI_TOKEN}`,
+      };
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 12000);
+      let res;
+      try {
+        res = await fetch(url, { headers, signal: ctrl.signal });
+      } finally {
+        clearTimeout(timer);
       }
+      if (res.ok) {
+        const json = await res.json();
+        const hist = json?.results?.[0]?.historicalDataPrice || [];
+        if (hist.length) {
+          return comFonte(
+            hist
+              .filter((d) => typeof d.close === 'number' && d.date)
+              .map((d) => ({ t: d.date * 1000, p: d.close }))
+              .sort((a, b) => a.t - b.t),
+            'brapi'
+          );
+        }
+      }
+    } catch (e) {
+      console.warn(`[market/history] brapi_failed ${upper}:`, e.message);
     }
-  } catch (e) {
-    console.warn(`[market/history] brapi_failed ${upper}:`, e.message);
   }
 
-  // Fallback Yahoo
+  // Yahoo — com User-Agent: sem ele a resposta é 429/403 e o histórico
+  // sumia em silêncio (o "rendimento" caía para o preço de hoje).
   try {
-    const yahooRange = range === '5y' ? '5y' : range === '3y' ? '5y' : '1y';
-    const url = `${YAHOO_BASE}/${encodeURIComponent(upper + '.SA')}?range=${yahooRange}&interval=1mo`;
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 12000);
-    let res;
-    try {
-      res = await fetch(url, { signal: ctrl.signal, headers: { Accept: 'application/json' } });
-    } finally {
-      clearTimeout(timer);
-    }
-    if (!res.ok) throw new Error(`yahoo_${res.status}`);
-    const json = await res.json();
-    const result = json?.chart?.result?.[0];
-    const timestamps = result?.timestamp || [];
-    const closes = result?.indicators?.quote?.[0]?.close || [];
-    const out = [];
-    for (let i = 0; i < timestamps.length; i++) {
-      if (typeof closes[i] === 'number') out.push({ t: timestamps[i] * 1000, p: closes[i] });
-    }
-    return out;
+    const serie = await fetchYahooMensal(base + '.SA', range);
+    if (serie.length) return comFonte(serie, 'yahoo');
   } catch (e) {
     console.warn(`[market/history] yahoo_failed ${upper}:`, e.message);
   }
@@ -736,6 +809,7 @@ async function handleHistory(req, res) {
       ticker: rawTicker,
       range,
       series: cached.series,
+      fonte: cached.fonte || null,
       cached: true,
     });
   }
@@ -758,13 +832,21 @@ async function handleHistory(req, res) {
         range,
         ticker: rawTicker,
         series: finalSeries,
+        fonte: series.fonte || null,
         updatedAt: timestamp().now(),
       },
       { merge: true }
     )
     .catch((e) => console.warn('[market/history] cache_write_failed', e.message));
 
-  return res.json({ success: true, ticker: rawTicker, range, series: finalSeries, cached: false });
+  return res.json({
+    success: true,
+    ticker: rawTicker,
+    range,
+    series: finalSeries,
+    fonte: series.fonte || null,
+    cached: false,
+  });
 }
 
 // ---------- op=warmup (cron) ----------
@@ -3766,6 +3848,7 @@ module.exports.fontes = {
   diagnosticarErrosDeFonte,
   fetchProventos,
 };
+module.exports.historico = { fetchHistorySource, indiceDeSgsMensal };
 module.exports.catalogo = {
   tickerDeCatalogo,
   catalogoIncluir,

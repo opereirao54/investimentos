@@ -25,6 +25,8 @@ const ROOT = path.resolve(__dirname, '..');
 const CLASSIC_SCRIPTS = [
   { file: 'web/appliquei-utils.js', indent: '' },
   { file: 'web/appliquei-catalogo-b3.js', indent: '' },
+  { file: 'web/appliquei-desempenho.js', indent: '' },
+  { file: 'web/appliquei-ir.js', indent: '' },
   { file: 'web/appliquei-yahoo-finance.js', indent: '' },
   { file: 'web/appliquei-app.js', indent: '        ' },
   { file: 'web/appliquei-combobox.js', indent: '' },

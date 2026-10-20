@@ -40,6 +40,8 @@ const LOAD_ORDER = [
   'web/appliquei-aba-info-mercado.js',
   'web/appliquei-aba-dividendos.js',
   'web/appliquei-rendimento.js',
+  'web/appliquei-desempenho.js',
+  'web/appliquei-ir.js',
   'web/appliquei-insights.js',
   'web/appliquei-aba-controle-financeiro.js',
   'web/appliquei-faturas.js',
