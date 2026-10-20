@@ -136,3 +136,80 @@ test('a lista fixa não tem preço de exemplo: sem cotação, vale o preço méd
     assert.doesNotMatch(src, /\b(\w+) \? \1\.preco_atual :/, arq + ' usa o preço sem checar > 0');
   }
 });
+
+test('preço velho tem data: documento antigo sem fetchedAtMs usa updatedAt ou o dia', () => {
+  const { asOfDoDocumento } = market.cotacaoReserva;
+  assert.equal(asOfDoDocumento({ fetchedAtMs: 5 }), 5);
+  assert.equal(asOfDoDocumento({ updatedAt: { toMillis: () => 7 } }), 7);
+  assert.equal(asOfDoDocumento({ updatedAt: { _seconds: 2 } }), 2000);
+  assert.equal(asOfDoDocumento({ dateYmd: '2026-10-03' }), Date.parse('2026-10-03T18:00:00-03:00'));
+  assert.equal(asOfDoDocumento({}), null);
+});
+
+test('formulário: preço atrasado vira aviso com data; cotação nova diz a fonte', () => {
+  const fs = require('node:fs');
+  const vm = require('node:vm');
+  const ctx = {
+    console: { log() {}, warn() {}, error() {} },
+    localStorage: { getItem: () => null, setItem() {} },
+    Date,
+    Math,
+    JSON,
+    Number,
+    String,
+    Array,
+    Object,
+    Set,
+    Map,
+    setTimeout,
+    clearTimeout,
+    historicoCompras: [],
+    mpEstado: { cotacoes: {} },
+    formatarMoeda: (v) => 'R$ ' + v,
+    document: { getElementById: () => null, querySelectorAll: () => [] },
+  };
+  ctx.window = ctx;
+  vm.createContext(ctx);
+  vm.runInContext(
+    fs.readFileSync(path.resolve(__dirname, '..', 'web', 'appliquei-yahoo-finance.js'), 'utf8'),
+    ctx
+  );
+  const dia3 = new Date(2026, 9, 3, 17, 5).getTime();
+  ctx.aplicarCotacao('WEGE3', { price: 51.27, stale: true, asOfMs: dia3 });
+  ctx.cotacoesEstado.motivos.WEGE3 = ['yahoo_chart_429', 'google_sem_preco'];
+  const velho = ctx.textoCotacaoDoAtivo('wege3');
+  assert.equal(velho.alerta, true);
+  assert.match(velho.texto, /último preço conhecido, de 03\/10 às 17:05/);
+  assert.match(velho.texto, /limitou os pedidos/);
+  assert.match(velho.texto, /Confira o preço antes de salvar/);
+
+  ctx.aplicarCotacao('WEGE3', { price: 47.67, asOfMs: dia3, fonteCotacao: 'google' });
+  const novo = ctx.textoCotacaoDoAtivo('WEGE3');
+  assert.equal(novo.alerta, false);
+  assert.match(novo.texto, /Cotação de 03\/10 às 17:05 · Google Finance/);
+});
+
+test('BRAPI no plano grátis: lote recusado vira um pedido por ativo', async () => {
+  const antes = process.env.BRAPI_TOKEN;
+  process.env.BRAPI_TOKEN = 'gratis';
+  try {
+    await comFetch(
+      (url) => {
+        const sim = decodeURIComponent(url.split('/quote/')[1] || '');
+        if (sim.includes(',')) return { ok: false, status: 400, text: async () => 'plano' };
+        return resp(200, {
+          results: [{ symbol: sim, regularMarketPrice: sim === 'WEGE3' ? 47.67 : 10 }],
+        });
+      },
+      async (pedidos) => {
+        const out = await market.brapi.fetchBrapi(['WEGE3', 'ITUB4']);
+        assert.equal(out.WEGE3.price, 47.67);
+        assert.equal(out.ITUB4.price, 10);
+        assert.equal(pedidos.length, 3, 'o lote e depois um por ativo');
+      }
+    );
+  } finally {
+    if (antes === undefined) delete process.env.BRAPI_TOKEN;
+    else process.env.BRAPI_TOKEN = antes;
+  }
+});

@@ -179,8 +179,30 @@ function cotacaoFresca(doc, agora, ehCripto) {
   return doc.fetchedAtMs >= ultimoFechamentoMs(agora);
 }
 
+/**
+ * BRAPI com o lote inteiro num pedido. O plano GRATUITO (com token, sem
+ * custo) aceita um ativo por pedido e recusa o lote: aí cai para um por um,
+ * quatro em paralelo. Assim "criar a conta grátis e pôr o BRAPI_TOKEN" já
+ * resolve a cotação, sem esperar o plano pago.
+ */
 async function fetchBrapi(tickers) {
   if (!tickers.length) return {};
+  try {
+    return await fetchBrapiLote(tickers);
+  } catch (e) {
+    if (tickers.length < 2 || !/brapi_(400|401|402|403)/.test(e.message)) throw e;
+  }
+  const out = {};
+  for (let i = 0; i < tickers.length; i += 4) {
+    const res = await Promise.all(
+      tickers.slice(i, i + 4).map((t) => fetchBrapiLote([t]).catch(() => ({})))
+    );
+    for (const r of res) Object.assign(out, r);
+  }
+  return out;
+}
+
+async function fetchBrapiLote(tickers) {
   const url = `${BRAPI_BASE}/${encodeURIComponent(tickers.join(','))}`;
   const token = process.env.BRAPI_TOKEN;
   const headers = { Accept: 'application/json' };
@@ -303,7 +325,10 @@ async function handleQuote(req, res) {
         ...antigos[t],
         cached: true,
         stale: true,
-        asOfMs: antigos[t].fetchedAtMs || null,
+        // Documento gravado antes de existir fetchedAtMs: a data vem do
+        // updatedAt (ou do dia). Sem ela o app mostrava preço velho sem dizer
+        // de quando era — "WEGE3 a R$ 51,27" com o fechamento a R$ 47,67.
+        asOfMs: asOfDoDocumento(antigos[t]),
       };
     } else {
       quotes[t] = { ticker: t, price: null, cached: false, error: 'unavailable' };
@@ -331,6 +356,19 @@ async function handleQuote(req, res) {
     // isto, "o valor não aparece" não tinha como ser diagnosticado de fora.
     erros: resumirErrosCotacao(erros),
   });
+}
+
+function asOfDoDocumento(d) {
+  if (!d) return null;
+  if (typeof d.fetchedAtMs === 'number') return d.fetchedAtMs;
+  const u = d.updatedAt;
+  if (u && typeof u.toMillis === 'function') return u.toMillis();
+  if (u && typeof u._seconds === 'number') return u._seconds * 1000;
+  if (typeof d.dateYmd === 'string') {
+    const t = Date.parse(d.dateYmd + 'T18:00:00-03:00');
+    if (isFinite(t)) return t;
+  }
+  return null;
 }
 
 /** { TICKER: ['yahoo_chart_429', 'google_sem_preco'] } — no máximo 50 tickers. */
@@ -3965,7 +4003,13 @@ module.exports.fontes = {
   diagnosticarErrosDeFonte,
   fetchProventos,
 };
-module.exports.cotacaoReserva = { parseGoogleFinance, fetchGoogleCotacoes, resumirErrosCotacao };
+module.exports.brapi = { fetchBrapi };
+module.exports.cotacaoReserva = {
+  parseGoogleFinance,
+  fetchGoogleCotacoes,
+  resumirErrosCotacao,
+  asOfDoDocumento,
+};
 module.exports.historico = { fetchHistorySource, indiceDeSgsMensal };
 module.exports.catalogo = {
   tickerDeCatalogo,

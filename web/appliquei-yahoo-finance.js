@@ -184,9 +184,10 @@ function aplicarCotacao(t, q) {
   cotacoesEstado.porTicker[t] = {
     price: q.price,
     changePct: typeof q.changePct === 'number' ? q.changePct : null,
-    asOfMs: q.asOfMs || Date.now(),
+    asOfMs: q.asOfMs || (q.stale ? null : Date.now()),
     stale: !!q.stale,
     nome: ativo.nome,
+    fonte: q.fonteCotacao || q.source || null,
   };
   if (typeof mpEstado !== 'undefined' && mpEstado) {
     mpEstado.cotacoes = mpEstado.cotacoes || {};
@@ -253,7 +254,52 @@ function motivoCotacaoTexto(tickers) {
   if (limitado) partes.push('a fonte de cotações limitou os pedidos agora');
   if (fora) partes.push('a fonte de cotações não respondeu');
   if (naoExiste && !limitado && !fora) partes.push('a fonte não tem preço para esse código');
-  return partes.length ? ' Motivo: ' + partes.join('; ') + '.' : '';
+  if (!partes.length) partes.push(todos.slice(0, 2).join(', '));
+  return ' Motivo: ' + partes.join('; ') + '.';
+}
+
+/**
+ * De quando é o preço que o formulário preencheu, e de onde veio. Preço
+ * atrasado diz isso com todas as letras: a pessoa vai gravar uma operação
+ * com ele.
+ */
+function textoCotacaoDoAtivo(ticker) {
+  var t = normalizarTickerCotacao(ticker);
+  var base = t.replace(/^([A-Z0-9]{4}\d{1,2})F$/, '$1');
+  var c = cotacoesEstado.porTicker[t] || cotacoesEstado.porTicker[base];
+  if (!c || !(c.price > 0)) return null;
+  var quando = '';
+  if (c.asOfMs) {
+    var d = new Date(c.asOfMs);
+    quando =
+      String(d.getDate()).padStart(2, '0') +
+      '/' +
+      String(d.getMonth() + 1).padStart(2, '0') +
+      ' às ' +
+      _horaCurta(c.asOfMs);
+  }
+  var fonte = { yahoo: 'Yahoo', google: 'Google Finance', brapi: 'BRAPI', coingecko: 'CoinGecko' }[
+    c.fonte
+  ];
+  if (c.stale) {
+    return {
+      alerta: true,
+      texto:
+        'Atenção: último preço conhecido' +
+        (quando ? ', de ' + quando : ', de data desconhecida') +
+        '. Não conseguimos a cotação de agora.' +
+        motivoCotacaoTexto([t]) +
+        ' Confira o preço antes de salvar.',
+    };
+  }
+  return {
+    alerta: false,
+    texto:
+      'Cotação' +
+      (quando ? ' de ' + quando : '') +
+      (fonte ? ' · ' + fonte : '') +
+      ' (você pode editar).',
+  };
 }
 
 /** Mesmo relógio do servidor: dia útil, 10:00–18:10 de Brasília. */
@@ -644,6 +690,19 @@ function _redesenharFormularioAtivo() {
       : null;
   if (sub && selSub && !selSub.dataset.touched) selSub.value = sub;
   if (typeof preencherPrecoAutomatico === 'function') preencherPrecoAutomatico();
+  atualizarDicaCotacao();
+}
+
+/** Texto sob o campo de ticker: de quando é o preço e, se velho, o aviso. */
+function atualizarDicaCotacao() {
+  var el = document.getElementById('compraTicker');
+  var dica = document.getElementById('dicaTicker');
+  var sel = document.getElementById('compraCategoria');
+  if (!el || !dica || (sel && sel.value !== 'renda_variavel')) return;
+  var info = textoCotacaoDoAtivo(el.value);
+  if (!info) return;
+  dica.innerText = info.texto;
+  if (dica.classList) dica.classList.toggle('dica-alerta', !!info.alerta);
 }
 
 /** Cota um código avulso (que a pessoa ainda não tem). */
@@ -654,6 +713,7 @@ async function _consultarCodigo(t) {
     var data = await _getMercado('op=quote&tickers=' + encodeURIComponent(t));
     if (!data) return;
     var q = data.quotes && data.quotes[t];
+    if (data.erros && data.erros[t]) cotacoesEstado.motivos[t] = data.erros[t];
     if (q && typeof q.price === 'number' && q.price > 0) {
       aplicarCotacao(t, q);
       var k = typeof classificarAtivoB3 === 'function' ? classificarAtivoB3(t, q.shortName) : null;
@@ -710,7 +770,9 @@ function consultarAtivoDigitado(texto) {
     if (t) {
       var base = t.replace(/F$/, '');
       var cotado = cotacoesEstado.porTicker[t] || cotacoesEstado.porTicker[base];
-      if (cotado || _consultaAtivo.feitas[t]) return;
+      // Preço guardado e atrasado (do aparelho ou devolvido como "stale"):
+      // pergunta de novo — é ele que ia parar no campo "Preço pago".
+      if ((cotado && !cotado.stale) || _consultaAtivo.feitas[t]) return;
       _consultaAtivo.feitas[t] = true;
       _consultarCodigo(t);
       return;

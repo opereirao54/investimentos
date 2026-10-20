@@ -1592,8 +1592,12 @@ function ajustarCamposPorCategoria() {
           : 'listaAtivosMercado'
       );
       if (lblTicker) lblTicker.innerText = 'Buscar Ativo (Ticker ou Nome)';
-      if (dicaTicker)
+      if (dicaTicker) {
         dicaTicker.innerText = 'Digite o ativo e preencheremos a cotação (você pode editar).';
+        dicaTicker.classList.remove('dica-alerta');
+        // De quando é o preço preenchido — e o aviso, se for um preço velho.
+        if (typeof atualizarDicaCotacao === 'function') atualizarDicaCotacao();
+      }
     }
   }
 
