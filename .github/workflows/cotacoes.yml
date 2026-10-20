@@ -13,7 +13,8 @@ name: Cotações
 #   gravou há até 75 min sem marcar "atrasado".
 #
 # PRECISA DE: FIREBASE_SERVICE_ACCOUNT_BASE64 e FIREBASE_PROJECT_ID (os mesmos
-# do job "Ingestão CVM"). BRAPI_TOKEN é opcional.
+# do job "Ingestão CVM") e COTACAO_PLANILHA_URL + COTACAO_PLANILHA_SEGREDO
+# (a planilha do GOOGLEFINANCE, docs/COTACOES-PLANILHA.md). BRAPI_TOKEN é opcional.
 
 on:
   schedule:
@@ -54,6 +55,8 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           BRAPI_TOKEN: ${{ secrets.BRAPI_TOKEN }}
+          COTACAO_PLANILHA_URL: ${{ secrets.COTACAO_PLANILHA_URL }}
+          COTACAO_PLANILHA_SEGREDO: ${{ secrets.COTACAO_PLANILHA_SEGREDO }}
           TICKERS: ${{ inputs.tickers }}
         run: |
           if [ -z "$FIREBASE_SERVICE_ACCOUNT_BASE64" ]; then

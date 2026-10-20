@@ -295,3 +295,93 @@ test('job de cotações: lista vem dos pedidos e dos cotados, e o resumo conta a
   assert.deepEqual(r.sem, ['VIVA3']);
   assert.deepEqual(r.motivos, { 'yahoo_quote: yahoo_quote_429': 1 });
 });
+
+// ------------------------------------------- planilha Google (GOOGLEFINANCE)
+
+test('planilha: resposta vira cotação; preço vazio fica de fora', () => {
+  const { mapPlanilhaCotacoes } = market.planilha;
+  const out = mapPlanilhaCotacoes({
+    cotacoes: {
+      WEGE3: { price: 47.67, previousClose: 47.67, changePct: 0, name: 'WEG SA' },
+      XPTO3: { price: '' },
+    },
+  });
+  assert.equal(out.WEGE3.price, 47.67);
+  assert.equal(out.WEGE3.change, 0);
+  assert.equal(out.WEGE3.shortName, 'WEG SA');
+  assert.equal(out.WEGE3.fonteCotacao, 'planilha');
+  assert.equal(out.XPTO3, undefined);
+});
+
+test('planilha: pedido com os códigos e o segredo; erro do script vira motivo', async () => {
+  const { fetchPlanilhaCotacoes } = market.planilha;
+  const antes = [process.env.COTACAO_PLANILHA_URL, process.env.COTACAO_PLANILHA_SEGREDO];
+  process.env.COTACAO_PLANILHA_URL = 'https://script.google.com/macros/s/ABC/exec';
+  process.env.COTACAO_PLANILHA_SEGREDO = 's3gr3do';
+  try {
+    const pedidos = [];
+    const ok = async (url) => {
+      pedidos.push(String(url));
+      return resp(200, { cotacoes: { ITUB4: { price: 39.84 } } });
+    };
+    const out = await fetchPlanilhaCotacoes(['ITUB4', 'WEGE3'], [], ok);
+    assert.equal(out.ITUB4.price, 39.84);
+    assert.match(pedidos[0], /\/exec\?tickers=ITUB4%2CWEGE3&chave=s3gr3do$/);
+
+    const erros = [];
+    await fetchPlanilhaCotacoes(['ITUB4'], erros, async () =>
+      resp(200, { error: 'nao_autorizado' })
+    );
+    assert.deepEqual(erros, [{ fonte: 'planilha', erro: 'planilha_nao_autorizado' }]);
+  } finally {
+    if (antes[0] === undefined) delete process.env.COTACAO_PLANILHA_URL;
+    else process.env.COTACAO_PLANILHA_URL = antes[0];
+    if (antes[1] === undefined) delete process.env.COTACAO_PLANILHA_SEGREDO;
+    else process.env.COTACAO_PLANILHA_SEGREDO = antes[1];
+  }
+});
+
+test('com a planilha configurada, ela vem antes do Yahoo; sem ela, nada muda', async () => {
+  const antesUrl = process.env.COTACAO_PLANILHA_URL;
+  const antesBrapi = process.env.BRAPI_TOKEN;
+  delete process.env.BRAPI_TOKEN;
+  process.env.COTACAO_PLANILHA_URL = 'https://script.google.com/macros/s/ABC/exec';
+  try {
+    await comFetch(
+      (url) =>
+        /script\.google\.com/.test(url)
+          ? resp(200, { cotacoes: { WEGE3: { price: 47.67 }, VIVA3: { price: 25.1 } } })
+          : resp(429, {}),
+      async (pedidos) => {
+        const out = await fetchCotacoesMercado(['WEGE3', 'VIVA3'], [], 5000);
+        assert.equal(out.WEGE3.price, 47.67);
+        assert.equal(out.VIVA3.fonteCotacao, 'planilha');
+        assert.ok(!pedidos.some((u) => /yahoo/.test(u)), 'achou tudo: não foi ao Yahoo');
+      }
+    );
+    delete process.env.COTACAO_PLANILHA_URL;
+    await comFetch(
+      () => resp(429, {}),
+      async (pedidos) => {
+        await fetchCotacoesMercado(['WEGE3'], [], 2000);
+        assert.ok(!pedidos.some((u) => /script\.google/.test(u)));
+      }
+    );
+  } finally {
+    if (antesUrl === undefined) delete process.env.COTACAO_PLANILHA_URL;
+    else process.env.COTACAO_PLANILHA_URL = antesUrl;
+    if (antesBrapi !== undefined) process.env.BRAPI_TOKEN = antesBrapi;
+  }
+});
+
+test('o script da planilha valida o segredo e usa GOOGLEFINANCE na BVMF', () => {
+  const fs = require('node:fs');
+  const gs = fs.readFileSync(
+    path.resolve(__dirname, '..', 'scripts', 'planilha-cotacoes', 'Codigo.gs'),
+    'utf8'
+  );
+  assert.match(gs, /p\.chave !== SEGREDO/);
+  assert.match(gs, /SEGREDO === 'TROQUE-ESTE-SEGREDO'/, 'segredo de exemplo não vale');
+  assert.match(gs, /GOOGLEFINANCE\(/);
+  assert.match(gs, /"BVMF:"/);
+});

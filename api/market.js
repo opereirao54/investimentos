@@ -2329,6 +2329,83 @@ async function fetchGoogleCotacoes(tickers, erros, orcamentoMs, fetchImpl = fetc
   return out;
 }
 
+// ---------- Planilha Google com GOOGLEFINANCE ----------
+// O Yahoo responde 429 a qualquer servidor de nuvem (Vercel e GitHub, os
+// dois medidos), e a página do Google Finance chega sem o preço. A função
+// GOOGLEFINANCE do Google Sheets não tem esse bloqueio: um app da web do
+// Apps Script (scripts/planilha-cotacoes/Codigo.gs) recebe a lista de
+// códigos e devolve os preços. Instalação: docs/COTACOES-PLANILHA.md.
+//   COTACAO_PLANILHA_URL      https://script.google.com/macros/s/…/exec
+//   COTACAO_PLANILHA_SEGREDO  o mesmo SEGREDO escrito no script
+const PLANILHA_LOTE = 100;
+const PLANILHA_TIMEOUT_MS = 12000;
+
+/** Resposta do app da planilha → cotações no formato do app. Pura (testável). */
+function mapPlanilhaCotacoes(json) {
+  const out = {};
+  const c = (json && json.cotacoes) || {};
+  for (const t of Object.keys(c)) {
+    const q = c[t] || {};
+    const preco = fundNum(q.price);
+    if (preco === null || !(preco > 0)) continue;
+    const anterior = fundNum(q.previousClose);
+    const ticker = String(t).toUpperCase();
+    out[ticker] = {
+      ticker,
+      price: preco,
+      previousClose: anterior,
+      change: anterior !== null ? preco - anterior : null,
+      changePct: fundNum(q.changePct),
+      currency: 'BRL',
+      shortName: q.name || null,
+      marketTime: null,
+      marketCap: null,
+      volume: null,
+      fonteCotacao: 'planilha',
+    };
+  }
+  return out;
+}
+
+async function fetchPlanilhaCotacoes(
+  tickers,
+  erros,
+  fetchImpl = fetch,
+  timeoutMs = PLANILHA_TIMEOUT_MS
+) {
+  const base = process.env.COTACAO_PLANILHA_URL;
+  const out = {};
+  if (!base || !tickers.length) return out;
+  for (let i = 0; i < tickers.length; i += PLANILHA_LOTE) {
+    const lote = tickers.slice(i, i + PLANILHA_LOTE);
+    const url =
+      `${base}${base.includes('?') ? '&' : '?'}tickers=${encodeURIComponent(lote.join(','))}` +
+      `&chave=${encodeURIComponent(process.env.COTACAO_PLANILHA_SEGREDO || '')}`;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      // O Apps Script responde com um redirecionamento para
+      // googleusercontent.com: o fetch o segue sozinho.
+      const res = await fetchImpl(url, { signal: ctrl.signal, redirect: 'follow' });
+      if (!res.ok) throw new Error(`planilha_${res.status}`);
+      const json = await res.json().catch(() => {
+        throw new Error('planilha_resposta_nao_json');
+      });
+      if (json && json.error) throw new Error(`planilha_${json.error}`);
+      Object.assign(out, mapPlanilhaCotacoes(json));
+    } catch (e) {
+      if (erros)
+        erros.push({
+          fonte: 'planilha',
+          erro: /abort/i.test(e.message) ? 'planilha_timeout' : e.message,
+        });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  return out;
+}
+
 // ---------- Yahoo em lote: v7/finance/quote com cookie + crumb ----------
 // Um pedido traz até 50 ativos. O v8/chart é um pedido POR ativo, e é a
 // quantidade de pedidos por IP que faz o Yahoo responder 429. Com o lote, a
@@ -2482,8 +2559,19 @@ async function fetchCotacoesMercado(tickers, erros, orcamentoMs) {
       if (erros) erros.push({ fonte: 'brapi_cotacao', erro: e.message, degradou: true });
     }
   }
+  // Um orçamento só para todas as fontes: o que a planilha gastar sai do
+  // tempo do Yahoo e do Google (a function tem 15 s no total).
   const inicio = Date.now();
   const orcamento = orcamentoMs != null ? orcamentoMs : YAHOO_COTACAO_ORCAMENTO_MS;
+  if (faltam.length && process.env.COTACAO_PLANILHA_URL) {
+    // A planilha do GOOGLEFINANCE: quem busca é o Google, sem o 429 que o
+    // Yahoo dá a servidor de nuvem (medido no job: 35/35 recusados).
+    // No request (orçamento de 9 s, function de 15 s) a planilha não pode
+    // ficar com tudo; no job (orçamento de 120 s) leva os 12 s inteiros.
+    const prazo = Math.min(PLANILHA_TIMEOUT_MS, orcamento);
+    Object.assign(daB3, await fetchPlanilhaCotacoes(faltam, erros, fetch, prazo));
+    faltam = faltam.filter((t) => !(daB3[t] && typeof daB3[t].price === 'number'));
+  }
   if (faltam.length) {
     // Lote primeiro: um pedido para até 50 ativos.
     Object.assign(daB3, await fetchYahooCotacoesLote(faltam, erros));
@@ -2491,7 +2579,14 @@ async function fetchCotacoesMercado(tickers, erros, orcamentoMs) {
   }
   if (faltam.length) {
     // O Yahoo fica com até dois terços do tempo; o resto é da reserva.
-    Object.assign(daB3, await fetchYahooCotacoes(faltam, erros, Math.round(orcamento * 0.6)));
+    Object.assign(
+      daB3,
+      await fetchYahooCotacoes(
+        faltam,
+        erros,
+        Math.max(0, Math.round(orcamento * 0.6) - (Date.now() - inicio))
+      )
+    );
     faltam = faltam.filter((t) => !(daB3[t] && typeof daB3[t].price === 'number'));
   }
   if (faltam.length) {
@@ -4118,6 +4213,7 @@ module.exports.fontes = {
   todayYmdBRT,
 };
 module.exports.brapi = { fetchBrapi };
+module.exports.planilha = { mapPlanilhaCotacoes, fetchPlanilhaCotacoes };
 module.exports.yahooLote = { mapYahooQuoteV7, fetchYahooCotacoesLote, cotacaoAceitavel };
 module.exports.cotacaoReserva = {
   parseGoogleFinance,
