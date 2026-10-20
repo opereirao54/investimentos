@@ -114,3 +114,29 @@ test('parcela futura com R$ 0 não baixa nem pula: só avisa', () => {
   assert.equal(parcelas().length, antes);
   assert.equal(sonho.aportes.length, 0);
 });
+
+test('botão "Pular mês": aparece na parcela do mês e na atrasada, não na futura nem na paga', () => {
+  const { s, sonho, parcelas } = cenario();
+  const atual = parcelas().find((t) => doMes(t, H));
+  const prox = new Date(H.getFullYear(), H.getMonth() + 1, 15);
+  const futura = parcelas().find((t) => doMes(t, prox));
+  assert.equal(s.controlePodePularSonho(atual), true);
+  assert.equal(s.controlePodePularSonho(futura), false, 'mês futuro: ainda não');
+  const passado = new Date(H.getFullYear(), H.getMonth() - 1, 15);
+  futura.mes = passado.getMonth();
+  futura.ano = passado.getFullYear();
+  assert.equal(s.controlePodePularSonho(futura), true, 'atrasada pode');
+  assert.equal(s.controlePodePularSonho({ ...atual, pago: true }), false, 'paga não');
+  sonho.planoVinculado = false;
+  assert.equal(s.controlePodePularSonho(atual), false, 'sonho sem plano no Controle não');
+});
+
+test('clicar em "Pular mês" abre o pular daquela parcela, sem passar pelo R$ 0', () => {
+  const { s, sonho, parcelas } = cenario();
+  const atual = parcelas().find((t) => doMes(t, H));
+  const chamadas = [];
+  s.pularMesSonho = (id, txId) => chamadas.push([id, txId]);
+  s.pularParcelaSonho(atual.id);
+  assert.deepEqual(chamadas, [[sonho.id, atual.id]]);
+  assert.equal(atual.pago, false);
+});
