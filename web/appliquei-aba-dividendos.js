@@ -380,6 +380,8 @@ async function prepararDividendos() {
     if (typeof atualizarChipDividendosPeriodo === 'function') atualizarChipDividendosPeriodo();
     renderizarProjecaoProventos();
     if (typeof mobPatDesenharProventos === 'function') mobPatDesenharProventos();
+    // Proventos entram na rentabilidade da carteira.
+    if (typeof renderizarDesempenho === 'function') renderizarDesempenho();
   } catch (_) {}
 }
 
