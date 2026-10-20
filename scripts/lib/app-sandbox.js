@@ -32,6 +32,7 @@ const ROOT = path.resolve(__dirname, '..', '..');
 // Ordem canônica (subconjunto do HTML). Cada teste carrega só o que precisa.
 const ORDEM_BASE = [
   'web/appliquei-utils.js',
+  'web/appliquei-catalogo-b3.js',
   'web/appliquei-yahoo-finance.js',
   'web/appliquei-app.js',
   'web/appliquei-contas.js',

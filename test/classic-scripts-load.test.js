@@ -25,6 +25,7 @@ const ROOT = path.resolve(__dirname, '..');
 // porque declaram as state vars (transacoes, cartoes, historicoCompras).
 const LOAD_ORDER = [
   'web/appliquei-utils.js',
+  'web/appliquei-catalogo-b3.js',
   'web/appliquei-yahoo-finance.js',
   'web/appliquei-app.js',
   'web/appliquei-contas.js',

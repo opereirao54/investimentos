@@ -271,6 +271,10 @@ function abrirDrawerOperacao(opcoes) {
   // Garante estado inicial limpo do form
   const elData = document.getElementById('compraData');
   if (elData && !elData.value) elData.value = new Date().toISOString().slice(0, 10);
+  // Preço preenchido pelo app numa abertura anterior não vale nesta (na
+  // edição, o preço que chega depois é o pago e não pode ser trocado).
+  const elPrecoOp = document.getElementById('compraPreco');
+  if (elPrecoOp && elPrecoOp.dataset) elPrecoOp.dataset.precoAuto = '';
   // Atualiza a lista de contas pagadoras (com saldo) toda vez que o drawer abre.
   if (typeof popularOrigemRecurso === 'function') popularOrigemRecurso();
   drawer.classList.add('aberto');
@@ -1102,12 +1106,24 @@ salvarTransacoes();
 function preencherPrecoAutomatico() {
   const elPreco = document.getElementById('compraPreco');
   if (!elPreco) return;
-  const jaPreenchido = (parseBRL(elPreco.value) || 0) > 0;
+  // O preço que o app preencheu pode ser trocado quando o código muda; o que
+  // a pessoa digitou, não. Antes o preço do ativo anterior ficava no campo.
+  const automatico = !!elPreco.value && elPreco.value === elPreco.dataset.precoAuto;
+  const jaPreenchido = (parseBRL(elPreco.value) || 0) > 0 && !automatico;
   if (jaPreenchido) return;
-  const inputTicker = document.getElementById('compraTicker').value.toUpperCase();
-  const ativoEncontrado = mockAtivosMercado.find((a) => a.ticker === inputTicker);
-  if (ativoEncontrado) {
+  const inputTicker = document.getElementById('compraTicker').value.toUpperCase().trim();
+  // Fracionário (PETR4F) tem o preço do lote padrão.
+  const base = inputTicker.replace(/^([A-Z0-9]{4}\d{1,2})F$/, '$1');
+  const ativoEncontrado =
+    mockAtivosMercado.find((a) => a.ticker === inputTicker) ||
+    mockAtivosMercado.find((a) => a.ticker === base);
+  if (ativoEncontrado && ativoEncontrado.preco_atual > 0) {
     setValorBRLInput(elPreco, ativoEncontrado.preco_atual);
+    elPreco.dataset.precoAuto = elPreco.value;
+    calcularTotalCompra();
+  } else if (automatico) {
+    elPreco.value = '';
+    elPreco.dataset.precoAuto = '';
     calcularTotalCompra();
   }
 }
@@ -1426,15 +1442,15 @@ function mesmaInstituicao(a, b) {
 
 function categoriaInferidaDoMercado(ticker) {
   const ativo = mockAtivosMercado.find((a) => a.ticker === (ticker || '').toUpperCase());
-  if (!ativo) return null;
-  return ativo.tipo === 'Renda Fixa' ? 'renda_fixa' : 'renda_variavel';
+  if (ativo) return ativo.tipo === 'Renda Fixa' ? 'renda_fixa' : 'renda_variavel';
+  // Fora da lista fixa: o catálogo da B3 só tem renda variável.
+  return typeof infoAtivoB3 === 'function' && infoAtivoB3(ticker) ? 'renda_variavel' : null;
 }
 
-// Detecta a subcategoria de Renda Variável a partir do ticker.
-// - .SA / 4 letras + 1-2 dígitos = ações ou FII (FIIs terminam em 11)
-// - 4 letras + 34/35 = BDR
-// - termina em 11 e é ETF conhecido (BOVA11, IVVB11...) -> ETF
-// - prefixo cripto (BTC, ETH, SOL, ADA, etc. ou termina em -USD) -> cripto
+// Detecta a subcategoria de Renda Variável a partir do ticker. A regra mora
+// em classificarAtivoB3 (web/appliquei-catalogo-b3.js), a mesma do servidor:
+// BDR por 31–39, ETF por código ou nome, e no sufixo 11 o nome separa FII de
+// unit (KLBN11 é ação). Prefixo cripto (BTC, ETH… ou -USD) → cripto.
 function subcategoriaInferidaDoTicker(ticker) {
   const t = (ticker || '').toUpperCase().trim();
   if (!t) return null;
@@ -1444,25 +1460,17 @@ function subcategoriaInferidaDoTicker(ticker) {
     /^(BTC|ETH|SOL|ADA|DOT|XRP|DOGE|BNB|MATIC|AVAX|LTC|LINK|UNI|USDT|USDC)/.test(t)
   )
     return 'cripto';
-  // Mock conhecido
-  const ativoMock = mockAtivosMercado.find((a) => a.ticker === t);
-  if (ativoMock) {
-    if (ativoMock.tipo === 'FII') return 'fiis';
-    if (ativoMock.tipo === 'BDR') return 'bdrs';
-    if (ativoMock.tipo === 'ETF') return 'etfs';
-    if (ativoMock.tipo === 'Ação') return 'acoes';
-  }
-  // BDR: 4 letras + 32, 33, 34, 35
+  // Catálogo (lista fixa + B3): o tipo considera o nome da fonte, que é o
+  // que separa unit (KLBN11, TAEE11) de FII. Sem nome, a regra do código.
+  const info = typeof infoAtivoB3 === 'function' ? infoAtivoB3(t) : null;
+  if (info && info.k === 'Renda Fixa') return null;
+  const tipo =
+    (info && info.k) || (typeof classificarAtivoB3 === 'function' ? classificarAtivoB3(t) : null);
+  if (typeof subcategoriaDoTipoB3 === 'function') return tipo ? subcategoriaDoTipoB3(tipo) : null;
+  // Sem o catálogo carregado (sandboxes de teste antigas): a regra do código.
   if (/^[A-Z]{4}3[2-5]$/.test(t)) return 'bdrs';
-  // FIIs e alguns ETFs terminam em 11. ETFs comuns: BOVA, IVVB, SMAL, HASH, IMAB, FIND, SPXI, DIVO
-  if (/11$/.test(t)) {
-    if (/^(BOVA|IVVB|SMAL|HASH|IMAB|FIND|SPXI|DIVO|XINA|GOLD|FIXA|PIBB|ECOO|ESGB)/.test(t))
-      return 'etfs';
-    return 'fiis';
-  }
-  // Ações brasileiras: 4 letras + 3 ou 4
-  if (/^[A-Z]{4}[34]$/.test(t)) return 'acoes';
-  return null;
+  if (/11$/.test(t)) return /^(BOVA|IVVB|SMAL|HASH)/.test(t) ? 'etfs' : 'fiis';
+  return /^[A-Z]{4}[34]$/.test(t) ? 'acoes' : null;
 }
 
 function ajustarCamposPorCategoria() {
@@ -1557,7 +1565,13 @@ function ajustarCamposPorCategoria() {
   // Ticker: ações/FIIs/etc usam datalist; RF / Reserva / Previdência são texto livre
   if (inputTicker) {
     if (semQtd) {
-      inputTicker.removeAttribute('list');
+      if (ehRF) {
+        // Títulos do Tesouro à venda (op=rendafixa): escolher um preenche
+        // vencimento e taxa. CDB e afins continuam em texto livre.
+        inputTicker.setAttribute('list', 'listaTitulosTesouro');
+        if (typeof carregarTitulosTesouro === 'function') carregarTitulosTesouro();
+        if (typeof preencherTituloTesouro === 'function') preencherTituloTesouro(inputTicker.value);
+      } else inputTicker.removeAttribute('list');
       if (lblTicker)
         lblTicker.innerText = ehPrev
           ? 'Nome do plano'
@@ -1582,6 +1596,11 @@ function ajustarCamposPorCategoria() {
         dicaTicker.innerText = 'Digite o ativo e preencheremos a cotação (você pode editar).';
     }
   }
+
+  // Código fora do catálogo do aparelho: sugestões na hora e, depois de uma
+  // pausa, a consulta ao servidor (nome, tipo e preço).
+  if (ehRV && inputTicker && typeof consultarAtivoDigitado === 'function')
+    consultarAtivoDigitado(inputTicker.value);
 
   // Auto-detectar subcategoria de RV
   if (ehRV) {
@@ -1612,9 +1631,15 @@ function atualizarIdentidadeAtivo(ticker, semTickerListado) {
 
   // Renda Fixa, Reserva e Previdência têm nome livre, não ticker: não há
   // emissor a identificar e o rótulo já diz o que o campo espera.
-  const conhecido = semTickerListado
-    ? null
-    : mockAtivosMercado.find((a) => a.ticker === tk) || null;
+  const conhecido =
+    semTickerListado || typeof infoAtivoB3 !== 'function'
+      ? semTickerListado
+        ? null
+        : (function () {
+            const m = mockAtivosMercado.find((a) => a.ticker === tk);
+            return m ? { t: tk, n: m.nome, k: m.tipo } : null;
+          })()
+      : infoAtivoB3(tk);
   const reconhecivel =
     !semTickerListado && (conhecido || (tk.length >= 4 && subcategoriaInferidaDoTicker(tk)));
 
@@ -1624,12 +1649,22 @@ function atualizarIdentidadeAtivo(ticker, semTickerListado) {
     alvo.dataset.ticker = '';
     return;
   }
-  if (alvo.dataset.ticker === tk) return;
-  alvo.dataset.ticker = tk;
+  // O que se sabe do código muda sem o texto mudar (a consulta ao servidor
+  // volta depois): a chave do redesenho inclui o estado.
+  const estado = typeof estadoConsultaAtivo === 'function' ? estadoConsultaAtivo(tk) : '';
+  const nome = conhecido && conhecido.n ? conhecido.n : '';
+  const tipo = conhecido && conhecido.k ? conhecido.k : '';
+  const chave = tk + '|' + estado + '|' + nome + '|' + tipo;
+  if (alvo.dataset.ticker === chave) return;
+  alvo.dataset.ticker = chave;
   alvo.hidden = false;
 
-  const nome = conhecido && conhecido.nome ? conhecido.nome : '';
-  const tipo = conhecido && conhecido.tipo ? conhecido.tipo : '';
+  const aviso =
+    estado === 'procurando'
+      ? 'Procurando na B3…'
+      : estado === 'nao_encontrado'
+        ? 'Não encontramos esse código na B3 — confira'
+        : 'Ativo não catalogado — confira o código';
   alvo.innerHTML =
     logoAtivoHTML(tk, { classe: 'ativo-marca op-identidade-marca', tamanho: 34 }) +
     '<div class="op-identidade-txt">' +
@@ -1638,7 +1673,11 @@ function atualizarIdentidadeAtivo(ticker, semTickerListado) {
     '</span>' +
     (nome
       ? '<span class="op-identidade-nome">' + escaparHtmlAtivo(nome) + '</span>'
-      : '<span class="op-identidade-nome">Ativo não catalogado — confira o código</span>') +
+      : '<span class="op-identidade-nome' +
+        (estado === 'nao_encontrado' ? ' op-identidade-alerta' : '') +
+        '">' +
+        aviso +
+        '</span>') +
     '</div>' +
     (tipo ? '<span class="op-identidade-tag">' + escaparHtmlAtivo(tipo) + '</span>' : '');
 }

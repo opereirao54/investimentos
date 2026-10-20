@@ -6469,6 +6469,7 @@
             font-size: 11px; color: var(--cor-texto-secundario);
             overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
+        .op-identidade-nome.op-identidade-alerta { color: var(--cor-erro); }
         .op-identidade-tag {
             flex-shrink: 0; font-size: 9.5px; font-weight: 800; text-transform: uppercase;
             letter-spacing: 0.4px; padding: 3px 7px; border-radius: 6px;
@@ -13556,6 +13557,7 @@
     </aside>
 
     <datalist id="listaAtivosMercado"></datalist>
+    <datalist id="listaTitulosTesouro"></datalist>
     <datalist id="listaAtivosCarteira"></datalist>
     <datalist id="listaDescricoes"></datalist>
     <datalist id="listaCorretoras"></datalist>
@@ -16611,7 +16613,8 @@
     <script src="/web/appliquei-utils.js?v=storage-proto"></script>
     <!-- Yahoo Finance proxy + base de dados de ativos. Sem deps em
          state da app — pode carregar antes ou depois de app.js. -->
-    <script src="/web/appliquei-yahoo-finance.js?v=onda3b"></script>
+    <script src="/web/appliquei-catalogo-b3.js?v=catalogo1"></script>
+    <script src="/web/appliquei-yahoo-finance.js?v=catalogo1"></script>
     <script src="/web/appliquei-app.js?v=fase5-emoji"></script>
     <script src="/web/appliquei-combobox.js?v=combo-rolagem"></script>
     <!-- Contas / Instituições financeiras (entidade central). Carrega logo

@@ -88,48 +88,6 @@ var mockAtivosMercado = [
 ];
 
 // ============================================================
-// === YAHOO FINANCE — MULTI-PROXY COM FALLBACK AUTOMÁTICO ===
-// ============================================================
-
-// Utilitário para timeout no fetch
-async function fetchTimeout(url, ms) {
-  const controller = new AbortController();
-  const promise = fetch(url, { signal: controller.signal });
-  const timeout = setTimeout(() => controller.abort(), ms);
-  return promise.finally(() => clearTimeout(timeout));
-}
-
-// Lista de proxies CORS gratuitos em ordem de preferência.
-// Todos retornam o JSON do Yahoo diretamente (sem wrapper).
-// Só os dividendos ainda passam por aqui; as cotações vêm do servidor.
-var PROXIES_CORS = [
-  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  (url) => `https://thingproxy.freeboard.io/fetch/${url}`,
-];
-
-// Tenta buscar a URL alvo passando por cada proxy em sequência.
-// Retorna o JSON parsed assim que um proxy funcionar, ou null se todos falharem.
-async function fetchComFallback(urlAlvo, timeoutMs = 10000) {
-  for (const construirProxy of PROXIES_CORS) {
-    try {
-      const urlProxy = construirProxy(urlAlvo);
-      const res = await fetchTimeout(urlProxy, timeoutMs);
-      if (!res.ok) {
-        console.warn(`Proxy retornou status ${res.status} para ${urlAlvo}. Tentando próximo...`);
-        continue;
-      }
-      const json = await res.json();
-      return json; // sucesso — retorna direto sem wrapper
-    } catch (err) {
-      console.warn(`Proxy falhou (${err.message}). Tentando próximo...`);
-      continue;
-    }
-  }
-  return null; // todos os proxies falharam
-}
-
-// ============================================================
 // === COTAÇÕES — UMA FONTE SÓ: o servidor (/api/market?op=quote) ===
 // ============================================================
 //
@@ -186,7 +144,10 @@ function tickersParaCotar() {
   return Array.from(s);
 }
 
-function tipoDoTickerCotado(t) {
+function tipoDoTickerCotado(t, nome) {
+  // Com o nome da fonte, "KLABIN UNT" vira ação, não FII.
+  var k = typeof classificarAtivoB3 === 'function' ? classificarAtivoB3(t, nome) : null;
+  if (k) return k;
   var sub =
     typeof subcategoriaInferidaDoTicker === 'function' ? subcategoriaInferidaDoTicker(t) : null;
   return { cripto: 'Cripto', fiis: 'FII', bdrs: 'BDR', etfs: 'ETF', acoes: 'Ação' }[sub] || 'Ação';
@@ -208,7 +169,7 @@ function aplicarCotacao(t, q) {
     ativo = {
       ticker: t,
       nome: q.shortName || q.nome || t,
-      tipo: tipoDoTickerCotado(t),
+      tipo: tipoDoTickerCotado(t, q.shortName || q.nome),
       dinamico: true,
     };
     mockAtivosMercado.push(ativo);
@@ -439,6 +400,7 @@ function iniciarAtualizacaoAutomaticaCotacoes() {
         if (u)
           setTimeout(function () {
             atualizarCotacoes(true);
+            carregarCatalogoAtivos(false);
             // Os proventos não dependem da cotação: projeção e "Dividendos do
             // mês" saem da quantidade de cotas.
             if (typeof prepararDividendos === 'function') prepararDividendos();
@@ -450,9 +412,346 @@ function iniciarAtualizacaoAutomaticaCotacoes() {
   })();
 }
 
+// ============================================================
+// === CATÁLOGO DA B3 — achar qualquer ativo pelo código ou pelo nome ===
+// ============================================================
+//
+// A busca do formulário só conhecia mockAtivosMercado (~45 ativos). O
+// catálogo vem do servidor (op=catalogo: CVM, setores, cotações e BRAPI),
+// fica no aparelho por um dia e é completado na hora:
+//   - código digitado que o app não conhece → op=quote: se a fonte cota,
+//     entra com nome, tipo e preço; se não, "não encontramos na B3";
+//   - nome digitado ("klabin") sem resultado bom aqui → op=busca.
+// Como as cotações, fica fora do prefixo appliquei_: não é dado da pessoa.
+var CATALOGO_CACHE_KEY = 'apq-catalogo-v1';
+var CATALOGO_TTL_MS = 24 * 60 * 60 * 1000;
+var CATALOGO_SUGESTOES = 12;
+
+var catalogoB3 = { porTicker: {}, atualizadoMs: 0 };
+var _promessaCatalogo = null;
+var _consultaAtivo = { timer: null, feitas: {}, naoEncontrados: {}, procurando: '' };
+
+function _catalogoIncluirLocal(t, n, k) {
+  t = normalizarTickerCotacao(t);
+  if (!t || !k) return;
+  var atual = catalogoB3.porTicker[t];
+  catalogoB3.porTicker[t] = { t: t, n: (atual && atual.n) || n || '', k: k };
+}
+
+function restaurarCatalogoSalvo() {
+  try {
+    var salvo = JSON.parse(localStorage.getItem(CATALOGO_CACHE_KEY) || 'null');
+    if (!salvo || !Array.isArray(salvo.ativos)) return;
+    salvo.ativos.forEach(function (a) {
+      _catalogoIncluirLocal(a[0], a[1], a[2]);
+    });
+    catalogoB3.atualizadoMs = Number(salvo.atualizadoMs) || 0;
+  } catch (_) {}
+}
+
+function salvarCatalogoNoAparelho() {
+  try {
+    localStorage.setItem(
+      CATALOGO_CACHE_KEY,
+      JSON.stringify({
+        atualizadoMs: catalogoB3.atualizadoMs,
+        ativos: Object.keys(catalogoB3.porTicker).map(function (t) {
+          var a = catalogoB3.porTicker[t];
+          return [a.t, a.n, a.k];
+        }),
+      })
+    );
+  } catch (_) {}
+}
+
+async function _getMercado(op) {
+  var fb = window.AppliqueiFirebase;
+  var u = fb && fb.auth && fb.auth.currentUser;
+  if (!u) return null;
+  var token = await u.getIdToken();
+  var res = await fetch('/api/market?' + op, { headers: { Authorization: 'Bearer ' + token } });
+  var data = await res.json().catch(function () {
+    return {};
+  });
+  if (!res.ok) throw new Error((data && data.error) || 'http_' + res.status);
+  return data;
+}
+
+/** Baixa o catálogo (uma vez por dia). */
+function carregarCatalogoAtivos(forcar) {
+  if (_promessaCatalogo) return _promessaCatalogo;
+  if (!forcar && Date.now() - catalogoB3.atualizadoMs < CATALOGO_TTL_MS)
+    return Promise.resolve(false);
+  _promessaCatalogo = (async function () {
+    try {
+      var data = await _getMercado('op=catalogo');
+      if (!data || !Array.isArray(data.ativos)) return false;
+      data.ativos.forEach(function (a) {
+        _catalogoIncluirLocal(a[0], a[1], a[2]);
+      });
+      catalogoB3.atualizadoMs = Date.now();
+      salvarCatalogoNoAparelho();
+      return true;
+    } catch (err) {
+      console.warn('[catálogo] falha ao baixar:', err && err.message);
+      return false;
+    } finally {
+      _promessaCatalogo = null;
+    }
+  })();
+  return _promessaCatalogo;
+}
+
+/** O que se sabe do código: {t, n, k} (k = 'Ação', 'FII', 'ETF', 'BDR', 'Cripto'). */
+function infoAtivoB3(ticker) {
+  var t = normalizarTickerCotacao(ticker);
+  if (!t) return null;
+  var base = t.replace(/^([A-Z0-9]{4}\d{1,2})F$/, '$1');
+  var m = mockAtivosMercado.find(function (a) {
+    return a.ticker === t || a.ticker === base;
+  });
+  var c = catalogoB3.porTicker[t] || catalogoB3.porTicker[base];
+  if (!m && !c) return null;
+  var nome = (m && !m.dinamico && m.nome) || (c && c.n) || (m && m.nome) || '';
+  // O tipo da lista fixa é curado; o resto é reclassificado com o nome, que
+  // é o que separa unit (KLBN11) de FII.
+  var tipo =
+    m && !m.dinamico && m.tipo
+      ? m.tipo
+      : (typeof classificarAtivoB3 === 'function' && classificarAtivoB3(t, nome, c && c.k)) ||
+        (c && c.k) ||
+        (m && m.tipo) ||
+        null;
+  return { t: t, n: nome, k: tipo };
+}
+
+/** Lista para a busca: lista fixa (sem renda fixa) + catálogo. */
+function _listaBuscaAtivos() {
+  var vistos = {};
+  var out = [];
+  mockAtivosMercado.forEach(function (a) {
+    if (a.tipo === 'Renda Fixa' || vistos[a.ticker]) return;
+    vistos[a.ticker] = 1;
+    out.push({ t: a.ticker, n: a.nome, k: a.tipo });
+  });
+  Object.keys(catalogoB3.porTicker).forEach(function (t) {
+    if (vistos[t]) return;
+    vistos[t] = 1;
+    out.push(catalogoB3.porTicker[t]);
+  });
+  return out;
+}
+
+function buscarAtivosLocal(q, limite) {
+  if (typeof buscarNoCatalogoB3 !== 'function') return [];
+  return buscarNoCatalogoB3(_listaBuscaAtivos(), q, limite || CATALOGO_SUGESTOES);
+}
+
+/** Sugestões do campo de ticker: as melhores para o que está digitado. */
+function atualizarSugestoesAtivos(texto) {
+  var datalist = document.getElementById('listaAtivosMercado');
+  if (!datalist || typeof datalist.appendChild !== 'function') return;
+  var q = String(texto || '').trim();
+  if (q.length < 2) {
+    inicializarDatalistAtivos();
+    return;
+  }
+  var achados = buscarAtivosLocal(q);
+  datalist.innerHTML = '';
+  achados.forEach(function (a) {
+    var option = document.createElement('option');
+    option.value = a.t;
+    var info = infoAtivoB3(a.t) || a;
+    var cot = cotacoesEstado.porTicker[a.t];
+    option.text =
+      (info.n || a.t) +
+      (info.k ? ' (' + info.k + ')' : '') +
+      (cot && cot.price ? ' - ' + formatarMoeda(cot.price) : '');
+    datalist.appendChild(option);
+  });
+}
+
+function _tickerDigitado(texto) {
+  var t = normalizarTickerCotacao(texto);
+  return /^[A-Z0-9]{4}\d{1,2}F?$/.test(t) ? t : '';
+}
+
+/** Estado da consulta de um código: 'procurando', 'nao_encontrado' ou ''. */
+function estadoConsultaAtivo(ticker) {
+  var t = normalizarTickerCotacao(ticker);
+  if (_consultaAtivo.naoEncontrados[t]) return 'nao_encontrado';
+  if (_consultaAtivo.procurando === t) return 'procurando';
+  return '';
+}
+
+function _redesenharFormularioAtivo() {
+  var el = document.getElementById('compraTicker');
+  if (!el) return;
+  if (typeof atualizarIdentidadeAtivo === 'function') {
+    var sel = document.getElementById('compraCategoria');
+    var cat = sel ? sel.value : 'renda_variavel';
+    atualizarIdentidadeAtivo(el.value, cat !== 'renda_variavel');
+  }
+  var selSub = document.getElementById('compraSubcategoria');
+  var sub =
+    typeof subcategoriaInferidaDoTicker === 'function'
+      ? subcategoriaInferidaDoTicker(el.value)
+      : null;
+  if (sub && selSub && !selSub.dataset.touched) selSub.value = sub;
+  if (typeof preencherPrecoAutomatico === 'function') preencherPrecoAutomatico();
+}
+
+/** Cota um código avulso (que a pessoa ainda não tem). */
+async function _consultarCodigo(t) {
+  _consultaAtivo.procurando = t;
+  _redesenharFormularioAtivo();
+  try {
+    var data = await _getMercado('op=quote&tickers=' + encodeURIComponent(t));
+    if (!data) return;
+    var q = data.quotes && data.quotes[t];
+    if (q && typeof q.price === 'number' && q.price > 0) {
+      aplicarCotacao(t, q);
+      var k = typeof classificarAtivoB3 === 'function' ? classificarAtivoB3(t, q.shortName) : null;
+      if (k && k !== 'Cripto') {
+        _catalogoIncluirLocal(t, q.shortName || '', k);
+        salvarCatalogoNoAparelho();
+      }
+    } else if (
+      Array.isArray(data.semCotacao) &&
+      data.semCotacao.indexOf(t) !== -1 &&
+      !catalogoB3.porTicker[t]
+    ) {
+      // Só afirma que não existe quando o catálogo também não conhece.
+      _consultaAtivo.naoEncontrados[t] = true;
+    }
+  } catch (err) {
+    // Sem rede ou sem login: não afirma que o código não existe.
+    delete _consultaAtivo.feitas[t];
+    console.warn('[catálogo] consulta falhou:', err && err.message);
+  } finally {
+    if (_consultaAtivo.procurando === t) _consultaAtivo.procurando = '';
+    _redesenharFormularioAtivo();
+  }
+}
+
+/** Busca por nome na fonte quando o catálogo do aparelho não basta. */
+async function _buscarNomeNaFonte(q) {
+  try {
+    var data = await _getMercado('op=busca&q=' + encodeURIComponent(q));
+    if (!data || !Array.isArray(data.ativos)) return;
+    data.ativos.forEach(function (a) {
+      _catalogoIncluirLocal(a[0], a[1], a[2]);
+    });
+    if (data.ativos.length) salvarCatalogoNoAparelho();
+    var el = document.getElementById('compraTicker');
+    if (el && el.value.trim() === q) atualizarSugestoesAtivos(q);
+  } catch (err) {
+    delete _consultaAtivo.feitas['?' + q.toLowerCase()];
+    console.warn('[catálogo] busca falhou:', err && err.message);
+  }
+}
+
+/**
+ * Chamada a cada tecla no campo de ticker (renda variável). Atualiza as
+ * sugestões na hora e, depois de uma pausa, consulta o servidor se preciso.
+ */
+function consultarAtivoDigitado(texto) {
+  var q = String(texto || '').trim();
+  atualizarSugestoesAtivos(q);
+  clearTimeout(_consultaAtivo.timer);
+  if (q.length < 2) return;
+  _consultaAtivo.timer = setTimeout(function () {
+    var t = _tickerDigitado(q);
+    if (t) {
+      var base = t.replace(/F$/, '');
+      var cotado = cotacoesEstado.porTicker[t] || cotacoesEstado.porTicker[base];
+      if (cotado || _consultaAtivo.feitas[t]) return;
+      _consultaAtivo.feitas[t] = true;
+      _consultarCodigo(t);
+      return;
+    }
+    if (q.length < 3 || buscarAtivosLocal(q, 5).length >= 5) return;
+    var chave = '?' + q.toLowerCase();
+    if (_consultaAtivo.feitas[chave]) return;
+    _consultaAtivo.feitas[chave] = true;
+    _buscarNomeNaFonte(q);
+  }, 450);
+}
+
+// ── Títulos do Tesouro para o campo de renda fixa ──
+// A lista vem de op=rendafixa (o job do Tesouro Transparente): são os
+// títulos à venda, com taxa e vencimento de verdade. Escolher um preenche
+// vencimento e rentabilidade — o valor aplicado continua com a pessoa.
+var titulosTesouro = [];
+var _promessaTesouro = null;
+
+function carregarTitulosTesouro() {
+  if (titulosTesouro.length || _promessaTesouro) return _promessaTesouro || Promise.resolve();
+  _promessaTesouro = (async function () {
+    try {
+      var data = await _getMercado('op=rendafixa');
+      titulosTesouro = ((data && data.titulos) || []).filter(function (x) {
+        return x && x.nome;
+      });
+      var dl = document.getElementById('listaTitulosTesouro');
+      if (dl) {
+        dl.innerHTML = '';
+        titulosTesouro.forEach(function (x) {
+          var o = document.createElement('option');
+          o.value = x.nome;
+          o.text = rentabilidadeDoTitulo(x) || x.nome;
+          dl.appendChild(o);
+        });
+      }
+    } catch (err) {
+      console.warn('[tesouro] lista indisponível:', err && err.message);
+    } finally {
+      _promessaTesouro = null;
+    }
+  })();
+  return _promessaTesouro;
+}
+
+/** "IPCA+7,45%", "SELIC+0,05%", "13,20% a.a." — o formato que o formulário entende. */
+function rentabilidadeDoTitulo(x) {
+  if (!x || typeof x.taxaContratada !== 'number') return '';
+  var taxa = x.taxaContratada.toFixed(2).replace('.', ',');
+  if (x.tipo === 'ipca') return 'IPCA+' + taxa + '%';
+  if (x.tipo === 'selic') return 'SELIC+' + taxa + '%';
+  if (x.tipo === 'prefixado') return taxa + '% a.a.';
+  return '';
+}
+
+/** Nome digitado igual a um título: preenche vencimento e taxa, se vazios. */
+function preencherTituloTesouro(nome) {
+  var n = String(nome || '')
+    .trim()
+    .toLowerCase();
+  if (!n) return false;
+  var x = titulosTesouro.find(function (t) {
+    return t.nome.toLowerCase() === n;
+  });
+  if (!x) return false;
+  var venc = document.getElementById('compraVencimento');
+  var rent = document.getElementById('compraRentabilidade');
+  var mudou = false;
+  if (venc && !venc.value && x.vencimento) {
+    venc.value = String(x.vencimento).slice(0, 10);
+    mudou = true;
+  }
+  var r = rentabilidadeDoTitulo(x);
+  if (rent && !rent.value.trim() && r) {
+    rent.value = r;
+    mudou = true;
+  }
+  if (mudou && typeof atualizarProjecaoForm === 'function') atualizarProjecaoForm();
+  return mudou;
+}
+
 // ── Inicialização (window.onload em app.js) ──
 function buscarCotacoesReais() {
   restaurarCotacoesSalvas();
+  restaurarCatalogoSalvo();
   if (typeof restaurarDividendosSalvos === 'function') restaurarDividendosSalvos();
   inicializarDatalistAtivos();
   renderStatusCotacoes();
@@ -462,11 +761,19 @@ function buscarCotacoesReais() {
 
 function inicializarDatalistAtivos() {
   const datalist = document.getElementById('listaAtivosMercado');
+  if (!datalist || typeof datalist.appendChild !== 'function') return;
   datalist.innerHTML = '';
   mockAtivosMercado.forEach((ativo) => {
+    // Renda fixa tem campo próprio (lista do Tesouro); e preço só aparece
+    // quando é cotação de verdade, não o de semente da lista fixa.
+    if (ativo.tipo === 'Renda Fixa') return;
+    const info = infoAtivoB3(ativo.ticker) || {};
+    const cot = cotacoesEstado.porTicker[ativo.ticker];
     const option = document.createElement('option');
     option.value = ativo.ticker;
-    option.text = `${ativo.nome} (${ativo.tipo}) - ${formatarMoeda(ativo.preco_atual)}`;
+    option.text =
+      `${info.n || ativo.nome} (${info.k || ativo.tipo})` +
+      (cot && cot.price ? ` - ${formatarMoeda(cot.price)}` : '');
     datalist.appendChild(option);
   });
 }

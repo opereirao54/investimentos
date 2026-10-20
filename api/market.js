@@ -3392,6 +3392,305 @@ function semLogo(res) {
 // Dispatcher: handler wrapper aplica CORS + try/catch + Sentry. Cada
 // sub-op cuida da própria auth (requireUser p/ quote+history;
 // CRON_SECRET bearer p/ warmup).
+// ============================================================
+// === op=catalogo e op=busca — que ativos existem na B3 ===
+// ============================================================
+//
+// A busca do formulário de operação só conhecia uma lista escrita à mão.
+// O catálogo junta o que o servidor já sabe, sem custo:
+//   - marketFundamentals (CVM): companhias e FIIs com nome e classe;
+//   - setores-b3.json: ações e FIIs curados;
+//   - marketQuotes: tudo o que alguém já cotou, com o nome da fonte;
+//   - BRAPI: a lista inteira quando houver BRAPI_TOKEN; sem token, tenta a
+//     lista pública só de códigos;
+//   - o que op=busca encontrou na fonte de mercado.
+// Fica num documento só (marketCatalog/b3), refeito uma vez por dia na
+// primeira leitura. A lista vai como TEXTO (JSON): milhares de chaves num
+// mapa estourariam o limite de índices do documento.
+
+const Catalogo = require('../web/appliquei-catalogo-b3.js');
+const CATALOGO_COLLECTION = 'marketCatalog';
+const CATALOGO_DOC = 'b3';
+const CATALOGO_TTL_MS = 24 * 3600 * 1000;
+const BUSCA_COLLECTION = 'marketSearch';
+const BUSCA_TTL_MS = 7 * 24 * 3600 * 1000;
+const BUSCA_LIMITE = 12;
+const BRAPI_LIST_URL = 'https://brapi.dev/api/quote/list';
+const BRAPI_AVAILABLE_URL = 'https://brapi.dev/api/available';
+const YAHOO_SEARCH_URL = 'https://query2.finance.yahoo.com/v1/finance/search';
+
+/** Código de bolsa aceito no catálogo (sem fracionário: ele herda do principal). */
+function tickerDeCatalogo(t) {
+  const s = String(t || '')
+    .toUpperCase()
+    .replace(/\.SA$/, '')
+    .trim();
+  if (!/^[A-Z0-9]{4}\d{1,2}$/.test(s)) return null;
+  return s;
+}
+
+/** Junta uma entrada: nome vazio não apaga nome conhecido; tipo da fonte vence o sufixo. */
+function catalogoIncluir(mapa, ticker, nome, dica) {
+  const t = tickerDeCatalogo(ticker);
+  if (!t) return false;
+  const atual = mapa.get(t);
+  const n = String(nome || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80);
+  const novoNome = (atual && atual.n) || n;
+  const k = Catalogo.classificarAtivoB3(t, novoNome || n, dica) || (atual && atual.k) || null;
+  if (!k || k === 'Cripto') return false;
+  if (atual && atual.n === novoNome && atual.k === k) return false;
+  mapa.set(t, { n: novoNome, k });
+  return true;
+}
+
+function catalogoParaTexto(mapa) {
+  return JSON.stringify(
+    Array.from(mapa.entries())
+      .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+      .map(([t, v]) => [t, v.n || '', v.k])
+  );
+}
+
+function catalogoDeTexto(texto) {
+  const mapa = new Map();
+  try {
+    for (const [t, n, k] of JSON.parse(texto || '[]')) if (t && k) mapa.set(t, { n: n || '', k });
+  } catch (_) {}
+  return mapa;
+}
+
+async function fetchJsonComPrazo(url, opcoes, ms, fetchImpl = fetch) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const res = await fetchImpl(url, { ...opcoes, signal: ctrl.signal });
+    if (!res.ok) throw new Error(`http_${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Lista da BRAPI: inteira com token; sem token, só os códigos (lista pública). */
+async function fetchListaBrapi(fetchImpl = fetch) {
+  if (process.env.BRAPI_TOKEN) {
+    const json = await fetchJsonComPrazo(
+      `${BRAPI_LIST_URL}?limit=10000`,
+      {
+        headers: { Accept: 'application/json', Authorization: `Bearer ${process.env.BRAPI_TOKEN}` },
+      },
+      8000,
+      fetchImpl
+    );
+    return (json.stocks || []).map((s) => ({ t: s.stock, n: s.name, dica: s.type }));
+  }
+  const json = await fetchJsonComPrazo(
+    BRAPI_AVAILABLE_URL,
+    { headers: { Accept: 'application/json' } },
+    6000,
+    fetchImpl
+  );
+  return (json.stocks || []).map((t) => ({ t, n: '', dica: null }));
+}
+
+/** Busca por nome ou código na fonte de mercado. */
+async function buscarAtivosNaFonte(q, fetchImpl = fetch) {
+  if (process.env.BRAPI_TOKEN) {
+    try {
+      const json = await fetchJsonComPrazo(
+        `${BRAPI_LIST_URL}?search=${encodeURIComponent(q)}&limit=${BUSCA_LIMITE}`,
+        {
+          headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${process.env.BRAPI_TOKEN}`,
+          },
+        },
+        6000,
+        fetchImpl
+      );
+      const lista = (json.stocks || []).map((s) => ({ t: s.stock, n: s.name, dica: s.type }));
+      if (lista.length) return { fonte: 'brapi', lista };
+    } catch (e) {
+      console.warn('[market/busca] brapi_falhou', e.message);
+    }
+  }
+  const url =
+    `${YAHOO_SEARCH_URL}?q=${encodeURIComponent(q)}` +
+    '&quotesCount=15&newsCount=0&listsCount=0&enableFuzzyQuery=false&lang=pt-BR&region=BR';
+  const json = await fetchJsonComPrazo(
+    url,
+    { headers: { Accept: 'application/json', 'User-Agent': YAHOO_UA } },
+    6000,
+    fetchImpl
+  );
+  const lista = (json.quotes || [])
+    .filter((x) => x && typeof x.symbol === 'string' && /\.SA$/.test(x.symbol))
+    .map((x) => ({ t: x.symbol, n: x.longname || x.shortname || '', dica: x.quoteType }));
+  return { fonte: 'yahoo', lista };
+}
+
+/** Refaz o catálogo a partir do que o servidor já tem (e da BRAPI, se responder). */
+async function montarCatalogo(database, anterior, fetchImpl = fetch) {
+  const mapa = new Map(anterior || []);
+  const fontes = {};
+  for (const t of Object.keys(SETORES_B3.acoes || {})) catalogoIncluir(mapa, t, '', 'acao');
+  for (const t of Object.keys(SETORES_B3.fiis || {})) catalogoIncluir(mapa, t, '', 'fii');
+  fontes.setores = mapa.size;
+  try {
+    const snap = await database.collection(FUNDAMENTALS_COLLECTION).get();
+    let n = 0;
+    snap.forEach((doc) => {
+      const c = comporFundamentos(doc.data(), doc.id);
+      if (c && catalogoIncluir(mapa, doc.id, c.nome, c.classe)) n++;
+    });
+    fontes.cvm = n;
+  } catch (e) {
+    fontes.cvm = `erro: ${e.message}`;
+  }
+  try {
+    const snap = await database
+      .collection(CACHE_COLLECTION)
+      .where('fetchedAtMs', '>', Date.now() - 90 * 24 * 3600 * 1000)
+      .get();
+    let n = 0;
+    snap.forEach((doc) => {
+      const d = doc.data() || {};
+      if (catalogoIncluir(mapa, doc.id, d.shortName || d.nome, null)) n++;
+    });
+    fontes.cotacoes = n;
+  } catch (e) {
+    fontes.cotacoes = `erro: ${e.message}`;
+  }
+  try {
+    let n = 0;
+    for (const a of await fetchListaBrapi(fetchImpl))
+      if (catalogoIncluir(mapa, a.t, a.n, a.dica)) n++;
+    fontes.brapi = n;
+  } catch (e) {
+    fontes.brapi = `erro: ${e.message}`;
+  }
+  return { mapa, fontes };
+}
+
+async function lerCatalogo(database) {
+  const snap = await database
+    .collection(CATALOGO_COLLECTION)
+    .doc(CATALOGO_DOC)
+    .get()
+    .catch(() => null);
+  const d = snap && snap.exists ? snap.data() : null;
+  return { mapa: catalogoDeTexto(d && d.lista), atualizadoMs: (d && d.atualizadoMs) || 0 };
+}
+
+async function gravarCatalogo(database, mapa, extra) {
+  await database
+    .collection(CATALOGO_COLLECTION)
+    .doc(CATALOGO_DOC)
+    .set({ lista: catalogoParaTexto(mapa), total: mapa.size, ...extra }, { merge: true });
+}
+
+async function handleCatalogo(req, res) {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const database = db();
+  let { mapa, atualizadoMs } = await lerCatalogo(database);
+  let fontes = null;
+  if (Date.now() - atualizadoMs > CATALOGO_TTL_MS) {
+    const novo = await montarCatalogo(database, mapa);
+    mapa = novo.mapa;
+    fontes = novo.fontes;
+    atualizadoMs = Date.now();
+    await gravarCatalogo(database, mapa, { atualizadoMs, fontes }).catch((e) =>
+      console.warn('[market/catalogo] gravar_falhou', e.message)
+    );
+  }
+  res.setHeader('Cache-Control', 'private, max-age=3600');
+  return res.json({
+    atualizadoMs,
+    total: mapa.size,
+    ativos: Array.from(mapa.entries()).map(([t, v]) => [t, v.n, v.k]),
+    ...(fontes ? { fontes } : {}),
+  });
+}
+
+/** "  Klabin " → "klabin": a chave do cache da busca. */
+function chaveBusca(q) {
+  return String(q || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 40);
+}
+
+async function handleBusca(req, res) {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const q = chaveBusca(req.query.q);
+  if (q.length < 2) return res.status(400).json({ error: 'busca_curta' });
+  const database = db();
+  const ref = database.collection(BUSCA_COLLECTION).doc(q.replace(/ /g, '_'));
+  const cacheSnap = await ref.get().catch(() => null);
+  const cache = cacheSnap && cacheSnap.exists ? cacheSnap.data() : null;
+  if (cache && Date.now() - (cache.fetchedAtMs || 0) < BUSCA_TTL_MS) {
+    return res.json({ q, fonte: cache.fonte, cached: true, ativos: cache.ativos || [] });
+  }
+
+  const { mapa, atualizadoMs } = await lerCatalogo(database);
+  const locais = Catalogo.buscarNoCatalogoB3(
+    Array.from(mapa.entries()).map(([t, v]) => ({ t, n: v.n, k: v.k })),
+    q,
+    BUSCA_LIMITE
+  );
+  let fonte = 'catalogo';
+  let achados = [];
+  try {
+    const r = await buscarAtivosNaFonte(q);
+    fonte = r.fonte;
+    achados = r.lista;
+  } catch (e) {
+    console.warn('[market/busca] fonte_falhou', e.message);
+    if (cache)
+      return res.json({
+        q,
+        fonte: cache.fonte,
+        cached: true,
+        stale: true,
+        ativos: cache.ativos || [],
+      });
+  }
+
+  // O que a fonte achou entra no catálogo de todos.
+  let mudou = false;
+  for (const a of achados) if (catalogoIncluir(mapa, a.t, a.n, a.dica)) mudou = true;
+  const daFonte = achados
+    .map((a) => tickerDeCatalogo(a.t))
+    .filter((t) => t && mapa.has(t))
+    .map((t) => ({ t, n: mapa.get(t).n, k: mapa.get(t).k }));
+  const vistos = new Set();
+  const ativos = daFonte
+    .concat(locais)
+    .filter((a) => !vistos.has(a.t) && vistos.add(a.t))
+    .slice(0, BUSCA_LIMITE)
+    .map((a) => [a.t, a.n, a.k]);
+
+  await Promise.all([
+    // Sem resposta da fonte, não guarda: a próxima busca tenta de novo.
+    fonte !== 'catalogo'
+      ? ref.set({ q, fonte, ativos, fetchedAtMs: Date.now() }).catch(() => {})
+      : null,
+    mudou
+      ? gravarCatalogo(database, mapa, { atualizadoMs: atualizadoMs || 0 }).catch(() => {})
+      : null,
+  ]);
+  return res.json({ q, fonte, cached: false, ativos });
+}
+
 module.exports = handler({
   method: ['GET', 'POST'],
   auth: 'none',
@@ -3433,6 +3732,14 @@ module.exports = handler({
       if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
       return handleRendaFixa(req, res);
     }
+    if (op === 'catalogo') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return handleCatalogo(req, res);
+    }
+    if (op === 'busca') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return handleBusca(req, res);
+    }
     if (op === 'logo') {
       if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
       return handleLogo(req, res);
@@ -3443,7 +3750,7 @@ module.exports = handler({
     return res.status(400).json({
       error: 'unknown_op',
       detail:
-        'Use ?op=quote, ?op=history, ?op=dividends, ?op=news, ?op=fundamentals, ?op=ranking, ?op=diagnostico, ?op=indicadores, ?op=rendafixa, ?op=logo or ?op=warmup',
+        'Use ?op=quote, ?op=history, ?op=dividends, ?op=news, ?op=fundamentals, ?op=ranking, ?op=diagnostico, ?op=indicadores, ?op=rendafixa, ?op=catalogo, ?op=busca, ?op=logo or ?op=warmup',
     });
   },
 });
@@ -3458,6 +3765,15 @@ module.exports.fontes = {
   mapYahooFundamental,
   diagnosticarErrosDeFonte,
   fetchProventos,
+};
+module.exports.catalogo = {
+  tickerDeCatalogo,
+  catalogoIncluir,
+  catalogoParaTexto,
+  catalogoDeTexto,
+  montarCatalogo,
+  buscarAtivosNaFonte,
+  chaveBusca,
 };
 
 // Internos do parse de RSS expostos para teste. São regex sobre XML de

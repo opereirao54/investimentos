@@ -24,6 +24,7 @@ const ROOT = path.resolve(__dirname, '..');
 // para diff mínimo); os demais foram dedentados para 0.
 const CLASSIC_SCRIPTS = [
   { file: 'web/appliquei-utils.js', indent: '' },
+  { file: 'web/appliquei-catalogo-b3.js', indent: '' },
   { file: 'web/appliquei-yahoo-finance.js', indent: '' },
   { file: 'web/appliquei-app.js', indent: '        ' },
   { file: 'web/appliquei-combobox.js', indent: '' },
