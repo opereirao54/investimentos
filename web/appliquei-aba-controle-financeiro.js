@@ -2972,6 +2972,30 @@ function confirmarPagamento(id) {
   if (diaPago && diaPago > hojeYmdLocal())
     return mostrarToast('A data do pagamento não pode ser no futuro.', 'erro');
 
+  // Baixa de parcela de sonho com R$ 0 não guarda nada: virava um "aporte" de
+  // R$ 0,00 no histórico, a parcela sumia como paga e a falta não era
+  // redistribuída. O caminho certo é "Pular este mês", que avisa o que muda.
+  const alvo = transacoes.find((t) => t.id === id);
+  if (
+    novoValor === 0 &&
+    alvo &&
+    alvo.categoria === 'sonho' &&
+    alvo.sonhoId &&
+    !alvo.aporteExtra &&
+    typeof pularMesSonho === 'function'
+  ) {
+    const h = new Date();
+    const futura =
+      alvo.ano > h.getFullYear() || (alvo.ano === h.getFullYear() && alvo.mes > h.getMonth());
+    if (futura)
+      return mostrarToast(
+        'Parcela de sonho não se baixa com R$ 0. Se não for guardar nesse mês, use "Pular este mês" quando ele chegar.',
+        'aviso'
+      );
+    pularMesSonho(alvo.sonhoId, alvo.id);
+    return;
+  }
+
   let txPaga = null;
   transacoes = transacoes.map((t) => {
     if (t.id === id) {
