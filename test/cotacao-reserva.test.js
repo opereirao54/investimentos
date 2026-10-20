@@ -213,3 +213,80 @@ test('BRAPI no plano grátis: lote recusado vira um pedido por ativo', async () 
     else process.env.BRAPI_TOKEN = antes;
   }
 });
+
+// ------------------------------------------------ Yahoo em lote e o job
+
+test('Yahoo v7 em lote: cookie + crumb, um pedido para vários ativos', async () => {
+  const { fetchYahooCotacoesLote, mapYahooQuoteV7 } = market.yahooLote;
+  assert.equal(mapYahooQuoteV7({ symbol: 'X.SA', regularMarketPrice: 0 }), null);
+  const pedidos = [];
+  const f = async (url, opcoes) => {
+    pedidos.push({ url: String(url), opcoes });
+    if (/fc\.yahoo\.com/.test(url))
+      return { ok: false, status: 404, headers: { get: () => 'A3=abc; Path=/' } };
+    if (/getcrumb/.test(url)) return { ok: true, status: 200, text: async () => 'Crumb123' };
+    return resp(200, {
+      quoteResponse: {
+        result: [
+          {
+            symbol: 'WEGE3.SA',
+            regularMarketPrice: 47.67,
+            regularMarketPreviousClose: 47.67,
+            shortName: 'WEG ON',
+          },
+          { symbol: 'ITUB4.SA', regularMarketPrice: 39.84, shortName: 'ITAU UNIBANCO PN' },
+        ],
+      },
+    });
+  };
+  const erros = [];
+  const out = await fetchYahooCotacoesLote(['WEGE3', 'ITUB4', 'XPTO3'], erros, f);
+  assert.equal(out.WEGE3.price, 47.67);
+  assert.equal(out.ITUB4.shortName, 'ITAU UNIBANCO PN');
+  assert.equal(out.XPTO3, undefined);
+  const lote = pedidos.find((p) => /v7\/finance\/quote/.test(p.url));
+  assert.match(lote.url, /symbols=WEGE3\.SA%2CITUB4\.SA%2CXPTO3\.SA/);
+  assert.match(lote.url, /crumb=Crumb123/);
+  assert.equal(lote.opcoes.headers.Cookie, 'A3=abc');
+  assert.equal(pedidos.filter((p) => /v7\/finance\/quote/.test(p.url)).length, 1);
+});
+
+test('cotação gravada pelo job há pouco não é "atrasada"; a de ontem no pregão é', () => {
+  const { cotacaoAceitavel } = market.yahooLote;
+  const pregao = Date.parse('2026-10-20T14:00:00-03:00');
+  assert.equal(cotacaoAceitavel({ price: 1, fetchedAtMs: pregao - 40 * 60000 }, pregao), true);
+  assert.equal(cotacaoAceitavel({ price: 1, fetchedAtMs: pregao - 80 * 60000 }, pregao), false);
+  const noite = Date.parse('2026-10-20T22:00:00-03:00');
+  const fechamento = Date.parse('2026-10-20T18:20:00-03:00');
+  assert.equal(cotacaoAceitavel({ price: 1, fetchedAtMs: fechamento }, noite), true);
+  assert.equal(
+    cotacaoAceitavel({ price: 1, fetchedAtMs: Date.parse('2026-10-19T18:20:00-03:00') }, noite),
+    false
+  );
+  assert.equal(cotacaoAceitavel({ price: 1 }, noite), false, 'sem data não é aceitável');
+});
+
+test('job de cotações: lista vem dos pedidos e dos cotados, e o resumo conta as fontes', async () => {
+  const { tickersDoJob, resumo } = require(
+    path.resolve(__dirname, '..', 'scripts', 'cotacoes-job.js')
+  );
+  const docs = (ids) => ({ forEach: (fn) => ids.forEach((id) => fn({ id })) });
+  const database = {
+    collection: () => ({
+      where: (campo) => ({
+        get: async () =>
+          campo === 'ultimoPedidoMs' ? docs(['WEGE3', 'VIVA3']) : docs(['WEGE3', 'ITUB4']),
+      }),
+    }),
+  };
+  assert.deepEqual(await tickersDoJob(database, Date.now()), ['ITUB4', 'VIVA3', 'WEGE3']);
+  const r = resumo(
+    { WEGE3: { price: 1, fonteCotacao: 'yahoo' }, ITUB4: { price: 2, fonteCotacao: 'google' } },
+    ['WEGE3', 'ITUB4', 'VIVA3'],
+    [{ fonte: 'yahoo_quote', erro: 'yahoo_quote_429' }]
+  );
+  assert.equal(r.cotados, 2);
+  assert.deepEqual(r.porFonte, { yahoo: 1, google: 1 });
+  assert.deepEqual(r.sem, ['VIVA3']);
+  assert.deepEqual(r.motivos, { 'yahoo_quote: yahoo_quote_429': 1 });
+});

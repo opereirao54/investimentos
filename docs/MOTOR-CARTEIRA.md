@@ -521,6 +521,22 @@ o usava para o histórico da simulação, o que prova o caminho de rede.
 
 No dia em que houver token, definir a variável é a única mudança necessária.
 
+**Atualização (out/2026) — o `v8/chart` também leva 429 da Vercel.** Em
+produção a cotação ao vivo falhou e o app mostrou preço de semanas atrás. Desde
+então:
+
+- quem garante a cotação do dia é o job **Cotações** (`scripts/cotacoes-job.js`,
+  `.github/workflows/cotacoes.yml`), que roda no GitHub Actions de 15 em 15
+  minutos no pregão e grava em `marketQuotes` os tickers pedidos nos últimos 30
+  dias (`ultimoPedidoMs`, marcado pelo `op=quote`);
+- a busca, no job e no servidor, é: Yahoo `v7/finance/quote` em lote de 50 (com
+  cookie + crumb) → `v8/chart` um a um (`query1`, depois `query2`) → Google
+  Finance; BRAPI primeiro quando houver token (no plano grátis, um ativo por
+  pedido);
+- o `op=quote` aceita sem alarme o que o job gravou há até 75 min, e devolve
+  `erros` por ticker; o formulário diz de quando é o preço e avisa quando é
+  velho.
+
 **O que ainda depende do job:** o `v8/chart` não devolve valor de mercado. Ele
 é reconstruído como preço × ações, com a contagem de ações vindo do lucro por
 ação que a ingestão extrai da DRE — ver "Valor de mercado sem fonte paga".
