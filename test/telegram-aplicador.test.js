@@ -183,6 +183,30 @@ test('despesa fixa com dia: 60 meses, primeiro vencimento no próximo dia N', ()
   semViolacoes(win);
 });
 
+test('receita fixa do Telegram (salário todo dia 5) se repete 60 meses na conta', () => {
+  const win = app();
+  win.telegramAplicarItens([
+    item('tg1_16', {
+      ...MERCADO,
+      categoria: 'receita',
+      descricao: 'Salário',
+      valor: 5000,
+      fixo: true,
+      diaVencimento: 5,
+      categoriaDespesa: null,
+    }),
+  ]);
+  assert.equal(win.transacoes.length, 60);
+  assert.ok(win.transacoes.every((t) => t.categoria === 'receita' && t.contaId === 'c_itau'));
+  assert.equal(new Set(win.transacoes.map((t) => t.groupId)).size, 1, 'uma série só');
+  const esperado = win.telegramProximoDia(
+    new Date(HOJE.getFullYear(), HOJE.getMonth(), HOJE.getDate(), 12),
+    5
+  );
+  assert.equal(win.transacoes[0].dataVencimento, ymd(esperado));
+  semViolacoes(win);
+});
+
 test('compra de ontem que cai no mês anterior entra na competência dela', () => {
   const win = app();
   const ontem = new Date(HOJE.getFullYear(), HOJE.getMonth(), 0); // último dia do mês passado

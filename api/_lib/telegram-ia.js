@@ -74,11 +74,13 @@ async function reescrever(texto) {
   const prompt =
     'Você converte mensagens de gastos e ganhos em português para um formato fixo.\n' +
     'Formato: [+ se for dinheiro recebido] descrição curta valor [Nx se parcelado] ' +
-    '[ontem | dd/mm se a data foi dita] [nome do cartão ou banco, se dito] [pix | cartão, se dito]\n' +
+    '[ontem | dd/mm se a data foi dita] [nome do cartão ou banco, se dito] [pix | cartão, se dito] ' +
+    '[fixa se for todo mês] [dia N se o dia foi dito]\n' +
     'Valor em número com vírgula decimal (ex.: 52,90). Escreva números por extenso como dígitos.\n' +
     'Exemplos:\n' +
     '"gastei uns cinquenta conto no mercado ontem" → mercado 50 ontem\n' +
     '"caiu meu salário de três mil e quinhentos" → +3500 salário\n' +
+    '"meu salário de cinco mil cai todo dia cinco" → +5000 salário fixa dia 5\n' +
     '"comprei um tênis de trezentos em três vezes no nubank" → tênis 300 3x nubank\n' +
     'Se não houver um valor claro, responda exatamente: NADA\n' +
     'Responda só a linha, sem explicação.\n\n' +

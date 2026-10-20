@@ -600,6 +600,12 @@ function interpretar(texto, ctx) {
   const falouPassado = contem(t, VERBOS_PASSADO);
   const falouVencimento = contem(t, PALAVRAS_VENCIMENTO);
   let diaCitado = null;
+  // "todo dia 5" é mensal com o dia: o "todo" vira a marca de fixa.
+  const todoDia = /(?<![\p{L}\p{N}])todo\s+dia\s+\d{1,2}(?![\p{L}\p{N}/])/u.test(t);
+  if (todoDia) {
+    t = removerExpr(t, 'todo');
+    removidos.push('todo');
+  }
   // `/` fora do fim: "dia 03/10" é data completa, tratada logo abaixo.
   const mDia = t.match(/(?<![\p{L}\p{N}])dia\s+(\d{1,2})(?![\p{L}\p{N}/])/u);
   if (mDia) {
@@ -684,7 +690,7 @@ function interpretar(texto, ctx) {
 
   // ---- tipo ----
   const ehReceita = sinal === '+' || (sinal !== '-' && contem(t, PALAVRAS_RECEITA));
-  const ehFixa = contem(t, PALAVRAS_FIXA);
+  const ehFixa = todoDia || contem(t, PALAVRAS_FIXA);
   if (ehFixa) {
     PALAVRAS_FIXA.forEach((p) => {
       if (contem(t, [p])) {
@@ -793,7 +799,8 @@ function interpretar(texto, ctx) {
     parcelas: categoria === 'cartao_credito' ? parcelas : 1,
     // Cartão + "fixa" = assinatura no cartão (Netflix todo mês na fatura).
     tipoCartao: categoria === 'cartao_credito' ? (ehFixa ? 'fixo' : 'parcelado') : undefined,
-    fixo: categoria === 'despesa_fixa',
+    // Receita com "fixa"/"todo mês" (salário) também se repete no app.
+    fixo: categoria === 'despesa_fixa' || (categoria === 'receita' && ehFixa),
     diaVencimento: categoria === 'cartao_credito' ? null : diaVencimento,
     contaId,
     cartaoId,

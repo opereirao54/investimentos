@@ -193,6 +193,7 @@ produto. Se não for usar o Gemini, basta o primeiro parágrafo.
 | `nubank 300 tênis 3x`                     | 💳 Nubank · 3x de R$ 100,00                     | 3 parcelas na fatura aberta                                        |
 | `cartão 89 farmácia` (com 2+ cartões)     | pergunta qual cartão, com botões                | entra no cartão escolhido                                          |
 | `aluguel 1800 fixa dia 10`                | 🔁 Fixa mensal · vence dia 10                   | despesa fixa recorrente                                            |
+| `+5000 salário todo dia 5`                | 🔁 Receita mensal · todo dia 5                  | receita recorrente (60 meses) na conta principal                   |
 | `presente 150` → **🏷️ Categoria** → Lazer | categoria trocada                               | categoria Lazer; a próxima mensagem com "presente" já vem em Lazer |
 | `ubr 25` → **✏️ Descrição** → Uber        | até 3 sugestões + ✍️ Escrever outra + Voltar    | descrição "Uber"; a próxima "ubr" já vem como "Uber"               |
 | qualquer uma → **↩️ Desfazer**            | Desfeito                                        | lançamento some                                                    |
@@ -468,15 +469,15 @@ acessa direto, e a negação implícita protege.
 
 ### Formatos que as regras entendem
 
-| Pista na mensagem                                             | Efeito                                              |
-| ------------------------------------------------------------- | --------------------------------------------------- |
-| número (`52,90`, `1.800`, `R$ 18`)                            | valor; dois números sem destaque viram pergunta     |
-| `+` antes do valor, ou recebi / salário / freela / reembolso… | receita                                             |
-| `-` antes do valor                                            | força despesa                                       |
-| nome de cartão, `cartão`, `crédito`, `3x`, `em 3 vezes`       | compra no cartão (fatura aberta)                    |
-| nome de conta, `pix`, `débito`                                | sai da conta                                        |
-| nada disso                                                    | conta principal                                     |
-| `fixa`, `todo mês`, `mensal`                                  | recorrente (no cartão: assinatura mensal na fatura) |
-| `dia 10`                                                      | vencimento no próximo dia 10                        |
-| `ontem`, `anteontem`, `05/10`                                 | data da compra (define o mês)                       |
-| palavra conhecida (mercado, uber, farmácia, netflix…)         | categoria                                           |
+| Pista na mensagem                                             | Efeito                                                                  |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| número (`52,90`, `1.800`, `R$ 18`)                            | valor; dois números sem destaque viram pergunta                         |
+| `+` antes do valor, ou recebi / salário / freela / reembolso… | receita                                                                 |
+| `-` antes do valor                                            | força despesa                                                           |
+| nome de cartão, `cartão`, `crédito`, `3x`, `em 3 vezes`       | compra no cartão (fatura aberta)                                        |
+| nome de conta, `pix`, `débito`                                | sai da conta                                                            |
+| nada disso                                                    | conta principal                                                         |
+| `fixa`, `todo mês`, `mensal`, `todo dia 5`                    | recorrente, despesa ou receita (no cartão: assinatura mensal na fatura) |
+| `dia 10`                                                      | vencimento no próximo dia 10                                            |
+| `ontem`, `anteontem`, `05/10`                                 | data da compra (define o mês)                                           |
+| palavra conhecida (mercado, uber, farmácia, netflix…)         | categoria                                                               |

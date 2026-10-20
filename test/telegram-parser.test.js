@@ -182,6 +182,22 @@ test('despesa fixa com dia de vencimento', () => {
   assert.equal(l.categoriaDespesa, 'moradia');
 });
 
+test('receita fixa: "fixo", "todo mês" e "todo dia 5" repetem; receita avulsa não', () => {
+  for (const m of ['+5000 salário fixo dia 5', '+5000 salário todo dia 5']) {
+    const l = ok(m);
+    assert.equal(l.categoria, 'receita', m);
+    assert.equal(l.fixo, true, m);
+    assert.equal(l.diaVencimento, 5, m);
+    assert.equal(l.descricao, 'Salário', m);
+  }
+  assert.equal(ok('salário 5000 todo mês').fixo, true);
+  assert.equal(ok('+200 freela').fixo, false);
+  const d = ok('internet 100 todo dia 15');
+  assert.equal(d.categoria, 'despesa_fixa');
+  assert.equal(d.diaVencimento, 15);
+  assert.equal(d.descricao, 'Internet');
+});
+
 test('assinatura fixa no cartão vira cartão fixo mensal', () => {
   const l = ok('netflix 55,90 todo mês no cartão c6');
   assert.equal(l.categoria, 'cartao_credito');

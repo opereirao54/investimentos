@@ -194,6 +194,7 @@ const EXEMPLOS =
   '• <code>+3500 salário</code>\n' +
   '• <code>nubank 300 tênis 3x</code>\n' +
   '• <code>aluguel 1800 fixa dia 10</code>\n' +
+  '• <code>+5000 salário todo dia 5</code>\n' +
   '• <code>netflix 55,90 todo mês no cartão</code>';
 
 const AJUDA =
@@ -206,6 +207,7 @@ const AJUDA =
   '• "pix" ou "débito" = sai da conta\n' +
   '• Sem dizer a conta, usa a sua <b>conta principal</b>\n' +
   '• <code>ontem</code>, <code>dia 3</code> ou <code>05/10</code> muda a data da compra\n' +
+  '• <code>fixa</code>, <code>todo mês</code> ou <code>todo dia 5</code> = repete todo mês (despesa ou receita)\n' +
   '• Conta fixa: <code>dia 10</code> é o vencimento\n\n' +
   '<b>Consultas</b>\n' +
   '/saldo — quanto tem em cada conta\n' +
@@ -258,7 +260,13 @@ function descreverLancamento(lanc, ctx) {
     else linhas.push(`💳 ${esc(nome)} · fatura aberta`);
   } else {
     linhas.push(`🏦 ${esc(lanc.banco)}`);
-    if (lanc.fixo)
+    if (lanc.fixo && receita)
+      linhas.push(
+        lanc.diaVencimento
+          ? `🔁 Receita mensal · todo dia ${lanc.diaVencimento}`
+          : '🔁 Receita mensal'
+      );
+    else if (lanc.fixo)
       linhas.push(
         lanc.diaVencimento ? `🔁 Fixa mensal · vence dia ${lanc.diaVencimento}` : '🔁 Fixa mensal'
       );

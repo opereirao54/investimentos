@@ -264,6 +264,15 @@ test('receita cai na conta principal', async () => {
   assert.match(ultimoTexto(), /Receita lançada/);
 });
 
+test('receita fixa: o bot confirma "Receita mensal · todo dia 5"', async () => {
+  await conectar();
+  await webhook(mensagem('+5000 salário todo dia 5', { messageId: 19 }));
+  const l = inbox()[`tg${CHAT}_19`].lanc;
+  assert.equal(l.categoria, 'receita');
+  assert.equal(l.fixo, true);
+  assert.match(ultimoTexto(), /Receita mensal · todo dia 5/);
+});
+
 test('cartão citado com parcelas', async () => {
   await conectar();
   await webhook(mensagem('nubank 300 tênis 3x', { messageId: 13 }));
