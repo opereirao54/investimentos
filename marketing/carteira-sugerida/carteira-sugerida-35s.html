@@ -1,0 +1,369 @@
+<!doctype html>
+<!--
+  Vídeo da Carteira sugerida (35 s, 1080×1920) — "Onde investir o dinheiro
+  que sobrou?". Persona "comecei a investir e me perdi": dúvida do aporte →
+  chuva de palpites → "e se você visse a conta?" → perfil e aporte, divisão
+  por classe e ativo, nota com os cinco critérios → "sem caixa-preta, a
+  decisão é sua" → marca, "Em breve" e "Siga para saber primeiro".
+
+  Cuidados CVM (Res. 19/20) e CONAR, ver voz-e-compliance.md:
+  - "sugestão", nunca "recomendação"; nenhuma promessa de retorno;
+  - nenhum ativo real na tela: "Ação A", "FII B"... são fictícios, para a
+    peça não virar indicação de papel; a divisão 40/32/25/3 é a do perfil
+    Moderado do app (CART_ALLOC_DEFAULT) e os critérios são os cinco pilares
+    do motor (MOTOR_PILARES);
+  - aviso "não é recomendação" falado e escrito na última cena, e "dados
+    fictícios" na tela do app o tempo todo.
+  Mesma mecânica do teaser: cenas em CENAS, movimentos em cenaExtra(),
+  render(t) desenha o segundo t. Narração: narracao.json (Charon/Gemini).
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root {
+    --campo1: #0b1410; --campo2: #0f1f18; --campo3: #112720;
+    --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa;
+    --sinal: #34d399; --verde: #10b981; --primaria: #059669; --ambar: #fbbf24; --vermelho: #f87171;
+    --rf: #059669; --acao: #7c3aed; --fii: #d97706; --cripto: #f59e0b;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--campo1); }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: linear-gradient(150deg, var(--campo1) 0%, var(--campo2) 50%, var(--campo3) 100%); }
+  .halo { position: absolute; inset: -20%;
+    background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.20), transparent 70%),
+                radial-gradient(40% 35% at 10% 90%, rgba(5,150,105,.16), transparent 70%); }
+  .malha { position: absolute; inset: 0; }
+  .cena { position: absolute; inset: 0; opacity: 0; }
+  .tit { font-weight: 900; letter-spacing: -.035em; line-height: .98; color: var(--tinta); }
+  .tit em { font-style: normal; color: var(--sinal); }
+  .tit em.r { color: var(--vermelho); }
+  .linha { display: block; will-change: transform, opacity; }
+  .rot { font-family: 'DM Mono', monospace; font-size: 32px; letter-spacing: .16em; text-transform: uppercase; color: var(--sinal); }
+  .grande { position: absolute; left: 70px; right: 70px; text-align: center; }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 210px; z-index: 20; }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); }
+
+  /* 1. Gancho */
+  .valor { position: absolute; left: 0; right: 0; top: 1010px; text-align: center; font-family: 'DM Mono', monospace; font-weight: 500;
+    font-size: 140px; letter-spacing: -.03em; }
+  .interro { position: absolute; font-weight: 900; color: var(--sinal); opacity: .0; }
+
+  /* 2. Palpites */
+  .palpite { position: absolute; max-width: 660px; padding: 24px 30px; border-radius: 30px; font-size: 40px; font-weight: 700; line-height: 1.22;
+    box-shadow: 0 18px 44px rgba(0,0,0,.45); white-space: nowrap; }
+  .palpite small { display: block; font-size: 24px; font-weight: 600; opacity: .7; margin-bottom: 6px; font-family: 'DM Mono', monospace; letter-spacing: .06em; }
+  .palpite.a { background: #1f2c34; color: #e8eef4; border-bottom-left-radius: 8px; }
+  .palpite.b { background: #2b5278; color: #fff; border-bottom-right-radius: 8px; }
+  .palpite.c { background: #3a2a2a; color: #ffe1e1; border-bottom-left-radius: 8px; }
+  .risco { position: absolute; height: 10px; border-radius: 6px; background: var(--vermelho); box-shadow: 0 0 18px rgba(248,113,113,.6); transform-origin: left center; }
+
+  /* 3. A conta */
+  .conta { position: absolute; left: 140px; right: 140px; top: 1000px; padding: 40px 46px; border-radius: 36px; background: rgba(240,250,244,.06);
+    border: 2px solid rgba(52,211,153,.35); font-family: 'DM Mono', monospace; font-size: 42px; line-height: 1.6; color: var(--deck); }
+  .conta b { color: var(--tinta); font-weight: 500; }
+  .conta .tot { border-top: 2px solid rgba(240,250,244,.18); margin-top: 12px; padding-top: 12px; color: var(--sinal); }
+
+  /* 4. Celular com a tela da carteira (montada aqui, ativos fictícios) */
+  .rotulo { position: absolute; left: 70px; right: 70px; top: 270px; text-align: center; font-size: 66px; font-weight: 900; letter-spacing: -.03em; line-height: 1.05; }
+  .rotulo em { font-style: normal; color: var(--sinal); }
+  .celular { position: absolute; left: 50%; top: 450px; width: 640px; height: 1100px; margin-left: -320px; border-radius: 74px; background: #050a08;
+    padding: 18px; box-shadow: 0 40px 90px rgba(0,0,0,.6), 0 0 0 3px rgba(240,250,244,.12), 0 0 120px rgba(52,211,153,.18); }
+  .tela { position: absolute; inset: 18px; border-radius: 58px; overflow: hidden; background: #f4f6f3; color: #12241c; }
+  .tela-cab { padding: 64px 36px 22px; background: linear-gradient(160deg, #0f2a20, #0b1f18); color: #f0faf4; }
+  .tela-cab .t { font-size: 40px; font-weight: 900; letter-spacing: -.02em; display: flex; align-items: center; justify-content: space-between; }
+  .chip { font-size: 24px; font-weight: 800; padding: 8px 18px; border-radius: 99px; background: rgba(52,211,153,.18); color: #34d399; border: 2px solid rgba(52,211,153,.45); }
+  .aporte { margin-top: 22px; font-family: 'DM Mono', monospace; }
+  .aporte small { display: block; font-size: 22px; color: #9fb3aa; letter-spacing: .08em; text-transform: uppercase; }
+  .aporte b { font-size: 58px; font-weight: 500; letter-spacing: -.02em; }
+  .aporte .cursor { display: inline-block; width: 4px; height: 50px; background: #34d399; margin-left: 6px; vertical-align: -6px; }
+  .corpo { position: absolute; left: 0; right: 0; top: 300px; bottom: 70px; padding: 26px 28px; }
+  .classe { margin-bottom: 30px; }
+  .classe .cab { display: flex; align-items: center; justify-content: space-between; font-size: 28px; font-weight: 800; }
+  .classe .cab span { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 26px; color: #3b4d45; }
+  .trilho { height: 18px; border-radius: 9px; background: #e2e8e4; margin-top: 8px; overflow: hidden; }
+  .trilho i { display: block; height: 100%; border-radius: 9px; width: 0; }
+  .ativos { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+  .ativo { font-size: 22px; font-weight: 700; padding: 6px 14px; border-radius: 10px; background: #fff; border: 2px solid #dfe6e2; color: #2b3b34; opacity: 0; }
+  .ativo span { font-family: 'DM Mono', monospace; font-weight: 500; color: #51655b; margin-left: 6px; }
+  .card { position: absolute; left: 22px; right: 22px; top: 330px; padding: 28px 28px 30px; border-radius: 34px; background: #fff;
+    box-shadow: 0 24px 60px rgba(0,0,0,.28), 0 0 0 3px rgba(52,211,153,.6); opacity: 0; }
+  .card .topo { display: flex; align-items: center; gap: 18px; }
+  .card .logo { width: 70px; height: 70px; border-radius: 20px; background: #ede9fe; color: var(--acao); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 32px; }
+  .card .nome { flex: 1; font-size: 34px; font-weight: 900; }
+  .card .nome small { display: block; font-size: 22px; font-weight: 600; color: #6b7d75; }
+  .nota { width: 128px; height: 108px; border-radius: 24px; background: #059669; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace; font-weight: 500; font-size: 52px; line-height: 1; }
+  .nota small { font-size: 20px; opacity: .85; margin-top: 4px; }
+  .pilar { display: grid; grid-template-columns: 250px 1fr 54px; align-items: center; gap: 14px; margin-top: 18px; font-size: 26px; font-weight: 700; color: #2b3b34; }
+  .pilar .tr { height: 16px; border-radius: 8px; background: #e2e8e4; overflow: hidden; }
+  .pilar .tr i { display: block; height: 100%; width: 0; border-radius: 8px; background: linear-gradient(90deg, #10b981, #34d399); }
+  .pilar b { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 24px; text-align: right; color: #3b4d45; }
+  .card .porque { margin-top: 22px; padding: 16px 18px; border-radius: 16px; background: #f1f7f3; font-size: 23px; line-height: 1.35; color: #34463e; }
+  .tela-rodape { position: absolute; left: 0; right: 0; bottom: 0; height: 70px; display: flex; align-items: center; justify-content: center; gap: 10px;
+    background: #e9efeb; font-family: 'DM Mono', monospace; font-size: 21px; color: #51655b; letter-spacing: .03em; }
+  .lupa { position: absolute; width: 150px; height: 150px; border-radius: 50%; border: 8px solid var(--ambar); box-shadow: 0 0 30px rgba(251,191,36,.6); opacity: 0; z-index: 8; }
+
+  /* 5. Caixa-preta */
+  .caixa { position: absolute; left: 290px; top: 860px; width: 500px; height: 500px; border-radius: 40px; background: #050807;
+    box-shadow: 0 40px 90px rgba(0,0,0,.65), inset 0 0 0 3px rgba(240,250,244,.08); }
+  .caixa .cad { position: absolute; left: 50%; top: 50%; width: 120px; height: 120px; margin: -60px 0 0 -60px; }
+  .vidro { position: absolute; left: 190px; top: 860px; width: 700px; height: 500px; border-radius: 40px; border: 4px solid rgba(52,211,153,.6);
+    background: rgba(52,211,153,.06); padding: 34px 44px; opacity: 0; }
+  .vidro div { display: flex; align-items: center; gap: 22px; font-size: 44px; font-weight: 800; height: 86px; }
+  .vidro div i { width: 22px; height: 22px; border-radius: 50%; background: var(--sinal); box-shadow: 0 0 14px var(--sinal); flex: 0 0 auto; }
+
+  /* 6. Marca e aviso */
+  .marca { width: 560px; margin: 0 auto; display: block; }
+  .pilula { display: inline-flex; align-items: center; gap: 16px; padding: 18px 34px; border-radius: 99px; border: 2px solid rgba(52,211,153,.5);
+    background: rgba(52,211,153,.12); color: var(--sinal); font-family: 'DM Mono', monospace; font-size: 34px; letter-spacing: .14em; text-transform: uppercase; }
+  .pilula i { width: 16px; height: 16px; border-radius: 50%; background: var(--sinal); box-shadow: 0 0 16px var(--sinal); }
+  .cta { display: inline-flex; align-items: center; gap: 24px; padding: 34px 54px; border-radius: 36px; background: var(--primaria);
+    font-weight: 900; font-size: 54px; letter-spacing: -.02em; color: #fff; box-shadow: 0 30px 70px rgba(5,150,105,.45); }
+  .aviso-legal { position: absolute; left: 80px; right: 80px; top: 1215px; padding: 30px 36px; border-radius: 28px;
+    background: rgba(11,20,16,.92); border: 2px solid rgba(240,250,244,.45); text-align: center; font-size: 36px; line-height: 1.38; color: var(--tinta); font-weight: 600; }
+  .aviso-legal b { color: var(--tinta); font-weight: 800; }
+  .aviso-legal small { display: block; margin-top: 12px; font-family: 'DM Mono', monospace; font-size: 26px; color: var(--deck); font-weight: 400; }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <div class="halo"></div>
+  <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+
+  <!-- 1. GANCHO (0–4,4 s) -->
+  <div class="cena" id="c1">
+    <div class="grande" style="top:330px;">
+      <div class="rot linha" data-in="0">Todo mês, a mesma dúvida</div>
+      <div class="tit linha" data-in="0" style="font-size:100px;margin-top:40px;">Onde investir<br>o dinheiro<br>que <em>sobrou</em>?</div>
+    </div>
+    <div class="valor" id="valor">R$ 1.000,00</div>
+    <div class="interro" id="q1" style="left:150px;top:1180px;font-size:120px;">?</div>
+    <div class="interro" id="q2" style="left:860px;top:1130px;font-size:150px;">?</div>
+    <div class="interro" id="q3" style="left:500px;top:1270px;font-size:90px;">?</div>
+  </div>
+
+  <!-- 2. PALPITES (4,4–9,6 s) -->
+  <div class="cena" id="c2">
+    <div class="grande" style="top:280px;"><div class="tit linha" data-in="0" style="font-size:78px;">Dica de grupo.<br>Palpite. Opinião<br><em class="r">contrária.</em></div></div>
+    <div class="palpite a" id="b1" style="left:70px;top:760px;"><small>GRUPO DA FAMÍLIA</small>Bota tudo nessa, vai subir! 🚀</div>
+    <div class="palpite b" id="b2" style="left:330px;top:930px;"><small>@influencer</small>Renda fixa é pra quem tem medo</div>
+    <div class="palpite c" id="b3" style="left:90px;top:1100px;"><small>VÍDEO DE 15 S</small>Vende tudo AGORA 😱</div>
+    <div class="palpite a" id="b4" style="left:300px;top:1270px;"><small>COLEGA DO TRABALHO</small>Só cripto dá dinheiro de verdade</div>
+    <div class="palpite b" id="b5" style="left:120px;top:1440px;"><small>OUTRO VÍDEO</small>Cripto? Nunca. Só poupança.</div>
+    <div class="risco" id="x1" style="left:60px;top:830px;width:0;"></div>
+    <div class="risco" id="x2" style="left:320px;top:1000px;width:0;"></div>
+    <div class="risco" id="x3" style="left:80px;top:1170px;width:0;"></div>
+    <div class="risco" id="x4" style="left:290px;top:1340px;width:0;"></div>
+    <div class="risco" id="x5" style="left:110px;top:1510px;width:0;"></div>
+  </div>
+
+  <!-- 3. A CONTA (9,6–12,7 s) -->
+  <div class="cena" id="c3">
+    <div class="grande" style="top:360px;"><div class="tit linha" data-in="0" style="font-size:96px;">E se, em vez<br>de palpite, você<br>visse a <em>conta</em>?</div></div>
+    <div class="conta linha" data-in="0.9" id="conta">
+      <div>perfil ........ <b>Moderado</b></div>
+      <div>aporte ........ <b>R$ 1.000</b></div>
+      <div>critérios ..... <b>5, à vista</b></div>
+      <div class="tot">= sugestão aberta</div>
+    </div>
+  </div>
+
+  <!-- 4. O APP (12,7–22,5 s) -->
+  <div class="cena" id="c4">
+    <div class="rotulo" id="r1">Seu <em>perfil</em> e o<br>quanto quer investir</div>
+    <div class="rotulo" id="r2">A divisão, <em>ativo</em><br><em>por ativo</em></div>
+    <div class="rotulo" id="r3">A nota e os <em>critérios</em><br>à vista</div>
+    <div class="celular" id="cel">
+      <div class="tela">
+        <div class="tela-cab">
+          <div class="t">Carteira sugerida <span class="chip" id="chip">Moderado</span></div>
+          <div class="aporte"><small>Aporte do mês</small><b id="apN">R$ 0</b><span class="cursor" id="cur"></span></div>
+        </div>
+        <div class="corpo" id="corpo">
+          <div class="classe"><div class="cab">Renda Fixa <span>40% · R$ 400</span></div><div class="trilho"><i id="tr0" style="background:var(--rf)"></i></div>
+            <div class="ativos"><div class="ativo">Título público A<span>R$ 250</span></div><div class="ativo">CDB A<span>R$ 150</span></div></div></div>
+          <div class="classe"><div class="cab">Ações <span>32% · R$ 320</span></div><div class="trilho"><i id="tr1" style="background:var(--acao)"></i></div>
+            <div class="ativos"><div class="ativo">Ação A<span>R$ 130</span></div><div class="ativo">Ação B<span>R$ 110</span></div><div class="ativo">Ação C<span>R$ 80</span></div></div></div>
+          <div class="classe"><div class="cab">FIIs <span>25% · R$ 250</span></div><div class="trilho"><i id="tr2" style="background:var(--fii)"></i></div>
+            <div class="ativos"><div class="ativo">FII A<span>R$ 130</span></div><div class="ativo">FII B<span>R$ 120</span></div></div></div>
+          <div class="classe"><div class="cab">Criptos <span>3% · R$ 30</span></div><div class="trilho"><i id="tr3" style="background:var(--cripto)"></i></div>
+            <div class="ativos"><div class="ativo">Cripto A<span>R$ 30</span></div></div></div>
+        </div>
+        <div class="card" id="card">
+          <div class="topo"><div class="logo">A</div><div class="nome">Ação A<small>ativo fictício · exemplo</small></div>
+            <div class="nota"><span id="notaN">0</span><small>/100</small></div></div>
+          <div class="pilar"><span>Valuation</span><div class="tr"><i data-v="72"></i></div><b>72</b></div>
+          <div class="pilar"><span>Dividendos</span><div class="tr"><i data-v="81"></i></div><b>81</b></div>
+          <div class="pilar"><span>Crescimento</span><div class="tr"><i data-v="64"></i></div><b>64</b></div>
+          <div class="pilar"><span>Endividamento</span><div class="tr"><i data-v="77"></i></div><b>77</b></div>
+          <div class="pilar"><span>Qualidade</span><div class="tr"><i data-v="76"></i></div><b>76</b></div>
+          <div class="porque">Cada número vem de indicadores públicos, com a fonte no card. Nota é leitura de critérios, não previsão de preço.</div>
+        </div>
+        <div class="tela-rodape">Sugestão informativa · dados fictícios</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. SEM CAIXA-PRETA (22,5–25,7 s) -->
+  <div class="cena" id="c5">
+    <div class="grande" style="top:330px;"><div class="tit linha" data-in="0" style="font-size:96px;">Sem <em>caixa-preta.</em></div>
+      <div class="tit linha" data-in="1.4" style="font-size:80px;margin-top:40px;color:var(--deck);">A decisão continua<br>sendo <em>sua.</em></div></div>
+    <div class="caixa" id="caixa">
+      <svg class="cad" viewBox="0 0 120 120"><rect x="22" y="52" width="76" height="58" rx="12" fill="#1c2722"/><path id="arco" d="M38 54 V38 a22 22 0 0 1 44 0 V54" fill="none" stroke="#1c2722" stroke-width="12" stroke-linecap="round"/></svg>
+    </div>
+    <div class="vidro" id="vidro">
+      <div><i></i>Valuation</div><div><i></i>Dividendos</div><div><i></i>Crescimento</div><div><i></i>Endividamento</div><div><i></i>Qualidade</div>
+    </div>
+  </div>
+
+  <!-- 6. MARCA + AVISO (25,7–35 s) -->
+  <div class="cena" id="c6">
+    <div style="position:absolute;left:0;right:0;top:300px;text-align:center;">
+      <img class="marca linha" data-in="0.05" src="wordmark.svg" alt="Appliquei">
+      <div class="tit linha" data-in="0.5" style="font-size:84px;margin-top:64px;">O próximo passo,<br>com a <em>conta aberta.</em></div>
+      <div class="linha" data-in="3.2" style="margin-top:60px;"><span class="pilula"><i></i>Em breve · janeiro de 2027</span></div>
+      <div class="linha" data-in="3.7" style="margin-top:44px;"><span class="cta">Siga para saber primeiro</span></div>
+    </div>
+    <div class="aviso-legal linha" data-in="4.9">
+      <b>Conteúdo informativo e educacional.</b> Não é recomendação de investimento. Investimentos envolvem risco e rentabilidade passada não garante a futura.
+      <small>Ativos e valores fictícios · dados de demonstração</small>
+    </div>
+  </div>
+
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  (function () {
+    const L = 1080, A = 1920, t = [];
+    for (let x = 60; x < L; x += 60) t.push(`<line x1="${x}" y1="0" x2="${x}" y2="${A}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 60; y < A; y += 60) t.push(`<line x1="0" y1="${y}" x2="${L}" y2="${y}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 120; y < A; y += 120) {
+      t.push(`<line x1="0" y1="${y}" x2="16" y2="${y}" stroke="#34d399" stroke-opacity=".18" stroke-width="2"/>`);
+      t.push(`<line x1="${L - 16}" y1="${y}" x2="${L}" y2="${y}" stroke="#34d399" stroke-opacity=".18" stroke-width="2"/>`);
+    }
+    document.getElementById('malha').innerHTML = t.join('');
+  })();
+
+  const DUR = 35;
+  const CENAS = [['c1', 0, 4.4], ['c2', 4.4, 9.6], ['c3', 9.6, 12.7], ['c4', 12.7, 22.5], ['c5', 22.5, 25.75], ['c6', 25.75, 35.2]];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeInOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+  const easeBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  function surge(el, lt, a, dur, dy) {
+    const p = easeBack(prog(lt, a, a + (dur || 0.5)));
+    el.style.opacity = clamp(p, 0, 1);
+    el.style.transform = `translateY(${(1 - p) * (dy == null ? 40 : dy)}px) scale(${0.85 + 0.15 * p})`;
+  }
+  const fmt = (v) => 'R$ ' + Math.round(v).toLocaleString('pt-BR');
+
+  function render(t) {
+    for (const [id, a, b] of CENAS) {
+      const el = document.getElementById(id);
+      const dentro = t >= a - 0.01 && t < b;
+      const fadeIn = id === 'c1' ? 1 : easeOut(prog(t, a, a + 0.3));
+      const fadeOut = 1 - prog(t, b - 0.25, b);
+      el.style.opacity = dentro ? Math.min(fadeIn, fadeOut) : 0;
+      el.style.display = dentro ? 'block' : 'none';
+      if (!dentro) continue;
+      const lt = t - a;
+      el.querySelectorAll('.linha').forEach((ln) => {
+        const d = Number(ln.dataset.in || 0);
+        const p = id === 'c1' && d === 0 ? 1 : easeOut(prog(lt, d, d + 0.45));
+        ln.style.opacity = p;
+        ln.style.transform = `translateY(${(1 - p) * 40}px)`;
+      });
+      cenaExtra(id, lt);
+    }
+    document.getElementById('logoFixo').style.opacity = t < 25.5 ? 1 : 1 - prog(t, 25.5, 25.8);
+    document.getElementById('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+
+  function cenaExtra(id, lt) {
+    if (id === 'c1') {
+      const v = document.getElementById('valor');
+      v.style.opacity = easeOut(prog(lt, 0.4, 0.9));
+      v.style.transform = `scale(${1 + 0.05 * Math.sin(lt * 4) * prog(lt, 1, 2)})`;
+      [['q1', 1.6], ['q2', 2.0], ['q3', 2.5]].forEach(([q, a]) => {
+        const e = document.getElementById(q);
+        const p = easeBack(prog(lt, a, a + 0.4));
+        e.style.opacity = clamp(p, 0, 1);
+        e.style.transform = `translateY(${Math.sin((lt + a) * 3) * 14}px) scale(${p}) rotate(${Math.sin(lt * 2 + a) * 12}deg)`;
+      });
+    }
+    if (id === 'c2') {
+      // palpites entram em cima uns dos outros e depois são riscados
+      for (let i = 1; i <= 5; i++) {
+        const a = 0.25 + (i - 1) * 0.55;
+        const b = document.getElementById('b' + i);
+        surge(b, lt, a, 0.4, 50);
+        b.style.transform += ` rotate(${(i % 2 ? -1 : 1) * 2.5}deg)`;
+        const rx = document.getElementById('x' + i);
+        const p = easeOut(prog(lt, 3.3 + i * 0.12, 3.6 + i * 0.12));
+        rx.style.width = (p * 700).toFixed(0) + 'px';
+        b.style.filter = `grayscale(${p}) blur(${p * 1.5}px)`;
+        if (p > 0) b.style.opacity = 1 - 0.55 * p;
+      }
+    }
+    if (id === 'c4') {
+      surge(document.getElementById('cel'), lt, 0.1, 0.55, 140);
+      // aporte sendo digitado
+      const p = prog(lt, 0.7, 1.9);
+      document.getElementById('apN').textContent = fmt(Math.round(p * 10) * 100);
+      document.getElementById('cur').style.opacity = lt < 2.4 ? (Math.floor(lt * 3) % 2 ? 0.2 : 1) : 0;
+      surge(document.getElementById('chip'), lt, 0.3, 0.45, 10);
+      // divisão por classe e ativos (a partir de 4,3 s = "O Appliquei mostra…")
+      [40, 32, 25, 3].forEach((pct, i) => {
+        const q = easeOut(prog(lt, 4.3 + i * 0.3, 5.0 + i * 0.3));
+        document.getElementById('tr' + i).style.width = pct * q * 2.2 + '%';
+      });
+      document.querySelectorAll('#corpo .ativo').forEach((at, i) => {
+        surge(at, lt, 5.2 + i * 0.18, 0.35, 16);
+      });
+      // card do ativo com a nota e os cinco critérios (7,0 s = "com a nota…")
+      const card = document.getElementById('card');
+      const c = easeBack(prog(lt, 7.0, 7.5));
+      card.style.opacity = clamp(c, 0, 1);
+      card.style.transform = `translateY(${(1 - c) * 160}px)`;
+      document.getElementById('corpo').style.opacity = 1 - 0.92 * prog(lt, 7.0, 7.4);
+      document.getElementById('notaN').textContent = Math.round(74 * easeOut(prog(lt, 7.3, 8.3)));
+      card.querySelectorAll('.pilar i').forEach((bar, i) => {
+        bar.style.width = Number(bar.dataset.v) * easeOut(prog(lt, 7.6 + i * 0.15, 8.2 + i * 0.15)) + '%';
+      });
+      // legendas acima do celular
+      const trocas = [0.2, 4.2, 7.0, 99];
+      ['r1', 'r2', 'r3'].forEach((rid, i) => {
+        const vis = prog(lt, trocas[i], trocas[i] + 0.35) * (1 - prog(lt, trocas[i + 1] - 0.25, trocas[i + 1]));
+        const r = document.getElementById(rid);
+        r.style.opacity = vis;
+        r.style.transform = `translateY(${(1 - vis) * 24}px)`;
+      });
+    }
+    if (id === 'c5') {
+      // a caixa preta abre (cadeado solta) e vira vidro com os cinco critérios
+      const abre = easeInOut(prog(lt, 0.2, 0.75));
+      document.getElementById('arco').setAttribute('transform', `translate(0 ${-14 * abre})`);
+      const caixa = document.getElementById('caixa');
+      const some = easeOut(prog(lt, 0.7, 1.1));
+      caixa.style.opacity = 1 - some;
+      caixa.style.transform = `scale(${1 + 0.25 * some})`;
+      const vidro = document.getElementById('vidro');
+      vidro.style.opacity = easeOut(prog(lt, 0.75, 1.15));
+      vidro.querySelectorAll('div').forEach((d, i) => {
+        const p = easeOut(prog(lt, 0.85 + i * 0.1, 1.2 + i * 0.1));
+        d.style.opacity = p;
+        d.style.transform = `translateX(${(1 - p) * -30}px)`;
+      });
+    }
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>

@@ -7,6 +7,8 @@ para mixar com mixar-narracao.py.
     python3 marketing/ferramentas/shorts/narrar-gemini.py <pasta-saida> [voz] [modelo]
     python3 marketing/ferramentas/shorts/mixar-narracao.py <pasta-saida> trilha.wav video-sem-audio.mp4 final.mp4
 
+    # outro vídeo: roteiro num JSON [[início, fim, "texto"], ...]
+    ROTEIRO=marketing/<peça>/narracao.json python3 marketing/ferramentas/shorts/narrar-gemini.py <pasta-saida>
     # refazer o corte e a entonação de uma leitura já baixada, sem gastar cota:
     LEITURA=<pasta-saida>/leitura0.wav python3 marketing/ferramentas/shorts/narrar-gemini.py <pasta-saida>
 
@@ -51,6 +53,8 @@ CENAS = [
     (22.55, 26.75, "Cuidar do seu dinheiro hoje é construir o futuro que você deseja amanhã."),
     (26.95, 30.6, "Appliquei. Seu dinheiro precisa de direção. Em breve."),
 ]
+if os.environ.get('ROTEIRO'):
+    CENAS = [tuple(c) for c in json.load(open(os.environ['ROTEIRO']))]
 DIRECAO = ('Leia em voz alta, em português do Brasil, como locutor de um comercial de '
            'app de finanças pessoais: voz próxima, confiante e natural, sem exagero. '
            'As frases com ponto de interrogação são perguntas ao espectador: leia com '

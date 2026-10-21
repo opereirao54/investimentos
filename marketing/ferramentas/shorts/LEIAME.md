@@ -35,8 +35,10 @@ python3 marketing/ferramentas/shorts/narrar-gemini.py /tmp/voz            # Char
 python3 marketing/ferramentas/shorts/mixar-narracao.py /tmp/voz trilha.wav video-sem-audio.mp4 final.mp4
 ```
 
-- Roteiro e tempos ficam em `CENAS` no topo de `narrar-gemini.py` (início, fim,
-  texto de cada cena); para um vídeo novo, troque essa lista.
+- Roteiro e tempos: `CENAS` no topo de `narrar-gemini.py` (o teaser); para um
+  vídeo novo, um JSON `[[início, fim, "texto"], ...]` em `ROTEIRO=` (exemplo:
+  `marketing/carteira-sugerida/narracao.json`). Gere a fala primeiro e acerte
+  os tempos das cenas pela duração real de cada frase.
 - As perguntas sobem o tom no fim (medido no áudio; se o Gemini ler com o tom
   caindo, a subida é feita por PSOLA). Frase que não cabe na cena é acelerada
   até 1,25x.
