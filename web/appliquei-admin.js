@@ -42,6 +42,18 @@ var escHTML = (s) =>
 function fmtDate(ms) {
   return ms ? new Date(ms).toLocaleDateString('pt-PT') : '—';
 }
+// "21/10/2026 14:32" — dia e hora, sem segundos.
+function fmtDiaHora(ms) {
+  return ms
+    ? new Date(ms).toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : '—';
+}
 function fmtDateTime(ms) {
   return ms ? new Date(ms).toLocaleString('pt-PT') : '—';
 }
@@ -1635,15 +1647,28 @@ function usoRender() {
       const uso = i.ultimoUsoMs
         ? `${relativeTime(i.ultimoUsoMs)}<div style="font-size:11.5px;color:var(--cor-texto-mutado);">${fmtDateTime(i.ultimoUsoMs)}</div>`
         : '<span style="color:var(--cor-texto-mutado);">nunca lançou</span>';
+      // Uma linha por área, a mais recente primeiro: quando foi a última vez
+      // que a pessoa mexeu em cada parte do app.
       const areas = i.areas.length
-        ? i.areas.map((a) => `<span class="badge-s badge-muted">${escHTML(a)}</span>`).join(' ')
+        ? `<div class="uso-areas">${i.areas
+            .map(
+              (a) =>
+                `<div class="uso-area${a.soConectou ? ' so-conectou' : ''}"><span>${escHTML(a.area)}</span><span title="${a.ms ? fmtDateTime(a.ms) : ''}">${
+                  a.soConectou
+                    ? 'conectou' + (a.ms ? ' em ' + fmtDate(a.ms) : '') + ', nunca lançou'
+                    : a.ms
+                      ? `${fmtDiaHora(a.ms)} · ${relativeTime(a.ms)}`
+                      : '—'
+                }</span></div>`
+            )
+            .join('')}</div>`
         : '—';
       return `<tr>
         <td>${quem}${i.suspenso ? ' <span class="badge-s badge-danger">suspenso</span>' : ''}</td>
         <td style="white-space:nowrap;">${i.criadoMs ? fmtDate(i.criadoMs) : '—'}</td>
         <td style="white-space:nowrap;">${uso}</td>
         <td>${usoSituacaoBadge(i.situacao)}</td>
-        <td><div style="display:flex;flex-wrap:wrap;gap:4px;">${areas}</div></td>
+        <td>${areas}</td>
       </tr>`;
     })
     .join('');

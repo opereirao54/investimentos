@@ -99,7 +99,7 @@ test('preferências de tela não contam como uso', () => {
     appliquei_mob_seg_controle: AGORA,
     futurorico_transacoes: AGORA - 5 * DIA,
   });
-  assert.deepEqual(r.areas, ['Lançamentos']);
+  assert.deepEqual(r.areas, [{ area: 'Lançamentos', ms: AGORA - 5 * DIA }]);
   assert.equal(r.ultimoUsoMs, AGORA - 5 * DIA);
 });
 
@@ -118,6 +118,8 @@ test('a lista lê só datas e marca testador, áreas, Telegram e situação', as
       keys: { futurorico_transacoes: '[{"descricao":"Mercado","valor":52.9}]' },
     },
     'users/ana/integracoes/telegram': { chatId: 99, aprendidas: { mercado: 'alimentacao' } },
+    'users/ana/integracoes/telegramAlertas': { ultimaAtividadeMs: AGORA - 2 * 3600e3 },
+    'users/joao/integracoes/telegram': { chatId: 7, conectadoEmMs: AGORA - 2 * DIA },
     'users/joao/data/main': {
       updatedAt: AGORA - 9 * DIA,
       keyRevs: { appliquei_contas: AGORA - 9 * DIA },
@@ -147,10 +149,24 @@ test('a lista lê só datas e marca testador, áreas, Telegram e situação', as
   const porUid = Object.fromEntries(r.itens.map((i) => [i.uid, i]));
   assert.equal(porUid.ana.testador, true);
   assert.equal(porUid.ana.nota, 'Ana – trabalho');
-  assert.deepEqual(porUid.ana.areas, ['Lançamentos', 'Cartões', 'Telegram']);
+  // Cada área com a própria data, a mais recente primeiro; o Telegram usa a
+  // data do último lançamento pelo bot.
+  assert.deepEqual(porUid.ana.areas, [
+    { area: 'Telegram', ms: AGORA - 2 * 3600e3 },
+    { area: 'Lançamentos', ms: AGORA - DIA },
+    { area: 'Cartões', ms: AGORA - 3 * DIA },
+  ]);
+  assert.equal(porUid.ana.ultimoUsoMs, AGORA - 2 * 3600e3);
   assert.equal(porUid.ana.situacao, 'ativo');
   assert.equal(porUid.joao.testador, false);
+  // Conectar o Telegram sem lançar nada aparece, mas não conta como uso.
   assert.equal(porUid.joao.situacao, 'esfriando');
+  assert.equal(porUid.joao.ultimoUsoMs, AGORA - 9 * DIA);
+  assert.deepEqual(porUid.joao.areas[0], {
+    area: 'Telegram',
+    ms: AGORA - 2 * DIA,
+    soConectou: true,
+  });
   assert.equal(porUid.caio.situacao, 'parado');
   assert.deepEqual(porUid.caio.areas, []);
   // Ordem: quem usou mais recentemente primeiro.

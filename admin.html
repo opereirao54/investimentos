@@ -226,6 +226,12 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
 .badge-warn { color:var(--cor-txt-amber); background:var(--cor-bg-amber); border:1px solid var(--cor-borda-amber); }
 .badge-danger { color:var(--cor-txt-erro); background:var(--cor-bg-erro); border:1px solid var(--cor-borda-erro); }
 .badge-info { color:var(--cor-txt-info); background:var(--cor-bg-info); border:1px solid var(--cor-borda-info); }
+.uso-areas { display:flex; flex-direction:column; gap:3px; min-width:260px; }
+.uso-area { display:flex; justify-content:space-between; gap:14px; font-size:12px; padding:2px 0; border-bottom:1px dashed var(--cor-borda); }
+.uso-area:last-child { border-bottom:0; }
+.uso-area span:first-child { font-weight:600; color:var(--cor-texto-principal); }
+.uso-area span:last-child { color:var(--cor-texto-mutado); white-space:nowrap; font-variant-numeric:tabular-nums; }
+.uso-area.so-conectou span:first-child { color:var(--cor-texto-mutado); font-weight:500; }
 .badge-muted { color:var(--cor-texto-mutado); background:var(--cor-superficie); border:1px solid var(--cor-borda); }
 
 /* BAR LIST (for top domains, payment methods) */
@@ -1032,7 +1038,7 @@ Dica: você pode inserir o e-mail ou o UID do usuário alvo.</div>
         </div>
         <div class="card" style="padding:0;overflow:auto;">
             <table class="tbl">
-                <thead><tr><th>Pessoa</th><th>Entrou</th><th>Último uso</th><th>Situação</th><th>Já usou</th></tr></thead>
+                <thead><tr><th>Pessoa</th><th>Entrou</th><th>Último uso</th><th>Situação</th><th>Último uso de cada área</th></tr></thead>
                 <tbody id="uso-lista"><tr><td colspan="5" class="tbl-empty">Carregando…</td></tr></tbody>
             </table>
         </div>

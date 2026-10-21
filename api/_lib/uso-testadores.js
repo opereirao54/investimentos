@@ -49,18 +49,35 @@ function situacaoDoUso(ultimoUsoMs, agoraMs) {
   return 'parado';
 }
 
-/** Áreas usadas e o último uso, a partir de `keyRevs` ({ chave: ms }). */
+/**
+ * Áreas usadas, cada uma com a data da última alteração, a partir de
+ * `keyRevs` ({ chave: ms }) — a mais recente primeiro. `ultimoUsoMs` é a maior.
+ */
 function resumirUso(keyRevs) {
   const revs = keyRevs || {};
   const areas = [];
-  let ultimoUsoMs = 0;
   AREAS.forEach(([chave, rotulo]) => {
     const rev = msDe(revs[chave]);
-    if (!rev) return;
-    areas.push(rotulo);
-    if (rev > ultimoUsoMs) ultimoUsoMs = rev;
+    if (rev) areas.push({ area: rotulo, ms: rev });
   });
-  return { areas, ultimoUsoMs };
+  return finalizarAreas(areas);
+}
+
+function finalizarAreas(areas) {
+  areas.sort((a, b) => b.ms - a.ms);
+  return { areas, ultimoUsoMs: areas.length ? areas[0].ms : 0 };
+}
+
+/**
+ * Telegram: a data do último lançamento pelo bot (integracoes/telegramAlertas
+ * .ultimaAtividadeMs) conta como uso. Só conectado, sem lançar nada ainda,
+ * aparece com a data da conexão e `soConectou`, mas não conta como uso.
+ */
+function areaTelegram(tg, tgAtiv) {
+  if (!tg || !tg.chatId) return null;
+  const lancou = msDe(tgAtiv && tgAtiv.ultimaAtividadeMs);
+  if (lancou) return { area: 'Telegram', ms: lancou };
+  return { area: 'Telegram', ms: msDe(tg.conectadoEmMs), soConectou: true };
 }
 
 async function lerEmLotes(D, refs, campos) {
@@ -96,17 +113,29 @@ async function listarUso(deps, agoraMs) {
   const refsDados = usuarios.map((u) =>
     D.collection('users').doc(u.uid).collection('data').doc('main')
   );
-  const refsTg = usuarios.map((u) =>
-    D.collection('users').doc(u.uid).collection('integracoes').doc('telegram')
-  );
+  const integ = (uid, doc) => D.collection('users').doc(uid).collection('integracoes').doc(doc);
   const dados = await lerEmLotes(D, refsDados, ['updatedAt', 'keyRevs']);
-  const tgs = await lerEmLotes(D, refsTg, ['chatId']);
+  const tgs = await lerEmLotes(
+    D,
+    usuarios.map((u) => integ(u.uid, 'telegram')),
+    ['chatId', 'conectadoEmMs']
+  );
+  const tgAtivs = await lerEmLotes(
+    D,
+    usuarios.map((u) => integ(u.uid, 'telegramAlertas')),
+    ['ultimaAtividadeMs']
+  );
 
   const itens = usuarios.map((u, i) => {
     const doc = dados[i] && dados[i].exists ? dados[i].data() || {} : {};
     const tg = tgs[i] && tgs[i].exists ? tgs[i].data() || {} : {};
-    const { areas, ultimoUsoMs } = resumirUso(doc.keyRevs);
-    if (tg.chatId) areas.push('Telegram');
+    const tgAtiv = tgAtivs[i] && tgAtivs[i].exists ? tgAtivs[i].data() || {} : {};
+    const doApp = resumirUso(doc.keyRevs).areas;
+    const tgArea = areaTelegram(tg, tgAtiv);
+    const { areas } = finalizarAreas(tgArea ? doApp.concat(tgArea) : doApp);
+    // Conectar o Telegram sem lançar nada não é uso.
+    const usos = areas.filter((a) => !a.soConectou);
+    const ultimoUsoMs = usos.length ? usos[0].ms : 0;
     const cv = convitePorUid.get(u.uid) || null;
     return {
       uid: u.uid,
