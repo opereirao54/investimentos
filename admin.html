@@ -855,6 +855,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
                     <option value="password_reset_link">🔑 Link de Reset de Senha</option>
                     <option value="disable_user">⛔ Suspender usuário</option>
                     <option value="enable_user">✅ Reativar usuário</option>
+                    <option value="delete_user">🗑️ Excluir cadastro (definitivo)</option>
                     <option value="reset_billing">⚠️ Reset Billing (Danger)</option>
                 </select>
                 <input type="number" step="0.01" id="action-value" class="sp-value-input" placeholder="Valor">
@@ -874,6 +875,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
                     <button class="qa-pill" onclick="quickAction('set_discount', 15)"><i class="ph ph-tag"></i> Desconto R$15</button>
                     <button class="qa-pill" onclick="quickAction('password_reset_link')"><i class="ph ph-key"></i> Link Senha</button>
                     <button class="qa-pill destructive" onclick="quickAction('disable_user')"><i class="ph ph-prohibit"></i> Suspender</button>
+                    <button class="qa-pill destructive" onclick="quickAction('delete_user')"><i class="ph ph-trash"></i> Excluir cadastro</button>
                 </div>
             </div>
 
@@ -913,6 +915,7 @@ Dica: você pode inserir o e-mail ou o UID do usuário alvo.</div>
                 <option value="password_reset_link">password_reset_link</option>
                 <option value="disable_user">disable_user</option>
                 <option value="enable_user">enable_user</option>
+                <option value="delete_user">delete_user</option>
                 <option value="reset_billing">reset_billing</option>
                 <option value="reconcile_user">reconcile_user</option>
                 <option value="export_csv">export_csv</option>
@@ -1009,6 +1012,28 @@ Dica: você pode inserir o e-mail ou o UID do usuário alvo.</div>
             <table class="tbl">
                 <thead><tr><th>Código</th><th>Para quem</th><th>Situação</th><th>Criado</th><th></th></tr></thead>
                 <tbody id="cv-lista"><tr><td colspan="5" class="tbl-empty">Carregando…</td></tr></tbody>
+            </table>
+        </div>
+
+        <!-- Quem está usando: só datas por área, nunca o conteúdo dos dados
+             (api/_lib/uso-testadores.js). -->
+        <div class="page-header" style="margin-top:28px;">
+            <div>
+                <h2 style="margin:0;font-size:18px;"><i class="ph-fill ph-pulse" style="color:var(--cor-primaria)"></i> Quem está usando</h2>
+                <p class="sub">Última vez que cada pessoa lançou ou alterou algo no app. Só datas — o conteúdo dos dados não é lido. Quem só abre para olhar, sem mudar nada, aparece como parado.</p>
+            </div>
+        </div>
+        <div class="filter-chips" id="uso-chips">
+            <button class="filter-chip active" data-uso="testadores" onclick="usoFiltrar('testadores')">Testadores <span class="ct" id="uso-ct-testadores">0</span></button>
+            <button class="filter-chip" data-uso="todos" onclick="usoFiltrar('todos')">Todos <span class="ct" id="uso-ct-todos">0</span></button>
+            <button class="filter-chip" data-uso="ativo" onclick="usoFiltrar('ativo')">🟢 Ativos <span class="ct" id="uso-ct-ativo">0</span></button>
+            <button class="filter-chip" data-uso="esfriando" onclick="usoFiltrar('esfriando')">🟡 Esfriando <span class="ct" id="uso-ct-esfriando">0</span></button>
+            <button class="filter-chip" data-uso="parado" onclick="usoFiltrar('parado')">🔴 Parados <span class="ct" id="uso-ct-parado">0</span></button>
+        </div>
+        <div class="card" style="padding:0;overflow:auto;">
+            <table class="tbl">
+                <thead><tr><th>Pessoa</th><th>Entrou</th><th>Último uso</th><th>Situação</th><th>Já usou</th></tr></thead>
+                <tbody id="uso-lista"><tr><td colspan="5" class="tbl-empty">Carregando…</td></tr></tbody>
             </table>
         </div>
     </section>
