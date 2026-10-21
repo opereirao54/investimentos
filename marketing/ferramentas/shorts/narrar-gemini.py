@@ -94,11 +94,14 @@ def pedir(texto):
 
 
 def cortar(a, sr, n):
-    """Divide a leitura do roteiro inteiro nas n-1 pausas mais longas.
+    """Divide a leitura do roteiro inteiro nas pausas entre as frases.
 
-    Confere se cada pedaço tem duração coerente com o tamanho do texto; se não
-    tiver (uma pausa interna foi mais longa que a pausa entre frases), devolve
-    None e a leitura é pedida de novo.
+    Não basta pegar as n-1 pausas mais longas: o Gemini às vezes respira mais
+    numa vírgula ("E sonho sem data... fica") do que entre duas frases. Por
+    isso o corte é escolhido por programação dinâmica entre todas as pausas,
+    somando dois critérios: pausa longa é bom corte, e cada pedaço deve durar
+    perto do que o tamanho do seu texto pede. Se mesmo o melhor corte sai
+    desproporcional, devolve None e a leitura é pedida de novo.
     """
     q = int(0.02 * sr)
     rms = np.sqrt(np.convolve(a ** 2, np.ones(q) / q, 'same'))[::q]
@@ -109,16 +112,46 @@ def cortar(a, sr, n):
             j = k
             while j < len(fala) and not fala[j]:
                 j += 1
-            if k > 0 and j < len(fala):
-                pausas.append((j - k, (k + j) // 2 * q))
+            if k > 0 and j < len(fala) and j - k >= 6:  # >= 120 ms
+                pausas.append(((k + j) // 2 * q, (j - k) * 0.02))
             k = j
         else:
             k += 1
     if len(pausas) < n - 1:
         return None
-    cortes = sorted(p for _, p in sorted(pausas, reverse=True)[:n - 1])
-    pedacos = [aparar(x, sr) for x in np.split(a, cortes)]
     chars = np.array([len(t) for _, _, t in CENAS], dtype=float)
+    pos = [0] + [p for p, _ in pausas] + [len(a)]
+    dur_pausa = [0.0] + [d for _, d in pausas] + [0.0]
+    esperado = (pos[-1] / sr - sum(dur_pausa)) * chars / chars.sum()
+
+    def custo(i, j, seg):  # pedaço seg vai do corte i ao corte j
+        d = (pos[j] - pos[i]) / sr - dur_pausa[i] / 2 - dur_pausa[j] / 2
+        return 4 * np.log(max(d, 0.05) / esperado[seg]) ** 2
+
+    m = len(pos)
+    INF = float('inf')
+    melhor = [[INF] * m for _ in range(n + 1)]
+    volta = [[-1] * m for _ in range(n + 1)]
+    melhor[0][0] = 0.0
+    for seg in range(n):
+        for j in range(1, m):
+            if seg < n - 1 and j == m - 1:
+                continue
+            if seg == n - 1 and j != m - 1:
+                continue
+            for i in range(j):
+                if melhor[seg][i] == INF:
+                    continue
+                c = melhor[seg][i] + custo(i, j, seg) - (0 if j == m - 1 else 1.5 * dur_pausa[j])
+                if c < melhor[seg + 1][j]:
+                    melhor[seg + 1][j], volta[seg + 1][j] = c, i
+    cortes, j = [], m - 1
+    for seg in range(n, 0, -1):
+        j = volta[seg][j]
+        if seg > 1:
+            cortes.append(pos[j])
+    cortes.sort()
+    pedacos = [aparar(x, sr) for x in np.split(a, cortes)]
     durs = np.array([len(x) / sr for x in pedacos])
     razao = (durs / durs.sum()) / (chars / chars.sum())
     print('  pedaços', np.round(durs, 2), 'proporção', np.round(razao, 2))

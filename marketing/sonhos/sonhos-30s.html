@@ -1,0 +1,362 @@
+<!doctype html>
+<!--
+  Vídeo dos Sonhos (30,5 s, 1080×1920) — "Qual é o seu sonho?". Persona
+  "quero um sonho com data": o sonho de todo mundo → ninguém sabe quanto
+  separar nem quando chega → "sonho sem data fica para um dia" → no app:
+  sonho, valor e prazo; quanto separar por mês e se cabe na sobra real
+  ("Cabe, mas aperta"); outro prazo e o veredito vira "Cabe no seu mês com
+  folga"; a parcela entra no Controle como qualquer conta → marca, "Em breve"
+  e "Siga para saber primeiro".
+
+  Os textos da tela copiam web/appliquei-sonhos.js (renderPreviaSonho,
+  avaliarFolgaParaSonho, SONHO_PRAZOS_ALTERNATIVOS). As parcelas são as do
+  app (calcSonhoMensal: R$ 12.000 em 12 meses = R$ 956,76; em 2 anos =
+  R$ 455,53), que embutem a estimativa de rendimento de 0,8% a.m. — por
+  isso o aviso "rendimento estimado, não garantido" na cena final.
+  Mesma mecânica do teaser: cenas em CENAS, movimentos em cenaExtra(),
+  render(t) desenha o segundo t. Narração: narracao.json (Charon/Gemini).
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root {
+    --campo1: #0b1410; --campo2: #0f1f18; --campo3: #112720;
+    --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa;
+    --sinal: #34d399; --verde: #10b981; --primaria: #059669; --ambar: #fbbf24; --vermelho: #f87171; --roxo: #7c3aed;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--campo1); }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: linear-gradient(150deg, var(--campo1) 0%, var(--campo2) 50%, var(--campo3) 100%); }
+  .halo { position: absolute; inset: -20%;
+    background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.20), transparent 70%),
+                radial-gradient(40% 35% at 10% 90%, rgba(124,58,237,.16), transparent 70%); }
+  .malha { position: absolute; inset: 0; }
+  .cena { position: absolute; inset: 0; opacity: 0; }
+  .tit { font-weight: 900; letter-spacing: -.035em; line-height: .98; color: var(--tinta); }
+  .tit em { font-style: normal; color: var(--sinal); }
+  .tit em.r { color: var(--vermelho); }
+  .linha { display: block; will-change: transform, opacity; }
+  .grande { position: absolute; left: 70px; right: 70px; text-align: center; }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 210px; z-index: 20; }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); }
+
+  /* 1. Sonhos girando */
+  .chip { position: absolute; display: inline-flex; align-items: center; gap: 18px; padding: 26px 40px; border-radius: 99px;
+    background: rgba(240,250,244,.08); border: 2px solid rgba(240,250,244,.2); font-size: 52px; font-weight: 800; white-space: nowrap; opacity: 0; }
+  .chip span { font-size: 60px; }
+
+  /* 2. Perguntas sem resposta */
+  .cartao { position: absolute; width: 400px; padding: 30px 32px; border-radius: 30px; background: rgba(240,250,244,.07); border: 2px solid rgba(240,250,244,.16); opacity: 0; }
+  .cartao .ic { font-size: 64px; }
+  .cartao b { display: block; font-size: 40px; margin-top: 10px; }
+  .cartao .q { margin-top: 18px; font-family: 'DM Mono', monospace; font-size: 30px; line-height: 1.5; color: var(--ambar); }
+
+  /* 3. Calendário de "um dia" */
+  .calend { position: absolute; left: 340px; top: 900px; width: 400px; height: 440px; }
+  .folha { position: absolute; inset: 0; border-radius: 32px; background: #fdfbf3; color: #2c3a33; box-shadow: 0 30px 70px rgba(0,0,0,.5); overflow: hidden; transform-origin: top center; }
+  .folha .topo { height: 110px; background: #c0392b; color: #fff; font-family: 'DM Mono', monospace; font-size: 40px; display: flex; align-items: center; justify-content: center; letter-spacing: .12em; }
+  .folha .num { font-size: 190px; font-weight: 900; text-align: center; margin-top: 30px; letter-spacing: -.05em; }
+  .folha .num.dia { font-size: 92px; margin-top: 100px; font-style: italic; color: #8a958f; letter-spacing: -.02em; }
+
+  /* 4. Celular com a tela de Sonhos */
+  .rotulo { position: absolute; left: 70px; right: 70px; top: 260px; text-align: center; font-size: 64px; font-weight: 900; letter-spacing: -.03em; line-height: 1.05; opacity: 0; }
+  .rotulo em { font-style: normal; color: var(--sinal); }
+  .celular { position: absolute; left: 50%; top: 450px; width: 680px; height: 1100px; margin-left: -340px; border-radius: 74px; background: #050a08;
+    padding: 18px; box-shadow: 0 40px 90px rgba(0,0,0,.6), 0 0 0 3px rgba(240,250,244,.12), 0 0 120px rgba(124,58,237,.18); }
+  .tela { position: absolute; inset: 18px; border-radius: 58px; overflow: hidden; background: #f4f6f3; color: #12241c; }
+  .tela-cab { padding: 60px 34px 22px; background: linear-gradient(160deg, #0f2a20, #0b1f18); color: #f0faf4; font-size: 38px; font-weight: 900; }
+  .tela-cab small { display: block; font-family: 'DM Mono', monospace; font-size: 21px; letter-spacing: .1em; color: #9fb3aa; text-transform: uppercase; font-weight: 400; margin-bottom: 4px; }
+  .passo { position: absolute; left: 0; right: 0; top: 168px; bottom: 64px; padding: 26px 28px; }
+  .campo { margin-bottom: 22px; }
+  .campo label { display: block; font-size: 22px; font-weight: 700; color: #51655b; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+  .campo .in { height: 84px; border-radius: 18px; border: 2px solid #d5ded9; background: #fff; display: flex; align-items: center; padding: 0 24px; font-size: 36px; font-weight: 800; }
+  .campo .in.ativo { border-color: #059669; box-shadow: 0 0 0 4px rgba(5,150,105,.15); }
+  .campo .in .cur { display: inline-block; width: 3px; height: 40px; background: #059669; margin-left: 4px; }
+  .cats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 22px; }
+  .cats span { font-size: 40px; width: 78px; height: 78px; border-radius: 18px; background: #fff; border: 2px solid #d5ded9; display: flex; align-items: center; justify-content: center; }
+  .cats span.on { border-color: #059669; background: #e7f6ee; box-shadow: 0 0 0 4px rgba(5,150,105,.15); }
+  .botao { height: 88px; border-radius: 20px; background: #059669; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 900; }
+  .hero { border-radius: 26px; padding: 26px 28px; color: #fff; background: linear-gradient(135deg, #059669, #7c3aed); }
+  .hero small { display: block; font-size: 21px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; opacity: .85; }
+  .hero .v { font-family: 'DM Mono', monospace; font-size: 66px; font-weight: 500; letter-spacing: -.03em; margin: 6px 0 4px; }
+  .hero .v span { font-size: 30px; opacity: .85; }
+  .hero p { font-size: 25px; line-height: 1.4; opacity: .95; }
+  .veredito { margin-top: 18px; border-radius: 20px; padding: 20px 22px; border: 2px solid; }
+  .veredito b { display: block; font-size: 30px; }
+  .veredito p { font-size: 24px; line-height: 1.45; margin-top: 6px; }
+  .veredito.aperta { background: #fff7e0; border-color: #f2c94c; color: #8a5a00; }
+  .veredito.cabe { background: #e7f6ee; border-color: #6fcf97; color: #0b6b43; }
+  .pills-t { margin-top: 22px; font-size: 21px; font-weight: 800; color: #51655b; text-transform: uppercase; letter-spacing: .05em; }
+  .pills { display: flex; gap: 8px; margin-top: 10px; }
+  .pill { flex: 1; text-align: center; padding: 12px 6px; border-radius: 16px; border: 2px solid #d5ded9; background: #fff; }
+  .pill small { display: block; font-size: 22px; color: #6b7d75; font-weight: 700; }
+  .pill b { display: block; font-family: 'DM Mono', monospace; font-size: 25px; font-weight: 500; margin-top: 2px; }
+  .pill.on { border-color: #059669; background: #e7f6ee; box-shadow: 0 0 0 4px rgba(5,150,105,.18); }
+  .vinc { margin-top: 22px; display: flex; gap: 16px; padding: 20px 22px; border-radius: 20px; border: 2px solid #d5ded9; background: #fff; }
+  .vinc .ck { width: 40px; height: 40px; border-radius: 10px; border: 3px solid #059669; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 900; font-size: 28px; }
+  .vinc b { display: block; font-size: 26px; }
+  .vinc p { font-size: 22px; color: #51655b; line-height: 1.4; margin-top: 4px; }
+  .tela-rod { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; display: flex; align-items: center; justify-content: center; background: #e9efeb;
+    font-family: 'DM Mono', monospace; font-size: 21px; color: #51655b; }
+  .dedo { position: absolute; width: 96px; height: 96px; margin: -48px 0 0 -48px; border-radius: 50%; background: rgba(251,191,36,.35); border: 5px solid var(--ambar); opacity: 0; z-index: 9; }
+  .extrato { position: absolute; left: 110px; right: 110px; top: 1010px; padding: 22px 28px; border-radius: 28px; background: #fff; color: #12241c; box-shadow: 0 30px 70px rgba(0,0,0,.5), 0 0 0 3px rgba(52,211,153,.6);
+    display: flex; align-items: center; gap: 20px; opacity: 0; z-index: 8; }
+  .extrato .ic { width: 72px; height: 72px; border-radius: 20px; background: #fef3c7; display: flex; align-items: center; justify-content: center; font-size: 40px; flex: 0 0 auto; }
+  .extrato .d { flex: 1; font-size: 32px; font-weight: 900; }
+  .extrato .d small { display: block; font-size: 23px; color: #6b7d75; font-weight: 600; margin-top: 4px; }
+  .extrato .v { font-family: 'DM Mono', monospace; font-size: 32px; color: #b42318; }
+
+  /* 5. Marca */
+  .marca { width: 560px; margin: 0 auto; display: block; }
+  .pilula { display: inline-flex; align-items: center; gap: 16px; padding: 18px 34px; border-radius: 99px; border: 2px solid rgba(52,211,153,.5);
+    background: rgba(52,211,153,.12); color: var(--sinal); font-family: 'DM Mono', monospace; font-size: 34px; letter-spacing: .14em; text-transform: uppercase; }
+  .pilula i { width: 16px; height: 16px; border-radius: 50%; background: var(--sinal); box-shadow: 0 0 16px var(--sinal); }
+  .cta { display: inline-flex; align-items: center; gap: 24px; padding: 34px 54px; border-radius: 36px; background: var(--primaria);
+    font-weight: 900; font-size: 54px; letter-spacing: -.02em; color: #fff; box-shadow: 0 30px 70px rgba(5,150,105,.45); }
+  .aviso { position: absolute; left: 80px; right: 80px; top: 1390px; text-align: center; font-family: 'DM Mono', monospace; font-size: 29px; line-height: 1.5; color: var(--tinta); }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <div class="halo"></div>
+  <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+
+  <!-- 1. GANCHO (0–2,1 s) -->
+  <div class="cena" id="c1">
+    <div class="grande" style="top:340px;"><div class="tit linha" data-in="0" style="font-size:118px;">Qual é o<br>seu <em>sonho?</em></div></div>
+    <div class="chip" id="k0" style="left:110px;top:900px;"><span>✈️</span>Viagem</div>
+    <div class="chip" id="k1" style="left:520px;top:1040px;"><span>🏠</span>Casa própria</div>
+    <div class="chip" id="k2" style="left:160px;top:1190px;"><span>🚗</span>Carro</div>
+    <div class="chip" id="k3" style="left:500px;top:1320px;"><span>💍</span>Casamento</div>
+    <div class="chip" id="k4" style="left:130px;top:1450px;"><span>📚</span>Faculdade</div>
+  </div>
+
+  <!-- 2. NINGUÉM SABE (2,1–7,15 s) -->
+  <div class="cena" id="c2">
+    <div class="grande" style="top:300px;"><div class="tit linha" data-in="0" style="font-size:88px;">Todo mundo<br>tem um.</div>
+      <div class="tit linha" data-in="1.3" style="font-size:72px;margin-top:30px;color:var(--deck);">Mas quanto separar?<br><em class="r">Quando</em> ele chega?</div></div>
+    <div class="cartao" id="q0" style="left:100px;top:960px;"><div class="ic">✈️</div><b>Viagem</b><div class="q">R$ ?/mês<br>quando? ?</div></div>
+    <div class="cartao" id="q1" style="left:580px;top:1030px;"><div class="ic">🚗</div><b>Carro</b><div class="q">R$ ?/mês<br>quando? ?</div></div>
+    <div class="cartao" id="q2" style="left:300px;top:1260px;"><div class="ic">🏠</div><b>Casa própria</b><div class="q">R$ ?/mês<br>quando? ?</div></div>
+  </div>
+
+  <!-- 3. UM DIA (7,15–10,35 s) -->
+  <div class="cena" id="c3">
+    <div class="grande" style="top:340px;"><div class="tit linha" data-in="0" style="font-size:86px;">Sonho sem data<br>fica sempre para<br><em class="r">“um dia”.</em></div></div>
+    <div class="calend" id="calend">
+      <div class="folha" id="f0"><div class="topo">NOV</div><div class="num">2026</div></div>
+      <div class="folha" id="f1"><div class="topo">MAR</div><div class="num">2028</div></div>
+      <div class="folha" id="f2"><div class="topo">???</div><div class="num">2031</div></div>
+      <div class="folha" id="f3"><div class="topo">UM DIA</div><div class="num dia">…talvez</div></div>
+    </div>
+  </div>
+
+  <!-- 4. O APP (10,35–25,4 s) -->
+  <div class="cena" id="c4">
+    <div class="rotulo" id="r1">O sonho, o <em>valor</em><br>e o <em>prazo</em></div>
+    <div class="rotulo" id="r2">Quanto separar,<br>e se <em>cabe</em> no mês</div>
+    <div class="rotulo" id="r3">Apertou? <em>Outro prazo.</em></div>
+    <div class="rotulo" id="r4">A parcela entra<br>no seu <em>mês</em></div>
+    <div class="celular" id="cel">
+      <div class="tela">
+        <div class="tela-cab"><small>Meus sonhos</small><span id="cabT">Novo sonho</span></div>
+        <div class="passo" id="p1">
+          <div class="cats"><span id="catV">✈️</span><span>🚗</span><span>🏠</span><span>📚</span><span>💍</span><span>🛡️</span></div>
+          <div class="campo"><label>Qual é o sonho?</label><div class="in" id="i1"></div></div>
+          <div class="campo"><label>Quanto custa?</label><div class="in" id="i2"></div></div>
+          <div class="campo"><label>Em quanto tempo?</label><div class="in" id="i3"></div></div>
+          <div class="botao" id="bt">Ver o plano</div>
+        </div>
+        <div class="passo" id="p2" style="opacity:0;">
+          <div class="hero"><small>Você vai precisar separar</small>
+            <div class="v" id="hv">R$ 956,76<span>/mês</span></div>
+            <p id="hp">em <b>12 aportes mensais</b> — de agora até <b>out de 2027</b>.</p></div>
+          <div class="veredito aperta" id="ver"><b id="verT">⚠️ Cabe, mas aperta</b>
+            <p id="verP">Sua sobra média é <b style="display:inline;font-size:inherit;">R$ 1.100,00</b>/mês. Este sonho pede R$ 956,76 — 87% da sua sobra.</p></div>
+          <div class="pills-t">E se o prazo fosse outro?</div>
+          <div class="pills">
+            <div class="pill" id="pill2"><small>2 anos</small><b>R$ 455,53</b></div>
+            <div class="pill"><small>3 anos</small><b>R$ 288,96</b></div>
+            <div class="pill"><small>4 anos</small><b>R$ 206,05</b></div>
+          </div>
+          <div class="vinc" id="vinc"><div class="ck" id="ck"></div><div><b>Já lançar no Controle Financeiro</b>
+            <p>Cria o compromisso mensal de R$ 455,53 na categoria ⭐ Sonho, mês a mês, para você pagar como qualquer outra conta.</p></div></div>
+        </div>
+        <div class="tela-rod">Dados de demonstração</div>
+      </div>
+    </div>
+    <div class="extrato" id="ext"><div class="ic">⭐</div><div class="d">Viagem ao Chile<small>Sonho · todo mês até out de 2028</small></div><div class="v">− R$ 455,53</div></div>
+    <div class="dedo" id="dedo"></div>
+  </div>
+
+  <!-- 5. MARCA (25,4–30,5 s) -->
+  <div class="cena" id="c5">
+    <div style="position:absolute;left:0;right:0;top:320px;text-align:center;">
+      <img class="marca linha" data-in="0.05" src="wordmark.svg" alt="Appliquei">
+      <div class="tit linha" data-in="0.6" style="font-size:90px;margin-top:64px;">Seu sonho,<br>com <em>data marcada.</em></div>
+      <div class="linha" data-in="2.6" style="margin-top:60px;"><span class="pilula"><i></i>Em breve · janeiro de 2027</span></div>
+      <div class="linha" data-in="3.0" style="margin-top:44px;"><span class="cta">Siga para saber primeiro</span></div>
+    </div>
+    <div class="aviso linha" data-in="1.0">Valores de exemplo (dados de demonstração).<br>A parcela considera um rendimento estimado,<br>não garantido.</div>
+  </div>
+
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  (function () {
+    const L = 1080, A = 1920, t = [];
+    for (let x = 60; x < L; x += 60) t.push(`<line x1="${x}" y1="0" x2="${x}" y2="${A}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 60; y < A; y += 60) t.push(`<line x1="0" y1="${y}" x2="${L}" y2="${y}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 120; y < A; y += 120) {
+      t.push(`<line x1="0" y1="${y}" x2="16" y2="${y}" stroke="#34d399" stroke-opacity=".18" stroke-width="2"/>`);
+      t.push(`<line x1="${L - 16}" y1="${y}" x2="${L}" y2="${y}" stroke="#34d399" stroke-opacity=".18" stroke-width="2"/>`);
+    }
+    $('malha').innerHTML = t.join('');
+  })();
+  function $(id) { return document.getElementById(id); }
+
+  const DUR = 30.5;
+  const CENAS = [['c1', 0, 2.1], ['c2', 2.1, 7.15], ['c3', 7.15, 10.35], ['c4', 10.35, 25.4], ['c5', 25.4, 30.7]];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeInOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+  const easeBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  function surge(el, lt, a, dur, dy) {
+    const p = easeBack(prog(lt, a, a + (dur || 0.5)));
+    el.style.opacity = clamp(p, 0, 1);
+    el.style.transform = `translateY(${(1 - p) * (dy == null ? 40 : dy)}px) scale(${0.85 + 0.15 * p})`;
+  }
+  function janela(el, lt, a, b, dy) {
+    const v = prog(lt, a, a + 0.3) * (1 - prog(lt, b - 0.25, b));
+    el.style.opacity = v;
+    el.style.transform = `translateY(${(1 - v) * (dy == null ? 30 : dy)}px)`;
+  }
+  function toque(lt, a, el) {
+    const dedo = $('dedo');
+    if (lt > a - 0.25 && lt < a + 0.25) {
+      const r = el.getBoundingClientRect();
+      dedo.style.left = r.left + r.width / 2 + 'px'; dedo.style.top = r.top + r.height / 2 + 'px';
+      const f = prog(lt, a - 0.25, a + 0.25);
+      dedo.style.opacity = Math.sin(f * Math.PI);
+      dedo.style.transform = `scale(${1.3 - 0.4 * Math.sin(f * Math.PI)})`;
+      return true;
+    }
+    return false;
+  }
+
+  function render(t) {
+    for (const [id, a, b] of CENAS) {
+      const el = $(id);
+      const dentro = t >= a - 0.01 && t < b;
+      const fadeIn = id === 'c1' ? 1 : easeOut(prog(t, a, a + 0.3));
+      const fadeOut = 1 - prog(t, b - 0.25, b);
+      el.style.opacity = dentro ? Math.min(fadeIn, fadeOut) : 0;
+      el.style.display = dentro ? 'block' : 'none';
+      if (!dentro) continue;
+      const lt = t - a;
+      el.querySelectorAll('.linha').forEach((ln) => {
+        const d = Number(ln.dataset.in || 0);
+        const p = id === 'c1' && d === 0 ? 1 : easeOut(prog(lt, d, d + 0.45));
+        ln.style.opacity = p;
+        ln.style.transform = `translateY(${(1 - p) * 40}px)`;
+      });
+      cenaExtra(id, lt);
+    }
+    $('logoFixo').style.opacity = t < 25.2 ? 1 : 1 - prog(t, 25.2, 25.5);
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+
+  function cenaExtra(id, lt) {
+    if (id === 'c1') {
+      for (let i = 0; i < 5; i++) {
+        const k = $('k' + i);
+        surge(k, lt, 0.15 + i * 0.22, 0.4, 50);
+        k.style.transform += ` translateY(${Math.sin(lt * 2.4 + i) * 8}px)`;
+      }
+    }
+    if (id === 'c2') {
+      for (let i = 0; i < 3; i++) {
+        const q = $('q' + i);
+        surge(q, lt, 0.5 + i * 0.3, 0.45, 60);
+        // os "?" piscam: a pergunta não tem resposta
+        q.querySelector('.q').style.opacity = lt > 1.4 ? 0.55 + 0.45 * Math.abs(Math.sin(lt * 4 + i)) : 1;
+        q.style.transform += ` rotate(${(i - 1) * 3}deg)`;
+      }
+    }
+    if (id === 'c3') {
+      // as folhas caem uma a uma; a última é "um dia… talvez"
+      const quedas = [0.6, 1.2, 1.8];
+      for (let i = 0; i < 4; i++) {
+        const f = $('f' + i);
+        f.style.zIndex = 4 - i;
+        if (i < 3) {
+          const p = easeInOut(prog(lt, quedas[i], quedas[i] + 0.5));
+          f.style.transform = `rotateX(${p * 95}deg) translateY(${p * 80}px)`;
+          f.style.opacity = 1 - prog(lt, quedas[i] + 0.35, quedas[i] + 0.5);
+        }
+      }
+      $('calend').style.opacity = easeOut(prog(lt, 0.15, 0.45));
+      $('calend').style.transform = `scale(${1 - 0.04 * prog(lt, 2.2, 3.2)}) rotate(${-2 * prog(lt, 2.2, 3.2)}deg)`;
+      $('f3').style.filter = `brightness(${1 - 0.35 * prog(lt, 2.2, 3.1)})`;
+    }
+    if (id === 'c4') {
+      surge($('cel'), lt, 0.05, 0.5, 140);
+      // 10,35 + lt. Fala: "você diz o sonho, o valor e o prazo" 0,15–3,6 · "quanto separar…cabe" 3,95–8,2 ·
+      // "Apertou? Outro prazo" 8,6–11,5 · "a parcela entra no seu mês" 11,85–14,8
+      const dig = (txt, a, b) => txt.slice(0, Math.round(prog(lt, a, b) * txt.length));
+      const campos = [['i1', 'Viagem ao Chile', 0.5, 1.4], ['i2', 'R$ 12.000', 1.6, 2.2], ['i3', '12 meses', 2.4, 2.9]];
+      campos.forEach(([cid, txt, a, b]) => {
+        const c = $(cid);
+        const ativo = lt >= a && lt < b + 0.2;
+        c.className = 'in' + (ativo ? ' ativo' : '');
+        c.innerHTML = dig(txt, a, b) + (ativo ? '<span class="cur"></span>' : '');
+      });
+      $('catV').className = lt > 0.35 ? 'on' : '';
+      const vaiP2 = easeInOut(prog(lt, 3.55, 3.95));
+      $('p1').style.opacity = 1 - vaiP2;
+      $('p1').style.transform = `translateX(${-vaiP2 * 120}px)`;
+      $('p2').style.opacity = vaiP2;
+      $('p2').style.transform = `translateX(${(1 - vaiP2) * 120}px)`;
+      $('cabT').textContent = lt < 3.75 ? 'Novo sonho' : '✈️ Viagem ao Chile';
+      toque(lt, 3.35, $('bt'));
+      // veredito pisca "aperta"; toque em "2 anos" (9,4) → tudo recalcula e vira "cabe com folga"
+      const virou = lt >= 9.5;
+      $('pill2').className = 'pill' + (virou ? ' on' : '');
+      $('hv').innerHTML = (virou ? 'R$ 455,53' : 'R$ 956,76') + '<span>/mês</span>';
+      $('hp').innerHTML = virou
+        ? 'em <b>24 aportes mensais</b> — de agora até <b>out de 2028</b>.'
+        : 'em <b>12 aportes mensais</b> — de agora até <b>out de 2027</b>.';
+      const ver = $('ver');
+      ver.className = 'veredito ' + (virou ? 'cabe' : 'aperta');
+      $('verT').textContent = virou ? '✅ Cabe no seu mês com folga' : '⚠️ Cabe, mas aperta';
+      $('verP').innerHTML = 'Sua sobra média é <b style="display:inline;font-size:inherit;">R$ 1.100,00</b>/mês. ' +
+        (virou ? 'Este sonho pede R$ 455,53 — 41% da sua sobra.' : 'Este sonho pede R$ 956,76 — 87% da sua sobra.');
+      const pulsa = lt > 5.6 && lt < 9.4 ? 1 + 0.025 * Math.sin((lt - 5.6) * 7) : 1;
+      const salto = virou ? 1 + 0.06 * Math.exp(-(lt - 9.5) * 5) : 1;
+      ver.style.transform = `scale(${pulsa * salto})`;
+      $('hv').style.transform = `scale(${salto})`;
+      // o card desliza para o fim quando chega a hora de vincular
+      toque(lt, 9.4, $('pill2')) || toque(lt, 12.3, $('vinc'));
+      const ck = $('ck');
+      const marcado = lt >= 12.4;
+      ck.style.background = marcado ? '#059669' : '#fff';
+      ck.textContent = marcado ? '✓' : '';
+      $('vinc').style.boxShadow = marcado ? '0 0 0 4px rgba(5,150,105,.25)' : 'none';
+      // a linha do extrato salta para fora do celular
+      const e = easeBack(prog(lt, 12.9, 13.4));
+      $('ext').style.opacity = clamp(e, 0, 1);
+      $('ext').style.transform = `translateY(${(1 - e) * 80}px) scale(${0.9 + 0.1 * e})`;
+      [['r1', 0.1, 3.95], ['r2', 3.95, 8.55], ['r3', 8.55, 11.8], ['r4', 11.8, 99]].forEach(([rid, a, b]) => janela($(rid), lt, a, b, 24));
+    }
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>
