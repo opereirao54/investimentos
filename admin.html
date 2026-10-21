@@ -377,6 +377,159 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
 .fb-reply-input { width:100%; min-height:64px; resize:vertical; padding:10px 12px; border:1.5px solid var(--cor-borda); border-radius:9px; font-family:'Figtree',sans-serif; font-size:13px; background:var(--cor-superficie); color:var(--cor-texto-principal); }
 .fb-tag { display:inline-block; font-size:11px; font-weight:700; padding:2px 9px; border-radius:99px; background:var(--cor-superficie); color:var(--cor-texto-mutado); border:1px solid var(--cor-borda); }
 
+/* ═══════ CELULAR (≤768px): casca de app ═══════
+   Barra inferior + "Mais" no lugar da sidebar; tabelas viram cartões
+   (data-label vem de web/appliquei-admin-mobile.js); indicadores em duas
+   colunas; filtros numa fila que rola para o lado. Nada do computador
+   some — só muda de lugar. */
+.adm-tabbar, .adm-mais, .adm-mais-fundo { display:none; }
+@media (max-width:768px) {
+    :root { --adm-barra: 64px; }
+    .sidebar, .sidebar-backdrop, .mobile-toggle { display:none !important; }
+    body { padding-bottom: calc(var(--adm-barra) + env(safe-area-inset-bottom)); }
+    .section { padding: calc(14px + env(safe-area-inset-top)) 14px calc(var(--adm-barra) + 28px + env(safe-area-inset-bottom)); }
+
+    /* Cabeçalho: título firme, descrição curta, ações em linha cheia. */
+    .page-header { margin-bottom:14px; gap:10px; }
+    .page-header > div:first-child { width:100%; }
+    .page-header h1 { font-size:22px; margin-bottom:3px; }
+    .page-header .sub { font-size:12.5px; line-height:1.45; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .page-actions { width:100%; display:flex; gap:8px; flex-wrap:wrap; }
+    .page-actions > * { flex:1 1 auto; }
+    .search-wrap { width:100% !important; }
+    .kbd-shortcut { display:none; }
+
+    /* Indicadores: dois por linha, número menor. */
+    .kpi-grid { grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:10px; }
+    .kpi-card { padding:12px 13px; }
+    .kpi-card:hover { transform:none; }
+    .kpi-label { font-size:9.5px; letter-spacing:.5px; margin-bottom:6px; }
+    .kpi-value { font-size:18px; letter-spacing:-.5px; overflow-wrap:anywhere; }
+    .kpi-sub { font-size:10.5px; line-height:1.35; }
+    .kpi-spark { height:24px; }
+    .section-title { margin:18px 0 10px; }
+
+    /* Filtros: uma fila só, rolando para o lado, de borda a borda. */
+    .filter-chips, .cm-tabs {
+        flex-wrap:nowrap; overflow-x:auto; margin-left:-14px; margin-right:-14px; padding:0 14px 2px;
+        scrollbar-width:none; -webkit-overflow-scrolling:touch;
+    }
+    .filter-chips::-webkit-scrollbar, .cm-tabs::-webkit-scrollbar { display:none; }
+    .filter-chip, .cm-tab, .period-chip { flex:0 0 auto; min-height:38px; }
+
+    /* Tabelas → cartões. A primeira célula vira o título do cartão. */
+    .tbl-scroll { overflow:visible; }
+    .card:has(> .tbl), .card:has(> .tbl-scroll) { background:transparent; border:0; box-shadow:none; padding:0 !important; overflow:visible !important; }
+    .tbl, .tbl tbody { display:block; }
+    .tbl thead { display:none; }
+    .tbl tr { display:block; background:var(--cor-branco); border:1px solid var(--cor-borda); border-radius:14px; padding:12px 14px; margin-bottom:10px; box-shadow:var(--shadow-card); }
+    .tbl tr.clickable:active { background:var(--cor-bg-primaria); }
+    .tbl tr.clickable:hover td { background:transparent; }
+    .tbl td { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:5px 0; border:0; text-align:right !important; font-size:13px; }
+    .tbl td::before { content:attr(data-label); flex:0 0 auto; max-width:45%; text-align:left; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--cor-texto-mutado); padding-top:2px; }
+    .tbl td[data-label=""]::before { display:none; }
+    .tbl td:first-child { display:block; text-align:left !important; font-size:14.5px; font-weight:600; padding:0 0 6px; margin-bottom:4px; border-bottom:1px solid var(--cor-borda); }
+    .tbl td:first-child::before { display:none; }
+    .tbl td.tbl-empty { display:block; text-align:center !important; border:0; }
+    .tbl td.tbl-empty::before { display:none; }
+    .tbl tr:has(> td.tbl-empty) { background:transparent; border-style:dashed; box-shadow:none; }
+    .tbl td > div[style*="justify-content:flex-end"], .tbl td > div[style*="justify-content: flex-end"] { justify-content:flex-start !important; }
+    .uso-areas { min-width:0; width:100%; }
+    /* A lista de áreas ocupa a largura do cartão, com o rótulo em cima. */
+    .tbl td:has(.uso-areas) { display:block; text-align:left !important; }
+    .tbl td:has(.uso-areas)::before { display:block; max-width:none; margin:4px 0 4px; }
+    /* Célula sem rótulo (Ações): botões alinhados à direita, sem título. */
+    .tbl td[data-label=""] { justify-content:flex-end; }
+    .tbl td[data-label=""] .qa-pill { min-height:36px; }
+
+    /* Painel: período ocupa a linha; Atualizar vira só o ícone. */
+    #sec-dashboard .page-actions { flex-wrap:nowrap; }
+    #period-chips { flex:1 1 auto; display:flex; }
+    #period-chips .period-chip { flex:1 1 0; text-align:center; padding-left:4px; padding-right:4px; }
+    #btn-refresh { flex:0 0 auto; }
+    /* loadStats reescreve o conteúdo do botão; esconder pelo tamanho da
+       fonte vale para qualquer texto que ele puser lá. */
+    #btn-refresh { font-size:0; gap:0; min-width:46px; justify-content:center; }
+    #btn-refresh i { font-size:18px; }
+
+    /* Filtros em select (Audit, Sugestões): linha cheia. */
+    .section .sp-select { flex:1 1 100% !important; width:100% !important; min-width:0 !important; }
+
+    /* Carteira modelo: campos que cabem. */
+    .cm-grade-2 { grid-template-columns:1fr !important; }
+    .cm-grade-4 { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+
+    /* Ações da ficha: uma fila que rola para o lado, sobra espaço para os dados. */
+    .drawer-actions .quick-actions { flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; }
+    .drawer-actions .quick-actions::-webkit-scrollbar { display:none; }
+    .drawer-actions .qa-pill { flex:0 0 auto; white-space:nowrap; }
+
+    /* Paginação embaixo, centralizada. */
+    .pagination { flex-direction:column; gap:10px; align-items:center; }
+
+    /* Superpoderes e formulários: um campo por linha, sem estourar. */
+    .sp-controls { flex-direction:column; }
+    .sp-input, .sp-select, .sp-value-input, .sp-btn { width:100%; min-width:0 !important; flex:1 1 auto; box-sizing:border-box; }
+    .sp-btn { min-height:48px; justify-content:center; }
+    .quick-actions { gap:8px; }
+    .qa-pill { font-size:13px; padding:9px 14px; min-height:40px; }
+    .terminal-body { font-size:12px; min-height:160px; }
+    #sec-convites div[style*="display:flex"] > .sp-input { flex:1 1 100% !important; }
+
+    /* Ficha do usuário: folha de tela cheia, ações sempre à mão. */
+    #user-drawer { width:100vw; border-left:0; }
+    .drawer-head { padding:calc(14px + env(safe-area-inset-top)) 16px 14px; }
+    .drawer-body { padding:14px 16px; }
+    .drawer-field { gap:12px; align-items:flex-start; }
+    .drawer-field-value { max-width:62%; font-size:12.5px; }
+    .drawer-actions { padding:12px 16px calc(12px + env(safe-area-inset-bottom)); max-height:42vh; overflow-y:auto; }
+
+    /* Avisos acima da barra. */
+    #toast-container { left:12px; right:12px; bottom:calc(var(--adm-barra) + 12px + env(safe-area-inset-bottom)); }
+    .toast { min-width:0; max-width:none; }
+
+    /* Barra inferior. */
+    .adm-tabbar {
+        display:flex; position:fixed; left:0; right:0; bottom:0; z-index:150;
+        height:calc(var(--adm-barra) + env(safe-area-inset-bottom)); padding:0 4px env(safe-area-inset-bottom);
+        background:var(--cor-branco); border-top:1px solid var(--cor-borda); box-shadow:0 -6px 18px rgba(0,0,0,.05);
+    }
+    .adm-tab {
+        position:relative; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+        border:0; background:none; color:var(--cor-texto-mutado); font:600 11px 'Figtree',sans-serif; cursor:pointer; min-width:0;
+    }
+    .adm-tab i { font-size:23px; }
+    .adm-tab.ativo { color:var(--cor-primaria); }
+    .adm-tab.ativo i { font-weight:bold; }
+    .adm-tab-badge {
+        position:absolute; top:7px; left:calc(50% + 6px); min-width:17px; height:17px; padding:0 5px; border-radius:99px;
+        background:var(--cor-erro); color:#fff; font:700 10px/17px 'Figtree',sans-serif; text-align:center;
+    }
+    .adm-tab-badge[hidden] { display:none; }
+
+    /* "Mais": folha que sobe de baixo. */
+    .adm-mais-fundo:not([hidden]) { display:block; position:fixed; inset:0; z-index:180; background:rgba(5,12,9,.45); }
+    .adm-mais:not([hidden]) {
+        display:flex; flex-direction:column; position:fixed; left:0; right:0; bottom:0; z-index:190;
+        background:var(--cor-branco); border-radius:20px 20px 0 0; padding:8px 14px calc(16px + env(safe-area-inset-bottom));
+        max-height:85vh; overflow-y:auto; box-shadow:0 -12px 30px rgba(0,0,0,.18); animation:admSobe .22s ease;
+    }
+    @keyframes admSobe { from { transform:translateY(30px); opacity:0; } to { transform:none; opacity:1; } }
+    .adm-mais-alca { width:42px; height:5px; border-radius:3px; background:var(--cor-borda); margin:4px auto 10px; }
+    .adm-mais-grupo { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:var(--cor-texto-mutado); margin:10px 4px 6px; }
+    .adm-mais-item {
+        display:flex; align-items:center; gap:14px; width:100%; min-height:58px; padding:10px 8px; border:0; border-radius:12px;
+        background:none; color:var(--cor-texto-principal); font-family:'Figtree',sans-serif; text-align:left; cursor:pointer;
+    }
+    .adm-mais-item:active, .adm-mais-item.ativo { background:var(--cor-bg-primaria); }
+    .adm-mais-item i { font-size:22px; width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:var(--cor-superficie); color:var(--cor-primaria); flex:0 0 auto; }
+    .adm-mais-item span { display:flex; flex-direction:column; gap:2px; min-width:0; }
+    .adm-mais-item b { font-size:15px; font-weight:600; }
+    .adm-mais-item small { font-size:12px; color:var(--cor-texto-mutado); }
+    .adm-mais-sair b, .adm-mais-sair i { color:var(--cor-erro); }
+    body.adm-mais-aberto { overflow:hidden; }
+}
+
     /* Campo de formulário nunca abaixo de 16px no toque.
        O Safari do iOS amplia a página sozinho ao focar um campo com fonte
        menor que 16px, e a viewport visível passa a ser menor que a de
@@ -480,7 +633,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
                     <button class="period-chip" data-period="90d">90d</button>
                     <button class="period-chip active" data-period="all">All-time</button>
                 </div>
-                <button class="btn-sec" id="btn-refresh" onclick="loadStats()"><i class="ph ph-arrows-clockwise"></i> Atualizar</button>
+                <button class="btn-sec" id="btn-refresh" onclick="loadStats()" aria-label="Atualizar"><i class="ph ph-arrows-clockwise"></i> <span class="adm-rot">Atualizar</span></button>
             </div>
         </div>
 
@@ -984,6 +1137,30 @@ Dica: você pode inserir o e-mail ou o UID do usuário alvo.</div>
             </div>
         </div>
 
+        <!-- Quem está usando: só datas por área, nunca o conteúdo dos dados
+             (api/_lib/uso-testadores.js). -->
+        <div class="page-header" style="margin-top:4px;">
+            <div>
+                <h2 style="margin:0;font-size:18px;"><i class="ph-fill ph-pulse" style="color:var(--cor-primaria)"></i> Quem está usando</h2>
+                <p class="sub">Última vez que cada pessoa lançou ou alterou algo no app. Só datas — o conteúdo dos dados não é lido. Quem só abre para olhar, sem mudar nada, aparece como parado.</p>
+            </div>
+        </div>
+        <div class="filter-chips" id="uso-chips">
+            <button class="filter-chip active" data-uso="testadores" onclick="usoFiltrar('testadores')">Testadores <span class="ct" id="uso-ct-testadores">0</span></button>
+            <button class="filter-chip" data-uso="todos" onclick="usoFiltrar('todos')">Todos <span class="ct" id="uso-ct-todos">0</span></button>
+            <button class="filter-chip" data-uso="ativo" onclick="usoFiltrar('ativo')">🟢 Ativos <span class="ct" id="uso-ct-ativo">0</span></button>
+            <button class="filter-chip" data-uso="esfriando" onclick="usoFiltrar('esfriando')">🟡 Esfriando <span class="ct" id="uso-ct-esfriando">0</span></button>
+            <button class="filter-chip" data-uso="parado" onclick="usoFiltrar('parado')">🔴 Parados <span class="ct" id="uso-ct-parado">0</span></button>
+        </div>
+        <div class="card" style="padding:0;overflow:auto;">
+            <table class="tbl">
+                <thead><tr><th>Pessoa</th><th>Entrou</th><th>Último uso</th><th>Situação</th><th>Último uso de cada área</th></tr></thead>
+                <tbody id="uso-lista"><tr><td colspan="5" class="tbl-empty">Carregando…</td></tr></tbody>
+            </table>
+        </div>
+
+        <h2 class="cv-config-tit" style="margin:26px 0 12px;font-size:18px;"><i class="ph-fill ph-ticket" style="color:var(--cor-primaria)"></i> Convites</h2>
+
         <div class="card" style="padding:20px;margin-bottom:16px;">
             <label style="display:flex;align-items:center;gap:12px;cursor:pointer;">
                 <input type="checkbox" id="cv-obrigatorio" onchange="cvMudarModo(this.checked)" style="width:20px;height:20px;cursor:pointer;">
@@ -1021,27 +1198,6 @@ Dica: você pode inserir o e-mail ou o UID do usuário alvo.</div>
             </table>
         </div>
 
-        <!-- Quem está usando: só datas por área, nunca o conteúdo dos dados
-             (api/_lib/uso-testadores.js). -->
-        <div class="page-header" style="margin-top:28px;">
-            <div>
-                <h2 style="margin:0;font-size:18px;"><i class="ph-fill ph-pulse" style="color:var(--cor-primaria)"></i> Quem está usando</h2>
-                <p class="sub">Última vez que cada pessoa lançou ou alterou algo no app. Só datas — o conteúdo dos dados não é lido. Quem só abre para olhar, sem mudar nada, aparece como parado.</p>
-            </div>
-        </div>
-        <div class="filter-chips" id="uso-chips">
-            <button class="filter-chip active" data-uso="testadores" onclick="usoFiltrar('testadores')">Testadores <span class="ct" id="uso-ct-testadores">0</span></button>
-            <button class="filter-chip" data-uso="todos" onclick="usoFiltrar('todos')">Todos <span class="ct" id="uso-ct-todos">0</span></button>
-            <button class="filter-chip" data-uso="ativo" onclick="usoFiltrar('ativo')">🟢 Ativos <span class="ct" id="uso-ct-ativo">0</span></button>
-            <button class="filter-chip" data-uso="esfriando" onclick="usoFiltrar('esfriando')">🟡 Esfriando <span class="ct" id="uso-ct-esfriando">0</span></button>
-            <button class="filter-chip" data-uso="parado" onclick="usoFiltrar('parado')">🔴 Parados <span class="ct" id="uso-ct-parado">0</span></button>
-        </div>
-        <div class="card" style="padding:0;overflow:auto;">
-            <table class="tbl">
-                <thead><tr><th>Pessoa</th><th>Entrou</th><th>Último uso</th><th>Situação</th><th>Último uso de cada área</th></tr></thead>
-                <tbody id="uso-lista"><tr><td colspan="5" class="tbl-empty">Carregando…</td></tr></tbody>
-            </table>
-        </div>
     </section>
 
     <!-- ═══════ CARTEIRA MODELO (Painel do consultor migrado) ═══════ -->
@@ -1057,7 +1213,7 @@ Dica: você pode inserir o e-mail ou o UID do usuário alvo.</div>
         </div>
 
         <div class="card" style="padding:20px;">
-            <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:18px;">
+            <div class="cm-grade-2" style="display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:18px;">
                 <div>
                     <label class="cart-lbl">Mês/Ano de referência</label>
                     <input type="text" id="cm-mesAno" class="sp-input" placeholder="Ex: Mai/2026" style="width:100%;">
@@ -1074,7 +1230,7 @@ Dica: você pode inserir o e-mail ou o UID do usuário alvo.</div>
                 <button class="cm-tab" data-perfil="Moderado" onclick="cmSelPerfil('Moderado')">⚖️ Moderado</button>
                 <button class="cm-tab" data-perfil="Arrojado" onclick="cmSelPerfil('Arrojado')">🚀 Arrojado</button>
             </div>
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+            <div class="cm-grade-4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
                 <div><label class="cart-lbl">Renda Fixa (%)</label><input type="number" id="cm-rf" class="sp-input" min="0" max="100" oninput="cmTotal()" style="width:100%;"></div>
                 <div><label class="cart-lbl">Ações (%)</label><input type="number" id="cm-acao" class="sp-input" min="0" max="100" oninput="cmTotal()" style="width:100%;"></div>
                 <div><label class="cart-lbl">FIIs (%)</label><input type="number" id="cm-fii" class="sp-input" min="0" max="100" oninput="cmTotal()" style="width:100%;"></div>
@@ -1126,6 +1282,31 @@ Dica: você pode inserir o e-mail ou o UID do usuário alvo.</div>
     <div class="drawer-actions" id="drawer-actions"></div>
 </aside>
 
+<!-- CELULAR: barra inferior + "Mais" (web/appliquei-admin-mobile.js).
+     No computador nada disto aparece; a sidebar continua sendo o menu.
+     Toda aba e toda ação da sidebar tem caminho aqui — a trava está em
+     test/admin-mobile.test.js. -->
+<nav class="adm-tabbar" id="admTabbar" aria-label="Navegação do admin">
+    <button type="button" class="adm-tab ativo" data-tab="dashboard" onclick="admIr('dashboard')"><i class="ph ph-chart-line-up"></i><span>Painel</span></button>
+    <button type="button" class="adm-tab" data-tab="users" onclick="admIr('users')"><i class="ph ph-users-three"></i><span>Usuários</span></button>
+    <button type="button" class="adm-tab" data-tab="convites" onclick="admIr('convites')"><i class="ph ph-ticket"></i><span>Testadores</span></button>
+    <button type="button" class="adm-tab" data-tab="feedback" onclick="admIr('feedback')"><i class="ph ph-chats-circle"></i><span>Sugestões</span><b class="adm-tab-badge" id="admTabFeedback" hidden></b></button>
+    <button type="button" class="adm-tab" data-tab="mais" onclick="admAbrirMais()" aria-haspopup="dialog" aria-controls="admMais"><i class="ph ph-dots-three-outline"></i><span>Mais</span></button>
+</nav>
+<div class="adm-mais-fundo" id="admMaisFundo" onclick="admFecharMais()" hidden></div>
+<div class="adm-mais" id="admMais" role="dialog" aria-modal="true" aria-label="Mais" hidden>
+    <div class="adm-mais-alca"></div>
+    <div class="adm-mais-grupo">Ferramentas</div>
+    <button type="button" class="adm-mais-item" data-tab="superpower" onclick="admIr('superpower')"><i class="ph ph-lightning"></i><span><b>Superpoderes</b><small>Ações sobre uma conta: Raio-X, PRO, suspender, excluir</small></span></button>
+    <button type="button" class="adm-mais-item" data-tab="carteira" onclick="admIr('carteira')"><i class="ph ph-chart-pie-slice"></i><span><b>Carteira modelo</b><small>Alocação e ativos publicados para todos</small></span></button>
+    <button type="button" class="adm-mais-item" data-tab="audit" onclick="admIr('audit')"><i class="ph ph-list-dashes"></i><span><b>Audit Log</b><small>Tudo o que foi feito pelo painel</small></span></button>
+    <div class="adm-mais-grupo">Dados e conta</div>
+    <button type="button" class="adm-mais-item" onclick="admFecharMais(); downloadCsv()"><i class="ph ph-file-csv"></i><span><b>Exportar CSV</b><small>Lista de usuários em planilha</small></span></button>
+    <button type="button" class="adm-mais-item" onclick="toggleTheme()"><i class="ph ph-moon"></i><span><b>Modo escuro</b><small>Alternar o tema</small></span></button>
+    <button type="button" class="adm-mais-item adm-mais-sair" onclick="admFecharMais(); logout()"><i class="ph ph-sign-out"></i><span><b>Encerrar sessão</b></span></button>
+</div>
+
 <script src="/web/appliquei-admin.js?v=convites"></script>
+<script src="/web/appliquei-admin-mobile.js?v=1"></script>
 </body>
 </html>

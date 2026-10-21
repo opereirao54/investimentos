@@ -211,6 +211,9 @@ function mudarAba(e, tab) {
     $('mainSidebar').classList.remove('vis');
     $('sidebarBackdrop').classList.remove('vis');
   }
+  // Celular: a barra inferior acompanha qualquer caminho de navegação
+  // (busca global, atalhos de teclado, links internos).
+  if (typeof admSincronizar === 'function') admSincronizar(tab);
   if (tab === 'audit') loadAudit();
   if (tab === 'feedback') loadFeedback();
   if (tab === 'carteira') loadCarteira();
@@ -491,6 +494,7 @@ function openDrawer(user) {
                 ? `<button class="qa-pill" onclick="inlineAction('${email.replace(/'/g, "\\'")}','enable_user')"><i class="ph ph-check"></i> Reativar</button>`
                 : `<button class="qa-pill destructive" onclick="inlineAction('${email.replace(/'/g, "\\'")}','disable_user')"><i class="ph ph-prohibit"></i> Suspender</button>`
             }
+            <button class="qa-pill destructive" onclick="inlineAction('${email.replace(/'/g, "\\'")}','delete_user')"><i class="ph ph-trash"></i> Excluir cadastro</button>
         </div>`;
 
   $('user-drawer').classList.add('vis');
@@ -1645,7 +1649,7 @@ function usoRender() {
         ? `<strong>${escHTML(i.nota)}</strong><div style="font-size:11.5px;color:var(--cor-texto-mutado);">${escHTML(i.email || i.uid)}</div>`
         : `<strong>${escHTML(i.email || i.uid)}</strong>${i.testador ? '' : '<div style="font-size:11.5px;color:var(--cor-texto-mutado);">sem convite</div>'}`;
       const uso = i.ultimoUsoMs
-        ? `${relativeTime(i.ultimoUsoMs)}<div style="font-size:11.5px;color:var(--cor-texto-mutado);">${fmtDateTime(i.ultimoUsoMs)}</div>`
+        ? `<div>${relativeTime(i.ultimoUsoMs)}<div style="font-size:11.5px;color:var(--cor-texto-mutado);">${fmtDateTime(i.ultimoUsoMs)}</div></div>`
         : '<span style="color:var(--cor-texto-mutado);">nunca lançou</span>';
       // Uma linha por área, a mais recente primeiro: quando foi a última vez
       // que a pessoa mexeu em cada parte do app.

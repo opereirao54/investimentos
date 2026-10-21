@@ -57,6 +57,7 @@ const CLASSIC_SCRIPTS = [
   { file: 'web/appliquei-primeiros-passos.js', indent: '' },
   { file: 'web/appliquei-rendimento.js', indent: '' },
   { file: 'web/appliquei-admin.js', indent: '' },
+  { file: 'web/appliquei-admin-mobile.js', indent: '' },
   { file: 'web/appliquei-mobile.js', indent: '' },
   { file: 'web/appliquei-termos.js', indent: '' },
   { file: 'web/appliquei-excluir-conta.js', indent: '' },
