@@ -120,6 +120,12 @@ def cortar(a, sr, n):
     if len(pausas) < n - 1:
         return None
     chars = np.array([len(t) for _, _, t in CENAS], dtype=float)
+    # Leitura muito mais longa que o texto (a Charon fala ~13-16 caracteres por
+    # segundo) é sinal de que o modelo leu a DIRECAO em voz alta — o
+    # gemini-3.8-flash-tts faz isso. Nenhum corte salva essa leitura.
+    if len(a) / sr > chars.sum() / 9:
+        print(f'  leitura longa demais ({len(a) / sr:.0f} s para {chars.sum():.0f} caracteres)')
+        return None
     pos = [0] + [p for p, _ in pausas] + [len(a)]
     dur_pausa = [0.0] + [d for _, d in pausas] + [0.0]
     esperado = (pos[-1] / sr - sum(dur_pausa)) * chars / chars.sum()
