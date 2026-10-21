@@ -1,6 +1,6 @@
 """Trilha original do anúncio de 18 s "o Appliquei te avisa dias antes".
 
-    python3 marketing/ferramentas/shorts/trilha-aviso.py <saida.wav> [--sonhos]
+    python3 marketing/ferramentas/shorts/trilha-aviso.py <saida.wav> [--sonhos | --telegram]
 
 Composta em código (sem licença de terceiros) e sincronizada com as cenas de
 marketing/comercial-mesmo-salario/anuncio-aviso-18s.html:
@@ -28,7 +28,9 @@ import numpy as np
 
 SR = 48000
 # --sonhos: abertura com caixinha de música no lugar do bip de erro (anuncio-sonhos-18s).
-TEMA = 'sonhos' if '--sonhos' in sys.argv else 'aviso'
+# --telegram: bip de "aprovado" da maquininha na abertura e, na virada, os sons
+# da conversa (teclas, envio, "plim" da resposta) no tempo de anuncio-telegram-18s.
+TEMA = 'sonhos' if '--sonhos' in sys.argv else 'telegram' if '--telegram' in sys.argv else 'aviso'
 DUR = 18.0
 N = int(SR * DUR)
 rng = np.random.default_rng(7)
@@ -97,6 +99,11 @@ for k in range(7):  # tique-taque a cada 0,5 s
 if TEMA == 'sonhos':  # caixinha de música em lá menor: "um dia…"
     for k2, m in enumerate((81, 76, 84, 83, 79, 76)):
         add(efeitos, 0.2 + k2 * 0.5, nota(hz(m), 1.0, 'sine', 0.002, 0.45) + 0.3 * nota(hz(m + 12), 1.0, 'sine', 0.002, 0.2), 0.10)
+elif TEMA == 'telegram':  # "bip-bip" de aprovado e, quando a dúvida aparece, duas notas que descem
+    for d, f in ((0.0, 1760), (0.12, 1760)):
+        add(efeitos, 0.15 + d, nota(f, 0.09, 'sine', 0.002, 0.05), 0.16)
+    for d, m in ((0.0, 72), (0.28, 68)):
+        add(efeitos, 1.05 + d, nota(hz(m), 0.5, 'pluck', 0.004, 0.22), 0.12)
 else:
     for t0 in (0.15, 1.6):  # bip de erro: dois toques graves e ásperos
         for d, f in ((0.0, 330), (0.16, 262)):
@@ -150,7 +157,8 @@ for b in range(nb):
 
 # efeitos da cena 2 e 3
 plim = nota(hz(88), 0.6, 'sine', 0.002, 0.25) + 0.6 * nota(hz(93), 0.6, 'sine', 0.002, 0.2)
-add(efeitos, 3.8, plim, 0.16)
+if TEMA != 'telegram':
+    add(efeitos, 3.8, plim, 0.16)
 
 
 def pop(f=900):
@@ -159,12 +167,27 @@ def pop(f=900):
     return np.sin(2 * np.pi * (f + 1200 * np.exp(-tt * 60)) * tt) * np.exp(-tt * 45)
 
 
-add(efeitos, 4.3, pop(700), 0.30)
-add(efeitos, 9.4, pop(900), 0.30)
-add(efeitos, 10.4, pop(1100), 0.30)
 whoosh = lowpass(rng.standard_normal(int(0.45 * SR)), 2500) * np.hanning(int(0.45 * SR))
-add(efeitos, 8.3, whoosh, 0.25)
-add(efeitos, 13.2, whoosh, 0.3)
+if TEMA == 'telegram':
+    # Cena 2 (começa em 3,4 s): 13 teclas de 4,1 a 5,0 s, envio em 5,15, resposta em 5,95.
+    # Cena 3 (8,6 s): envio em 9,05, resposta em 10,05.
+    def tecla():
+        n = int(0.025 * SR)
+        return np.diff(rng.standard_normal(n), prepend=0) * env(n, 0.001, 0.006)
+    for k in range(13):
+        add(efeitos, 4.1 + k * 0.069, tecla(), 0.22)
+    envio = lowpass(rng.standard_normal(int(0.22 * SR)), 5000) * np.hanning(int(0.22 * SR))
+    for t_env, t_bot in ((5.15, 5.95), (9.05, 10.05)):
+        add(efeitos, t_env, envio, 0.30)
+        add(efeitos, t_bot, plim, 0.16)
+    add(efeitos, 8.3, whoosh, 0.25)
+    add(efeitos, 13.2, whoosh, 0.3)
+else:
+    add(efeitos, 4.3, pop(700), 0.30)
+    add(efeitos, 9.4, pop(900), 0.30)
+    add(efeitos, 10.4, pop(1100), 0.30)
+    add(efeitos, 8.3, whoosh, 0.25)
+    add(efeitos, 13.2, whoosh, 0.3)
 
 # ── 3. Resolução (13,6–18 s) ────────────────────────────────────────
 n3 = int(4.4 * SR)
