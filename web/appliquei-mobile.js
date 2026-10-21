@@ -1507,7 +1507,7 @@ function mobStoryAbrir(i) {
     ' de ' +
     lista.length +
     '</span><button type="button" class="mob-story-fechar" aria-label="Fechar" onclick="mobStoryFechar()"><i class="ph ph-x"></i></button></div></div>' +
-    '<div class="mob-story-corpo">' +
+    '<div class="mob-story-corpo" onclick="mobStoryToqueVazio(event)">' +
     insightsUiCard(ins, serie) +
     '</div>' +
     '<button type="button" class="mob-story-zona ant" aria-label="Anterior" onclick="mobStoryPassar(-1)"' +
@@ -1516,6 +1516,16 @@ function mobStoryAbrir(i) {
     '<button type="button" class="mob-story-zona prox" aria-label="Próximo" onclick="mobStoryPassar(1)"></button>';
   tela.hidden = false;
   document.body.classList.add('mob-story-aberta');
+}
+
+// O corpo cobre as zonas de toque (para poder rolar); um toque no espaço
+// vazio em volta do aviso continua passando para o anterior/próximo.
+function mobStoryToqueVazio(ev) {
+  if (!ev || ev.target !== ev.currentTarget) return;
+  const x = ev.clientX / (window.innerWidth || 1);
+  if (x < 0.35) {
+    if (_mobStoryAtual > 0) mobStoryPassar(-1);
+  } else if (x > 0.65) mobStoryPassar(1);
 }
 
 function mobStoryPassar(delta) {
