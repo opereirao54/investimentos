@@ -9,8 +9,8 @@ e limpeza de ruído de cada frase.
 
 Cada frase começa em `ini` e precisa caber até `fim`; se não couber, a fala é
 acelerada aos poucos (até 1,35x). Limpeza: corta o silêncio das pontas,
-passa-alta 85 Hz, passa-baixa 9,5 kHz, redução de ruído (afftdn), remove
-estalos (adeclick) e suaviza a entrada e a saída.
+passa-alta 85 Hz, passa-baixa 9,5 kHz, redução de ruído leve (afftdn — forte,
+ela deixa a voz "aguada") e suaviza a entrada e a saída.
 """
 import os
 import json, subprocess, sys
@@ -25,8 +25,8 @@ CENAS = [
     (0.25, 3.9, "Você sabe quanto realmente tem?"),
     (4.25, 8.8, "Você trabalha, recebe seu dinheiro... mas sabe para onde ele está indo?"),
     (9.1, 10.4, "Quanto você gasta?"),
-    (10.42, 11.62, "Quanto já acumulou?"),
-    (11.66, 13.9, "E como estão seus investimentos?"),
+    (10.42, 11.75, "Quanto já acumulou?"),
+    (11.8, 13.9, "E como estão seus investimentos?"),
     (14.45, 22.3, "Com o Appliquei, você organiza suas finanças, acompanha seus investimentos e vê seu patrimônio, em um só lugar."),
     (22.55, 26.75, "Cuidar do seu dinheiro hoje é construir o futuro que você deseja amanhã."),
     (26.95, 30.6, "Appliquei. Seu dinheiro precisa de direção. Em breve."),
@@ -35,60 +35,59 @@ _CACHE = os.path.expanduser('~/.cache/appliquei-kokoro')
 k = Kokoro(os.path.join(_CACHE, 'kokoro-v1.0.onnx'), os.path.join(_CACHE, 'voices-v1.0.bin'))
 
 
-def entonar_pergunta(a, sr, subida=1.32, janela=0.5):
+def entonar_pergunta(a, sr, subida=1.22, janela=0.5):
     """Sobe o tom no fim da frase, como numa pergunta.
 
     O Kokoro lê "tem?" com o tom caindo, igual a uma afirmação, e ainda
-    ensurdece a vogal final ("gasta" termina num sopro). Por isso a subida não
-    vai no fim do arquivo, e sim no último meio segundo com voz de verdade — a
-    palavra final ("GAS-ta", "TEM", "acumu-LOU"). Ali o tom real é medido (pyin) e
-    cada instante é transposto o necessário para seguir uma rampa que termina
-    `subida` vezes acima do tom médio da frase. As transposições são feitas em
-    níveis inteiros de semitom (mesma duração) e misturadas amostra a amostra
-    entre níveis vizinhos, para o tom deslizar em vez de saltar.
+    ensurdece a vogal final ("gasta" termina num sopro). Por isso a subida vai
+    no último meio segundo com voz de verdade — a palavra final ("GAS-ta",
+    "TEM", "acumu-LOU") —, e não no fim do arquivo.
+
+    A edição é feita com o PSOLA do Praat (parselmouth): só a curva de tom muda,
+    o timbre e a duração ficam, e soa bem menos metálico que um phase vocoder.
+    O trecho final segue uma rampa até `subida` vezes o tom médio da frase
+    (nunca abaixa o tom original); o resto da frase fica intacto e as duas
+    partes se emendam com 30 ms de transição.
     """
-    import librosa
-    n = len(a)
-    hop = 256
-    f0, _, _ = librosa.pyin(a, fmin=60, fmax=320, sr=sr, frame_length=1024, hop_length=hop)
-    voz = ~np.isnan(f0) & (f0 > 85)  # abaixo disso é voz rangida, não tom
+    import parselmouth
+    from parselmouth.praat import call
+
+    snd = parselmouth.Sound(a.astype(np.float64), sampling_frequency=sr)
+    pitch = snd.to_pitch(time_step=0.01, pitch_floor=75, pitch_ceiling=320)
+    f0 = pitch.selected_array['frequency']
+    tempos = pitch.xs()
+    voz = f0 > 85  # abaixo disso é voz rangida, não tom
     if voz.sum() < 5:
         return a
     base = float(np.median(f0[voz]))
-    # A subida cobre o último meio segundo que tem voz: pega a palavra final
-    # inteira ("realmente TEM"), e não só o "m" nasal que sobra depois dela.
-    fim_v = int(np.where(voz)[0][-1])
-    ini_v = max(int(np.where(voz)[0][0]), fim_v - int(janela * sr / hop))
-    idx = np.arange(len(f0))
-    f0i = np.interp(idx, idx[voz], f0[voz])
-    f0i = np.convolve(f0i, np.ones(3) / 3, mode='same')
-    real = np.interp(np.arange(n), idx * hop, f0i)
-    # a rampa chega ao alvo no último quadro com voz; depois disso (sopro e
-    # silêncio) a transposição se mantém e some em 60 ms
-    i0 = int(ini_v * hop)
-    i1 = min(n, int((fim_v + 1) * hop))
-    i2 = min(n, i1 + int(0.06 * sr))
-    if i1 - i0 < int(0.05 * sr):
+    t_fim = float(tempos[np.where(voz)[0][-1]])
+    t_ini = max(float(tempos[np.where(voz)[0][0]]), t_fim - janela)
+    if t_fim - t_ini < 0.08:
         return a
-    x = np.linspace(0, 1, i1 - i0)
-    alvo = real[i0] + (base * subida - real[i0]) * (x ** 1.2)
-    st = np.zeros(n)
-    st[i0:i1] = np.clip(12 * np.log2(alvo / np.maximum(real[i0:i1], 1)), 0, 10)
-    st[i1:i2] = st[i1 - 1] * np.linspace(1, 0, i2 - i1)
-    rampa = int(0.03 * sr)
-    st[i0:i0 + rampa] *= np.linspace(0, 1, min(rampa, i1 - i0))
-    c0 = max(0, i0 - int(0.08 * sr))
-    trecho = a[c0:i2]
-    off = i0 - c0
-    m = i2 - i0
-    niveis = np.arange(0, int(np.ceil(st.max())) + 2)
-    V = np.stack([(trecho if k == 0 else librosa.effects.pitch_shift(trecho, sr=sr, n_steps=float(k)))[off:off + m] for k in niveis])
-    sl = st[i0:i2]
-    lo = np.clip(np.floor(sl).astype(int), 0, len(niveis) - 2)
-    w = sl - lo
-    col = np.arange(m)
+    manip = call(snd, 'To Manipulation', 0.01, 75, 320)
+    tier = call(manip, 'Extract pitch tier')
+    v_ini = call(tier, 'Get value at time', t_ini)
+    alvo = base * subida
+    pontos = []
+    for t in np.arange(t_ini, t_fim + 0.0001, 0.01):
+        x = (t - t_ini) / (t_fim - t_ini)
+        desejado = v_ini + (alvo - v_ini) * x ** 1.2
+        original = call(tier, 'Get value at time', float(t))
+        pontos.append((float(t), max(original, desejado)))
+    call(tier, 'Remove points between', t_ini, t_fim + 0.08)
+    for t, v in pontos:
+        call(tier, 'Add point', t, v)
+    call(tier, 'Add point', t_fim + 0.06, pontos[-1][1])
+    call([tier, manip], 'Replace pitch tier')
+    novo = call(manip, 'Get resynthesis (overlap-add)').values[0].astype(np.float32)
+    novo = np.pad(novo, (0, max(0, len(a) - len(novo))))[: len(a)]
+    # emenda: original até pouco antes da rampa, PSOLA dali em diante
+    i0 = max(0, int((t_ini - 0.04) * sr))
+    xf = int(0.03 * sr)
     out = a.copy()
-    out[i0:i2] = V[lo, col] * (1 - w) + V[lo + 1, col] * w
+    out[i0 + xf:] = novo[i0 + xf:]
+    w = np.linspace(0, 1, xf)
+    out[i0:i0 + xf] = a[i0:i0 + xf] * (1 - w) + novo[i0:i0 + xf] * w
     return out
 
 
@@ -115,16 +114,16 @@ for n, (ini, fim, txt) in enumerate(CENAS):
         d = len(a) / sr
         if d <= janela:
             break
-        vel = min(1.35, vel * d / janela * 1.02)
+        vel = min(1.25, vel * d / janela * 1.02)
     bruto = f'{OUT}/bruto{n}.wav'
     sf.write(bruto, a, sr)
     limpo = f'{OUT}/seg{n}.wav'
-    # Limpeza: tira o grave de fundo e o chiado agudo, reduz o ruído de fundo
-    # (perfil medido no próprio trecho), tira estalos e suaviza as pontas.
+    # Limpeza: tira o grave de fundo e o chiado agudo, reduz de leve o ruído de
+    # fundo e suaviza as pontas.
     fd = max(0.0, d - 0.05)
     subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', bruto, '-af',
                     'aresample=48000,highpass=f=85,lowpass=f=9500,'
-                    'afftdn=nr=14:nf=-42:tn=1,adeclick,'
+                    'afftdn=nr=5:nf=-50,'
                     f'afade=t=in:st=0:d=0.012,afade=t=out:st={fd:.3f}:d=0.05',
                     '-ar', '48000', limpo], check=True)
     partes.append([ini, limpo, round(d, 2), round(vel, 2)])
