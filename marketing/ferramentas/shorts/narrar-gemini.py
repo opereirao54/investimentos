@@ -10,8 +10,12 @@ para mixar com mixar-narracao.py.
     # refazer o corte e a entonação de uma leitura já baixada, sem gastar cota:
     LEITURA=<pasta-saida>/leitura0.wav python3 marketing/ferramentas/shorts/narrar-gemini.py <pasta-saida>
 
-Vozes testadas em pt-BR: Charon (masc., informativa), Achird (masc., amigável),
-Sulafat (fem., calorosa). Modelo padrão: gemini-2.5-flash-preview-tts. O plano
+Voz padrão da marca: Charon (escolhida pelo fundador para o teaser de
+lançamento; mantenha nas próximas peças). Também testadas em pt-BR: Achird
+(masc., amigável) e Sulafat (fem., calorosa). Modelo padrão:
+gemini-2.5-flash-preview-tts. A leitura que virou o teaser está guardada em
+marketing/lancamento-janeiro/narracao-charon-leitura.wav (o Gemini não repete a
+mesma leitura duas vezes; use LEITURA= com ela para refazer os cortes). O plano
 gratuito da API dá 10 pedidos por dia por modelo, por isso o roteiro inteiro sai
 num pedido só (com uma direção de leitura) e é cortado nas pausas entre as
 linhas; o corte confere se a duração de cada pedaço bate com o tamanho do texto

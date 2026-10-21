@@ -102,10 +102,13 @@ Todas usam as fontes da marca: rode `marketing/fontes.sh` uma vez antes.
 | `telas-app.js` | Captura telas reais do app no celular (Início, Patrimônio, Sonhos, Simulador, Extrato, aviso de aperto) com dados de exemplo e ícones | precisa do app servido: `npm run build && npx vite preview --port 4173`; depois `node marketing/ferramentas/telas-app.js <pasta-saida>` |
 | `shorts/`      | Vídeo vertical 1080×1920 de 30 s a partir de cenas HTML (o `video.html` é o modelo do primeiro Shorts), com narração opcional         | ver `marketing/ferramentas/shorts/LEIAME.md`                                                                                            |
 
-Limites conhecidos do ambiente de nuvem: serviços de voz online (Microsoft,
-Google) e o Hugging Face ficam bloqueados; a voz offline disponível (Piper
-`pt-br-edresson-low`, baixada do GitHub) é robótica. Para o post final,
-recomende gravar a voz do fundador ou usar a voz do CapCut — e diga isso.
+Narração: a voz padrão da marca é a **Charon** do TTS do Gemini
+(`shorts/narrar-gemini.py` + `shorts/mixar-narracao.py`, precisa de
+`GEMINI_API_KEY`), escolhida pelo fundador no teaser de lançamento — use-a em
+todo vídeo narrado, com as perguntas subindo o tom no fim. O plano gratuito da
+API dá 10 pedidos/dia por modelo. Na nuvem, Hugging Face e as vozes online da
+Microsoft ficam bloqueados; o Piper (`narrar.py`) é robótico e serve só de
+rascunho.
 
 ---
 
