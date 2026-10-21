@@ -24,7 +24,7 @@ var userSort = { field: 'createdAtMs', dir: 'desc' };
 var userPage = 1;
 var USERS_PER_PAGE = 25;
 var currentData = null;
-var activePeriod = 'all';
+var activePeriod = '30d';
 var drawerUser = null;
 
 /* ========================================
@@ -32,8 +32,8 @@ var drawerUser = null;
    ======================================== */
 var $ = (id) => document.getElementById(id);
 var formatBRL = (c) => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-var formatPct = (n, digits = 1) => `${(n * 100).toFixed(digits)}%`;
-var formatInt = (n) => (n || 0).toLocaleString('pt-PT');
+var formatPct = (n, digits = 1) => `${(n * 100).toFixed(digits).replace('.', ',')}%`;
+var formatInt = (n) => (n || 0).toLocaleString('pt-BR');
 var escHTML = (s) =>
   String(s == null ? '' : s).replace(
     /[&<>"']/g,
@@ -747,59 +747,16 @@ function renderDashboard(data) {
   const b = data.billing || {};
   const u = data.users || {};
 
-  // Financeiro
-  $('val-mrr').textContent = formatBRL(b.mrrCents || 0);
-  $('val-arr').textContent = formatBRL(b.arrCents || 0);
-  $('val-arpu').textContent = formatBRL(b.arpu || 0);
-  $('val-ltv').textContent = b.ltvCents > 0 ? formatBRL(b.ltvCents) : '—';
-
-  // Receita Realizada + cupom
-  $('val-rev-month').textContent = formatBRL(b.revenueThisMonthCents || 0);
-  $('val-rev-month-count').textContent = formatInt(b.paymentsThisMonth);
-  $('val-rev-30d').textContent = formatBRL(b.revenueLast30dCents || 0);
-  $('val-rev-30d-count').textContent = formatInt(b.paymentsLast30d);
-  $('val-discount-rate').textContent = formatPct(b.discountRate || 0);
-  $('val-discount-abs').textContent = formatInt(b.usersWithDiscount);
-  $('val-network').textContent = formatInt(b.withReferral);
-
-  // Crescimento
-  $('val-active').textContent = formatInt(b.active);
-  $('val-trial').textContent = formatInt(b.trialActive);
-  $('val-new7').textContent = formatInt(u.newUsers7d);
-  $('val-new30').textContent = formatInt(u.newUsers30d);
-
-  // Risco
-  $('val-churn').textContent = formatPct(b.churnRate || 0);
-  $('val-conv').textContent = formatPct(b.conversionRate || 0);
-  $('val-overdue').textContent = formatInt(b.overdueCount);
-  $('val-expiring').textContent = formatInt(b.trialExpiringSoon48h);
+  // Visão de negócio (receita, previsão, volumetria, conversão)
+  renderNegocio(data.negocio || null);
 
   // Indicações / Auth
   $('val-earnings').textContent = formatBRL(b.totalEarningsCents || 0);
   $('val-cashback').textContent = formatBRL(b.totalPendingCashbackCents || 0);
+  $('val-discount-abs').textContent = formatInt(b.usersWithDiscount);
+  $('val-network').textContent = formatInt(b.withReferral);
   $('val-viral').textContent = formatPct(b.viralCoefficient || 0);
   $('val-disabled').textContent = formatInt(u.disabled);
-
-  // Funil
-  if (data.funnel) {
-    const f = data.funnel;
-    const max = f.registered || 1;
-    $('fn-registered').textContent = formatInt(f.registered);
-    $('fn-verified').textContent = formatInt(f.emailVerified);
-    $('fn-billing').textContent = formatInt(f.billingInitiated);
-    $('fn-converted').textContent = formatInt(f.converted);
-    $('funnel-bar-1').style.width = '100%';
-    $('funnel-bar-2').style.width = `${(((f.emailVerified || 0) / max) * 100).toFixed(1)}%`;
-    $('funnel-bar-3').style.width = `${(((f.billingInitiated || 0) / max) * 100).toFixed(1)}%`;
-    $('funnel-bar-4').style.width = `${(((f.converted || 0) / max) * 100).toFixed(1)}%`;
-    $('fn-rate-1').textContent = `${(((f.emailVerified || 0) / max) * 100).toFixed(1)}% do total`;
-    $('fn-rate-2').textContent = f.emailVerified
-      ? `${(((f.billingInitiated || 0) / f.emailVerified) * 100).toFixed(1)}% verificados`
-      : '0%';
-    $('fn-rate-3').textContent = f.billingInitiated
-      ? `${(((f.converted || 0) / f.billingInitiated) * 100).toFixed(1)}% iniciaram trial`
-      : '0%';
-  }
 
   // Rankings
   renderRanking('top-referrers', b.topReferrers || [], 'earningsCents', null, {
@@ -815,9 +772,10 @@ function renderDashboard(data) {
   const series = data.series || {};
   let spark = series.dailyNewUsers30d || [];
   // Filtrar por período
-  if (activePeriod === '7d') spark = spark.slice(-7);
-  else if (activePeriod === '30d') spark = spark.slice(-30);
-  else if (activePeriod === '90d') spark = spark.slice(-90);
+  if (data.negocio && data.negocio.volume) spark = data.negocio.volume.cadastrosPorDia || spark;
+  var dias = activePeriod === '7d' ? 7 : activePeriod === '90d' ? 90 : 30;
+  spark = spark.slice(-dias);
+  $('spark-titulo').textContent = 'Cadastros por dia (' + dias + ' dias)';
   renderSparkline('spark-svg', spark);
   $('spark-total').textContent = formatInt(spark.reduce((a, p) => a + p.count, 0));
 
@@ -887,6 +845,308 @@ function renderDashboard(data) {
     alertBox.className = 'alert-bar warn';
     alertBox.innerHTML = `<i class="ph-fill ph-warning"></i> ${formatInt((data.rateLimits24h || {}).suspiciousHits || 0)} hits suspeitos em 24h. Considere ativar antifraude.`;
   }
+}
+
+/* ========================================
+   VISÃO DE NEGÓCIO
+   ======================================== */
+// "R$ 1,2 mil" — rótulo curto para as colunas; o valor exato vai no title.
+function fmtBRLCurto(c) {
+  var r = (c || 0) / 100;
+  if (r >= 1000)
+    return 'R$ ' + (r / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' mil';
+  return 'R$ ' + r.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+}
+var NG_MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+function ngRotuloMes(aaaaMm) {
+  var p = String(aaaaMm).split('-');
+  return NG_MESES[(+p[1] || 1) - 1] + (p[1] === '01' ? '/' + p[0].slice(2) : '');
+}
+function ngTexto(id, txt) {
+  var el = $(id);
+  if (el) el.textContent = txt;
+}
+function ngPct(x) {
+  return x == null ? '—' : formatPct(x);
+}
+function ngDelta(atual, anterior) {
+  if (!anterior) return atual ? 'primeiro período com dado' : 'sem dado para comparar';
+  var d = (atual - anterior) / anterior;
+  return (d >= 0 ? '▲ ' : '▼ ') + formatPct(Math.abs(d)) + ' vs. período anterior';
+}
+
+/** Colunas simples (uma série): altura = valor ÷ maior valor. */
+function ngColunas(elId, itens, fmt) {
+  var el = $(elId);
+  if (!el) return;
+  var max = Math.max.apply(null, itens.map((i) => i.valor).concat([0]));
+  if (!itens.length || max <= 0) {
+    el.innerHTML =
+      '<div style="color:var(--cor-texto-mutado);font-size:12.5px;align-self:center;width:100%;text-align:center">Ainda sem dados neste período.</div>';
+    return;
+  }
+  el.innerHTML = itens
+    .map((i) => {
+      var h = max > 0 ? Math.max(2, (i.valor / max) * 100) : 2;
+      var exato = escHTML(i.titulo || fmt(i.valor));
+      return (
+        '<div class="ng-col" title="' +
+        escHTML(i.rotulo) +
+        ': ' +
+        exato +
+        '">' +
+        '<div class="ng-col-val">' +
+        (i.valor ? escHTML(fmt(i.valor)) : '') +
+        '</div>' +
+        '<div class="ng-col-barra' +
+        (i.valor ? '' : ' zero') +
+        '" style="height:' +
+        h.toFixed(1) +
+        '%"></div>' +
+        '<div class="ng-col-mes">' +
+        escHTML(i.rotulo) +
+        '</div></div>'
+      );
+    })
+    .join('');
+}
+
+function renderNegocio(n) {
+  var aviso = $('ng-aviso');
+  if (!n) {
+    if (aviso) {
+      aviso.style.display = 'flex';
+      aviso.innerHTML =
+        '<i class="ph-fill ph-warning"></i> O servidor ainda não enviou a visão de negócio. Atualize depois do deploy.';
+    }
+    return;
+  }
+  var r = n.receita;
+  var p = n.previsao;
+  var x = n.realizado;
+  var c = n.conversao;
+  var v = n.volume;
+  var s = n.situacoes;
+  if (aviso) {
+    aviso.style.display = n.truncado ? 'flex' : 'none';
+    if (n.truncado)
+      aviso.innerHTML =
+        '<i class="ph-fill ph-warning"></i> Mais de 1.000 cadastros: a volumetria considera os 1.000 primeiros. Receita e previsão usam todas as assinaturas.';
+  }
+
+  // Receita recorrente
+  ngTexto('val-mrr', formatBRL(r.mrrCents));
+  ngTexto('ng-mrr-sub', formatInt(r.assinantes) + ' assinaturas em dia');
+  ngTexto('val-arr', formatBRL(r.arrCents));
+  ngTexto('val-base', formatInt(r.basePagante));
+  ngTexto(
+    'ng-base-sub',
+    formatInt(r.assinantes) +
+      ' em dia · ' +
+      formatInt(r.atraso) +
+      ' em atraso · ' +
+      formatInt(r.avulsos) +
+      ' sem renovação'
+  );
+  ngTexto('val-arpu', formatBRL(r.arpuCents));
+  ngTexto('val-mrr-risco', formatBRL(r.mrrRiscoCents));
+  ngTexto('ng-risco-sub', formatInt(r.atraso) + ' assinaturas com fatura vencida');
+  ngTexto('val-avulso', formatBRL(r.avulsoMensalCents));
+  ngTexto('ng-avulso-sub', formatInt(r.avulsos) + ' pagaram o mês, sem renovação automática');
+  ngTexto('val-desconto', formatBRL(r.descontoMensalCents));
+  ngTexto(
+    'ng-desconto-sub',
+    formatInt(r.assinantesComDesconto) + ' assinantes abaixo do preço cheio'
+  );
+  ngTexto('val-credito', formatBRL(r.creditoPendenteCents));
+
+  // Previsão
+  var p30 = p.proximos30;
+  ngTexto('val-prev-esperado', formatBRL(p30.esperadoCents));
+  ngTexto(
+    'ng-prev-esperado-sub',
+    p30.trialsProvavelCents == null
+      ? 'Só renovações — ainda sem histórico de conversão'
+      : 'Renovações + testes na taxa de conversão atual'
+  );
+  ngTexto('val-prev-renov', formatBRL(p30.renovacoesCents));
+  ngTexto('ng-prev-renov-sub', formatInt(p30.renovacoesQtd) + ' cobranças, com crédito abatido');
+  ngTexto(
+    'val-prev-trials',
+    p30.trialsProvavelCents == null ? '—' : formatBRL(p30.trialsProvavelCents)
+  );
+  ngTexto(
+    'ng-prev-trials-sub',
+    formatInt(p30.trialsQtd) + ' em teste × ' + ngPct(c.taxa) + ' de conversão'
+  );
+  ngTexto('val-prev-avulsos', formatBRL(p30.avulsosCents));
+  ngTexto(
+    'ng-prev-avulsos-sub',
+    formatInt(p30.avulsosQtd) + ' vencem em 30 dias · fora do esperado'
+  );
+  var proj = $('ng-proj');
+  if (proj) {
+    proj.innerHTML = [{ meses: 0, mrrCents: r.mrrCents }]
+      .concat(p.projecao)
+      .map(
+        (it) =>
+          '<div class="ng-proj-item"><div class="ng-proj-lbl">' +
+          (it.meses ? 'Em ' + it.meses + ' meses' : 'Hoje') +
+          '</div><div class="ng-proj-val">' +
+          formatBRL(it.mrrCents) +
+          '</div></div>'
+      )
+      .join('');
+  }
+  var liq = p.mrrLiquidoNovo30Cents;
+  ngTexto(
+    'ng-proj-nota',
+    'Nos últimos 30 dias entraram ' +
+      formatBRL(p.mrrNovo30Cents) +
+      ' de MRR novo e saíram ' +
+      formatBRL(p.mrrCancelado30Cents) +
+      ' em cancelamentos (' +
+      (liq >= 0 ? '+' : '−') +
+      formatBRL(Math.abs(liq)) +
+      '/mês). A projeção repete esse ritmo; é uma referência, não uma promessa.'
+  );
+  var tb = $('ng-renovacoes');
+  if (tb) {
+    var ren = p.renovacoes || [];
+    tb.innerHTML = ren.length
+      ? ren
+          .map((it) => {
+            var found = allUsers.find((uu) => uu.uid === it.uid);
+            return (
+              '<tr><td style="font-weight:500">' +
+              escHTML((found && found.email) || it.uid) +
+              '</td><td class="mono" style="text-align:right">' +
+              fmtDate(it.quandoMs) +
+              '</td><td class="mono" style="text-align:right">' +
+              formatBRL(it.valorCents) +
+              '</td></tr>'
+            );
+          })
+          .join('')
+      : '<tr><td colspan="3" class="tbl-empty">Nenhuma renovação nos próximos 30 dias.</td></tr>';
+  }
+
+  // Receita realizada
+  ngTexto('val-rev-month', formatBRL(x.mesCents));
+  ngTexto(
+    'ng-mes-sub',
+    formatInt(x.mesQtd) + ' pagamentos · ' + ngDelta(x.mesCents, x.mesAnteriorMesmoPeriodoCents)
+  );
+  ngTexto('val-rev-30d', formatBRL(x.ult30Cents));
+  ngTexto('ng-30d-sub', formatInt(x.ult30Qtd) + ' pagamentos nos últimos 30 dias');
+  ngTexto('val-rev-liquido', formatBRL(x.mesLiquidoCents));
+  ngTexto('val-rev-total', formatBRL(x.totalCents));
+  ngTexto('ng-total-sub', formatBRL(x.taxasCents) + ' em taxas · inclui contas excluídas');
+  ngColunas(
+    'ng-receita-meses',
+    (x.porMes || []).map((m) => ({
+      rotulo: ngRotuloMes(m.mes),
+      valor: m.bruto,
+      titulo:
+        formatBRL(m.bruto) +
+        ' (' +
+        formatInt(m.qtd) +
+        ' pagamentos, líquido ' +
+        formatBRL(m.liquido) +
+        ')',
+    })),
+    fmtBRLCurto
+  );
+
+  // Volumetria
+  ngTexto('val-cadastros', formatInt(v.cadastros));
+  ngTexto(
+    'ng-cadastros-sub',
+    formatInt(v.hoje) + ' hoje · ' + formatInt(v.verificados) + ' com e-mail verificado'
+  );
+  ngTexto('val-new7', formatInt(v.novos7));
+  ngTexto(
+    'ng-new7-sub',
+    'Média de ' + (v.novos7 / 7).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' por dia'
+  );
+  ngTexto('val-new30', formatInt(v.novos30));
+  ngTexto('ng-new30-sub', ngDelta(v.novos30, v.novos30Anterior));
+  ngTexto('val-login30', formatInt(v.loginUlt30));
+  ngTexto('ng-login-sub', formatInt(v.loginUlt7) + ' entraram nos últimos 7 dias');
+  var a = v.ativos;
+  ngTexto('val-dau', a ? formatInt(a.dia) : '—');
+  ngTexto('val-wau', a ? formatInt(a.semana) : '—');
+  ngTexto('val-mau', a ? formatInt(a.mes) : '—');
+  ngTexto(
+    'ng-mau-sub',
+    a
+      ? 'Aderência ' +
+          ngPct(a.aderencia) +
+          ' (hoje ÷ mês) · ' +
+          formatInt(a.pagantesAtivos30) +
+          ' pagantes'
+      : 'Sem leitura de uso agora'
+  );
+  ngTexto('val-nunca', a ? formatInt(a.nuncaUsaram) : '—');
+  ngTexto(
+    'ng-nunca-sub',
+    a ? 'Cadastraram e não lançaram nada · ' + formatInt(a.telegram) + ' usam o Telegram' : ''
+  );
+  ngColunas(
+    'ng-cadastros-meses',
+    (v.cadastrosPorMes || []).map((m) => ({ rotulo: ngRotuloMes(m.mes), valor: m.count })),
+    formatInt
+  );
+  var nomes = {
+    assinante: 'Assinantes em dia',
+    atraso: 'Em atraso',
+    avulso: 'Sem renovação',
+    trial: 'Em teste',
+    aguardando: 'Aguardando 1º pagto',
+    cortesia: 'Cortesia',
+    cancelado: 'Cancelaram',
+    estornado: 'Estorno',
+    trial_expirado: 'Teste expirou',
+    sem_assinatura: 'Sem teste',
+  };
+  var semBilling = Math.max(0, v.cadastros - v.iniciaramTeste);
+  var sit = Object.keys(nomes)
+    .map((k) => ({ k: k, valor: k === 'sem_assinatura' ? (s[k] || 0) + semBilling : s[k] || 0 }))
+    .filter((it) => it.valor > 0)
+    .map((it) => ({ label: nomes[it.k], value: it.valor, display: formatInt(it.valor) }));
+  renderBarList('ng-situacoes', sit);
+
+  // Conversão & retenção
+  ngTexto('val-conv', ngPct(c.taxa));
+  ngTexto(
+    'ng-conv-sub',
+    formatInt(c.converteram) + ' de ' + formatInt(c.coorte) + ' que já terminaram o teste'
+  );
+  ngTexto('val-churn', ngPct(c.churnMensal));
+  ngTexto('ng-churn-sub', formatInt(c.canceladosUlt30) + ' cancelaram nos últimos 30 dias');
+  ngTexto('val-ltv', c.ltvCents ? formatBRL(c.ltvCents) : '—');
+  ngTexto('val-trial', formatInt(c.trialsAtivos));
+  ngTexto('ng-trial-sub', formatInt(c.novosPagantes30) + ' novos pagantes em 30 dias');
+  ngTexto('val-expiring', formatInt(c.trialsAcabam48h));
+  ngTexto('val-aguardando', formatInt(c.aguardandoPrimeiroPagamento));
+  ngTexto('val-expirado', formatInt(c.trialExpiradoSemPagar));
+  ngTexto('val-overdue', formatInt(r.atraso));
+
+  // Funil: cadastros → testaram → usaram → pagaram
+  var usaram = a ? a.algumaVez : null;
+  var etapas = [v.cadastros, v.iniciaramTeste, usaram, c.converteram];
+  var base = v.cadastros || 1;
+  ngTexto('fn-registered', formatInt(etapas[0]));
+  ngTexto('fn-verified', formatInt(etapas[1]));
+  ngTexto('fn-billing', usaram == null ? '—' : formatInt(usaram));
+  ngTexto('fn-converted', formatInt(etapas[3]));
+  [1, 2, 3, 4].forEach((i) => {
+    var val = etapas[i - 1] || 0;
+    $('funnel-bar-' + i).style.width = ((val / base) * 100).toFixed(1) + '%';
+  });
+  ngTexto('fn-rate-1', ngPct(etapas[1] / base) + ' dos cadastros');
+  ngTexto('fn-rate-2', usaram == null ? '—' : ngPct(usaram / base) + ' dos cadastros');
+  ngTexto('fn-rate-3', ngPct(etapas[3] / base) + ' dos cadastros');
 }
 
 /* ========================================
