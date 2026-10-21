@@ -15,6 +15,7 @@ const assert = require('node:assert/strict');
 const ROOT = path.resolve(__dirname, '..');
 const HTML = fs.readFileSync(path.join(ROOT, 'Appliquei_v13.0.html'), 'utf8');
 const APP = fs.readFileSync(path.join(ROOT, 'web/appliquei-app.js'), 'utf8');
+const MOBILE = fs.readFileSync(path.join(ROOT, 'web/appliquei-mobile.js'), 'utf8');
 const MOB = fs.readFileSync(path.join(ROOT, 'web/appliquei-mobile.js'), 'utf8');
 
 /** Seções que a sidebar sabe abrir: mudarAba(event,'<id>'). */
@@ -327,4 +328,18 @@ test('os três anéis do topo usam a mesma régua: o mês, sobre o que entrou', 
   const c = ctx._mobAneis({ resumo: { receita: 0, sonho: 0 }, sonhos: [] });
   assert.equal(c.sonhos.val, '—');
   assert.equal(c.sonhos.sub, 'nenhum sonho cadastrado');
+});
+
+test('o aviso aberto em tela cheia rola quando é mais alto que a tela', () => {
+  // O aviso de caixa apertado lista dezenas de lançamentos e tem botão no fim.
+  // Sem min-height: 0 o corpo crescia até o conteúdo e o fixed cortava;
+  // com justify-content: center o topo ficava acima da tela; e com
+  // pointer-events: none o iOS não rolava.
+  const i = HTML.indexOf('.mob-story-corpo {');
+  const regra = HTML.slice(i, HTML.indexOf('}', i));
+  assert.match(regra, /min-height:\s*0/);
+  assert.match(regra, /overflow-y:\s*auto/);
+  assert.doesNotMatch(regra, /pointer-events:\s*none/);
+  assert.doesNotMatch(regra, /justify-content:\s*center/);
+  assert.match(MOBILE, /class="mob-story-corpo" onclick="mobStoryToqueVazio\(event\)"/);
 });

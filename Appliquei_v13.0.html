@@ -12001,11 +12001,21 @@
                 background: var(--cor-branco); color: var(--cor-texto-principal); font-size: 20px;
                 display: flex; align-items: center; justify-content: center; cursor: pointer;
             }
+            /* O corpo ROLA quando o aviso é mais alto que a tela (o do caixa
+               apertado lista dezenas de lançamentos e tem botão no fim).
+               min-height: 0 deixa o item flex encolher para caber e rolar —
+               sem ele, crescia até a altura do conteúdo e o fixed cortava.
+               Centralizar com margin: auto, e não justify-content: center,
+               porque este centraliza também o que transborda e esconde o
+               topo. pointer-events fica ligado: no iOS um contêiner com
+               pointer-events: none não rola; os toques no vazio passam o
+               aviso por mobStoryToqueVazio. */
             .mob-story-corpo {
-                flex: 1; display: flex; flex-direction: column; justify-content: center;
-                position: relative; z-index: 2; pointer-events: none; overflow-y: auto;
+                flex: 1; min-height: 0; display: flex; flex-direction: column;
+                position: relative; z-index: 2; overflow-y: auto; overscroll-behavior: contain;
+                -webkit-overflow-scrolling: touch; margin: 0 -16px; padding: 12px 16px 8px;
             }
-            .mob-story-corpo .ins-card { pointer-events: auto; flex: 0 0 auto; width: 100%; max-width: none; height: auto; box-sizing: border-box; }
+            .mob-story-corpo .ins-card { flex: 0 0 auto; margin: auto 0; width: 100%; max-width: none; height: auto; box-sizing: border-box; }
             .mob-story-zona { position: absolute; top: 80px; bottom: 0; width: 35%; z-index: 1; background: none; border: 0; padding: 0; }
             .mob-story-zona.ant { left: 0; }
             .mob-story-zona.prox { right: 0; }
