@@ -42,6 +42,18 @@ var escHTML = (s) =>
 function fmtDate(ms) {
   return ms ? new Date(ms).toLocaleDateString('pt-PT') : '—';
 }
+// "21/10/2026 14:32" — dia e hora, sem segundos.
+function fmtDiaHora(ms) {
+  return ms
+    ? new Date(ms).toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : '—';
+}
 function fmtDateTime(ms) {
   return ms ? new Date(ms).toLocaleString('pt-PT') : '—';
 }
@@ -1030,7 +1042,6 @@ async function loadStats() {
 async function executeSuperpower() {
   const email = $('action-email').value.trim();
   const action = $('action-type').value;
-  const actionValue = $('action-value').value;
   const token = sessionStorage.getItem('adminToken');
   const output = $('action-output');
   if (!email) {
@@ -1038,7 +1049,19 @@ async function executeSuperpower() {
     toast('Insira o e-mail/UID alvo.', 'warn');
     return;
   }
-  if (DESTRUCTIVE.has(action)) {
+  // Excluir é definitivo: em vez de um OK, pede o e-mail digitado de novo —
+  // o servidor confere o mesmo (actionValue) antes de apagar.
+  let actionValue = $('action-value').value;
+  if (action === 'delete_user') {
+    const digitado = prompt(
+      `EXCLUIR DEFINITIVAMENTE o cadastro de ${email}?\n\n` +
+        'Cancela a assinatura no Asaas, apaga todos os dados e o login. Não tem volta.\n' +
+        'Se a ideia é só bloquear o acesso, use "Suspender".\n\n' +
+        'Para confirmar, digite o e-mail da conta:'
+    );
+    if (digitado == null) return;
+    actionValue = digitado.trim();
+  } else if (DESTRUCTIVE.has(action)) {
     const labels = {
       reset_billing: 'APAGAR billing',
       make_pro: 'liberar PRO sem prazo (cortesia)',
@@ -1571,7 +1594,106 @@ function cvRender(data) {
     .join('');
 }
 
+// ─── Quem está usando (fase de testes) ───
+var usoItens = [];
+var usoFiltro = 'testadores';
+
+function usoSituacaoBadge(s) {
+  if (s === 'ativo') return '<span class="badge-s badge-ok">🟢 Ativo</span>';
+  if (s === 'esfriando') return '<span class="badge-s badge-warn">🟡 Esfriando</span>';
+  return '<span class="badge-s badge-danger">🔴 Parado</span>';
+}
+
+function usoRender() {
+  const base = usoItens.filter((i) => i.testador);
+  const cont = {
+    testadores: base.length,
+    todos: usoItens.length,
+    ativo: 0,
+    esfriando: 0,
+    parado: 0,
+  };
+  // Os contadores de situação seguem o recorte de testadores quando há algum.
+  const universo = base.length ? base : usoItens;
+  universo.forEach((i) => (cont[i.situacao] = (cont[i.situacao] || 0) + 1));
+  Object.keys(cont).forEach((k) => {
+    const el = $('uso-ct-' + k);
+    if (el) el.textContent = cont[k];
+  });
+  document
+    .querySelectorAll('#uso-chips .filter-chip')
+    .forEach((c) => c.classList.toggle('active', c.dataset.uso === usoFiltro));
+  const lista =
+    usoFiltro === 'todos'
+      ? usoItens
+      : usoFiltro === 'testadores'
+        ? base
+        : universo.filter((i) => i.situacao === usoFiltro);
+  const tb = $('uso-lista');
+  if (!lista.length) {
+    tb.innerHTML =
+      '<tr><td colspan="5" class="tbl-empty">' +
+      (usoFiltro === 'testadores'
+        ? 'Nenhum convite foi usado ainda. Veja em "Todos".'
+        : 'Ninguém neste filtro.') +
+      '</td></tr>';
+    return;
+  }
+  tb.innerHTML = lista
+    .map((i) => {
+      const quem = i.nota
+        ? `<strong>${escHTML(i.nota)}</strong><div style="font-size:11.5px;color:var(--cor-texto-mutado);">${escHTML(i.email || i.uid)}</div>`
+        : `<strong>${escHTML(i.email || i.uid)}</strong>${i.testador ? '' : '<div style="font-size:11.5px;color:var(--cor-texto-mutado);">sem convite</div>'}`;
+      const uso = i.ultimoUsoMs
+        ? `${relativeTime(i.ultimoUsoMs)}<div style="font-size:11.5px;color:var(--cor-texto-mutado);">${fmtDateTime(i.ultimoUsoMs)}</div>`
+        : '<span style="color:var(--cor-texto-mutado);">nunca lançou</span>';
+      // Uma linha por área, a mais recente primeiro: quando foi a última vez
+      // que a pessoa mexeu em cada parte do app.
+      const areas = i.areas.length
+        ? `<div class="uso-areas">${i.areas
+            .map(
+              (a) =>
+                `<div class="uso-area${a.soConectou ? ' so-conectou' : ''}"><span>${escHTML(a.area)}</span><span title="${a.ms ? fmtDateTime(a.ms) : ''}">${
+                  a.soConectou
+                    ? 'conectou' + (a.ms ? ' em ' + fmtDate(a.ms) : '') + ', nunca lançou'
+                    : a.ms
+                      ? `${fmtDiaHora(a.ms)} · ${relativeTime(a.ms)}`
+                      : '—'
+                }</span></div>`
+            )
+            .join('')}</div>`
+        : '—';
+      return `<tr>
+        <td>${quem}${i.suspenso ? ' <span class="badge-s badge-danger">suspenso</span>' : ''}</td>
+        <td style="white-space:nowrap;">${i.criadoMs ? fmtDate(i.criadoMs) : '—'}</td>
+        <td style="white-space:nowrap;">${uso}</td>
+        <td>${usoSituacaoBadge(i.situacao)}</td>
+        <td>${areas}</td>
+      </tr>`;
+    })
+    .join('');
+}
+
+function usoFiltrar(f) {
+  usoFiltro = f;
+  usoRender();
+}
+
+async function loadUso() {
+  try {
+    const data = await adminPost({ action: 'uso_listar' });
+    usoItens = data.itens || [];
+    // Sem nenhum testador ainda, abrir em "Todos" em vez de uma lista vazia.
+    if (usoFiltro === 'testadores' && !usoItens.some((i) => i.testador)) usoFiltro = 'todos';
+    usoRender();
+  } catch (err) {
+    $('uso-lista').innerHTML =
+      `<tr><td colspan="5" class="tbl-empty" style="color:var(--cor-erro)">Erro: ${escHTML(err.message)}</td></tr>`;
+  }
+}
+
 async function loadConvites() {
+  loadUso();
   try {
     cvRender(await adminPost({ action: 'convites_listar' }));
   } catch (err) {

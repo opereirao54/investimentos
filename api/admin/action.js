@@ -5,6 +5,10 @@ const { reconcileAccount, computeCreditTotals } = require('../_lib/reconcile');
 const { pushCreditToOpenInvoice } = require('../_lib/credits');
 const { computeAccess, isLegacyGrant } = require('../_lib/access');
 const convites = require('../_lib/convites');
+const { listarUso } = require('../_lib/uso-testadores');
+const { excluirConta } = require('../_lib/excluir-conta');
+const telegram = require('../_lib/telegram-bot');
+const { invalidateUid } = require('../_lib/auth');
 
 // Ações administrativas pontuais sobre um usuário específico.
 // Autenticação igual à de `stats.js`: header `Authorization: Bearer <ADMIN_API_TOKEN>`.
@@ -239,6 +243,17 @@ module.exports = handler({
         return res.json({ success: true, recalculados, ...(await estadoConvites(D)) });
       } catch (e) {
         console.error('[admin/action] convites', e);
+        return res.status(500).json({ error: 'action_failed', detail: e.message });
+      }
+    }
+
+    // Quem está usando o app na fase de testes: só datas por área, nunca o
+    // conteúdo (ver api/_lib/uso-testadores.js).
+    if (action === 'uso_listar') {
+      try {
+        return res.json(await listarUso({ db, auth }));
+      } catch (e) {
+        console.error('[admin/action] uso_listar', e);
         return res.status(500).json({ error: 'action_failed', detail: e.message });
       }
     }
@@ -728,6 +743,50 @@ module.exports = handler({
           success: true,
           message: 'Conta suspensa (usuário não consegue entrar).',
         });
+      }
+
+      // Exclusão definitiva, a mesma que o próprio usuário faz pela LGPD
+      // (api/_lib/excluir-conta.js): cancela no Asaas antes de apagar, guarda o
+      // registro fiscal, apaga os dados e o login. Exige o e-mail digitado de
+      // novo em `actionValue` — um clique errado não apaga ninguém.
+      if (action === 'delete_user') {
+        const conf = String(actionValue || '')
+          .trim()
+          .toLowerCase();
+        if (!conf || conf !== String(email).trim().toLowerCase()) {
+          return res.status(400).json({
+            error: 'confirmacao_invalida',
+            detail: 'Digite o e-mail da conta para confirmar a exclusão.',
+          });
+        }
+        try {
+          const r = await excluirConta(uid, { db, auth, fieldValue, asaas, telegram });
+          invalidateUid(uid);
+          await writeAudit({
+            action,
+            email,
+            uid,
+            actor,
+            after: { excluida: true },
+            extra: { etapas: r.etapas || null, avisos: r.avisos || [] },
+          });
+          return res.json({
+            success: true,
+            message:
+              'Cadastro excluído: dados e login apagados' +
+              ((r.avisos || []).length ? ' (avisos: ' + r.avisos.join('; ') + ')' : '') +
+              '.',
+          });
+        } catch (e) {
+          await writeAudit({ action, email, uid, actor, extra: { falhou: e.etapa || e.message } });
+          return res.status(500).json({
+            error: 'exclusao_falhou',
+            detail:
+              e.etapa === 'asaas'
+                ? 'Não consegui cancelar a assinatura no Asaas — nada foi apagado. Tente de novo.'
+                : 'Falhou na etapa ' + (e.etapa || '?') + ': ' + e.message,
+          });
+        }
       }
 
       if (action === 'enable_user') {
