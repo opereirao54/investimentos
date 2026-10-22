@@ -96,11 +96,12 @@ envio de arquivos — de novo a cada versão alterada, não só o caminho no rep
 
 Todas usam as fontes da marca: rode `marketing/fontes.sh` uma vez antes.
 
-| Ferramenta     | Para quê                                                                                                                              | Como                                                                                                                                    |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `post.js`      | Post 1080×1350 ou story 1080×1920 com título, subtítulo, lista de itens com ícone e CTA, na identidade da marca                       | `node marketing/ferramentas/post.js spec.json saida.png` (exemplo de spec no topo do arquivo)                                           |
-| `telas-app.js` | Captura telas reais do app no celular (Início, Patrimônio, Sonhos, Simulador, Extrato, aviso de aperto) com dados de exemplo e ícones | precisa do app servido: `npm run build && npx vite preview --port 4173`; depois `node marketing/ferramentas/telas-app.js <pasta-saida>` |
-| `shorts/`      | Vídeo vertical 1080×1920 de 30 s a partir de cenas HTML (o `video.html` é o modelo do primeiro Shorts), com narração opcional         | ver `marketing/ferramentas/shorts/LEIAME.md`                                                                                            |
+| Ferramenta                   | Para quê                                                                                                                                                                                  | Como                                                                                                                                    |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `post.js`                    | Post 1080×1350 ou story 1080×1920 com título, subtítulo, lista de itens com ícone e CTA, na identidade da marca                                                                           | `node marketing/ferramentas/post.js spec.json saida.png` (exemplo de spec no topo do arquivo)                                           |
+| `telas-app.js`               | Captura telas reais do app no celular (Início, Patrimônio, Sonhos, Simulador, Extrato, aviso de aperto) com dados de exemplo e ícones                                                     | precisa do app servido: `npm run build && npx vite preview --port 4173`; depois `node marketing/ferramentas/telas-app.js <pasta-saida>` |
+| `shorts/`                    | Vídeo vertical 1080×1920 de 30 s a partir de cenas HTML (o `video.html` é o modelo do primeiro Shorts), com narração opcional                                                             | ver `marketing/ferramentas/shorts/LEIAME.md`                                                                                            |
+| `shorts/modelo-alcance.html` | Vídeo de **alcance** de 15–25 s ("lista de 3": gancho, extrato de exemplo, 3 itens, "salva e manda", fecho com o app). Trilha: `shorts/trilha-alcance.py` lê os tempos do `narracao.json` | ver `marketing/conteudo/LEIAME.md`                                                                                                      |
 
 Narração: a voz padrão da marca é a **Charon** do TTS do Gemini
 (`shorts/narrar-gemini.py` + `shorts/mixar-narracao.py`, precisa de
@@ -109,6 +110,11 @@ todo vídeo narrado, com as perguntas subindo o tom no fim. O plano gratuito da
 API dá 10 pedidos/dia por modelo. Na nuvem, Hugging Face e as vozes online da
 Microsoft ficam bloqueados; o Piper (`narrar.py`) é robótico e serve só de
 rascunho.
+
+Conteúdo das redes: a estrutura por pilar e o **calendário até o
+lançamento** ficam em `marketing/conteudo/` (`LEIAME.md` e `CALENDARIO.md`).
+Ao produzir uma peça do calendário, salve-a na pasta do pilar e marque ✅ na
+linha da semana.
 
 ---
 
