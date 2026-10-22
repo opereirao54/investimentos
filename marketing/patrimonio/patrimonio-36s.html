@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  Vídeo do Patrimônio (34 s, 1080×1920) — "Se te perguntassem agora: quanto
+  Vídeo do Patrimônio (35,6 s, 1080×1920) — "Se te perguntassem agora: quanto
   você tem, somando tudo?". Conta no banco, investimentos, carro e
   apartamento, cada um num lugar → no Appliquei vira um número só → como ele
   está dividido → o carro pela tabela FIPE e o financiamento separado ("Quanto
@@ -120,7 +120,7 @@
   .cta { display: inline-flex; align-items: center; gap: 24px; padding: 34px 54px; border-radius: 36px; background: var(--primaria);
     font-weight: 900; font-size: 54px; letter-spacing: -.02em; color: #fff; box-shadow: 0 30px 70px rgba(5,150,105,.45); }
   .aviso { position: absolute; left: 70px; right: 70px; top: 1330px; padding: 26px 30px; border-radius: 26px; background: rgba(11,20,16,.92); border: 2px solid rgba(240,250,244,.4);
-    text-align: center; font-size: 30px; line-height: 1.4; color: var(--tinta); font-weight: 600; }
+    text-align: center; font-size: 34px; line-height: 1.4; color: var(--tinta); font-weight: 600; }
 </style>
 </head>
 <body>
@@ -148,11 +148,12 @@
   <!-- 3. UM NÚMERO SÓ -->
   <div class="cena" id="c3">
     <div class="grande" style="top:320px;"><div class="tit linha" data-in="0" style="font-size:92px;">Tudo vira<br>um número só:</div>
-      <div class="tit linha" data-in="1.4" style="font-size:92px;margin-top:20px;"><em>o seu patrimônio.</em></div></div>
+      <div class="tit linha" data-in="2.5" style="font-size:92px;margin-top:20px;"><em>o seu patrimônio.</em></div></div>
     <div class="voa" id="v0" style="background:rgba(14,165,233,.25)">🏦</div><div class="voa" id="v1" style="background:rgba(124,58,237,.25)">📈</div>
     <div class="voa" id="v2" style="background:rgba(236,72,153,.25)">🚗</div><div class="voa" id="v3" style="background:rgba(245,158,11,.25)">🏠</div>
     <div class="numero" id="num"><small>Patrimônio total</small><b id="numN">R$ 0</b>
       <div class="fita"><i style="width:2%;background:var(--conta)"></i><i style="width:8%;background:var(--inv)"></i><i style="width:75%;background:var(--imovel)"></i><i style="width:15%;background:var(--veiculo)"></i></div></div>
+    <div class="grande linha" data-in="1.6" style="top:1420px;font-size:38px;line-height:1.35;color:var(--deck);font-weight:600;">Você registra contas, investimentos e bens.<br>O app junta tudo num número só.</div>
   </div>
 
   <!-- 4. A ABA -->
@@ -203,7 +204,7 @@
       <div class="linha" data-in="2.8" style="margin-top:56px;"><span class="pilula"><i></i>Em breve · janeiro de 2027</span></div>
       <div class="linha" data-in="3.2" style="margin-top:40px;"><span class="cta">Siga para saber primeiro</span></div>
     </div>
-    <div class="aviso linha" data-in="1.0">Dados de demonstração. Valores de bens são estimativas (tabela FIPE e referência de R$/m²); você registra contas, investimentos e bens no app.</div>
+    <div class="aviso linha" data-in="1.0"><b>Dados de demonstração.</b> Valores de bens são estimativas (tabela FIPE e referência de R$/m²).</div>
   </div>
 
   <div class="barra-t" id="barraT"></div>
@@ -223,7 +224,7 @@
 
   // Tempos das cenas: acompanham narracao.json (início de cada frase − 0,15 s).
   // T = [gancho, lugares, número só, aba, (fipe), (linha do tempo), marca, fim]
-  const T = { c2: 4.15, c3: 10.15, c4: 14.15, fipe: 19.65, tempo: 25.65, c5: 29.65, fim: 34.5 };
+  const T = { c2: 4.1, c3: 10.75, c4: 15.1, fipe: 21.2, tempo: 27.2, c5: 30.65, fim: 35.6 };
   const DUR = T.fim;
   const CENAS = [['c1', 0, T.c2], ['c2', T.c2, T.c3], ['c3', T.c3, T.c4], ['c4', T.c4, T.c5], ['c5', T.c5, T.fim + 0.2]];
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
