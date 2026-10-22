@@ -105,7 +105,7 @@ def cortar(a, sr, n):
     """
     q = int(0.02 * sr)
     rms = np.sqrt(np.convolve(a ** 2, np.ones(q) / q, 'same'))[::q]
-    fala = rms > 0.01
+    fala = rms > 0.015  # 0,01 lia a respiração no meio da pausa como fala
     pausas, k = [], 0
     while k < len(fala):
         if not fala[k]:
@@ -128,7 +128,14 @@ def cortar(a, sr, n):
         return None
     pos = [0] + [p for p, _ in pausas] + [len(a)]
     dur_pausa = [0.0] + [d for _, d in pausas] + [0.0]
-    esperado = (pos[-1] / sr - sum(dur_pausa)) * chars / chars.sum()
+    # Ponto final no meio da frase ("Appliquei. Seu dinheiro…") vira pausa
+    # longa na fala; vírgula e dois-pontos, pausa curta. Sem contar com elas,
+    # a pausa depois de "Appliquei." parece fim de frase e a marca vai parar
+    # no pedaço anterior.
+    internas = np.array([0.45 * len(re.findall(r'[.?!…]+(?=\s)', t.strip()))
+                         + 0.12 * len(re.findall(r'[,:;]', t)) for _, _, t in CENAS])
+    fala = max(1.0, pos[-1] / sr - sum(dur_pausa) - internas.sum())
+    esperado = fala * chars / chars.sum() + internas
 
     def custo(i, j, seg):  # pedaço seg vai do corte i ao corte j
         d = (pos[j] - pos[i]) / sr - dur_pausa[i] / 2 - dur_pausa[j] / 2
