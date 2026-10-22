@@ -1,6 +1,6 @@
 """Trilha dos vídeos de ALCANCE (modelo-alcance.html), 15–25 s.
 
-    python3 marketing/ferramentas/shorts/trilha-alcance.py <narracao.json> <saida.wav>
+    python3 marketing/ferramentas/shorts/trilha-alcance.py <narracao.json> <saida.wav> [--sem-moedas]
 
 Lê os tempos do próprio narracao.json, então serve para qualquer vídeo feito
 no modelo sem editar nada. O modelo tem 6 frases, nesta ordem: gancho, item 1,
@@ -154,9 +154,11 @@ for t0, m in zip((ITEM1, ITEM2, ITEM3), (76, 79, 83)):
 # CTA: a batida para
 add(musica, CTA, pad([48, 55, 60, 64], FECHO - CTA + 0.2, 0.2, 0.3), 0.036)
 add(musica, CTA, kick(42, 6), 0.45)
-# moedas caindo quando a soma do exemplo aparece
-for k, f in enumerate((2093, 2349, 1976, 2637, 2217, 2489)):
-    add(efeitos, CTA + 0.55 + k * 0.07, ding(f) * np.exp(-t_of(int(0.6 * SR)) * 8), 0.05)
+# moedas caindo quando a soma do exemplo aparece (--sem-moedas desliga, para
+# vídeos em que a 5ª frase não mostra dinheiro)
+if '--sem-moedas' not in sys.argv:
+    for k, f in enumerate((2093, 2349, 1976, 2637, 2217, 2489)):
+        add(efeitos, CTA + 0.55 + k * 0.07, ding(f) * np.exp(-t_of(int(0.6 * SR)) * 8), 0.05)
 add(efeitos, CTA + 1.0, pop(900), 0.24)
 add(efeitos, CTA + 1.6, pop(1050), 0.24)
 for s, m in enumerate((72, 76, 79)):

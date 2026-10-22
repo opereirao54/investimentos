@@ -1,0 +1,277 @@
+<!doctype html>
+<!--
+  Vídeo EDUCATIVO de alcance (≈32 s, 1080×1920) — "Parcelado sem juros ou à
+  vista com desconto? A maioria escolhe errado." Formato "conta na tela": a
+  matemática se monta passo a passo e a pessoa sai com uma regra de bolso
+  para repassar. O app NÃO aparece; a marca só assina no fim ("segue o
+  Appliquei pra mais contas assim").
+
+  A conta (conferida): R$ 1.000 em 10× sem juros (1ª parcela em 30 dias) ×
+  R$ 900 à vista → a taxa que iguala os dois é 1,96% ao mês (≈ 26,2% ao ano).
+  Regra de bolso: desconto ÷ (parcelas ÷ 2) = 10% ÷ 5 = 2% — boa estimativa a
+  partir de ~6 parcelas. Renda fixa "perto de 1% ao mês" é suposição dita na
+  tela; o aviso final manda conferir as taxas do momento.
+  Mesma mecânica dos outros vídeos: render(t) desenha o segundo t.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root {
+    --campo1: #0b1410; --campo2: #0f1f18; --campo3: #112720;
+    --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa;
+    --sinal: #34d399; --primaria: #059669; --ambar: #fbbf24; --vermelho: #f87171; --azul: #60a5fa;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--campo1); }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: linear-gradient(150deg, var(--campo1) 0%, var(--campo2) 50%, var(--campo3) 100%); }
+  .halo { position: absolute; inset: -20%;
+    background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.22), transparent 70%),
+                radial-gradient(40% 35% at 10% 90%, rgba(5,150,105,.18), transparent 70%); }
+  .malha { position: absolute; inset: 0; }
+  .cena { position: absolute; inset: 0; opacity: 0; }
+  .tit { font-weight: 900; letter-spacing: -.035em; line-height: 1; color: var(--tinta); }
+  .tit em { font-style: normal; color: var(--sinal); }
+  .tit em.a { color: var(--ambar); }
+  .mono { font-family: 'DM Mono', monospace; font-weight: 500; }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 200px; z-index: 20; }
+  .serie { position: absolute; right: 150px; top: 60px; padding: 10px 20px; border-radius: 99px; border: 2px solid rgba(52,211,153,.45); background: rgba(52,211,153,.12);
+    font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .12em; text-transform: uppercase; color: var(--sinal); z-index: 20; }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); z-index: 30; }
+  .el { opacity: 0; }
+
+  /* 1. Gancho: as duas opções se enfrentando */
+  .opcao { position: absolute; width: 440px; padding: 40px 34px; border-radius: 40px; text-align: center; }
+  .opcao small { display: block; font-family: 'DM Mono', monospace; font-size: 26px; letter-spacing: .1em; text-transform: uppercase; opacity: .85; }
+  .opcao b { display: block; font-size: 56px; font-weight: 900; letter-spacing: -.03em; line-height: 1.05; margin-top: 10px; }
+  .opcao.parc { left: 60px; background: rgba(96,165,250,.14); border: 3px solid rgba(96,165,250,.6); color: #dbeafe; }
+  .opcao.vist { right: 60px; background: rgba(52,211,153,.14); border: 3px solid rgba(52,211,153,.6); color: #d1fae5; }
+  .vs { position: absolute; left: 50%; width: 120px; height: 120px; margin-left: -60px; border-radius: 50%; background: var(--campo1); border: 3px solid rgba(240,250,244,.3);
+    display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-size: 40px; color: var(--deck); z-index: 2; }
+  .carimbo { position: absolute; left: 0; right: 0; text-align: center; }
+  .carimbo span { display: inline-block; padding: 20px 40px; border: 6px solid var(--ambar); border-radius: 22px; color: var(--ambar); font-weight: 900; font-size: 64px; letter-spacing: -.02em; transform: rotate(-4deg); }
+
+  /* 2. Exemplo */
+  .valor { position: absolute; width: 450px; padding: 40px 30px; border-radius: 40px; background: #fff; color: #12241c; text-align: center; box-shadow: 0 30px 70px rgba(0,0,0,.5); }
+  .valor small { display: block; font-size: 28px; font-weight: 800; color: #51655b; text-transform: uppercase; letter-spacing: .04em; }
+  .valor .g { display: block; font-family: 'DM Mono', monospace; font-size: 92px; font-weight: 500; letter-spacing: -.04em; margin: 10px 0 6px; }
+  .valor .p { font-size: 30px; color: #34463e; }
+  .valor .tag { display: inline-block; margin-top: 14px; padding: 8px 16px; border-radius: 12px; font-weight: 900; font-size: 28px; }
+
+  /* 3. Rendendo enquanto paga */
+  .linha-tempo { position: absolute; left: 90px; right: 90px; top: 900px; height: 520px; }
+  .mes { position: absolute; bottom: 0; width: 64px; border-radius: 12px 12px 0 0; background: linear-gradient(180deg, #34d399, #059669); }
+  .mes-l { position: absolute; bottom: -44px; width: 64px; text-align: center; font-family: 'DM Mono', monospace; font-size: 22px; color: var(--mudo); }
+  .parcela { position: absolute; width: 64px; text-align: center; font-family: 'DM Mono', monospace; font-size: 22px; color: var(--azul); }
+  .certo { position: absolute; left: 0; right: 0; top: 1520px; text-align: center; font-size: 80px; font-weight: 900; color: var(--ambar); }
+
+  /* 4. A virada */
+  .grande-n { position: absolute; left: 0; right: 0; top: 640px; text-align: center; }
+  .grande-n small { display: block; font-size: 38px; font-weight: 700; color: var(--deck); }
+  .grande-n b { display: block; font-family: 'DM Mono', monospace; font-size: 210px; font-weight: 500; letter-spacing: -.05em; color: var(--ambar); line-height: 1.05; }
+  .grande-n span { font-family: 'DM Mono', monospace; font-size: 34px; color: var(--deck); }
+  .comp { position: absolute; left: 90px; right: 90px; }
+  .comp .r { font-size: 32px; font-weight: 800; margin-bottom: 12px; display: flex; justify-content: space-between; }
+  .comp .r span { font-family: 'DM Mono', monospace; font-weight: 500; }
+  .comp .tr { height: 54px; border-radius: 27px; background: rgba(240,250,244,.08); overflow: hidden; }
+  .comp .tr i { display: block; height: 100%; width: 0; border-radius: 27px; }
+  .naoempata { margin-top: 22px; text-align: right; font-size: 44px; font-weight: 900; color: var(--vermelho); }
+
+  /* 5. Regra de bolso */
+  .regra { position: absolute; left: 70px; right: 70px; top: 520px; padding: 46px 44px; border-radius: 44px; background: rgba(240,250,244,.06); border: 3px solid rgba(52,211,153,.5);
+    box-shadow: 0 0 80px rgba(52,211,153,.15); }
+  .regra .rot { font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .14em; text-transform: uppercase; color: var(--sinal); }
+  .regra .formula { margin-top: 26px; font-size: 64px; font-weight: 900; letter-spacing: -.03em; line-height: 1.12; }
+  .regra .formula em { font-style: normal; color: var(--sinal); }
+  .regra .conta { margin-top: 30px; font-family: 'DM Mono', monospace; font-size: 66px; color: var(--ambar); }
+  .regra .dec { margin-top: 34px; padding-top: 30px; border-top: 2px dashed rgba(240,250,244,.25); font-size: 44px; font-weight: 800; line-height: 1.25; }
+  .regra .dec b { color: var(--sinal); }
+  .regra .ressalva { margin-top: 18px; font-size: 28px; color: var(--deck); }
+
+  /* 6. Fecho */
+  .salva { position: absolute; left: 0; right: 0; top: 520px; text-align: center; }
+  .salva .ic { width: 170px; height: 170px; margin: 0 auto; border-radius: 44px; background: var(--sinal); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 70px rgba(52,211,153,.4); }
+  .salva .ic svg { width: 100px; height: 100px; }
+  .salva b { display: block; margin-top: 34px; font-size: 72px; font-weight: 900; letter-spacing: -.03em; }
+  .assina { position: absolute; left: 0; right: 0; top: 1000px; text-align: center; }
+  .assina img { width: 440px; }
+  .assina p { margin-top: 26px; font-size: 44px; font-weight: 800; color: var(--deck); }
+  .assina p em { font-style: normal; color: var(--sinal); }
+  .aviso { position: absolute; left: 80px; right: 80px; top: 1390px; padding: 22px 26px; border-radius: 22px; background: rgba(11,20,16,.9); border: 2px solid rgba(240,250,244,.35);
+    text-align: center; font-size: 27px; line-height: 1.4; color: var(--tinta); }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <div class="halo"></div>
+  <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+  <div class="serie" id="serie">Conta de padaria</div>
+
+  <!-- 1. GANCHO -->
+  <div class="cena" id="c1">
+    <div class="tit" style="position:absolute;left:70px;right:70px;top:300px;text-align:center;font-size:96px;">Qual sai<br><em>mais barato?</em></div>
+    <div class="opcao parc el" id="o1" style="top:620px;"><small>opção A</small><b>Parcelado<br>sem juros</b></div>
+    <div class="vs el" id="vs" style="top:700px;">vs</div>
+    <div class="opcao vist el" id="o2" style="top:620px;"><small>opção B</small><b>À vista com<br>desconto</b></div>
+    <div class="carimbo el" id="carimbo" style="top:1080px;"><span>A maioria escolhe errado</span></div>
+  </div>
+
+  <!-- 2. EXEMPLO -->
+  <div class="cena" id="c2">
+    <div class="tit" style="position:absolute;left:70px;right:70px;top:280px;text-align:center;font-size:78px;">O mesmo produto</div>
+    <div class="valor el" id="v1" style="left:60px;top:560px;"><small>Parcelado</small><span class="g">10×</span><span class="p">de <b class="mono">R$ 100</b> = R$ 1.000</span><br><span class="tag" style="background:#dbeafe;color:#1d4ed8;">sem juros</span></div>
+    <div class="valor el" id="v2" style="right:60px;top:560px;"><small>À vista</small><span class="g">R$ 900</span><span class="p">pagando hoje</span><br><span class="tag" style="background:#d1fae5;color:#047857;">10% de desconto</span></div>
+  </div>
+
+  <!-- 3. RENDENDO ENQUANTO PAGA -->
+  <div class="cena" id="c3">
+    <div class="tit" style="position:absolute;left:70px;right:70px;top:270px;text-align:center;font-size:70px;">Parcelando, os R$ 900<br>ficam <em>rendendo</em> enquanto<br>você paga…</div>
+    <div class="linha-tempo" id="lt"></div>
+    <div class="certo el" id="certo">certo?</div>
+  </div>
+
+  <!-- 4. A VIRADA -->
+  <div class="cena" id="c4">
+    <div class="tit" style="position:absolute;left:70px;right:70px;top:290px;text-align:center;font-size:66px;">Pra empatar com<br>o desconto, eles teriam<br>que render:</div>
+    <div class="grande-n el" id="gn"><b id="gnN">0,00%</b><small>ao mês</small><span>≈ 26% ao ano</span></div>
+    <div class="comp el" id="comp" style="top:1160px;">
+      <div class="r">Precisaria render <span style="color:var(--ambar)">1,96% ao mês</span></div>
+      <div class="tr"><i id="b1" style="background:linear-gradient(90deg,#f59e0b,#fbbf24)"></i></div>
+      <div class="r" style="margin-top:34px;">Renda fixa costuma pagar* <span style="color:var(--sinal)">≈ 1% ao mês</span></div>
+      <div class="tr"><i id="b2" style="background:linear-gradient(90deg,#059669,#34d399)"></i></div>
+      <div class="naoempata el" id="ne">✗ não empata</div>
+    </div>
+  </div>
+
+  <!-- 5. REGRA DE BOLSO -->
+  <div class="cena" id="c5">
+    <div class="regra">
+      <div class="rot">Regra de bolso</div>
+      <div class="formula el" id="f1">desconto ÷ <em>metade</em> das parcelas</div>
+      <div class="conta el" id="f2">10% ÷ 5 = <b>2% ao mês</b></div>
+      <div class="dec el" id="f3">Deu <b>mais</b> do que o seu dinheiro rende por mês?<br>→ <b>pague à vista.</b></div>
+      <div class="ressalva el" id="f4">(sem tirar da sua reserva de emergência)</div>
+    </div>
+  </div>
+
+  <!-- 6. FECHO -->
+  <div class="cena" id="c6">
+    <div class="salva el" id="sv"><div class="ic"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z" fill="#052e1f"/></svg></div><b>Salva pra próxima compra</b></div>
+    <div class="assina el" id="as"><img src="wordmark.svg" alt="Appliquei"><p>Mais contas assim: <em>siga o Appliquei</em></p></div>
+    <div class="aviso el" id="av">Conteúdo educacional, não é recomendação de investimento. Exemplo com a 1ª parcela em 30 dias. *Supondo renda fixa perto de 1% ao mês: confira as taxas do momento.</div>
+  </div>
+
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  function $(id) { return document.getElementById(id); }
+  (function () {
+    const L = 1080, A = 1920, m = [];
+    for (let x = 60; x < L; x += 60) m.push(`<line x1="${x}" y1="0" x2="${x}" y2="${A}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 60; y < A; y += 60) m.push(`<line x1="0" y1="${y}" x2="${L}" y2="${y}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    $('malha').innerHTML = m.join('');
+    // linha do tempo: 10 meses, o saldo cai R$ 100 por mês e rende um pouco
+    const lt = $('lt');
+    let h = '';
+    for (let i = 0; i < 10; i++) {
+      const x = i * 90;
+      h += `<div class="mes" id="ms${i}" style="left:${x}px;height:0"></div><div class="mes-l" style="left:${x}px">${i + 1}º</div>` +
+        `<div class="parcela" id="pc${i}" style="left:${x}px;bottom:0;opacity:0">−100</div>`;
+    }
+    lt.innerHTML = h;
+  })();
+
+  // Cenas seguem narracao.json (início de cada frase − 0,15 s).
+  const DUR = 32.5;
+  const CENAS = [['c1', 0, 4.55], ['c2', 4.55, 8.55], ['c3', 8.55, 12.1], ['c4', 12.1, 19.35], ['c5', 19.35, 26.8], ['c6', 26.8, 32.7]];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeInOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+  const easeBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  function surge(el, lt, a, dur, dy, rot) {
+    const p = easeBack(prog(lt, a, a + (dur || 0.4)));
+    el.style.opacity = clamp(p, 0, 1);
+    el.style.transform = `translateY(${(1 - p) * (dy == null ? 40 : dy)}px) scale(${0.85 + 0.15 * p})` + (rot ? ` rotate(${rot}deg)` : '');
+  }
+
+  function render(t) {
+    for (const [id, a, b] of CENAS) {
+      const el = $(id);
+      const dentro = t >= a - 0.01 && t < b;
+      const fadeIn = id === 'c1' ? 1 : easeOut(prog(t, a, a + 0.25));
+      const fadeOut = 1 - prog(t, b - 0.2, b);
+      el.style.opacity = dentro ? Math.min(fadeIn, fadeOut) : 0;
+      el.style.display = dentro ? 'block' : 'none';
+      if (dentro) cenaExtra(id, t - a);
+    }
+    $('serie').style.opacity = t < 26.6 ? easeOut(prog(t, 0.3, 0.6)) : 1 - prog(t, 26.6, 26.9);
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+
+  function cenaExtra(id, lt) {
+    if (id === 'c1') {
+      // "Parcelado sem juros" 0,2–1,6 · "ou à vista com desconto?" 1,6–2,8 · "A maioria escolhe errado." 3,0–4,4
+      const p1 = easeOut(prog(lt, 0.1, 0.5)), p2 = easeOut(prog(lt, 1.5, 1.9));
+      $('o1').style.opacity = p1; $('o1').style.transform = `translateX(${(1 - p1) * -300}px)`;
+      $('o2').style.opacity = p2; $('o2').style.transform = `translateX(${(1 - p2) * 300}px)`;
+      surge($('vs'), lt, 2.0, 0.35, 0);
+      const c = easeBack(prog(lt, 3.0, 3.35));
+      $('carimbo').style.opacity = clamp(c, 0, 1);
+      $('carimbo').style.transform = `scale(${2 - c})`;
+    }
+    if (id === 'c2') {
+      // "mil reais em dez vezes" 0,6–2,0 · "ou novecentos à vista" 2,2–3,6
+      surge($('v1'), lt, 0.4, 0.4, 60);
+      surge($('v2'), lt, 2.1, 0.4, 60);
+    }
+    if (id === 'c3') {
+      // saldo cai R$ 100 por mês enquanto rende um pouco (parece uma vantagem)
+      for (let i = 0; i < 10; i++) {
+        const a = 0.3 + i * 0.22;
+        const saldo = 900 * Math.pow(1.01, i) - 100 * i;
+        const p = easeOut(prog(lt, a, a + 0.3));
+        $('ms' + i).style.height = (saldo / 900) * 440 * p + 'px';
+        const pc = $('pc' + i);
+        pc.style.opacity = prog(lt, a + 0.1, a + 0.3) * (1 - prog(lt, a + 0.6, a + 0.9));
+        pc.style.bottom = (saldo / 900) * 440 + 10 + 40 * prog(lt, a + 0.1, a + 0.9) + 'px';
+      }
+      surge($('certo'), lt, 2.7, 0.35, 30);
+    }
+    if (id === 'c4') {
+      // "quase dois por cento ao mês" ~1,6–3,6 · "bem mais do que a renda fixa costuma pagar" 4,5–6,9
+      surge($('gn'), lt, 1.2, 0.4, 30);
+      $('gnN').textContent = (1.96 * easeOut(prog(lt, 1.3, 3.0))).toFixed(2).replace('.', ',') + '%';
+      const comp = $('comp');
+      const pc = easeOut(prog(lt, 4.1, 4.5));
+      comp.style.opacity = pc;
+      comp.style.transform = `translateY(${(1 - pc) * 40}px)`;
+      $('b1').style.width = 98 * easeOut(prog(lt, 4.3, 5.0)) + '%';
+      $('b2').style.width = 50 * easeOut(prog(lt, 5.0, 5.7)) + '%';
+      surge($('ne'), lt, 5.8, 0.35, 10);
+    }
+    if (id === 'c5') {
+      // "divida o desconto pela metade do número de parcelas" 0,6–3,6 · "se der mais… pague à vista" 3,8–7,2
+      surge($('f1'), lt, 0.6, 0.4, 20);
+      surge($('f2'), lt, 2.4, 0.4, 20);
+      surge($('f3'), lt, 3.9, 0.4, 20);
+      surge($('f4'), lt, 5.8, 0.4, 10);
+    }
+    if (id === 'c6') {
+      // "Salva pra próxima compra" 0,15–1,6 · "segue o Appliquei pra mais contas assim" 1,7–3,6
+      surge($('sv'), lt, 0.1, 0.4, 40);
+      $('sv').querySelector('.ic').style.transform = `scale(${1 + 0.06 * Math.sin(lt * 7) * prog(lt, 0.5, 1)})`;
+      surge($('as'), lt, 1.6, 0.45, 40);
+      surge($('av'), lt, 2.4, 0.4, 10);
+      $('logoFixo').style.opacity = 1 - prog(lt, 1.3, 1.6);
+    } else $('logoFixo').style.opacity = 1;
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>

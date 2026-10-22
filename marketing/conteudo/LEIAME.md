@@ -13,6 +13,23 @@ skill de marketing (`.claude/skills/marketing-saas/referencias/calendario-e-metr
 
 Prova (depoimento) só quando houver depoimento real e autorizado.
 
+## Alcance é educação primeiro (lição de 22/10/2026)
+
+O fundador achou estranhos os dois primeiros vídeos de alcance (3 cobranças,
+3 sinais de aperto): eles ainda vendiam os avisos do app, só com outra
+embalagem. O que viraliza em finanças é **a pessoa aprender algo que muda uma
+decisão dela hoje**: uma conta que surpreende, uma regra de bolso, um erro
+comum. O app no máximo assina no fim ("Mais contas assim: siga o Appliquei").
+Antes de produzir, pergunte: _se eu tirar a marca, o vídeo ainda vale a pena?_
+
+Modelos:
+
+- `modelo-conta.html` — **"conta na tela"** (padrão para alcance): gancho com
+  duas opções, exemplo, a intuição comum, a virada com o número, a regra de
+  bolso e "salva". Exemplo: `alcance/avista-ou-parcelado`.
+- `modelo-alcance.html` — "lista de 3" sobre um extrato, com o app no fecho.
+  Funciona melhor como **anúncio de diferencial** do que como alcance.
+
 ## Regras que valem para todas as peças
 
 - **Identidade:** campo verde-escuro, malha fina, Figtree/DM Mono, verde-sinal
