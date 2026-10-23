@@ -1,0 +1,329 @@
+<!doctype html>
+<!--
+  Vídeo EDUCATIVO de alcance (≈39 s, 1080×1920) — "R$ 30 por mês ou R$ 300 no
+  anual: qual deixa mais dinheiro no seu bolso?" Formato "conta na tela"
+  (modelo-conta.html), parte 2 do "Parcelado ou à vista?": a mesma regra de
+  bolso numa escolha de todo dia (streaming, academia, curso, app). O app NÃO
+  aparece; a marca só assina no fim. Caio e Mateus são personagens fictícios.
+
+  A conta (conferida): R$ 300 hoje × 12 mensalidades de R$ 30 com a 1ª paga
+  hoje → a taxa que iguala os dois é 3,50% ao mês (≈ 51% ao ano), em qualquer
+  escala (R$ 1.200 × R$ 120 dá o mesmo). Regra de bolso do parcelado: desconto
+  ÷ metade dos meses = 16,7% ÷ 6 ≈ 2,8% — fica abaixo da exata porque a 1ª
+  mensalidade já sai hoje; a decisão é a mesma. Renda fixa "perto de 1% ao
+  mês" é suposição dita na tela; o aviso final manda conferir as taxas.
+  Mesma mecânica dos outros vídeos: render(t) desenha o segundo t.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root {
+    --campo1: #0b1410; --campo2: #0f1f18; --campo3: #112720;
+    --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa;
+    --sinal: #34d399; --primaria: #059669; --ambar: #fbbf24; --vermelho: #f87171; --azul: #60a5fa;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--campo1); }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: linear-gradient(150deg, var(--campo1) 0%, var(--campo2) 50%, var(--campo3) 100%); }
+  .halo { position: absolute; inset: -20%;
+    background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.22), transparent 70%),
+                radial-gradient(40% 35% at 10% 90%, rgba(5,150,105,.18), transparent 70%); }
+  .malha { position: absolute; inset: 0; }
+  .cena { position: absolute; inset: 0; opacity: 0; }
+  .tit { font-weight: 900; letter-spacing: -.035em; line-height: 1.02; color: var(--tinta); }
+  .tit em { font-style: normal; color: var(--sinal); }
+  .mono { font-family: 'DM Mono', monospace; font-weight: 500; }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 200px; z-index: 20; }
+  .serie { position: absolute; right: 150px; top: 60px; padding: 10px 20px; border-radius: 99px; border: 2px solid rgba(52,211,153,.45); background: rgba(52,211,153,.12);
+    font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .12em; text-transform: uppercase; color: var(--sinal); z-index: 20; }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); z-index: 30; }
+  .el { opacity: 0; }
+
+  /* 1. Gancho: os dois planos */
+  .plano { position: absolute; width: 450px; padding: 44px 30px; border-radius: 40px; text-align: center; }
+  .plano small { display: block; font-family: 'DM Mono', monospace; font-size: 28px; letter-spacing: .12em; text-transform: uppercase; opacity: .9; }
+  .plano b { display: block; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 92px; letter-spacing: -.04em; margin-top: 14px; line-height: 1; }
+  .plano span { display: block; margin-top: 10px; font-size: 32px; font-weight: 700; }
+  .plano.men { left: 60px; background: rgba(96,165,250,.14); border: 3px solid rgba(96,165,250,.6); color: #dbeafe; }
+  .plano.anu { right: 60px; background: rgba(52,211,153,.14); border: 3px solid rgba(52,211,153,.6); color: #d1fae5; }
+  .vs { position: absolute; left: 50%; width: 120px; height: 120px; margin-left: -60px; border-radius: 50%; background: var(--campo1); border: 3px solid rgba(240,250,244,.3);
+    display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-size: 40px; color: var(--deck); z-index: 2; }
+  .exemplos { position: absolute; left: 0; right: 0; text-align: center; font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .06em; color: var(--mudo); }
+
+  /* 2. Caio e Mateus */
+  .pessoa { position: absolute; width: 450px; padding: 40px 30px; border-radius: 40px; text-align: center; }
+  .pessoa .av { width: 150px; height: 150px; margin: 0 auto; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 76px; font-weight: 900; color: #052e1f; }
+  .pessoa b { display: block; margin-top: 18px; font-size: 54px; font-weight: 900; }
+  .pessoa .v { display: block; margin-top: 6px; font-family: 'DM Mono', monospace; font-size: 46px; letter-spacing: -.03em; }
+  .pessoa small { display: block; margin-top: 16px; font-size: 30px; line-height: 1.3; color: var(--deck); }
+  .p-mateus { right: 60px; background: rgba(52,211,153,.12); border: 3px solid rgba(52,211,153,.55); }
+  .p-mateus .av { background: var(--sinal); } .p-mateus .v { color: var(--sinal); }
+  .p-caio { left: 60px; background: rgba(96,165,250,.12); border: 3px solid rgba(96,165,250,.55); }
+  .p-caio .av { background: var(--azul); } .p-caio .v { color: var(--azul); }
+
+  /* 3. A conta */
+  .multi { position: absolute; left: 0; right: 0; top: 300px; text-align: center; }
+  .multi small { display: block; font-size: 36px; font-weight: 700; color: var(--deck); }
+  .multi b { display: block; margin-top: 10px; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 104px; letter-spacing: -.04em; }
+  .comp { position: absolute; left: 90px; right: 90px; }
+  .comp .r { font-size: 36px; font-weight: 800; margin-bottom: 12px; display: flex; justify-content: space-between; }
+  .comp .r span { font-family: 'DM Mono', monospace; font-weight: 500; }
+  .comp .tr { height: 60px; border-radius: 30px; background: rgba(240,250,244,.08); overflow: hidden; }
+  .comp .tr i { display: block; height: 100%; width: 0; border-radius: 30px; }
+  .economia { position: absolute; left: 0; right: 0; text-align: center; }
+  .economia span { display: inline-block; padding: 16px 36px; border-radius: 22px; background: var(--sinal); color: #052e1f; font-weight: 900; font-size: 54px; }
+  .meses { position: absolute; left: 90px; right: 90px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+  .meses div { height: 96px; border-radius: 20px; background: rgba(240,250,244,.08); border: 2px solid rgba(240,250,244,.18); display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace; font-size: 24px; color: var(--deck); opacity: 0; }
+  .meses div.gr { background: rgba(52,211,153,.22); border-color: var(--sinal); color: var(--sinal); }
+  .meses div em { font-style: normal; font-family: 'Figtree', sans-serif; font-weight: 900; font-size: 22px; margin-top: 4px; }
+
+  /* 4. A virada */
+  .grande-n { position: absolute; left: 0; right: 0; top: 640px; text-align: center; }
+  .grande-n small { display: block; font-size: 38px; font-weight: 700; color: var(--deck); }
+  .grande-n b { display: block; font-family: 'DM Mono', monospace; font-size: 210px; font-weight: 500; letter-spacing: -.05em; color: var(--ambar); line-height: 1.05; }
+  .grande-n span { font-family: 'DM Mono', monospace; font-size: 34px; color: var(--deck); }
+  .carimbo { position: absolute; left: 0; right: 0; text-align: center; }
+  .carimbo span { display: inline-block; padding: 18px 44px; border: 7px solid var(--sinal); border-radius: 24px; color: var(--sinal); font-weight: 900; font-size: 76px; transform: rotate(-4deg); }
+
+  /* 5. Regra de bolso */
+  .regra { position: absolute; left: 70px; right: 70px; top: 470px; padding: 46px 44px; border-radius: 44px; background: rgba(240,250,244,.06); border: 3px solid rgba(52,211,153,.5);
+    box-shadow: 0 0 80px rgba(52,211,153,.15); }
+  .regra .rot { font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .14em; text-transform: uppercase; color: var(--sinal); }
+  .regra .rot span { color: var(--mudo); }
+  .regra .formula { margin-top: 26px; font-size: 56px; font-weight: 900; letter-spacing: -.03em; line-height: 1.12; }
+  .regra .formula em { font-style: normal; color: var(--sinal); }
+  .regra .conta { margin-top: 30px; font-family: 'DM Mono', monospace; font-size: 60px; color: var(--ambar); }
+  .regra .dec { margin-top: 34px; padding-top: 30px; border-top: 2px dashed rgba(240,250,244,.25); font-size: 44px; font-weight: 800; line-height: 1.25; }
+  .regra .dec b { color: var(--sinal); }
+  .regra .ressalva { margin-top: 18px; font-size: 28px; color: var(--deck); line-height: 1.35; }
+
+  /* 6. A pegadinha */
+  .acad { position: absolute; left: 70px; right: 70px; top: 640px; padding: 40px 40px 46px; border-radius: 40px; background: rgba(96,165,250,.1); border: 3px solid rgba(96,165,250,.5); }
+  .acad .cab { display: flex; align-items: center; gap: 20px; font-size: 40px; font-weight: 900; }
+  .acad .cab span { width: 70px; height: 70px; border-radius: 50%; background: var(--azul); color: #052e1f; display: flex; align-items: center; justify-content: center; font-size: 38px; }
+  .acad .cab small { margin-left: auto; font-family: 'DM Mono', monospace; font-size: 26px; font-weight: 500; color: #dbeafe; }
+  .acad .grade { margin-top: 30px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .acad .grade div { height: 92px; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-size: 24px;
+    background: rgba(240,250,244,.06); border: 2px solid rgba(240,250,244,.15); color: var(--mudo); }
+  .acad .grade div.foi { background: rgba(52,211,153,.2); border-color: var(--sinal); color: var(--sinal); }
+  .acad .grade div i { font-style: normal; font-size: 30px; font-weight: 700; line-height: 1; margin-top: 4px; }
+  .parou { position: absolute; padding: 12px 26px; border-radius: 16px; background: var(--ambar); color: #1d1a0f; font-weight: 900; font-size: 38px; transform: rotate(-4deg); }
+  .ne { position: absolute; left: 0; right: 0; text-align: center; font-size: 96px; font-weight: 900; color: var(--ambar); }
+
+  /* 7. Fecho */
+  .manda { position: absolute; left: 0; right: 0; top: 470px; text-align: center; }
+  .manda .ic { width: 170px; height: 170px; margin: 0 auto; border-radius: 44px; background: var(--sinal); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 70px rgba(52,211,153,.4); }
+  .manda .ic svg { width: 96px; height: 96px; margin-left: -8px; }
+  .manda b { display: block; margin-top: 34px; font-size: 68px; font-weight: 900; letter-spacing: -.03em; line-height: 1.1; }
+  .assina { position: absolute; left: 0; right: 0; top: 1000px; text-align: center; }
+  .assina img { width: 440px; }
+  .assina p { margin-top: 26px; font-size: 44px; font-weight: 800; color: var(--deck); }
+  .assina p em { font-style: normal; color: var(--sinal); }
+  .aviso { position: absolute; left: 80px; right: 80px; top: 1360px; padding: 22px 26px; border-radius: 22px; background: rgba(11,20,16,.9); border: 2px solid rgba(240,250,244,.35);
+    text-align: center; font-size: 27px; line-height: 1.4; color: var(--tinta); }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <div class="halo"></div>
+  <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+  <div class="serie" id="serie">Conta de padaria</div>
+
+  <!-- 1. GANCHO -->
+  <div class="cena" id="c1">
+    <div class="tit el" id="t1" style="position:absolute;left:70px;right:70px;top:290px;text-align:center;font-size:88px;">Qual deixa mais<br><em>no seu bolso?</em></div>
+    <div class="plano men el" id="o1" style="top:620px;"><small>Mensal</small><b>R$ 30</b><span>por mês</span></div>
+    <div class="vs el" id="vs" style="top:720px;">vs</div>
+    <div class="plano anu el" id="o2" style="top:620px;"><small>Anual</small><b>R$ 300</b><span>no ano</span></div>
+    <div class="exemplos el" id="ex" style="top:1080px;">streaming · academia · curso · app</div>
+  </div>
+
+  <!-- 2. CAIO E MATEUS -->
+  <div class="cena" id="c2">
+    <div class="tit" style="position:absolute;left:70px;right:70px;top:300px;text-align:center;font-size:78px;">Cada um escolheu<br>um plano</div>
+    <div class="pessoa p-caio el" id="pc" style="top:600px;"><div class="av">C</div><b>Caio</b><span class="v">mensal</span><small>"Assim o dinheiro<br>fica rendendo<br>comigo."</small></div>
+    <div class="pessoa p-mateus el" id="pm" style="top:600px;"><div class="av">M</div><b>Mateus</b><span class="v">anual</span><small>Paga o ano<br>de uma vez.</small></div>
+  </div>
+
+  <!-- 3. A CONTA -->
+  <div class="cena" id="c3">
+    <div class="multi el" id="mu"><small>No mensal, o ano custa</small><b>12 × 30 = <span id="mN">R$ 0</span></b></div>
+    <div class="comp el" id="cp" style="top:640px;">
+      <div class="r">Mensal <span style="color:var(--azul)">R$ 360</span></div>
+      <div class="tr"><i id="b1" style="background:linear-gradient(90deg,#3b82f6,#60a5fa)"></i></div>
+      <div class="r" style="margin-top:34px;">Anual <span style="color:var(--sinal)">R$ 300</span></div>
+      <div class="tr"><i id="b2" style="background:linear-gradient(90deg,#059669,#34d399)"></i></div>
+    </div>
+    <div class="economia el" id="ec" style="top:1000px;"><span>R$ 60 mais barato</span></div>
+    <div class="meses" id="ms" style="top:1200px;"></div>
+  </div>
+
+  <!-- 4. A VIRADA -->
+  <div class="cena" id="c4">
+    <div class="tit" style="position:absolute;left:70px;right:70px;top:290px;text-align:center;font-size:66px;">Pro Caio empatar, o<br>dinheiro dele teria<br>que render:</div>
+    <div class="grande-n el" id="gn"><b id="gnN">0,0%</b><small>ao mês</small><span>≈ 51% ao ano</span></div>
+    <div class="comp el" id="comp" style="top:1160px;">
+      <div class="r">Precisaria render <span style="color:var(--ambar)">3,5% ao mês</span></div>
+      <div class="tr"><i id="b3" style="background:linear-gradient(90deg,#f59e0b,#fbbf24)"></i></div>
+      <div class="r" style="margin-top:34px;">Renda fixa paga* <span style="color:var(--sinal)">≈ 1% ao mês</span></div>
+      <div class="tr"><i id="b4" style="background:linear-gradient(90deg,#059669,#34d399)"></i></div>
+    </div>
+    <div class="carimbo el" id="ganha" style="top:1500px;"><span>O anual ganha</span></div>
+  </div>
+
+  <!-- 5. REGRA DE BOLSO -->
+  <div class="cena" id="c5">
+    <div class="regra">
+      <div class="rot el" id="r0">Regra de bolso <span>· a mesma do parcelado</span></div>
+      <div class="formula el" id="f1">desconto ÷ <em>metade</em> dos meses</div>
+      <div class="conta el" id="f2">17% ÷ 6 ≈ <b>2,8% ao mês</b></div>
+      <div class="dec el" id="f3">Deu <b>mais</b> do que o seu dinheiro rende por mês?<br>→ <b>pague o ano.</b></div>
+      <div class="ressalva el" id="f4">A conta exata dá 3,5%: a regra fica um pouco abaixo porque a 1ª mensalidade já sai hoje. A decisão é a mesma.</div>
+    </div>
+  </div>
+
+  <!-- 6. A PEGADINHA -->
+  <div class="cena" id="c6">
+    <div class="tit" style="position:absolute;left:70px;right:70px;top:290px;text-align:center;font-size:80px;">Só vale se você<br><em>usar o ano todo</em></div>
+    <div class="acad el" id="ac">
+      <div class="cab"><span>C</span>Academia do Caio<small>anual</small></div>
+      <div class="grade" id="gd"></div>
+    </div>
+    <div class="parou el" id="pr" style="left:300px;top:1060px;">parou em março</div>
+    <div class="ne el" id="ne" style="top:1380px;">Né, Caio?</div>
+  </div>
+
+  <!-- 7. FECHO -->
+  <div class="cena" id="c7">
+    <div class="manda el" id="md"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 11.5 21 3l-8.5 18-2.2-7.3z" fill="#052e1f"/></svg></div><b>Manda pra quem paga<br>tudo no mensal</b></div>
+    <div class="assina el" id="as"><img src="wordmark.svg" alt="Appliquei"><p>Mais contas assim: <em>siga o Appliquei</em></p></div>
+    <div class="aviso el" id="av">Conteúdo educacional, não é recomendação de investimento. Exemplo com a 1ª mensalidade paga hoje. *Supondo renda fixa perto de 1% ao mês: confira as taxas do momento. Personagens fictícios.</div>
+  </div>
+
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  function $(id) { return document.getElementById(id); }
+  const NOMES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+  (function () {
+    const L = 1080, A = 1920, m = [];
+    for (let x = 60; x < L; x += 60) m.push(`<line x1="${x}" y1="0" x2="${x}" y2="${A}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 60; y < A; y += 60) m.push(`<line x1="0" y1="${y}" x2="${L}" y2="${y}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    $('malha').innerHTML = m.join('');
+    // 12 meses: os 10 pagos e os 2 de graça
+    $('ms').innerHTML = NOMES.map((n, i) => (i < 10 ? `<div id="m${i}">${n}<em>R$ 30</em></div>` : `<div class="gr" id="m${i}">${n}<em>grátis</em></div>`)).join('');
+    // academia: foi até março, depois nada
+    $('gd').innerHTML = NOMES.map((n, i) => `<div id="g${i}">${n}<i>${i < 3 ? '✓' : '·'}</i></div>`).join('');
+  })();
+
+  // Cenas seguem narracao.json (início de cada frase − 0,15 s).
+  const DUR = 39.5;
+  const CENAS = [['c1', 0, 4.83], ['c2', 4.83, 9.48], ['c3', 9.48, 15.88], ['c4', 15.88, 22.33], ['c5', 22.33, 30.2], ['c6', 30.2, 33.49], ['c7', 33.49, 39.7]];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  function surge(el, lt, a, dur, dy) {
+    const p = easeBack(prog(lt, a, a + (dur || 0.4)));
+    el.style.opacity = clamp(p, 0, 1);
+    el.style.transform = `translateY(${(1 - p) * (dy == null ? 40 : dy)}px) scale(${0.85 + 0.15 * p})`;
+  }
+  function carimba(el, lt, a) {
+    const c = easeBack(prog(lt, a, a + 0.35));
+    el.style.opacity = clamp(c, 0, 1);
+    el.style.transform = `scale(${2 - c})`;
+  }
+
+  function render(t) {
+    for (const [id, a, b] of CENAS) {
+      const el = $(id);
+      const dentro = t >= a - 0.01 && t < b;
+      const fadeIn = id === 'c1' ? 1 : easeOut(prog(t, a, a + 0.25));
+      const fadeOut = 1 - prog(t, b - 0.2, b);
+      el.style.opacity = dentro ? Math.min(fadeIn, fadeOut) : 0;
+      el.style.display = dentro ? 'block' : 'none';
+      if (dentro) cenaExtra(id, t - a);
+    }
+    $('serie').style.opacity = t < 33.3 ? easeOut(prog(t, 0.3, 0.6)) : 1 - prog(t, 33.3, 33.6);
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+
+  // Tempos locais = fala + 0,15 s (pausas medidas na leitura).
+  function cenaExtra(id, lt) {
+    if (id === 'c1') {
+      // "Trinta por mês" 0,15–1,2 · "ou trezentos no anual" 1,3–2,5 · "Qual deixa mais dinheiro no seu bolso?" 3,1–4,5
+      const p1 = easeOut(prog(lt, 0.1, 0.5)), p2 = easeOut(prog(lt, 1.25, 1.65));
+      $('o1').style.opacity = p1; $('o1').style.transform = `translateX(${(1 - p1) * -300}px)`;
+      $('o2').style.opacity = p2; $('o2').style.transform = `translateX(${(1 - p2) * 300}px)`;
+      surge($('vs'), lt, 1.7, 0.35, 0);
+      surge($('t1'), lt, 2.9, 0.4, 30);
+      surge($('ex'), lt, 3.6, 0.4, 10);
+    }
+    if (id === 'c2') {
+      // "O Caio fica no mensal, pra deixar o dinheiro rendendo" 0,15–2,9 · "O Mateus paga o ano" 3,25–4,5
+      surge($('pc'), lt, 0.15, 0.4, 60);
+      surge($('pm'), lt, 3.1, 0.4, 60);
+    }
+    if (id === 'c3') {
+      // "Doze vezes trinta: trezentos e sessenta" 0,15–2,6 · "O anual sai sessenta mais barato" 2,85–4,8 · "Dois meses grátis" 5,0–6,1
+      surge($('mu'), lt, 0.1, 0.4, 30);
+      $('mN').textContent = 'R$ ' + Math.round(360 * easeOut(prog(lt, 1.1, 2.4)));
+      const pc = easeOut(prog(lt, 2.6, 3.0));
+      $('cp').style.opacity = pc; $('cp').style.transform = `translateY(${(1 - pc) * 40}px)`;
+      $('b1').style.width = 100 * easeOut(prog(lt, 2.8, 3.5)) + '%';
+      $('b2').style.width = 83.3 * easeOut(prog(lt, 3.3, 4.0)) + '%';
+      surge($('ec'), lt, 4.0, 0.35, 20);
+      for (let i = 0; i < 12; i++) {
+        const a = i < 10 ? 4.6 + i * 0.03 : 5.1 + (i - 10) * 0.2;
+        const p = easeBack(prog(lt, a, a + 0.3));
+        const el = $('m' + i);
+        el.style.opacity = clamp(p, 0, 1);
+        el.style.transform = `scale(${(i < 10 ? 0.9 : 0.6) + (i < 10 ? 0.1 : 0.4) * p})`;
+      }
+    }
+    if (id === 'c4') {
+      // "Pro Caio empatar, o dinheiro dele teria que render" 0,15–2,7 · "três e meio por cento ao mês" 2,8–4,2 · "A renda fixa paga perto de um" 4,55–6,2
+      surge($('gn'), lt, 2.4, 0.4, 30);
+      $('gnN').textContent = (3.5 * easeOut(prog(lt, 2.5, 3.9))).toFixed(1).replace('.', ',') + '%';
+      const comp = $('comp');
+      const pc = easeOut(prog(lt, 4.3, 4.7));
+      comp.style.opacity = pc; comp.style.transform = `translateY(${(1 - pc) * 40}px)`;
+      $('b3').style.width = 98 * easeOut(prog(lt, 4.4, 5.1)) + '%';
+      $('b4').style.width = 28 * easeOut(prog(lt, 5.1, 5.7)) + '%';
+      carimba($('ganha'), lt, 5.7);
+    }
+    if (id === 'c5') {
+      // "Regra de bolso, a mesma do parcelado" 0,15–2,2 · "desconto dividido pela metade dos meses" 2,55–4,8 · "Deu mais…? Pague o ano." 5,1–7,4
+      surge($('r0'), lt, 0.1, 0.4, 20);
+      surge($('f1'), lt, 2.5, 0.4, 20);
+      surge($('f2'), lt, 3.9, 0.4, 20);
+      surge($('f3'), lt, 5.0, 0.4, 20);
+      surge($('f4'), lt, 6.6, 0.4, 10);
+    }
+    if (id === 'c6') {
+      // "Mas só vale se você usar o ano todo" 0,15–2,2 · "Né, Caio?" 2,5–3,0
+      surge($('ac'), lt, 0.2, 0.4, 40);
+      for (let i = 0; i < 12; i++) $('g' + i).classList.toggle('foi', i < 3 && lt > 0.6 + i * 0.25);
+      surge($('pr'), lt, 1.6, 0.35, 10);
+      carimba($('ne'), lt, 2.35);
+    }
+    if (id === 'c7') {
+      // "Manda pra quem paga tudo no mensal" 0,15–1,85 · "E segue o Appliquei pra mais contas assim" 2,1–4,2
+      surge($('md'), lt, 0.1, 0.4, 40);
+      $('md').querySelector('.ic').style.transform = `scale(${1 + 0.06 * Math.sin(lt * 7) * prog(lt, 0.5, 1)})`;
+      surge($('as'), lt, 2.0, 0.45, 40);
+      surge($('av'), lt, 2.8, 0.4, 10);
+      $('logoFixo').style.opacity = 1 - prog(lt, 1.7, 2.0);
+    } else $('logoFixo').style.opacity = 1;
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>
