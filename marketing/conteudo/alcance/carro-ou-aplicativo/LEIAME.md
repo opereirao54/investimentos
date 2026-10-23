@@ -1,12 +1,15 @@
-# "Seu carro custa R$ 2.100 por mês… parado na garagem" (54,8 s)
+# "Esse carro custa R$ 2.100 por mês. Parado na garagem." (70,5 s)
 
-Vídeo educativo de alcance no formato "conta na tela" (`modelo-conta.html`).
-O Mateus (mau exemplo) compra um carro de R$ 80 mil "porque aplicativo sai
-caro" e só usa no fim de semana. A nota do carro parado soma R$ 25.200 por ano,
-R$ 2.100 por mês antes da gasolina: dá 70 corridas de R$ 30. O Caio (bom
-exemplo) faz umas 20 corridas por mês (R$ 600) e deixa os R$ 80 mil rendendo.
-Regra de bolso: custo do carro ÷ preço da corrida. O app não aparece; a marca
-só assina. Personagens fictícios.
+Vídeo educativo de alcance no formato "conta na tela" (`modelo-conta.html`),
+na versão didática: abre com o número ("Esse carro custa R$ 2.100 por mês.
+Parado na garagem. Quer ver a conta?") e explica cada custo antes de ele
+entrar na nota, com uma legenda embaixo: (1) todo carro perde valor, R$ 80 mil
+→ R$ 72 mil em um ano; (2) as contas fixas chegam rodando ou não; (3) o custo
+que ninguém vê, o que os R$ 80 mil renderiam aplicados. Depois soma, divide
+pelo preço da corrida (70 por mês) e compara com o uso real do Mateus (o mau
+exemplo): 8 dias por mês, ida e volta, 16 corridas, R$ 480. Regra: se você
+não chega nas 70 corridas, o carro é que sai caro; se roda todo dia, pode
+compensar. O app não aparece; a marca só assina. Personagem fictício.
 
 - `appliquei-carro-ou-aplicativo.mp4`: final, narrado (-15 LUFS).
 - `video.html`, `narracao.json`, `narracao-charon-leitura.wav`, `trilha.wav`
@@ -27,19 +30,23 @@ Carro de R$ 80 mil, por ano, sem combustível:
 
 Sem o "deixou de render", o custo fica em ~R$ 1.300 por mês, que bate com os
 estudos de 2026 (R$ 1.100 a 1.500 sem combustível). R$ 2.100 ÷ R$ 30 = 70
-corridas por mês (2,3 por dia). Caio: 20 × R$ 30 = R$ 600.
+corridas por mês (2,3 por dia). Mateus: 8 dias × ida e volta = 16 corridas ×
+R$ 30 = R$ 480.
+
+Os totais aparecem já no valor final (sem contador): um contador passava por
+números intermediários que não batem com a nota.
 
 A regra traz a ressalva: quem roda todo dia, a trabalho ou longe de tudo, pode
 compensar ter carro. O vídeo não diz que carro é ruim.
 
 ## Legenda
 
-> O Mateus comprou um carro de R$ 80 mil "porque aplicativo sai caro". Mas só
-> usa no fim de semana. 🚗
+> Esse carro custa R$ 2.100 por mês. Parado na garagem. 🚗
 >
-> Parado na garagem, ele custa: desvalorização, IPVA, seguro, manutenção e o
-> que os R$ 80 mil deixam de render. R$ 25 mil por ano. R$ 2.100 por mês, antes
-> da gasolina. Dá 70 corridas de R$ 30.
+> O Mateus comprou um carro de R$ 80 mil porque achou que aplicativo saía caro,
+> mas só usa no fim de semana. Somando desvalorização, IPVA, seguro, manutenção
+> e o que os R$ 80 mil deixam de render: R$ 25 mil por ano. Dá 70 corridas de
+> R$ 30 por mês. O Mateus faz 16.
 >
 > 📌 Regra de bolso: divida o custo do seu carro pelo preço da corrida. Se você
 > não anda tudo isso, o carro é que sai caro. (Roda todo dia? Aí pode
@@ -49,7 +56,7 @@ compensar ter carro. O vídeo não diz que carro é ruim.
 >
 > Conteúdo educacional. Valores de exemplo para um carro de R$ 80 mil (IPVA de
 > 4%, como em SP); seguro, desvalorização e manutenção variam por modelo e
-> região. Supondo renda fixa perto de 1% ao mês. Personagens fictícios.
+> região. Supondo renda fixa perto de 1% ao mês. Personagem fictício.
 >
 > #educacaofinanceira #financaspessoais #carro #dinheiro #dicasdefinancas
 

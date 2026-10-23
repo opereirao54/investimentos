@@ -1,16 +1,17 @@
 <!doctype html>
 <!--
-  Vídeo EDUCATIVO de alcance (≈55 s, 1080×1920) — "O Mateus comprou um carro
-  de R$ 80 mil porque aplicativo sai caro. Quanto custa esse carro parado?"
-  Formato "conta na tela" (modelo-conta.html). O Mateus é o mau exemplo, o
-  Caio o bom. O app NÃO aparece; a marca só assina no fim.
+  Vídeo EDUCATIVO de alcance (≈70 s, 1080×1920) — "Esse carro custa R$ 2.100
+  por mês. Parado na garagem. Quer ver a conta?" Formato "conta na tela"
+  (modelo-conta.html), didático: cada custo é explicado antes de entrar na
+  nota, e a divisão final usa o uso real do Mateus (o mau exemplo). O app NÃO
+  aparece; a marca só assina no fim.
 
   A conta (exemplo, conferida com fontes de 2026): carro de R$ 80 mil, por
   ano: desvalorização R$ 8.000 (10%), IPVA R$ 3.200 (4%, como em SP), seguro
   R$ 3.200 (4%; faixa de 3% a 7%), manutenção R$ 1.200 e o que os R$ 80 mil
-  deixam de render a ~1% ao mês, R$ 9.600. Total R$ 25.200 por ano = R$ 2.100
-  por mês, sem combustível. R$ 2.100 ÷ R$ 30 por corrida = 70 corridas por
-  mês (2,3 por dia). Caio: 20 corridas × R$ 30 = R$ 600 por mês.
+  deixam de render a ~1% ao mês (R$ 800/mês), R$ 9.600. Total R$ 25.200 por
+  ano = R$ 2.100 por mês, sem combustível. R$ 2.100 ÷ R$ 30 = 70 corridas por
+  mês. Mateus: 8 dias × ida e volta = 16 corridas × R$ 30 = R$ 480.
   Mesma mecânica dos outros vídeos: render(t) desenha o segundo t.
 -->
 <html lang="pt-BR">
@@ -35,16 +36,26 @@
   .cena { position: absolute; inset: 0; opacity: 0; }
   .tit { font-weight: 900; letter-spacing: -.035em; line-height: 1.02; color: var(--tinta); }
   .tit em { font-style: normal; color: var(--sinal); }
+  .tit em.a { color: var(--ambar); }
   .mono { font-family: 'DM Mono', monospace; font-weight: 500; }
   .logo-fixo { position: absolute; left: 60px; top: 60px; width: 200px; z-index: 20; }
   .serie { position: absolute; right: 150px; top: 60px; padding: 10px 20px; border-radius: 99px; border: 2px solid rgba(52,211,153,.45); background: rgba(52,211,153,.12);
     font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .12em; text-transform: uppercase; color: var(--sinal); z-index: 20; }
   .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); z-index: 30; }
   .el { opacity: 0; }
-  .carimbo { position: absolute; left: 0; right: 0; text-align: center; }
-  .carimbo span { display: inline-block; padding: 18px 44px; border: 7px solid var(--ambar); border-radius: 24px; color: var(--ambar); font-weight: 900; font-size: 70px; transform: rotate(-4deg); }
+  .chip { position: absolute; left: 0; right: 0; text-align: center; }
+  .chip span { display: inline-block; padding: 14px 32px; border-radius: 20px; border: 3px solid rgba(240,250,244,.4); font-size: 40px; font-weight: 800; color: var(--deck); }
+  .chip.am span { border-color: var(--ambar); color: var(--ambar); }
 
   /* 1. Gancho */
+  .preco { position: absolute; left: 0; right: 0; top: 330px; text-align: center; }
+  .preco b { display: block; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 210px; letter-spacing: -.05em; color: var(--ambar); line-height: 1; }
+  .preco small { display: block; margin-top: 12px; font-size: 56px; font-weight: 900; }
+  .garagem { position: absolute; left: 190px; width: 700px; height: 420px; }
+  .garagem svg { width: 100%; height: 100%; }
+  .rot-gar { position: absolute; left: 0; right: 0; text-align: center; font-size: 46px; font-weight: 900; color: var(--deck); }
+
+  /* 2. Mateus */
   .quem { position: absolute; left: 90px; right: 90px; display: flex; align-items: center; gap: 30px; padding: 36px 40px; border-radius: 40px; }
   .quem .av { flex: none; width: 130px; height: 130px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 68px; font-weight: 900; color: #052e1f; }
   .quem b { display: block; font-size: 46px; font-weight: 900; }
@@ -52,64 +63,67 @@
   .quem .v { display: block; margin-top: 4px; font-family: 'DM Mono', monospace; font-size: 76px; letter-spacing: -.04em; line-height: 1.05; }
   .q-mateus { background: rgba(96,165,250,.12); border: 3px solid rgba(96,165,250,.55); }
   .q-mateus .av { background: var(--azul); } .q-mateus .v { color: var(--azul); }
-  .q-caio { background: rgba(52,211,153,.12); border: 3px solid rgba(52,211,153,.55); }
-  .q-caio .av { background: var(--sinal); } .q-caio .v { color: var(--sinal); }
-  .fala { position: absolute; left: 0; right: 0; text-align: center; }
-  .fala span { display: inline-block; padding: 22px 36px; border-radius: 30px 30px 30px 6px; background: #fff; color: #12241c; font-size: 44px; font-weight: 800; box-shadow: 0 24px 60px rgba(0,0,0,.45); }
+  .pensa { position: absolute; left: 0; right: 0; text-align: center; }
+  .pensa span { display: inline-block; padding: 22px 36px; border-radius: 30px; background: #fff; color: #12241c; font-size: 42px; font-weight: 800; box-shadow: 0 24px 60px rgba(0,0,0,.45); }
   .semana { position: absolute; left: 90px; right: 90px; display: grid; grid-template-columns: repeat(7, 1fr); gap: 14px; }
   .semana div { height: 110px; border-radius: 22px; display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-size: 30px;
     background: rgba(240,250,244,.06); border: 2px solid rgba(240,250,244,.15); color: var(--mudo); }
   .semana div.usa { background: rgba(96,165,250,.22); border-color: var(--azul); color: #dbeafe; }
-  .rot-semana { position: absolute; left: 0; right: 0; text-align: center; font-size: 36px; font-weight: 800; color: var(--deck); }
+  .rot-semana { position: absolute; left: 0; right: 0; text-align: center; font-size: 40px; font-weight: 800; color: var(--deck); }
 
-  /* 2. A nota do carro parado */
-  .nota { position: absolute; left: 90px; right: 90px; top: 470px; padding: 44px 48px 36px; border-radius: 36px; background: #fff; color: #12241c; box-shadow: 0 34px 80px rgba(0,0,0,.5); }
-  .nota .cab { font-family: 'DM Mono', monospace; font-size: 26px; letter-spacing: .12em; text-transform: uppercase; color: #51655b; padding-bottom: 20px; border-bottom: 3px dashed #c9d5cf; }
-  .nota .ln { display: flex; justify-content: space-between; align-items: baseline; padding: 22px 0; border-bottom: 2px solid #e7eeea; font-size: 42px; font-weight: 800; opacity: 0; }
+  /* 3. A nota, item por item, com a explicação embaixo */
+  .nota { position: absolute; left: 90px; right: 90px; top: 300px; padding: 40px 48px 30px; border-radius: 36px; background: #fff; color: #12241c; box-shadow: 0 34px 80px rgba(0,0,0,.5); }
+  .nota .cab { font-family: 'DM Mono', monospace; font-size: 26px; letter-spacing: .12em; text-transform: uppercase; color: #51655b; padding-bottom: 18px; border-bottom: 3px dashed #c9d5cf; }
+  .nota .ln { display: flex; justify-content: space-between; align-items: baseline; padding: 20px 0; border-bottom: 2px solid #e7eeea; font-size: 42px; font-weight: 800; opacity: 0; }
   .nota .ln span { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 46px; }
-  .nota .ln small { font-size: 26px; font-weight: 700; color: #6b7c74; margin-left: 10px; }
-  .nota .ln.oculto { margin: 10px -20px 0; padding: 22px 20px; border-radius: 20px; border: none; background: #fef3c7; color: #92400e; }
+  .nota .ln.oculto { margin: 10px -20px 0; padding: 20px; border-radius: 20px; border: none; background: #fef3c7; color: #92400e; }
+  .expl { position: absolute; left: 90px; right: 90px; top: 1060px; padding: 40px 44px; border-radius: 36px; background: rgba(240,250,244,.06); border: 3px solid rgba(52,211,153,.45); opacity: 0; }
+  .expl .rot { font-family: 'DM Mono', monospace; font-size: 26px; letter-spacing: .14em; text-transform: uppercase; color: var(--sinal); }
+  .expl b { display: block; margin-top: 14px; font-size: 50px; font-weight: 900; letter-spacing: -.02em; line-height: 1.15; }
+  .expl b em { font-style: normal; color: var(--ambar); }
+  .expl p { margin-top: 14px; font-size: 34px; color: var(--deck); line-height: 1.3; }
+  .expl .seta { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 54px; margin-top: 16px; }
+  .expl .seta i { font-style: normal; color: var(--vermelho); }
 
-  /* 3. O total */
-  .total { position: absolute; left: 0; right: 0; top: 520px; text-align: center; }
+  /* 4. Soma */
+  .total { position: absolute; left: 0; right: 0; top: 560px; text-align: center; }
   .total .ano { font-family: 'DM Mono', monospace; font-size: 64px; color: var(--deck); }
   .total .ano small { font-family: 'Figtree', sans-serif; font-size: 40px; font-weight: 700; }
   .total .mes { margin-top: 60px; }
   .total .mes b { display: block; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 200px; letter-spacing: -.05em; color: var(--ambar); line-height: 1; }
   .total .mes small { display: block; margin-top: 10px; font-size: 54px; font-weight: 900; }
-  .chip { position: absolute; left: 0; right: 0; text-align: center; }
-  .chip span { display: inline-block; padding: 14px 32px; border-radius: 20px; border: 3px solid rgba(240,250,244,.4); font-size: 40px; font-weight: 800; color: var(--deck); }
 
-  /* 4. 70 corridas */
-  .corridas { position: absolute; left: 110px; right: 110px; top: 560px; display: grid; grid-template-columns: repeat(10, 1fr); gap: 18px; }
+  /* 5. A divisão */
+  .divide { position: absolute; left: 0; right: 0; top: 330px; text-align: center; font-family: 'DM Mono', monospace; font-weight: 500; }
+  .divide .q { font-size: 84px; letter-spacing: -.03em; }
+  .divide .q i { font-style: normal; color: var(--mudo); }
+  .divide .r { margin-top: 18px; font-size: 92px; color: var(--ambar); letter-spacing: -.03em; }
+  .divide .r small { font-family: 'Figtree', sans-serif; font-size: 44px; font-weight: 900; color: var(--tinta); }
+  .corridas { position: absolute; left: 110px; right: 110px; top: 700px; display: grid; grid-template-columns: repeat(10, 1fr); gap: 18px; }
   .corridas i { aspect-ratio: 1; border-radius: 50%; background: var(--ambar); opacity: 0; box-shadow: 0 0 18px rgba(251,191,36,.35); }
-  .rot-corr { position: absolute; left: 0; right: 0; text-align: center; }
-  .rot-corr b { display: block; font-size: 64px; font-weight: 900; letter-spacing: -.03em; }
-  .rot-corr b em { font-style: normal; color: var(--ambar); }
-  .rot-corr small { display: block; margin-top: 14px; font-size: 44px; font-weight: 800; color: var(--deck); }
 
-  /* 5. O Caio */
+  /* 6. O uso do Mateus */
   .comp { position: absolute; left: 90px; right: 90px; }
   .comp .r { font-size: 38px; font-weight: 800; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: baseline; }
   .comp .r span { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 44px; }
   .comp .r small { font-size: 28px; color: var(--mudo); font-weight: 700; margin-left: 8px; }
   .comp .tr { height: 66px; border-radius: 33px; background: rgba(240,250,244,.08); overflow: hidden; }
   .comp .tr i { display: block; height: 100%; width: 0; border-radius: 33px; }
-  .rende { position: absolute; left: 0; right: 0; text-align: center; }
-  .rende span { display: inline-block; padding: 16px 36px; border-radius: 22px; background: var(--sinal); color: #052e1f; font-weight: 900; font-size: 50px; }
+  .viagens { position: absolute; left: 90px; right: 90px; display: grid; grid-template-columns: repeat(8, 1fr); gap: 14px; }
+  .viagens div { height: 96px; border-radius: 18px; background: rgba(96,165,250,.14); border: 2px solid rgba(96,165,250,.5); display: flex; align-items: center; justify-content: center; gap: 8px; opacity: 0; }
+  .viagens div i { width: 22px; height: 22px; border-radius: 50%; background: var(--sinal); opacity: 0; }
 
-  /* 6. Regra de bolso */
-  .regra { position: absolute; left: 70px; right: 70px; top: 470px; padding: 46px 44px; border-radius: 44px; background: rgba(240,250,244,.06); border: 3px solid rgba(52,211,153,.5);
+  /* 7. Regra */
+  .regra { position: absolute; left: 70px; right: 70px; top: 420px; padding: 46px 44px; border-radius: 44px; background: rgba(240,250,244,.06); border: 3px solid rgba(52,211,153,.5);
     box-shadow: 0 0 80px rgba(52,211,153,.15); }
   .regra .rot { font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .14em; text-transform: uppercase; color: var(--sinal); }
-  .regra .formula { margin-top: 26px; font-size: 52px; font-weight: 900; letter-spacing: -.03em; line-height: 1.12; }
-  .regra .formula em { font-style: normal; color: var(--sinal); }
-  .regra .conta { margin-top: 30px; font-family: 'DM Mono', monospace; font-size: 42px; color: var(--ambar); }
-  .regra .dec { margin-top: 34px; padding-top: 30px; border-top: 2px dashed rgba(240,250,244,.25); font-size: 44px; font-weight: 800; line-height: 1.25; }
-  .regra .dec b { color: var(--ambar); }
-  .regra .ressalva { margin-top: 22px; font-size: 30px; color: var(--deck); line-height: 1.35; }
+  .regra .formula { margin-top: 22px; font-size: 44px; font-weight: 800; line-height: 1.2; color: var(--deck); }
+  .regra .formula b { color: var(--tinta); }
+  .regra .caso { margin-top: 30px; padding-top: 28px; border-top: 2px dashed rgba(240,250,244,.25); font-size: 46px; font-weight: 800; line-height: 1.25; }
+  .regra .caso b { color: var(--ambar); }
+  .regra .caso b.v { color: var(--sinal); }
 
-  /* 7. Fecho */
+  /* 8. Fecho */
   .manda { position: absolute; left: 0; right: 0; top: 470px; text-align: center; }
   .manda .ic { width: 170px; height: 170px; margin: 0 auto; border-radius: 44px; background: var(--sinal); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 70px rgba(52,211,153,.4); }
   .manda .ic svg { width: 96px; height: 96px; margin-left: -8px; }
@@ -129,74 +143,96 @@
   <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
   <div class="serie" id="serie">Conta de padaria</div>
 
-  <!-- 1. GANCHO -->
+  <!-- 1. GANCHO: o preço primeiro -->
   <div class="cena" id="c1">
-    <div class="tit" style="position:absolute;left:70px;right:70px;top:280px;text-align:center;font-size:84px;">Carro ou<br><em>aplicativo?</em></div>
-    <div class="quem q-mateus el" id="qm" style="top:540px;"><div class="av">M</div><div><b>Mateus</b><small>comprou um carro de</small><span class="v">R$ 80 mil</span></div></div>
-    <div class="fala el" id="fl" style="top:840px;"><span>"Aplicativo sai caro."</span></div>
-    <div class="semana" id="sm" style="top:1040px;"></div>
-    <div class="rot-semana el" id="rs" style="top:1180px;">usa só no fim de semana</div>
-    <div class="carimbo el" id="qc" style="top:1340px;"><span>Quanto custa parado?</span></div>
+    <div class="preco el" id="pr"><b id="prN">R$ 0</b><small>por mês</small></div>
+    <div class="garagem el" id="gr" style="top:720px;">
+      <svg viewBox="0 0 700 420">
+        <path d="M40 400 V150 L350 30 L660 150 V400" fill="none" stroke="rgba(240,250,244,.35)" stroke-width="10" stroke-linejoin="round"/>
+        <path d="M120 400 V200 H580 V400" fill="rgba(240,250,244,.04)" stroke="rgba(240,250,244,.2)" stroke-width="6"/>
+        <g transform="translate(170 250)">
+          <path d="M20 90 Q20 60 50 55 L95 20 Q105 12 120 12 H250 Q265 12 275 22 L320 55 Q350 60 350 90 V115 H20 Z" fill="#60a5fa"/>
+          <path d="M110 28 H175 V58 H80 Z M190 28 H252 L292 58 H190 Z" fill="#0b1410" opacity=".7"/>
+          <circle cx="90" cy="118" r="30" fill="#0b1410" stroke="#c8d6cf" stroke-width="8"/>
+          <circle cx="280" cy="118" r="30" fill="#0b1410" stroke="#c8d6cf" stroke-width="8"/>
+        </g>
+      </svg>
+    </div>
+    <div class="rot-gar el" id="rg" style="top:1170px;">parado na garagem</div>
+    <div class="chip am el" id="qv" style="top:1320px;"><span>Quer ver a conta?</span></div>
   </div>
 
-  <!-- 2. A NOTA DO CARRO PARADO -->
+  <!-- 2. O MATEUS -->
   <div class="cena" id="c2">
-    <div class="tit" style="position:absolute;left:70px;right:70px;top:290px;text-align:center;font-size:66px;">O carro do Mateus, <em>parado</em></div>
+    <div class="quem q-mateus el" id="qm" style="top:330px;"><div class="av">M</div><div><b>Mateus</b><small>comprou um carro de</small><span class="v">R$ 80 mil</span></div></div>
+    <div class="pensa el" id="pn" style="top:690px;"><span>"Aplicativo sai caro."</span></div>
+    <div class="semana" id="sm" style="top:930px;"></div>
+    <div class="rot-semana el" id="rs" style="top:1070px;">mas só usa no fim de semana</div>
+  </div>
+
+  <!-- 3. A NOTA, ITEM POR ITEM -->
+  <div class="cena" id="c3">
     <div class="nota">
-      <div class="cab">Custo por ano · sem gasolina</div>
+      <div class="cab">Carro parado · custo por ano</div>
       <div class="ln" id="l1">Desvalorização <span>R$ 8.000</span></div>
-      <div class="ln" id="l2"><i style="font-style:normal">IPVA<small>(4%)</small></i> <span>R$ 3.200</span></div>
+      <div class="ln" id="l2">IPVA <span>R$ 3.200</span></div>
       <div class="ln" id="l3">Seguro <span>R$ 3.200</span></div>
       <div class="ln" id="l4">Manutenção <span>R$ 1.200</span></div>
-      <div class="ln oculto" id="l5">Deixou de render* <span>R$ 9.600</span></div>
+      <div class="ln oculto" id="l5">Deixou de render <span>R$ 9.600</span></div>
     </div>
+    <div class="expl" id="e1"><div class="rot">1 · Todo carro perde valor</div><b>~10% por ano, <em>mesmo parado</em></b><div class="seta">R$ 80 mil → <i>R$ 72 mil</i></div></div>
+    <div class="expl" id="e2"><div class="rot">2 · As contas fixas</div><b>Chegam todo ano, <em>rodando ou não</em></b><p>IPVA: 4% do valor (como em SP) · Seguro: ~4% do valor · Manutenção: revisões e peças</p></div>
+    <div class="expl" id="e3"><div class="rot">3 · O custo que ninguém vê</div><b>Se os R$ 80 mil estivessem aplicados:</b><div class="seta">≈ R$ 800 <i style="color:var(--ambar)">por mês</i></div><p>a ~1% ao mês*: quase R$ 10 mil por ano</p></div>
   </div>
 
-  <!-- 3. O TOTAL -->
-  <div class="cena" id="c3">
-    <div class="tit" style="position:absolute;left:70px;right:70px;top:300px;text-align:center;font-size:84px;">Soma</div>
-    <div class="total">
-      <div class="ano el" id="ta">R$ <span id="taN">0</span> <small>por ano</small></div>
-      <div class="mes el" id="tm"><b id="tmN">R$ 0</b><small>por mês</small></div>
-    </div>
-    <div class="chip el" id="gs" style="top:1240px;"><span>antes da gasolina</span></div>
-  </div>
-
-  <!-- 4. 70 CORRIDAS -->
+  <!-- 4. SOMA -->
   <div class="cena" id="c4">
-    <div class="tit" style="position:absolute;left:70px;right:70px;top:290px;text-align:center;font-size:72px;">Isso paga</div>
-    <div class="corridas" id="cr"></div>
-    <div class="rot-corr el" id="rc" style="top:1300px;"><b><em>70 corridas</em> de R$ 30</b><small>mais de 2 por dia, todo dia</small></div>
+    <div class="tit" style="position:absolute;left:70px;right:70px;top:320px;text-align:center;font-size:84px;">Somando tudo</div>
+    <div class="total">
+      <div class="ano el" id="ta">R$ 25.200 <small>por ano</small></div>
+      <div class="mes el" id="tm"><b>R$ 2.100</b><small>por mês</small></div>
+    </div>
+    <div class="chip el" id="gs" style="top:1280px;"><span>sem contar a gasolina</span></div>
   </div>
 
-  <!-- 5. O CAIO -->
+  <!-- 5. A DIVISÃO -->
   <div class="cena" id="c5">
-    <div class="quem q-caio el" id="qa" style="top:330px;"><div class="av">C</div><div><b>Caio</b><small>vai de aplicativo</small><span class="v">20 corridas</span></div></div>
-    <div class="comp el" id="cp" style="top:720px;">
-      <div class="r">Carro do Mateus <span style="color:var(--azul)">R$ 2.100<small>/mês</small></span></div>
+    <div class="divide">
+      <div class="q el" id="dq">R$ 2.100 <i>÷</i> <span id="dc" style="opacity:0">R$ 30</span></div>
+      <div class="r el" id="dr">= 70 <small>corridas por mês</small></div>
+    </div>
+    <div class="corridas" id="cr"></div>
+    <div class="chip am el" id="dd" style="top:1420px;"><span>mais de 2 por dia, todo dia</span></div>
+  </div>
+
+  <!-- 6. O USO DO MATEUS -->
+  <div class="cena" id="c6">
+    <div class="tit" style="position:absolute;left:70px;right:70px;top:290px;text-align:center;font-size:66px;">E o Mateus?<br><em class="a">8 dias por mês</em></div>
+    <div class="viagens" id="vg" style="top:560px;"></div>
+    <div class="chip el" id="iv" style="top:690px;"><span>ida e volta = 16 corridas</span></div>
+    <div class="comp el" id="cp" style="top:900px;">
+      <div class="r">Carro parado <span style="color:var(--azul)">R$ 2.100<small>/mês</small></span></div>
       <div class="tr"><i id="b1" style="background:linear-gradient(90deg,#3b82f6,#60a5fa)"></i></div>
-      <div class="r" style="margin-top:40px;">Aplicativo do Caio <span style="color:var(--sinal)">R$ 600<small>/mês</small></span></div>
+      <div class="r" style="margin-top:40px;">De aplicativo <span style="color:var(--sinal)">16 × R$ 30 = R$ 480</span></div>
       <div class="tr"><i id="b2" style="background:linear-gradient(90deg,#059669,#34d399)"></i></div>
     </div>
-    <div class="rende el" id="rd" style="top:1180px;"><span>+ os R$ 80 mil rendendo</span></div>
   </div>
 
-  <!-- 6. REGRA DE BOLSO -->
-  <div class="cena" id="c6">
+  <!-- 7. A REGRA -->
+  <div class="cena" id="c7">
     <div class="regra">
-      <div class="rot el" id="r0">Regra de bolso</div>
-      <div class="formula el" id="f1">custo do carro ÷ <em>preço da corrida</em></div>
-      <div class="conta el" id="f2">R$ 2.100 ÷ R$ 30 = 70 por mês</div>
-      <div class="dec el" id="f3">Anda menos que isso?<br>→ <b>o carro é que sai caro.</b></div>
-      <div class="ressalva el" id="f4">Roda todo dia, a trabalho ou longe de tudo? Aí o carro pode compensar. Faça a conta com o seu.</div>
+      <div class="rot el" id="r0">Então a regra é</div>
+      <div class="formula el" id="f0"><b>custo do carro dividido pelo preço da corrida</b> = quantas corridas ele precisa substituir por mês</div>
+      <div class="caso el" id="f1">Não chega nas 70 por mês?<br>→ <b>o carro é que sai caro.</b></div>
+      <div class="caso el" id="f2">Roda todo dia?<br>→ <b class="v">aí ele pode compensar.</b></div>
     </div>
   </div>
 
-  <!-- 7. FECHO -->
-  <div class="cena" id="c7">
+  <!-- 8. FECHO -->
+  <div class="cena" id="c8">
     <div class="manda el" id="md"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 11.5 21 3l-8.5 18-2.2-7.3z" fill="#052e1f"/></svg></div><b>Manda pra quem diz que<br>aplicativo sai caro</b></div>
     <div class="assina el" id="as"><img src="wordmark.svg" alt="Appliquei"><p>Mais contas assim: <em>siga o Appliquei</em></p></div>
-    <div class="aviso el" id="av">Conteúdo educacional. Valores de exemplo para um carro de R$ 80 mil: IPVA de 4% (como em SP); seguro, desvalorização e manutenção variam por modelo e região. Sem combustível. *Supondo renda fixa perto de 1% ao mês. Personagens fictícios.</div>
+    <div class="aviso el" id="av">Conteúdo educacional. Valores de exemplo para um carro de R$ 80 mil: IPVA de 4% (como em SP); seguro, desvalorização e manutenção variam por modelo e região. Sem combustível. *Supondo renda fixa perto de 1% ao mês. Personagem fictício.</div>
   </div>
 
   <div class="barra-t" id="barraT"></div>
@@ -210,11 +246,12 @@
     $('malha').innerHTML = m.join('');
     $('sm').innerHTML = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'].map((d, i) => `<div id="d${i}" class="el">${d}</div>`).join('');
     $('cr').innerHTML = Array.from({ length: 70 }, (_, i) => `<i id="k${i}"></i>`).join('');
+    $('vg').innerHTML = Array.from({ length: 8 }, (_, i) => `<div id="v${i}"><i id="va${i}"></i><i id="vb${i}"></i></div>`).join('');
   })();
 
   // Cenas seguem narracao.json (início de cada frase − 0,15 s).
-  const DUR = 54.8;
-  const CENAS = [['c1', 0, 8.51], ['c2', 8.51, 22.08], ['c3', 22.08, 28.14], ['c4', 28.14, 33.74], ['c5', 33.74, 39.75], ['c6', 39.75, 47.84], ['c7', 47.84, 55.0]];
+  const DUR = 70.5;
+  const CENAS = [['c1', 0, 6.82], ['c2', 6.82, 14.06], ['c3', 14.06, 37.64], ['c4', 37.64, 42.97], ['c5', 42.97, 49.54], ['c6', 49.54, 56.48], ['c7', 56.48, 64.43], ['c8', 64.43, 70.7]];
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
   const easeOut = (x) => 1 - Math.pow(1 - x, 3);
@@ -225,10 +262,11 @@
     el.style.opacity = clamp(p, 0, 1);
     el.style.transform = `translateY(${(1 - p) * (dy == null ? 40 : dy)}px) scale(${0.85 + 0.15 * p})`;
   }
-  function carimba(el, lt, a) {
-    const c = easeBack(prog(lt, a, a + 0.35));
-    el.style.opacity = clamp(c, 0, 1);
-    el.style.transform = `scale(${2 - c})`;
+  // aparece em a e some em b (para as explicações que se revezam)
+  function janela(el, lt, a, b) {
+    const p = easeOut(prog(lt, a, a + 0.35)) * (1 - prog(lt, b - 0.25, b));
+    el.style.opacity = p;
+    el.style.transform = `translateY(${(1 - easeOut(prog(lt, a, a + 0.35))) * 30}px)`;
   }
 
   function render(t) {
@@ -241,72 +279,87 @@
       el.style.display = dentro ? 'block' : 'none';
       if (dentro) cenaExtra(id, t - a);
     }
-    $('serie').style.opacity = t < 47.6 ? easeOut(prog(t, 0.3, 0.6)) : 1 - prog(t, 47.6, 47.9);
+    $('serie').style.opacity = t < 64.2 ? easeOut(prog(t, 0.3, 0.6)) : 1 - prog(t, 64.2, 64.5);
     $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
   }
 
   // Tempos locais = fala + 0,15 s (pausas medidas na leitura).
   function cenaExtra(id, lt) {
     if (id === 'c1') {
-      // "O Mateus comprou um carro de oitenta mil" 0,15–2,1 · "porque aplicativo sai caro" 2,5–3,75
-      // "Mas só usa no fim de semana" 4,45–5,7 · "Quanto custa esse carro parado?" 6,7–8,1
-      surge($('qm'), lt, 0.1, 0.4, 50);
-      surge($('fl'), lt, 2.4, 0.35, 20);
-      for (let i = 0; i < 7; i++) {
-        surge($('d' + i), lt, 4.3 + i * 0.05, 0.3, 20);
-        $('d' + i).classList.toggle('usa', i >= 5 && lt > 5.0);
-      }
-      surge($('rs'), lt, 5.0, 0.35, 10);
-      carimba($('qc'), lt, 6.6);
+      // "Esse carro custa dois mil e cem reais por mês" 0,15–3,2 · "Parado na garagem" 3,6–4,75 · "Quer ver a conta?" 5,8–6,4
+      surge($('pr'), lt, 0.05, 0.4, 30);
+      $('prN').textContent = 'R$ ' + real(2100 * easeOut(prog(lt, 0.9, 1.4)));
+      surge($('gr'), lt, 3.4, 0.4, 40);
+      surge($('rg'), lt, 3.7, 0.35, 10);
+      surge($('qv'), lt, 5.6, 0.35, 10);
     }
     if (id === 'c2') {
-      // "Desvaloriza uns oito mil" 0,15–1,8 · "IPVA, três mil e duzentos" 2,25–4,05 · "Seguro…" 4,8–6,7
-      // "Manutenção…" 7,2–9,2 · "E os oitenta mil, se ficassem rendendo, dariam quase dez mil" 9,6–13,35
-      [0.1, 2.2, 4.75, 7.15, 9.7].forEach((a, i) => surge($('l' + (i + 1)), lt, a, 0.35, 16));
+      // "O Mateus comprou um carro de oitenta mil" 0,15–2,3 · "Achou que aplicativo saía caro" 2,85–4,35
+      // "Mas ele só usa o carro no fim de semana" 5,0–6,95
+      surge($('qm'), lt, 0.1, 0.4, 50);
+      surge($('pn'), lt, 2.75, 0.35, 20);
+      for (let i = 0; i < 7; i++) {
+        surge($('d' + i), lt, 4.8 + i * 0.05, 0.3, 20);
+        $('d' + i).classList.toggle('usa', i >= 5 && lt > 5.9);
+      }
+      surge($('rs'), lt, 5.6, 0.35, 10);
     }
     if (id === 'c3') {
-      // "Soma" 0,15–0,7 · "vinte e cinco mil por ano" 1,1–2,25 · "Dois mil e cem por mês" 3,05–4,3 · "antes da gasolina" 4,7–5,75
-      surge($('ta'), lt, 0.6, 0.4, 20);
-      $('taN').textContent = real(25200 * easeOut(prog(lt, 0.6, 1.1)));
-      surge($('tm'), lt, 2.8, 0.4, 30);
-      $('tmN').textContent = 'R$ ' + real(2100 * easeOut(prog(lt, 2.8, 3.2)));
-      surge($('gs'), lt, 4.6, 0.35, 10);
+      // 1 "Primeiro: todo carro perde valor" 0,15–2,3 · "uns dez por cento por ano" 2,7–3,95 · "São oito mil que somem, mesmo parado" 4,6–7,3
+      // 2 "Depois, as contas fixas" 7,7–9,0 · "IPVA…" 9,5–11,3 · "Seguro…" 11,7–13,4 · "Manutenção…" 13,8–15,5
+      // 3 "E o custo que ninguém vê" 15,9–17,25 · "se os oitenta mil estivessem aplicados" 17,9–19,8 · "renderiam uns oitocentos por mês" 20,1–21,75 · "Quase dez mil por ano" 22,25–23,25
+      janela($('e1'), lt, 0.9, 7.6);
+      janela($('e2'), lt, 7.6, 15.8);
+      janela($('e3'), lt, 15.8, 30);
+      [4.5, 9.45, 11.65, 13.75, 22.1].forEach((a, i) => surge($('l' + (i + 1)), lt, a, 0.35, 16));
     }
     if (id === 'c4') {
-      // "Isso paga setenta corridas de trinta reais" 0,15–2,6 · "Mais de duas por dia, todo dia" 3,2–5,3
+      // "Somando tudo" 0,15–0,95 · "vinte e cinco mil por ano" 1,15–2,3 · "Dois mil e cem por mês" 2,7–3,9 · "sem contar a gasolina" 4,05–5,1
+      surge($('ta'), lt, 0.7, 0.4, 20);
+      surge($('tm'), lt, 2.3, 0.4, 30);
+      surge($('gs'), lt, 4.0, 0.35, 10);
+    }
+    if (id === 'c5') {
+      // "Agora divida pelo preço de uma corrida" 0,15–1,85 · "uns trinta reais" 2,1–2,95 · "Dá setenta corridas por mês" 3,5–4,95 · "Mais de duas por dia" 5,3–6,3
+      surge($('dq'), lt, 0.1, 0.4, 20);
+      $('dc').style.opacity = easeOut(prog(lt, 2.05, 2.4));
+      surge($('dr'), lt, 3.4, 0.4, 20);
       for (let i = 0; i < 70; i++) {
-        const p = easeBack(prog(lt, 0.3 + i * 0.03, 0.55 + i * 0.03));
+        const p = easeBack(prog(lt, 3.5 + i * 0.022, 3.75 + i * 0.022));
         const k = $('k' + i);
         k.style.opacity = clamp(p, 0, 1);
         k.style.transform = `scale(${0.3 + 0.7 * p})`;
       }
-      surge($('rc'), lt, 2.6, 0.4, 20);
-    }
-    if (id === 'c5') {
-      // "O Caio vai de aplicativo" 0,15–1,5 · "Faz umas vinte corridas por mês" 2,05–3,55 · "e os oitenta mil ficam rendendo" 4,0–5,65
-      surge($('qa'), lt, 0.1, 0.4, 40);
-      const pc = easeOut(prog(lt, 1.9, 2.3));
-      $('cp').style.opacity = pc; $('cp').style.transform = `translateY(${(1 - pc) * 40}px)`;
-      $('b1').style.width = 100 * easeOut(prog(lt, 2.0, 2.7)) + '%';
-      $('b2').style.width = 28.6 * easeOut(prog(lt, 2.7, 3.4)) + '%';
-      surge($('rd'), lt, 4.0, 0.35, 20);
+      surge($('dd'), lt, 5.2, 0.35, 10);
     }
     if (id === 'c6') {
-      // "Regra de bolso" 0,15–0,9 · "divida o custo do carro pelo preço da corrida" 1,3–4,0
-      // "Se você não anda tudo isso" 4,8–6,1 · "o carro é que sai caro" 6,5–7,7
-      surge($('r0'), lt, 0.1, 0.4, 20);
-      surge($('f1'), lt, 1.25, 0.4, 20);
-      surge($('f2'), lt, 3.0, 0.4, 20);
-      surge($('f3'), lt, 4.7, 0.4, 20);
-      surge($('f4'), lt, 6.8, 0.4, 10);
+      // "O Mateus sai uns oito dias por mês" 0,15–2,0 · "Ida e volta" 2,45–3,0 · "dezesseis corridas" 3,2–4,2 · "De aplicativo, menos de quinhentos reais" 4,5–6,6
+      for (let i = 0; i < 8; i++) {
+        surge($('v' + i), lt, 0.6 + i * 0.12, 0.3, 20);
+        $('va' + i).style.opacity = prog(lt, 2.4 + i * 0.05, 2.6 + i * 0.05);
+        $('vb' + i).style.opacity = prog(lt, 2.8 + i * 0.05, 3.0 + i * 0.05);
+      }
+      surge($('iv'), lt, 3.1, 0.35, 10);
+      const pc = easeOut(prog(lt, 4.3, 4.7));
+      $('cp').style.opacity = pc; $('cp').style.transform = `translateY(${(1 - pc) * 40}px)`;
+      $('b1').style.width = 100 * easeOut(prog(lt, 4.4, 5.0)) + '%';
+      $('b2').style.width = 22.9 * easeOut(prog(lt, 5.1, 5.7)) + '%';
     }
     if (id === 'c7') {
-      // "Manda pra quem diz que aplicativo sai caro" 0,15–2,0 · "E segue o Appliquei pra mais contas assim" 2,8–5,0
+      // "Então a regra é" 0,15–1,05 · "se você não chega nessas setenta corridas" 1,4–3,45 · "o carro é que sai caro" 3,9–4,75
+      // "Se roda todo dia" 5,35–6,25 · "aí ele pode compensar" 6,5–7,55
+      surge($('r0'), lt, 0.1, 0.4, 20);
+      surge($('f0'), lt, 0.5, 0.4, 20);
+      surge($('f1'), lt, 1.4, 0.4, 20);
+      surge($('f2'), lt, 5.3, 0.4, 20);
+    }
+    if (id === 'c8') {
+      // "Manda pra quem diz que aplicativo sai caro" 0,15–2,1 · "E segue o Appliquei pra mais contas assim" 2,5–4,4
       surge($('md'), lt, 0.1, 0.4, 40);
       $('md').querySelector('.ic').style.transform = `scale(${1 + 0.06 * Math.sin(lt * 7) * prog(lt, 0.5, 1)})`;
-      surge($('as'), lt, 2.6, 0.45, 40);
-      surge($('av'), lt, 3.4, 0.4, 10);
-      $('logoFixo').style.opacity = 1 - prog(lt, 2.3, 2.6);
+      surge($('as'), lt, 2.3, 0.45, 40);
+      surge($('av'), lt, 3.1, 0.4, 10);
+      $('logoFixo').style.opacity = 1 - prog(lt, 2.0, 2.3);
     } else $('logoFixo').style.opacity = 1;
   }
   window.render = render;
