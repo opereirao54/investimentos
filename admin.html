@@ -175,6 +175,23 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
 @keyframes pulseSkel { 0%,100%{opacity:.5} 50%{opacity:.8} }
 
 /* FUNNEL */
+/* Visão de negócio: colunas por mês, projeção e notas */
+.ng-colunas { display:flex; align-items:flex-end; gap:6px; height:160px; padding-top:18px; }
+.ng-col { flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; position:relative; }
+.ng-col-barra { width:100%; max-width:34px; background:var(--cor-primaria); border-radius:4px 4px 0 0; min-height:2px; transition:height .4s ease; }
+.ng-col-barra.zero { background:var(--cor-borda2); }
+.ng-col-val { font-size:10px; font-family:'DM Mono',monospace; color:var(--cor-texto-secundario); margin-bottom:3px; white-space:nowrap; }
+.ng-col-mes { font-size:10px; color:var(--cor-texto-mutado); margin-top:5px; white-space:nowrap; }
+.ng-col:hover .ng-col-barra { background:var(--cor-primaria-hover); }
+.ng-proj { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+.ng-proj-item { background:var(--cor-superficie); border-radius:10px; padding:12px; }
+.ng-proj-lbl { font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color:var(--cor-texto-mutado); }
+.ng-proj-val { font-family:'DM Mono',monospace; font-size:17px; font-weight:600; margin-top:4px; }
+.ng-nota { font-size:11.5px; color:var(--cor-texto-mutado); margin-top:12px; line-height:1.5; }
+.ng-delta { font-weight:700; }
+.ng-delta.sobe { color:var(--cor-primaria); }
+.ng-delta.desce { color:var(--cor-erro); }
+@media(max-width:768px){ .ng-col-val{font-size:9px;} .ng-colunas{gap:3px;} }
 .funnel-container { background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: var(--radius); padding: 20px 24px; box-shadow: var(--shadow-card); margin-bottom: 16px; }
 .funnel-bar-wrapper { display: flex; height: 32px; border-radius: 16px; overflow: hidden; margin: 14px 0; background: var(--cor-superficie); }
 .funnel-segment { display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; transition: width 0.5s ease; white-space: nowrap; overflow: hidden; }
@@ -624,14 +641,13 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
         <div class="page-header">
             <div>
                 <h1><i class="ph-fill ph-chart-line-up" style="color:var(--cor-primaria)"></i> Dashboard</h1>
-                <p class="sub">Snapshot consolidado do negócio em tempo real.</p>
+                <p class="sub">Receita, previsão, volumetria e conversão — números do momento em que a página carregou.</p>
             </div>
             <div class="page-actions">
                 <div class="period-chips" id="period-chips" role="tablist">
                     <button class="period-chip" data-period="7d">7d</button>
-                    <button class="period-chip" data-period="30d">30d</button>
+                    <button class="period-chip active" data-period="30d">30d</button>
                     <button class="period-chip" data-period="90d">90d</button>
-                    <button class="period-chip active" data-period="all">All-time</button>
                 </div>
                 <button class="btn-sec" id="btn-refresh" onclick="loadStats()" aria-label="Atualizar"><i class="ph ph-arrows-clockwise"></i> <span class="adm-rot">Atualizar</span></button>
             </div>
@@ -639,105 +655,261 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
 
         <div id="alert-antifraud" class="alert-bar safe" style="display:none;"></div>
 
-        <!-- KPIs Financeiros -->
-        <div class="section-title"><i class="ph-fill ph-currency-circle-dollar"></i> Financeiro</div>
+        <div id="ng-aviso" class="alert-bar warn" style="display:none;"></div>
+        <!-- Receita recorrente -->
+        <div class="section-title"><i class="ph-fill ph-currency-circle-dollar"></i> Receita recorrente</div>
         <div class="kpi-grid">
             <div class="kpi-card emerald">
                 <div class="kpi-label"><i class="ph-fill ph-currency-dollar"></i> MRR</div>
                 <div class="kpi-value" id="val-mrr"><div class="skeleton skeleton-text">0</div></div>
-                <div class="kpi-sub">Receita mensal recorrente</div>
+                <div class="kpi-sub"><span id="ng-mrr-sub"></span></div>
             </div>
             <div class="kpi-card emerald">
                 <div class="kpi-label"><i class="ph-fill ph-trend-up"></i> ARR</div>
                 <div class="kpi-value" id="val-arr"><div class="skeleton skeleton-text">0</div></div>
                 <div class="kpi-sub">MRR × 12</div>
             </div>
-            <div class="kpi-card emerald">
-                <div class="kpi-label"><i class="ph-fill ph-chart-line-up"></i> ARPU</div>
-                <div class="kpi-value" id="val-arpu"><div class="skeleton skeleton-text">0</div></div>
-                <div class="kpi-sub">Receita média / ativo</div>
-            </div>
-            <div class="kpi-card purple">
-                <div class="kpi-label"><i class="ph-fill ph-infinity"></i> LTV Estimado</div>
-                <div class="kpi-value" id="val-ltv"><div class="skeleton skeleton-text">0</div></div>
-                <div class="kpi-sub">ARPU ÷ Churn</div>
-            </div>
-        </div>
-
-        <!-- KPIs Receita Realizada -->
-        <div class="kpi-grid">
-            <div class="kpi-card emerald">
-                <div class="kpi-label"><i class="ph-fill ph-money"></i> Recebido Este Mês</div>
-                <div class="kpi-value" id="val-rev-month"><div class="skeleton skeleton-text">0</div></div>
-                <div class="kpi-sub"><span id="val-rev-month-count">0</span> pagamentos confirmados</div>
-            </div>
-            <div class="kpi-card emerald">
-                <div class="kpi-label"><i class="ph-fill ph-cash-register"></i> Recebido 30d</div>
-                <div class="kpi-value" id="val-rev-30d"><div class="skeleton skeleton-text">0</div></div>
-                <div class="kpi-sub"><span id="val-rev-30d-count">0</span> pagamentos últimos 30 dias</div>
-            </div>
-            <div class="kpi-card amber">
-                <div class="kpi-label"><i class="ph-fill ph-ticket"></i> % com Cupom</div>
-                <div class="kpi-value" id="val-discount-rate"><div class="skeleton skeleton-text">0</div></div>
-                <div class="kpi-sub"><span id="val-discount-abs">0</span> usuários com desconto pendente</div>
-            </div>
-            <div class="kpi-card cyan">
-                <div class="kpi-label"><i class="ph-fill ph-share-network"></i> Rede de Indicações</div>
-                <div class="kpi-value" id="val-network"><div class="skeleton skeleton-text">0</div></div>
-                <div class="kpi-sub">Usuários que vieram por indicação</div>
-            </div>
-        </div>
-
-        <!-- KPIs Crescimento -->
-        <div class="section-title"><i class="ph-fill ph-users-four"></i> Crescimento</div>
-        <div class="kpi-grid">
             <div class="kpi-card blue">
-                <div class="kpi-label"><i class="ph-fill ph-user-check"></i> Ativos Pagantes</div>
-                <div class="kpi-value" id="val-active"><div class="skeleton skeleton-text">0</div></div>
-                <div class="kpi-sub">Status ACTIVE + último pagto OK</div>
+                <div class="kpi-label"><i class="ph-fill ph-users-three"></i> Base pagante</div>
+                <div class="kpi-value" id="val-base"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="ng-base-sub"></span></div>
             </div>
-            <div class="kpi-card cyan">
-                <div class="kpi-label"><i class="ph-fill ph-hourglass-medium"></i> Em Trial</div>
-                <div class="kpi-value" id="val-trial"><div class="skeleton skeleton-text">0</div></div>
-                <div class="kpi-sub">Trial ativo neste momento</div>
-            </div>
-            <div class="kpi-card cyan">
-                <div class="kpi-label"><i class="ph-fill ph-user-plus"></i> Novos (7d)</div>
-                <div class="kpi-value" id="val-new7"><div class="skeleton skeleton-text">0</div></div>
-                <div class="kpi-sub">Auth signups últimos 7 dias</div>
-            </div>
-            <div class="kpi-card cyan">
-                <div class="kpi-label"><i class="ph-fill ph-calendar-plus"></i> Novos (30d)</div>
-                <div class="kpi-value" id="val-new30"><div class="skeleton skeleton-text">0</div></div>
-                <div class="kpi-sub">Auth signups últimos 30 dias</div>
+            <div class="kpi-card emerald">
+                <div class="kpi-label"><i class="ph-fill ph-chart-line-up"></i> Ticket médio (ARPU)</div>
+                <div class="kpi-value" id="val-arpu"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub">MRR ÷ assinantes em dia</div>
             </div>
         </div>
-
-        <!-- KPIs Risco -->
-        <div class="section-title"><i class="ph-fill ph-warning-octagon"></i> Risco & Conversão</div>
         <div class="kpi-grid">
             <div class="kpi-card red">
-                <div class="kpi-label"><i class="ph-fill ph-warning"></i> Churn Rate</div>
-                <div class="kpi-value" id="val-churn"><div class="skeleton skeleton-text">0</div></div>
-                <div class="kpi-sub">DELETED / INACTIVATED</div>
+                <div class="kpi-label"><i class="ph-fill ph-warning"></i> MRR em risco</div>
+                <div class="kpi-value" id="val-mrr-risco"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="ng-risco-sub"></span></div>
+            </div>
+            <div class="kpi-card cyan">
+                <div class="kpi-label"><i class="ph-fill ph-receipt"></i> Pago sem renovação</div>
+                <div class="kpi-value" id="val-avulso"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="ng-avulso-sub"></span></div>
+            </div>
+            <div class="kpi-card amber">
+                <div class="kpi-label"><i class="ph-fill ph-tag"></i> Desconto concedido / mês</div>
+                <div class="kpi-value" id="val-desconto"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="ng-desconto-sub"></span></div>
+            </div>
+            <div class="kpi-card amber">
+                <div class="kpi-label"><i class="ph-fill ph-piggy-bank"></i> Crédito a abater</div>
+                <div class="kpi-value" id="val-credito"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub">Applicash que reduz as próximas faturas</div>
+            </div>
+        </div>
+        <!-- Previsão -->
+        <div class="section-title"><i class="ph-fill ph-binoculars"></i> Previsão de receita</div>
+        <div class="kpi-grid">
+            <div class="kpi-card emerald">
+                <div class="kpi-label"><i class="ph-fill ph-calendar-check"></i> Esperado em 30 dias</div>
+                <div class="kpi-value" id="val-prev-esperado"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="ng-prev-esperado-sub"></span></div>
+            </div>
+            <div class="kpi-card blue">
+                <div class="kpi-label"><i class="ph-fill ph-arrows-clockwise"></i> Renovações contratadas</div>
+                <div class="kpi-value" id="val-prev-renov"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="ng-prev-renov-sub"></span></div>
             </div>
             <div class="kpi-card purple">
-                <div class="kpi-label"><i class="ph-fill ph-arrows-merge"></i> Trial → Paid</div>
+                <div class="kpi-label"><i class="ph-fill ph-hourglass-medium"></i> Testes que devem virar</div>
+                <div class="kpi-value" id="val-prev-trials"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="ng-prev-trials-sub"></span></div>
+            </div>
+            <div class="kpi-card amber">
+                <div class="kpi-label"><i class="ph-fill ph-receipt"></i> Avulsos a renovar</div>
+                <div class="kpi-value" id="val-prev-avulsos"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="ng-prev-avulsos-sub"></span></div>
+            </div>
+        </div>
+        <div class="two-col">
+        <div class="card">
+            <div class="card-head">
+                <div class="card-head-left">
+                    <div class="card-icon emerald"><i class="ph-fill ph-chart-line-up"></i></div>
+                    <div>
+                        <div class="card-title">MRR projetado</div>
+                        <div class="card-sub">No ritmo dos últimos 30 dias</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="ng-proj" id="ng-proj"></div>
+                <div class="ng-nota" id="ng-proj-nota"></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-head">
+                <div class="card-head-left">
+                    <div class="card-icon blue"><i class="ph-fill ph-calendar-dots"></i></div>
+                    <div>
+                        <div class="card-title">Próximas cobranças</div>
+                        <div class="card-sub">Assinaturas que renovam em 30 dias</div>
+                    </div>
+                </div>
+            </div>
+            <table class="tbl"><thead><tr><th>Email</th><th style="text-align:right">Quando</th><th style="text-align:right">Valor</th></tr></thead>
+            <tbody id="ng-renovacoes"><tr><td colspan="3" class="tbl-empty">Carregando...</td></tr></tbody></table>
+        </div>
+        </div>
+        <!-- Receita realizada -->
+        <div class="section-title"><i class="ph-fill ph-money"></i> Receita realizada</div>
+        <div class="kpi-grid">
+            <div class="kpi-card emerald">
+                <div class="kpi-label"><i class="ph-fill ph-money"></i> Recebido este mês</div>
+                <div class="kpi-value" id="val-rev-month"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="ng-mes-sub"></span></div>
+            </div>
+            <div class="kpi-card emerald">
+                <div class="kpi-label"><i class="ph-fill ph-cash-register"></i> Recebido 30 dias</div>
+                <div class="kpi-value" id="val-rev-30d"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="ng-30d-sub"></span></div>
+            </div>
+            <div class="kpi-card blue">
+                <div class="kpi-label"><i class="ph-fill ph-bank"></i> Líquido este mês</div>
+                <div class="kpi-value" id="val-rev-liquido"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub">Depois das taxas do Asaas</div>
+            </div>
+            <div class="kpi-card purple">
+                <div class="kpi-label"><i class="ph-fill ph-coins"></i> Recebido desde o início</div>
+                <div class="kpi-value" id="val-rev-total"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="ng-total-sub"></span></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-head">
+                <div class="card-head-left">
+                    <div class="card-icon emerald"><i class="ph-fill ph-chart-bar"></i></div>
+                    <div>
+                        <div class="card-title">Receita por mês</div>
+                        <div class="card-sub">Últimos 12 meses, pela data do pagamento (bruto)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body"><div class="ng-colunas" id="ng-receita-meses"></div></div>
+        </div>
+        <!-- Volumetria -->
+        <div class="section-title"><i class="ph-fill ph-users-four"></i> Volumetria</div>
+        <div class="kpi-grid">
+            <div class="kpi-card blue">
+                <div class="kpi-label"><i class="ph-fill ph-users"></i> Cadastros</div>
+                <div class="kpi-value" id="val-cadastros"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="ng-cadastros-sub"></span></div>
+            </div>
+            <div class="kpi-card cyan">
+                <div class="kpi-label"><i class="ph-fill ph-user-plus"></i> Novos (7 dias)</div>
+                <div class="kpi-value" id="val-new7"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="ng-new7-sub"></span></div>
+            </div>
+            <div class="kpi-card cyan">
+                <div class="kpi-label"><i class="ph-fill ph-calendar-plus"></i> Novos (30 dias)</div>
+                <div class="kpi-value" id="val-new30"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="ng-new30-sub"></span></div>
+            </div>
+            <div class="kpi-card blue">
+                <div class="kpi-label"><i class="ph-fill ph-sign-in"></i> Entraram (30 dias)</div>
+                <div class="kpi-value" id="val-login30"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="ng-login-sub"></span></div>
+            </div>
+        </div>
+        <div class="kpi-grid">
+            <div class="kpi-card emerald">
+                <div class="kpi-label"><i class="ph-fill ph-pulse"></i> Usaram hoje</div>
+                <div class="kpi-value" id="val-dau"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub">Lançaram ou alteraram algo em 24h</div>
+            </div>
+            <div class="kpi-card emerald">
+                <div class="kpi-label"><i class="ph-fill ph-calendar-check"></i> Usaram na semana</div>
+                <div class="kpi-value" id="val-wau"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub">Últimos 7 dias</div>
+            </div>
+            <div class="kpi-card emerald">
+                <div class="kpi-label"><i class="ph-fill ph-calendar"></i> Usaram no mês</div>
+                <div class="kpi-value" id="val-mau"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="ng-mau-sub"></span></div>
+            </div>
+            <div class="kpi-card amber">
+                <div class="kpi-label"><i class="ph-fill ph-user-minus"></i> Nunca usaram</div>
+                <div class="kpi-value" id="val-nunca"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="ng-nunca-sub"></span></div>
+            </div>
+        </div>
+        <div class="two-col">
+        <div class="card">
+            <div class="card-head">
+                <div class="card-head-left">
+                    <div class="card-icon blue"><i class="ph-fill ph-chart-bar"></i></div>
+                    <div>
+                        <div class="card-title">Cadastros por mês</div>
+                        <div class="card-sub">Últimos 12 meses</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body"><div class="ng-colunas" id="ng-cadastros-meses"></div></div>
+        </div>
+        <div class="card">
+            <div class="card-head">
+                <div class="card-head-left">
+                    <div class="card-icon blue"><i class="ph-fill ph-chart-pie-slice"></i></div>
+                    <div>
+                        <div class="card-title">Onde está cada conta</div>
+                        <div class="card-sub">Situação comercial hoje — cada pessoa conta uma vez</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body"><div class="bar-list" id="ng-situacoes"></div></div>
+        </div>
+        </div>
+        <!-- Conversão & retenção -->
+        <div class="section-title"><i class="ph-fill ph-arrows-merge"></i> Conversão & retenção</div>
+        <div class="kpi-grid">
+            <div class="kpi-card purple">
+                <div class="kpi-label"><i class="ph-fill ph-arrows-merge"></i> Teste → pago</div>
                 <div class="kpi-value" id="val-conv"><div class="skeleton skeleton-text">0</div></div>
-                <div class="kpi-sub">Taxa de conversão</div>
+                <div class="kpi-sub"><span id="ng-conv-sub"></span></div>
+            </div>
+            <div class="kpi-card red">
+                <div class="kpi-label"><i class="ph-fill ph-sign-out"></i> Churn mensal</div>
+                <div class="kpi-value" id="val-churn"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="ng-churn-sub"></span></div>
+            </div>
+            <div class="kpi-card purple">
+                <div class="kpi-label"><i class="ph-fill ph-infinity"></i> LTV estimado</div>
+                <div class="kpi-value" id="val-ltv"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub">Ticket médio ÷ churn mensal</div>
+            </div>
+            <div class="kpi-card cyan">
+                <div class="kpi-label"><i class="ph-fill ph-hourglass-medium"></i> Em teste agora</div>
+                <div class="kpi-value" id="val-trial"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="ng-trial-sub"></span></div>
+            </div>
+        </div>
+        <div class="kpi-grid">
+            <div class="kpi-card amber">
+                <div class="kpi-label"><i class="ph-fill ph-hourglass-high"></i> Teste acaba em 48h</div>
+                <div class="kpi-value" id="val-expiring"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub">Hora de lembrar do valor</div>
+            </div>
+            <div class="kpi-card amber">
+                <div class="kpi-label"><i class="ph-fill ph-clock-countdown"></i> Aguardando 1º pagamento</div>
+                <div class="kpi-value" id="val-aguardando"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub">Assinou, o teste acabou e não pagou</div>
+            </div>
+            <div class="kpi-card red">
+                <div class="kpi-label"><i class="ph-fill ph-user-circle-minus"></i> Teste acabou sem pagar</div>
+                <div class="kpi-value" id="val-expirado"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub">Público para reengajar</div>
             </div>
             <div class="kpi-card red">
                 <div class="kpi-label"><i class="ph-fill ph-credit-card"></i> Inadimplentes</div>
                 <div class="kpi-value" id="val-overdue"><div class="skeleton skeleton-text">0</div></div>
-                <div class="kpi-sub">Último pagto OVERDUE</div>
-            </div>
-            <div class="kpi-card amber">
-                <div class="kpi-label"><i class="ph-fill ph-hourglass-high"></i> Trial em 48h</div>
-                <div class="kpi-value" id="val-expiring"><div class="skeleton skeleton-text">0</div></div>
-                <div class="kpi-sub">Drop ou converte</div>
+                <div class="kpi-sub">Assinatura viva com fatura vencida</div>
             </div>
         </div>
-
         <!-- KPIs Indicações & Auth -->
         <div class="section-title"><i class="ph-fill ph-share-network"></i> Indicações & Acesso</div>
         <div class="kpi-grid">
@@ -749,12 +921,12 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
             <div class="kpi-card amber">
                 <div class="kpi-label"><i class="ph-fill ph-piggy-bank"></i> Cashback Pendente</div>
                 <div class="kpi-value" id="val-cashback"><div class="skeleton skeleton-text">0</div></div>
-                <div class="kpi-sub">A ser creditado</div>
+                <div class="kpi-sub"><span id="val-discount-abs">0</span> pessoas com saldo a usar</div>
             </div>
             <div class="kpi-card cyan">
-                <div class="kpi-label"><i class="ph-fill ph-virus"></i> Coef. Viral (K)</div>
-                <div class="kpi-value" id="val-viral"><div class="skeleton skeleton-text">0</div></div>
-                <div class="kpi-sub">% de usuários indicados</div>
+                <div class="kpi-label"><i class="ph-fill ph-share-network"></i> Vieram por indicação</div>
+                <div class="kpi-value" id="val-network"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="val-viral">0%</span> dos cadastros</div>
             </div>
             <div class="kpi-card red">
                 <div class="kpi-label"><i class="ph-fill ph-prohibit"></i> Suspensos</div>
@@ -770,8 +942,8 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
                     <div class="card-head-left">
                         <div class="card-icon blue"><i class="ph-fill ph-chart-line"></i></div>
                         <div>
-                            <div class="card-title">Novos usuários (30 dias)</div>
-                            <div class="card-sub">Signups Firebase Auth por dia</div>
+                            <div class="card-title" id="spark-titulo">Cadastros por dia (30 dias)</div>
+                            <div class="card-sub">Período escolhido no topo (7d · 30d · 90d)</div>
                         </div>
                     </div>
                     <div class="card-actions">
@@ -798,16 +970,16 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
         <div class="section-title"><i class="ph-fill ph-funnel"></i> Funil de Conversão</div>
         <div class="funnel-container">
             <div class="funnel-bar-wrapper">
-                <div class="funnel-segment funnel-seg-1" id="funnel-bar-1" style="width:0%">Cadastrados</div>
-                <div class="funnel-segment funnel-seg-2" id="funnel-bar-2" style="width:0%">Verificados</div>
-                <div class="funnel-segment funnel-seg-3" id="funnel-bar-3" style="width:0%">Billing</div>
-                <div class="funnel-segment funnel-seg-4" id="funnel-bar-4" style="width:0%">Pagantes</div>
+                <div class="funnel-segment funnel-seg-1" id="funnel-bar-1" style="width:0%">Cadastros</div>
+                <div class="funnel-segment funnel-seg-2" id="funnel-bar-2" style="width:0%">Testaram</div>
+                <div class="funnel-segment funnel-seg-3" id="funnel-bar-3" style="width:0%">Usaram</div>
+                <div class="funnel-segment funnel-seg-4" id="funnel-bar-4" style="width:0%">Pagaram</div>
             </div>
             <div class="funnel-stats">
-                <div class="funnel-stat-item"><div class="funnel-stat-lbl">Registos Auth</div><div class="funnel-stat-val" id="fn-registered">0</div></div>
-                <div class="funnel-stat-item"><div class="funnel-stat-lbl">E-mails Verificados</div><div class="funnel-stat-val" id="fn-verified">0</div><div class="funnel-stat-rate" id="fn-rate-1">0% do total</div></div>
-                <div class="funnel-stat-item"><div class="funnel-stat-lbl">Iniciaram Trial</div><div class="funnel-stat-val" id="fn-billing">0</div><div class="funnel-stat-rate" id="fn-rate-2">0% verificados</div></div>
-                <div class="funnel-stat-item"><div class="funnel-stat-lbl">Converteu (Pago)</div><div class="funnel-stat-val" id="fn-converted">0</div><div class="funnel-stat-rate" id="fn-rate-3">0% iniciaram trial</div></div>
+                <div class="funnel-stat-item"><div class="funnel-stat-lbl">Cadastros</div><div class="funnel-stat-val" id="fn-registered">0</div><div class="funnel-stat-rate" id="fn-rate-0">100%</div></div>
+                <div class="funnel-stat-item"><div class="funnel-stat-lbl">Iniciaram o teste</div><div class="funnel-stat-val" id="fn-verified">0</div><div class="funnel-stat-rate" id="fn-rate-1">0% dos cadastros</div></div>
+                <div class="funnel-stat-item"><div class="funnel-stat-lbl">Usaram o app</div><div class="funnel-stat-val" id="fn-billing">0</div><div class="funnel-stat-rate" id="fn-rate-2">0% dos cadastros</div></div>
+                <div class="funnel-stat-item"><div class="funnel-stat-lbl">Pagaram alguma vez</div><div class="funnel-stat-val" id="fn-converted">0</div><div class="funnel-stat-rate" id="fn-rate-3">0% dos cadastros</div></div>
             </div>
         </div>
 

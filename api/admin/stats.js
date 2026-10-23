@@ -1,7 +1,9 @@
 const { db, auth, timestamp } = require('../_lib/firebase-admin');
 const { handler } = require('../_lib/handler');
-const { courtesyState, isLegacyGrant } = require('../_lib/access');
+const { isLegacyGrant } = require('../_lib/access');
 const { runReconcileSweep } = require('../_lib/reconcile');
+const { montarPainel, situacaoComercial } = require('../_lib/painel-negocio');
+const { listarUso } = require('../_lib/uso-testadores');
 
 // Endpoint admin CONSOLIDADO (cabe em 1 função Vercel — antes eram 3):
 //   GET /api/admin/stats                            → dashboard JSON (default)
@@ -266,6 +268,7 @@ async function dashboard(req, res) {
   const lastPaymentStatus = {};
   const paymentMethods = {};
   const billingByUid = new Map(); // uid → billing doc (para enriquecer listas)
+  const billingsLista = []; // [{uid, b}] para a visão de negócio
   let billingDocs = 0;
   let trialActive = 0;
   let withSubscription = 0;
@@ -291,20 +294,28 @@ async function dashboard(req, res) {
     billingDocs++;
     const b = d.data() || {};
     const uid = d.ref.parent.parent ? d.ref.parent.parent.id : null;
-    if (uid) billingByUid.set(uid, b);
+    if (uid) {
+      billingByUid.set(uid, b);
+      billingsLista.push({ uid, b });
+    }
 
     const ss = b.subscriptionStatus || 'NONE';
     subscriptionStatus[ss] = (subscriptionStatus[ss] || 0) + 1;
-    if (ss === 'DELETED' || ss === 'INACTIVATED') churnedCount++;
+    // O cancelamento grava INACTIVE (webhook, /cancel, sincronização). Antes
+    // só DELETED/INACTIVATED contavam, e o churn ficava sempre em 0%.
+    if (ss === 'INACTIVE' || ss === 'DELETED' || ss === 'INACTIVATED') churnedCount++;
 
     const ls = b.lastPaymentStatus || 'NONE';
     lastPaymentStatus[ls] = (lastPaymentStatus[ls] || 0) + 1;
-    if (ls === 'OVERDUE') {
+    // Inadimplente = assinatura viva com fatura vencida. Quem já cancelou fica
+    // com o último status OVERDUE para sempre e inflava a lista de cobrança.
+    const cancelada = ss === 'INACTIVE' || ss === 'DELETED' || ss === 'INACTIVATED';
+    if (ls === 'OVERDUE' && !cancelada) {
       overdueCount++;
       if (uid)
         overdueListRaw.push({
           uid,
-          sinceMs: b.lastPaymentDueAtMs || 0,
+          sinceMs: b.nextDueDate ? Date.parse(b.nextDueDate + 'T12:00:00-03:00') || 0 : 0,
           // Fallback 1500 (R$15) se ambos os campos forem omitidos no doc.
           valueCents: b.subscriptionBaseValueCents || b.monthlyPriceCents || 1500,
         });
@@ -364,30 +375,27 @@ async function dashboard(req, res) {
   const overdueList = overdueListRaw.slice(0, 10);
   const expiringList = expiringListRaw.slice(0, 10);
 
-  // ── Receita do mês (collectionGroup payments, filtrada por receivedAt no mês corrente)
-  const monthStart = new Date(now);
-  monthStart.setUTCDate(1);
-  monthStart.setUTCHours(0, 0, 0, 0);
-  let revenueThisMonthCents = 0;
-  let paymentsThisMonth = 0;
-  let revenueLast30dCents = 0;
-  let paymentsLast30d = 0;
+  // ── Pagamentos: todos (o histórico de 12 meses e a conversão precisam) +
+  // os das contas excluídas, guardados no registro fiscal. Receita do mês e
+  // de 30 dias saem da visão de negócio (data do pagamento, fuso de Brasília).
+  const pagamentos = [];
   try {
-    const last30 = timestamp().fromMillis(now - 30 * 24 * 3600 * 1000);
-    const paySnap = await D.collectionGroup('payments').where('receivedAt', '>=', last30).get();
+    const [paySnap, excluidasSnap] = await Promise.all([
+      D.collectionGroup('payments').get(),
+      D.collection('contasExcluidas')
+        .get()
+        .catch(() => null),
+    ]);
     paySnap.forEach((p) => {
-      const d = p.data() || {};
-      if (!PAID_STATUSES.has(d.status)) return;
-      const valueCents = Math.round((d.value || 0) * 100);
-      const recMs =
-        d.receivedAt && typeof d.receivedAt.toMillis === 'function' ? d.receivedAt.toMillis() : 0;
-      revenueLast30dCents += valueCents;
-      paymentsLast30d++;
-      if (recMs >= monthStart.getTime()) {
-        revenueThisMonthCents += valueCents;
-        paymentsThisMonth++;
-      }
+      const uid = p.ref.parent.parent ? p.ref.parent.parent.id : null;
+      pagamentos.push(Object.assign({ uid }, p.data() || {}));
     });
+    if (excluidasSnap) {
+      excluidasSnap.forEach((d) => {
+        const x = d.data() || {};
+        (x.pagamentos || []).forEach((p) => pagamentos.push(Object.assign({ uid: d.id }, p)));
+      });
+    }
   } catch (e) {
     console.warn('[admin/stats] payments aggregate failed', e && e.message);
   }
@@ -440,12 +448,14 @@ async function dashboard(req, res) {
     truncated: false,
   };
   let allUsers = [];
+  let usersPage = [];
   const dailyNewUsers = []; // [{date:'YYYY-MM-DD', count}]
   const emailDomainCount = {};
   const emailByUid = new Map();
 
   try {
     const page = await auth().listUsers(1000);
+    usersPage = page.users;
     authUsers.totalKnown = page.users.length;
     authUsers.truncated = !!page.pageToken;
     const weekAgoMs = now - 7 * 24 * 3600 * 1000;
@@ -495,22 +505,17 @@ async function dashboard(req, res) {
         b.trialEndsAt && typeof b.trialEndsAt.toMillis === 'function'
           ? b.trialEndsAt.toMillis()
           : 0;
-      const isActive = b.subscriptionStatus === 'ACTIVE' && PAID_STATUSES.has(b.lastPaymentStatus);
-      const isTrialActive = trialEndsMs > now;
-      const isOverdue = b.lastPaymentStatus === 'OVERDUE';
-      const isSuspended = !!u.disabled;
-      const isUnverified = !u.emailVerified;
+      // Mesma classificação da visão de negócio — antes quem pagou avulso
+      // aparecia como "inativo" e o cancelado nunca virava "churned".
+      const sc = billingByUid.has(u.uid) ? situacaoComercial(b, now) : 'sem_assinatura';
       let status = 'unknown';
-      if (isSuspended) status = 'suspended';
-      // Cortesia vem antes de "paying": a conta liberada pelo admin não paga
-      // nada, e contá-la como pagante inflava a receita estimada do painel.
-      else if (courtesyState(b, now) || isLegacyGrant(b)) status = 'courtesy';
-      else if (isOverdue) status = 'overdue';
-      else if (isActive) status = 'paying';
-      else if (isTrialActive) status = 'trial';
-      else if (isUnverified) status = 'unverified';
-      else if (b.subscriptionStatus === 'DELETED' || b.subscriptionStatus === 'INACTIVATED')
-        status = 'churned';
+      if (u.disabled) status = 'suspended';
+      else if (sc === 'cortesia') status = 'courtesy';
+      else if (sc === 'atraso') status = 'overdue';
+      else if (sc === 'assinante' || sc === 'avulso') status = 'paying';
+      else if (sc === 'trial') status = 'trial';
+      else if (!u.emailVerified && sc === 'sem_assinatura') status = 'unverified';
+      else if (sc === 'cancelado' || sc === 'estornado') status = 'churned';
       else status = 'inactive';
       return {
         uid: u.uid,
@@ -650,16 +655,42 @@ async function dashboard(req, res) {
     console.warn('[admin/stats] reconcile fetch failed', e && e.message);
   }
 
-  // Derived KPIs
-  const churnRate = billingDocs > 0 ? churnedCount / billingDocs : 0;
-  const conversionRate = billingDocs > 0 ? converted / billingDocs : 0;
-  const arpu = active > 0 ? Math.round(mrrCents / active) : 0;
-  // LTV estimado: ARPU / monthlyChurnRate. Aproximação: usa churnRate global.
-  const ltvCents = churnRate > 0 ? Math.round(arpu / churnRate) : 0;
+  // ── Visão de negócio (api/_lib/painel-negocio.js) ──────────────────
+  let uso = null;
+  try {
+    uso = (await listarUso({ db, auth }, now)).itens;
+  } catch (e) {
+    console.warn('[admin/stats] uso failed', e && e.message);
+  }
+  const negocio = montarPainel({
+    agora: now,
+    billings: billingsLista,
+    pagamentos,
+    usuarios: usersPage,
+    uso,
+    truncado: authUsers.truncated,
+  });
+
+  // Os campos antigos passam a sair das mesmas contas da visão de negócio,
+  // para o painel não mostrar dois números diferentes para a mesma coisa.
+  mrrCents = negocio.receita.mrrCents;
+  active = negocio.receita.assinantes;
+  const churnRate = negocio.conversao.churnMensal || 0;
+  const conversionRate = negocio.conversao.taxa || 0;
+  const arpu = negocio.receita.arpuCents;
+  const ltvCents = negocio.conversao.ltvCents || 0;
+  converted = negocio.conversao.converteram;
+  trialExpiredNoConversion = negocio.situacoes.trial_expirado;
+  const revenueThisMonthCents = negocio.realizado.mesCents;
+  const paymentsThisMonth = negocio.realizado.mesQtd;
+  const revenueLast30dCents = negocio.realizado.ult30Cents;
+  const paymentsLast30d = negocio.realizado.ult30Qtd;
+  // Fração da base que veio por indicação (não é o coeficiente K).
   const viralCoefficient = authUsers.totalKnown > 0 ? withReferral / authUsers.totalKnown : 0;
 
   return res.json({
     generatedAt: new Date().toISOString(),
+    negocio,
     funnel: {
       registered: authUsers.totalKnown,
       emailVerified: authUsers.emailVerifiedCount,
