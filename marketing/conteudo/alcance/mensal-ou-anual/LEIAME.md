@@ -3,13 +3,14 @@
 > **Fora do calendário (reserva).** Saiu da semana 1 por repetir a ideia do
 > "Parcelado ou à vista?" (pagar antes com desconto). Fica pronto para usar
 > depois, longe do parcelado.
-> Vídeo educativo de alcance no formato "conta na tela" (`modelo-conta.html`),
-> parte 2 do "Parcelado ou à vista?": a mesma regra de bolso numa escolha de todo
-> dia (streaming, academia, curso, app). O Caio fica no mensal "pra deixar o
-> dinheiro rendendo", o Mateus paga o ano. A conta mostra que, para o Caio
-> empatar, o dinheiro dele teria que render 3,5% ao mês. Fecha com a pegadinha
-> da academia ("só vale se você usar o ano todo. Né, Caio?"). O app não aparece;
-> a marca só assina. Caio e Mateus são personagens fictícios.
+
+Vídeo educativo de alcance no formato "conta na tela" (`modelo-conta.html`),
+parte 2 do "Parcelado ou à vista?": a mesma regra de bolso numa escolha de todo
+dia (streaming, academia, curso, app). O Caio fica no mensal "pra deixar o
+dinheiro rendendo", o Mateus paga o ano. A conta mostra que, para o Caio
+empatar, o dinheiro dele teria que render 3,5% ao mês. Fecha com a pegadinha
+da academia ("só vale se você usar o ano todo. Né, Caio?"). O app não aparece;
+a marca só assina. Caio e Mateus são personagens fictícios.
 
 - `appliquei-mensal-ou-anual-com-capa.mp4`: **o arquivo para postar**: a capa no primeiro
   quadro (0,1 s, vira a miniatura no TikTok e no Shorts) e embutida no arquivo.
