@@ -1,10 +1,11 @@
 <!doctype html>
 <!--
-  Vídeo EDUCATIVO de alcance (≈35 s, 1080×1920) — "Arthur investiu R$ 36 mil,
+  Vídeo EDUCATIVO de alcance (≈49 s, 1080×1920) — "Arthur investiu R$ 36 mil,
   Caio R$ 108 mil. Quem chegou aos 65 com mais?". Formato "conta na tela"
   (modelo-conta.html): duas pessoas, as linhas do tempo, a intuição comum
-  ("o triplo, ele ganha"), a virada e a regra dos 72. O app não aparece; a
-  marca só assina.
+  ("o triplo, ele ganha"), a virada, o porquê (regra dos 72) e a regra
+  aplicada ao Arthur, dobra a dobra: 54 mil (35) → 108 (44) → 216 (53) →
+  432 (62) → 544 mil (65). O app não aparece; a marca só assina.
 
   A conta (conferida), supondo 8% ao ano acima da inflação, em valores de hoje
   (taxa mensal equivalente, aporte no fim de cada mês):
@@ -78,7 +79,7 @@
   .conclusao em { font-style: normal; color: var(--sinal); }
 
   /* 5. Regra dos 72 */
-  .regra { position: absolute; left: 70px; right: 70px; top: 470px; padding: 46px 44px; border-radius: 44px; background: rgba(240,250,244,.06); border: 3px solid rgba(52,211,153,.5);
+  .regra { position: absolute; left: 70px; right: 70px; top: 560px; padding: 46px 44px; border-radius: 44px; background: rgba(240,250,244,.06); border: 3px solid rgba(52,211,153,.5);
     box-shadow: 0 0 80px rgba(52,211,153,.15); }
   .regra .rot { font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .14em; text-transform: uppercase; color: var(--sinal); }
   .regra .formula { margin-top: 26px; font-size: 62px; font-weight: 900; letter-spacing: -.03em; line-height: 1.12; }
@@ -87,7 +88,18 @@
   .regra .dec { margin-top: 34px; padding-top: 30px; border-top: 2px dashed rgba(240,250,244,.25); font-size: 44px; font-weight: 800; line-height: 1.25; }
   .regra .dec b { color: var(--sinal); }
 
-  /* 6. Fecho */
+  /* 6. Dobras */
+  .escada { position: absolute; left: 70px; right: 70px; top: 560px; height: 860px; }
+  .degrau { position: absolute; bottom: 90px; width: 160px; border-radius: 18px 18px 0 0; background: linear-gradient(180deg, #34d399, #059669); height: 0; }
+  .degrau.fim { background: linear-gradient(180deg, #fbbf24, #f59e0b); }
+  .degrau-v { position: absolute; width: 250px; margin-left: -45px; text-align: center; white-space: nowrap; font-family: 'DM Mono', monospace; font-size: 31px; font-weight: 500; opacity: 0; }
+  .degrau-v small { display: block; font-family: 'Figtree', sans-serif; font-size: 26px; font-weight: 900; color: var(--ambar); }
+  .degrau-i { position: absolute; bottom: 30px; width: 160px; text-align: center; font-family: 'DM Mono', monospace; font-size: 28px; color: var(--mudo); opacity: 0; }
+  .nota-escada { position: absolute; left: 70px; right: 70px; top: 1470px; text-align: center; font-size: 54px; font-weight: 900; }
+  .nota-escada em { font-style: normal; color: var(--sinal); }
+  .nota-escada small { display: block; margin-top: 10px; font-size: 30px; font-weight: 600; color: var(--deck); }
+
+  /* 7. Fecho */
   .manda { position: absolute; left: 0; right: 0; top: 470px; text-align: center; }
   .manda .ic { width: 170px; height: 170px; margin: 0 auto; border-radius: 44px; background: var(--sinal); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 70px rgba(52,211,153,.4); }
   .manda .ic svg { width: 96px; height: 96px; margin-left: -8px; }
@@ -150,18 +162,25 @@
     <div class="conclusao el" id="conc">Quem começou antes<br>terminou com <em>mais</em>.</div>
   </div>
 
-  <!-- 5. REGRA DOS 72 -->
+  <!-- 5. POR QUÊ? REGRA DOS 72 -->
   <div class="cena" id="c5">
-    <div class="regra">
+    <div class="tit el" id="pq" style="position:absolute;left:70px;right:70px;top:250px;text-align:center;font-size:110px;">Por <em>quê?</em></div>
+    <div class="regra el" id="rg">
       <div class="rot">Regra de bolso · regra dos 72</div>
       <div class="formula el" id="f1">72 ÷ <em>taxa ao ano</em> = anos para o dinheiro <em>dobrar</em></div>
       <div class="conta el" id="f2">72 ÷ 8 = <b>9 anos</b></div>
-      <div class="dec el" id="f3">Começar <b>10 anos antes</b> é deixar o dinheiro <b>dobrar uma vez a mais.</b></div>
     </div>
   </div>
 
-  <!-- 6. FECHO -->
+  <!-- 6. AS DOBRAS DO ARTHUR -->
   <div class="cena" id="c6">
+    <div class="tit" style="position:absolute;left:70px;right:70px;top:250px;text-align:center;font-size:68px;">O dinheiro do Arthur,<br><em>dobrando sozinho</em></div>
+    <div class="escada" id="escada"></div>
+    <div class="nota-escada el" id="ne">Sem pôr <em>mais nada</em>.<small>O do Caio teve menos tempo para dobrar.</small></div>
+  </div>
+
+  <!-- 7. FECHO -->
+  <div class="cena" id="c7">
     <div class="manda el" id="md"><div class="ic"><svg viewBox="0 0 24 24"><path d="M2 11.5 21 3l-3.2 18-6.3-5.2-3.4 3.3.4-5L18 6.5 7.7 13.4z" fill="#052e1f"/></svg></div><b>Manda pra quem acha<br>que ainda é cedo</b></div>
     <div class="assina el" id="as"><img src="wordmark.svg" alt="Appliquei"><p>Mais contas assim: <em>siga o Appliquei</em></p></div>
     <div class="aviso el" id="av">Conteúdo educacional. Simulação supondo 8% ao ano acima da inflação, em valores de hoje: não é promessa de rendimento nem recomendação de investimento. Investimentos envolvem risco. Personagens fictícios.</div>
@@ -194,8 +213,11 @@
   const MAX = 560000;
 
   // Cenas seguem narracao.json (início de cada frase − 0,15 s).
-  const DUR = 34.8;
-  const CENAS = [['c1', 0, 5.85], ['c2', 5.85, 10.0], ['c3', 10.0, 16.4], ['c4', 16.4, 21.85], ['c5', 21.85, 28.7], ['c6', 28.7, 35.0]];
+  const DUR = 49.5;
+  const CENAS = [['c1', 0, 6.79], ['c2', 6.79, 11.42], ['c3', 11.42, 17.87], ['c4', 17.87, 23.95], ['c5', 23.95, 34.06],
+    ['c6', 34.06, 43.11], ['c7', 43.11, 49.7]];
+  // Escada das dobras: idade, valor (em mil) e se é dobra (×2) ou o fim.
+  const DEGRAUS = [[35, 54, ''], [44, 108, '×2'], [53, 216, '×2'], [62, 432, '×2'], [65, 544, 'aos 65']];
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
   const easeOut = (x) => 1 - Math.pow(1 - x, 3);
@@ -223,31 +245,31 @@
       el.style.display = dentro ? 'block' : 'none';
       if (dentro) cenaExtra(id, t - a);
     }
-    $('serie').style.opacity = t < 28.5 ? easeOut(prog(t, 0.3, 0.6)) : 1 - prog(t, 28.5, 28.8);
-    $('logoFixo').style.opacity = t < 30.2 ? 1 : 1 - prog(t, 30.2, 30.5);
+    $('serie').style.opacity = t < 42.9 ? easeOut(prog(t, 0.3, 0.6)) : 1 - prog(t, 42.9, 43.2);
+    $('logoFixo').style.opacity = t < 44.6 ? 1 : 1 - prog(t, 44.6, 44.9);
     $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
   }
 
   function cenaExtra(id, lt) {
     if (id === 'c1') {
-      // "Arthur investiu 36 mil" 0,2–1,9 · "Caio, 108 mil" 2,0–3,2 · "Quem chegou aos 65 com mais?" 3,3–5,6
+      // "Arthur investiu 36 mil" 0,2–2,1 · "Caio, 108 mil" 2,3–3,7 · "Quem chegou aos 65 com mais?" 3,9–6,5
       surge($('pa'), lt, 0.15, 0.4, 60);
-      surge($('pc'), lt, 1.9, 0.4, 60);
-      surge($('perg'), lt, 3.2, 0.4, 30);
+      surge($('pc'), lt, 2.2, 0.4, 60);
+      surge($('perg'), lt, 3.8, 0.4, 30);
     }
     if (id === 'c2') {
-      // "guardou 300 por mês dos 25 aos 35" 0,2–3,0 · "E parou." 3,2
-      $('fa2').style.width = 25 * easeInOut(prog(lt, 0.5, 2.8)) + '%';
-      surge($('sa'), lt, 1.4, 0.4, 30);
-      const p = easeBack(prog(lt, 3.1, 3.45));
+      // "guardou 300 por mês dos 25 aos 35" 0,2–3,3 · "E parou." 3,5
+      $('fa2').style.width = 25 * easeInOut(prog(lt, 0.5, 3.1)) + '%';
+      surge($('sa'), lt, 1.6, 0.4, 30);
+      const p = easeBack(prog(lt, 3.5, 3.85));
       $('parou').style.opacity = clamp(p, 0, 1);
       $('parou').style.transform = `rotate(-4deg) scale(${2 - p})`;
     }
     if (id === 'c3') {
-      // "começou aos 35… até os 65" 0,2–3,5 · "O triplo." 3,7 · "Ele ganha, certo?" 4,6–6,0
-      $('fc3').style.width = 75 * easeInOut(prog(lt, 0.5, 3.4)) + '%';
-      surge($('sc'), lt, 2.4, 0.4, 30);
-      surge($('certo'), lt, 4.5, 0.35, 30);
+      // "começou aos 35… até os 65" 0,2–3,6 · "O triplo." 3,8 · "Ele ganha, certo?" 4,8–6,3
+      $('fc3').style.width = 75 * easeInOut(prog(lt, 0.5, 3.5)) + '%';
+      surge($('sc'), lt, 2.6, 0.4, 30);
+      surge($('certo'), lt, 4.8, 0.35, 30);
     }
     if (id === 'c4') {
       // "Errado." 0,15 · "Arthur chega com 544 mil" 0,8–3,0 · "Caio, com 423" 3,1–4,9
@@ -257,17 +279,39 @@
       const p = easeInOut(prog(lt, 0.4, 3.4));
       $('cArthur').setAttribute('d', caminho(ARTHUR, 480 * p));
       $('cCaio').setAttribute('d', caminho(CAIO, 480 * p));
-      surge($('rA'), lt, 2.7, 0.35, 20);
-      surge($('rC'), lt, 3.6, 0.35, 20);
-      surge($('conc'), lt, 4.3, 0.35, 20);
+      surge($('rA'), lt, 2.9, 0.35, 20);
+      surge($('rC'), lt, 4.1, 0.35, 20);
+      surge($('conc'), lt, 4.8, 0.35, 20);
     }
     if (id === 'c5') {
-      // "72 dividido pela taxa ao ano dá em quantos anos o dinheiro dobra" 0,6–4,2 · "A 8%, 9 anos" 4,5–6,3
-      surge($('f1'), lt, 0.6, 0.4, 20);
-      surge($('f2'), lt, 4.4, 0.4, 20);
-      surge($('f3'), lt, 5.4, 0.4, 20);
+      // "Por quê?" 0,15–1,0 · "Regra dos 72: divida 72 pela taxa ao ano…" 1,2–7,4 · "A 8%, 9 anos" 7,8–9,7
+      surge($('pq'), lt, 0.05, 0.35, 30);
+      surge($('rg'), lt, 1.1, 0.4, 40);
+      surge($('f1'), lt, 1.5, 0.4, 20);
+      surge($('f2'), lt, 7.7, 0.4, 20);
     }
     if (id === 'c6') {
+      // "54 mil aos 35" 0,15–2,6 · "dobrou aos 44" 2,8 · "de novo aos 53" 4,4 · "e de novo aos 62" 5,7 · "sem pôr mais nada" 7,1–8,6
+      const quando = [0.4, 2.9, 4.4, 5.8, 7.1];
+      const esc = $('escada');
+      if (!esc.childElementCount) {
+        esc.innerHTML = DEGRAUS.map(([idade, v, tag], i) => {
+          const x = i * 190;
+          const h = (v / 544) * 620;
+          return `<div class="degrau${i === 4 ? ' fim' : ''}" id="dg${i}" style="left:${x}px" data-h="${h}"></div>` +
+            `<div class="degrau-v" id="dv${i}" style="left:${x}px;bottom:${h + 104}px">${tag ? '<small>' + tag + '</small>' : ''}R$ ${v} mil</div>` +
+            `<div class="degrau-i" id="di${i}" style="left:${x}px">${idade} anos</div>`;
+        }).join('');
+      }
+      DEGRAUS.forEach((_, i) => {
+        const p = easeOut(prog(lt, quando[i], quando[i] + 0.5));
+        $('dg' + i).style.height = Number($('dg' + i).dataset.h) * p + 'px';
+        surge($('dv' + i), lt, quando[i] + 0.3, 0.35, 16);
+        $('di' + i).style.opacity = easeOut(prog(lt, quando[i], quando[i] + 0.3));
+      });
+      surge($('ne'), lt, 7.3, 0.4, 20);
+    }
+    if (id === 'c7') {
       // "Manda pra quem acha que ainda é cedo" 0,15–2,0 · "segue o Appliquei…" 2,1–3,9
       surge($('md'), lt, 0.1, 0.4, 40);
       surge($('as'), lt, 1.9, 0.45, 40);

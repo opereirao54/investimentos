@@ -97,7 +97,10 @@ def clique():
 
 FALAS = json.load(open(sys.argv[1]))
 inicio = [f[0] - 0.15 for f in FALAS]
-ITEM1, ITEM2, ITEM3, CTA, FECHO = inicio[1:6]
+# 6 frases: gancho, 3 itens, CTA, fecho. Com mais frases (ex.: uma explicação
+# a mais antes do fecho), a batida segue até a penúltima e para nela.
+ITEM1, ITEM2, ITEM3 = inicio[1:4]
+CTA, FECHO = inicio[-2], inicio[-1]
 DUR = round(FALAS[-1][1] + 2.05, 2)
 N = int(SR * DUR)
 musica = np.zeros(N)
