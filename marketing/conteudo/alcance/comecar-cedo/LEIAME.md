@@ -12,6 +12,7 @@ fictícios.
 - `appliquei-comecar-cedo.mp4`: final, narrado (-15 LUFS).
 - `video.html`, `narracao.json`, `narracao-charon-leitura.wav`, `trilha.wav`
   (`trilha-alcance.py … --sem-moedas`).
+- `capa.png` (`capa.json`): capa com a frase do gancho (`capa.js`).
 
 ## A conta (conferida)
 

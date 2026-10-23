@@ -14,6 +14,7 @@ compensar. O app não aparece; a marca só assina. Personagem fictício.
 - `appliquei-carro-ou-aplicativo.mp4`: final, narrado (-15 LUFS).
 - `video.html`, `narracao.json`, `narracao-charon-leitura.wav`, `trilha.wav`
   (`trilha-alcance.py … --sem-moedas`).
+- `capa.png` (`capa.json`): capa com a frase do gancho (`capa.js`).
 
 ## A conta (exemplo, conferida com fontes de out/2026)
 

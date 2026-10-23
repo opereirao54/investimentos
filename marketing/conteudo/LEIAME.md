@@ -51,6 +51,11 @@ Modelos:
   `.claude/skills/marketing-saas/referencias/voz-e-compliance.md`.
 - **Nas peças de alcance, o app só aparece no fecho.** Nos últimos 3–5 s, com
   o aviso real do app que resolve a dor.
+- **Capa com a frase do gancho:** todo vídeo sai com `capa.png`
+  (`marketing/ferramentas/shorts/capa.js`), com a frase que faz parar e o
+  número em destaque, dentro do recorte 3:4 da grade do perfil. No Instagram,
+  suba a capa em "Editar capa" › "Adicionar da galeria". No TikTok e no
+  YouTube Shorts, escolha o quadro do gancho e escreva a mesma frase por cima.
 - **Um vídeo vira três:** publique o mesmo arquivo como Reels, TikTok e YouTube
   Shorts.
 - **Medir:** retenção nos 3 s acima de 60%, assistido até o fim acima de 30% e
@@ -70,6 +75,8 @@ ROTEIRO=$D/narracao.json python3 marketing/ferramentas/shorts/narrar-gemini.py /
 python3 marketing/ferramentas/shorts/trilha-alcance.py $D/narracao.json /tmp/trilha.wav
 ffmpeg -i /tmp/trilha.wav -af "lowpass=f=13000,volume=3dB,alimiter=limit=0.70:level=disabled:attack=1:release=60" $D/trilha.wav
 node marketing/ferramentas/shorts/render.js /tmp/r $D/video.html
+# 3. capa: escreva $D/capa.json ({"frase": "…<em>número</em>…", "apoio": "…"})
+node marketing/ferramentas/shorts/capa.js $D/capa.json $D/capa.png
 python3 marketing/ferramentas/shorts/mixar-narracao.py /tmp/voz $D/trilha.wav /tmp/r/video-sem-audio.mp4 $D/appliquei-<tema>.mp4
 ```
 
