@@ -1,0 +1,281 @@
+<!doctype html>
+<!--
+  Vídeo EDUCATIVO de alcance (≈35 s, 1080×1920) — "Arthur investiu R$ 36 mil,
+  Caio R$ 108 mil. Quem chegou aos 65 com mais?". Formato "conta na tela"
+  (modelo-conta.html): duas pessoas, as linhas do tempo, a intuição comum
+  ("o triplo, ele ganha"), a virada e a regra dos 72. O app não aparece; a
+  marca só assina.
+
+  A conta (conferida), supondo 8% ao ano acima da inflação, em valores de hoje
+  (taxa mensal equivalente, aporte no fim de cada mês):
+    Arthur: R$ 300/mês dos 25 aos 35 (120 meses = R$ 36 mil), parado até os 65 → R$ 543.759
+    Caio:   R$ 300/mês dos 35 aos 65 (360 meses = R$ 108 mil)                 → R$ 422.565
+  Regra dos 72: 72 ÷ 8 = 9 anos para dobrar (exato: 9,006).
+  Personagens fictícios. Os 8% são a mesma suposição do módulo 1 da Jornada.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root {
+    --campo1: #0b1410; --campo2: #0f1f18; --campo3: #112720;
+    --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa;
+    --sinal: #34d399; --primaria: #059669; --ambar: #fbbf24; --vermelho: #f87171; --azul: #60a5fa;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--campo1); }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: linear-gradient(150deg, var(--campo1) 0%, var(--campo2) 50%, var(--campo3) 100%); }
+  .halo { position: absolute; inset: -20%;
+    background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.22), transparent 70%),
+                radial-gradient(40% 35% at 10% 90%, rgba(5,150,105,.18), transparent 70%); }
+  .malha { position: absolute; inset: 0; }
+  .cena { position: absolute; inset: 0; opacity: 0; }
+  .tit { font-weight: 900; letter-spacing: -.035em; line-height: 1; color: var(--tinta); }
+  .tit em { font-style: normal; color: var(--sinal); }
+  .tit em.a { color: var(--azul); }
+  .mono { font-family: 'DM Mono', monospace; font-weight: 500; }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 200px; z-index: 20; }
+  .serie { position: absolute; right: 150px; top: 60px; padding: 10px 20px; border-radius: 99px; border: 2px solid rgba(52,211,153,.45); background: rgba(52,211,153,.12);
+    font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .12em; text-transform: uppercase; color: var(--sinal); z-index: 20; }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); z-index: 30; }
+  .el { opacity: 0; }
+
+  /* 1. As duas pessoas */
+  .pessoa { position: absolute; width: 450px; padding: 40px 30px; border-radius: 40px; text-align: center; }
+  .pessoa .av { width: 150px; height: 150px; margin: 0 auto; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 76px; font-weight: 900; color: #052e1f; }
+  .pessoa b { display: block; margin-top: 18px; font-size: 54px; font-weight: 900; }
+  .pessoa small { display: block; margin-top: 8px; font-size: 28px; color: var(--deck); }
+  .pessoa .v { display: block; margin-top: 4px; font-family: 'DM Mono', monospace; font-size: 66px; letter-spacing: -.03em; }
+  .p-arthur { left: 60px; background: rgba(52,211,153,.12); border: 3px solid rgba(52,211,153,.55); }
+  .p-arthur .av { background: var(--sinal); } .p-arthur .v { color: var(--sinal); }
+  .p-caio { right: 60px; background: rgba(96,165,250,.12); border: 3px solid rgba(96,165,250,.55); }
+  .p-caio .av { background: var(--azul); } .p-caio .v { color: var(--azul); }
+
+  /* 2–3. Linhas do tempo */
+  .regua { position: absolute; left: 90px; right: 90px; }
+  .regua .faixa { position: relative; height: 70px; border-radius: 35px; background: rgba(240,250,244,.07); overflow: hidden; }
+  .regua .faixa i { position: absolute; top: 0; bottom: 0; border-radius: 35px; width: 0; }
+  .regua .nome { display: flex; align-items: center; gap: 16px; font-size: 40px; font-weight: 900; margin-bottom: 14px; }
+  .regua .nome span { width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #052e1f; }
+  .idades { position: absolute; left: 90px; right: 90px; display: flex; justify-content: space-between; font-family: 'DM Mono', monospace; font-size: 28px; color: var(--mudo); }
+  .parou { position: absolute; padding: 10px 22px; border-radius: 14px; background: var(--ambar); color: #1d1a0f; font-weight: 900; font-size: 34px; transform: rotate(-4deg); }
+  .soma { position: absolute; left: 70px; right: 70px; text-align: center; }
+  .soma small { display: block; font-size: 34px; color: var(--deck); font-weight: 700; }
+  .soma b { display: block; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 92px; letter-spacing: -.04em; margin-top: 6px; }
+  .certo { position: absolute; left: 0; right: 0; text-align: center; font-size: 84px; font-weight: 900; color: var(--ambar); }
+
+  /* 4. A virada */
+  .errado { position: absolute; left: 0; right: 0; top: 250px; text-align: center; }
+  .errado span { display: inline-block; padding: 18px 50px; border: 7px solid var(--vermelho); border-radius: 24px; color: var(--vermelho); font-weight: 900; font-size: 96px; transform: rotate(-4deg); }
+  .grafico { position: absolute; left: 70px; right: 70px; top: 520px; height: 860px; }
+  .grafico svg { width: 100%; height: 100%; overflow: visible; }
+  .rot-final { position: absolute; left: 20px; padding: 14px 22px; border-radius: 18px; font-family: 'DM Mono', monospace; font-size: 46px; font-weight: 500; white-space: nowrap; }
+  .rot-final small { display: block; font-family: 'Figtree', sans-serif; font-size: 26px; font-weight: 800; }
+  .conclusao { position: absolute; left: 70px; right: 70px; top: 1440px; text-align: center; font-size: 46px; font-weight: 900; line-height: 1.2; }
+  .conclusao em { font-style: normal; color: var(--sinal); }
+
+  /* 5. Regra dos 72 */
+  .regra { position: absolute; left: 70px; right: 70px; top: 470px; padding: 46px 44px; border-radius: 44px; background: rgba(240,250,244,.06); border: 3px solid rgba(52,211,153,.5);
+    box-shadow: 0 0 80px rgba(52,211,153,.15); }
+  .regra .rot { font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .14em; text-transform: uppercase; color: var(--sinal); }
+  .regra .formula { margin-top: 26px; font-size: 62px; font-weight: 900; letter-spacing: -.03em; line-height: 1.12; }
+  .regra .formula em { font-style: normal; color: var(--sinal); }
+  .regra .conta { margin-top: 30px; font-family: 'DM Mono', monospace; font-size: 74px; color: var(--ambar); }
+  .regra .dec { margin-top: 34px; padding-top: 30px; border-top: 2px dashed rgba(240,250,244,.25); font-size: 44px; font-weight: 800; line-height: 1.25; }
+  .regra .dec b { color: var(--sinal); }
+
+  /* 6. Fecho */
+  .manda { position: absolute; left: 0; right: 0; top: 470px; text-align: center; }
+  .manda .ic { width: 170px; height: 170px; margin: 0 auto; border-radius: 44px; background: var(--sinal); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 70px rgba(52,211,153,.4); }
+  .manda .ic svg { width: 96px; height: 96px; margin-left: -8px; }
+  .manda b { display: block; margin-top: 34px; font-size: 68px; font-weight: 900; letter-spacing: -.03em; line-height: 1.1; }
+  .assina { position: absolute; left: 0; right: 0; top: 1000px; text-align: center; }
+  .assina img { width: 440px; }
+  .assina p { margin-top: 26px; font-size: 44px; font-weight: 800; color: var(--deck); }
+  .assina p em { font-style: normal; color: var(--sinal); }
+  .aviso { position: absolute; left: 80px; right: 80px; top: 1360px; padding: 22px 26px; border-radius: 22px; background: rgba(11,20,16,.9); border: 2px solid rgba(240,250,244,.35);
+    text-align: center; font-size: 27px; line-height: 1.4; color: var(--tinta); }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <div class="halo"></div>
+  <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+  <div class="serie" id="serie">Conta de padaria</div>
+
+  <!-- 1. GANCHO -->
+  <div class="cena" id="c1">
+    <div class="pessoa p-arthur el" id="pa" style="top:560px;"><div class="av">A</div><b>Arthur</b><small>investiu</small><span class="v">R$ 36 mil</span></div>
+    <div class="pessoa p-caio el" id="pc" style="top:560px;"><div class="av">C</div><b>Caio</b><small>investiu</small><span class="v">R$ 108 mil</span></div>
+    <div class="tit el" id="perg" style="position:absolute;left:70px;right:70px;top:1150px;text-align:center;font-size:84px;">Quem chegou aos 65<br>com <em>mais</em>?</div>
+  </div>
+
+  <!-- 2. ARTHUR -->
+  <div class="cena" id="c2">
+    <div class="tit" style="position:absolute;left:70px;right:70px;top:300px;text-align:center;font-size:74px;">Arthur começou <em>cedo</em></div>
+    <div class="regua" style="top:620px;"><div class="nome"><span style="background:var(--sinal)">A</span>Arthur</div><div class="faixa"><i id="fa2" style="left:0;background:linear-gradient(90deg,#059669,#34d399)"></i></div></div>
+    <div class="idades" style="top:780px;"><span>25</span><span>35</span><span>45</span><span>55</span><span>65</span></div>
+    <div class="parou el" id="parou" style="left:345px;top:690px;">e parou</div>
+    <div class="soma el" id="sa" style="top:1000px;"><small>R$ 300 por mês · 10 anos</small><b style="color:var(--sinal)">= R$ 36 mil</b></div>
+  </div>
+
+  <!-- 3. CAIO -->
+  <div class="cena" id="c3">
+    <div class="tit" style="position:absolute;left:70px;right:70px;top:300px;text-align:center;font-size:74px;">Caio começou <em class="a">tarde</em></div>
+    <div class="regua" style="top:560px;"><div class="nome"><span style="background:var(--sinal)">A</span>Arthur</div><div class="faixa"><i style="left:0;width:25%;background:linear-gradient(90deg,#059669,#34d399)"></i></div></div>
+    <div class="regua" style="top:760px;"><div class="nome"><span style="background:var(--azul)">C</span>Caio</div><div class="faixa"><i id="fc3" style="left:25%;background:linear-gradient(90deg,#2563eb,#60a5fa)"></i></div></div>
+    <div class="idades" style="top:920px;"><span>25</span><span>35</span><span>45</span><span>55</span><span>65</span></div>
+    <div class="soma el" id="sc" style="top:1080px;"><small>R$ 300 por mês · 30 anos</small><b style="color:var(--azul)">= R$ 108 mil</b><small style="margin-top:10px;color:var(--ambar);">o triplo</small></div>
+    <div class="certo el" id="certo" style="top:1480px;">Ele ganha, certo?</div>
+  </div>
+
+  <!-- 4. A VIRADA -->
+  <div class="cena" id="c4">
+    <div class="errado el" id="errado"><span>Errado.</span></div>
+    <div class="grafico" id="graf">
+      <svg viewBox="0 0 940 860" preserveAspectRatio="none">
+        <line x1="0" y1="800" x2="940" y2="800" stroke="rgba(240,250,244,.25)" stroke-width="3"/>
+        <path id="cCaio" fill="none" stroke="#60a5fa" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+        <path id="cArthur" fill="none" stroke="#34d399" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="0" y="850" fill="#9fb3aa" font-family="DM Mono" font-size="28">25 anos</text>
+        <text x="940" y="850" fill="#9fb3aa" font-family="DM Mono" font-size="28" text-anchor="end">65 anos</text>
+      </svg>
+      <div class="rot-final el" id="rA" style="top:30px;background:rgba(52,211,153,.18);border:2px solid #34d399;color:#34d399;"><small style="color:#d1fae5">Arthur · pôs R$ 36 mil</small>R$ 544 mil</div>
+      <div class="rot-final el" id="rC" style="top:200px;background:rgba(96,165,250,.16);border:2px solid #60a5fa;color:#60a5fa;"><small style="color:#dbeafe">Caio · pôs R$ 108 mil</small>R$ 423 mil</div>
+    </div>
+    <div class="conclusao el" id="conc">Quem começou antes<br>terminou com <em>mais</em>.</div>
+  </div>
+
+  <!-- 5. REGRA DOS 72 -->
+  <div class="cena" id="c5">
+    <div class="regra">
+      <div class="rot">Regra de bolso · regra dos 72</div>
+      <div class="formula el" id="f1">72 ÷ <em>taxa ao ano</em> = anos para o dinheiro <em>dobrar</em></div>
+      <div class="conta el" id="f2">72 ÷ 8 = <b>9 anos</b></div>
+      <div class="dec el" id="f3">Começar <b>10 anos antes</b> é deixar o dinheiro <b>dobrar uma vez a mais.</b></div>
+    </div>
+  </div>
+
+  <!-- 6. FECHO -->
+  <div class="cena" id="c6">
+    <div class="manda el" id="md"><div class="ic"><svg viewBox="0 0 24 24"><path d="M2 11.5 21 3l-3.2 18-6.3-5.2-3.4 3.3.4-5L18 6.5 7.7 13.4z" fill="#052e1f"/></svg></div><b>Manda pra quem acha<br>que ainda é cedo</b></div>
+    <div class="assina el" id="as"><img src="wordmark.svg" alt="Appliquei"><p>Mais contas assim: <em>siga o Appliquei</em></p></div>
+    <div class="aviso el" id="av">Conteúdo educacional. Simulação supondo 8% ao ano acima da inflação, em valores de hoje: não é promessa de rendimento nem recomendação de investimento. Investimentos envolvem risco. Personagens fictícios.</div>
+  </div>
+
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  function $(id) { return document.getElementById(id); }
+  (function () {
+    const L = 1080, A = 1920, m = [];
+    for (let x = 60; x < L; x += 60) m.push(`<line x1="${x}" y1="0" x2="${x}" y2="${A}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 60; y < A; y += 60) m.push(`<line x1="0" y1="${y}" x2="${L}" y2="${y}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    $('malha').innerHTML = m.join('');
+  })();
+
+  // Saldo mês a mês dos dois (8% ao ano acima da inflação, aporte no fim do mês).
+  const R = Math.pow(1.08, 1 / 12) - 1;
+  function serie(ini, fim) {
+    const s = [0];
+    let v = 0;
+    for (let m = 0; m < 480; m++) {
+      v *= 1 + R;
+      if (m >= ini && m < fim) v += 300;
+      s.push(v);
+    }
+    return s;
+  }
+  const ARTHUR = serie(0, 120), CAIO = serie(120, 480);
+  const MAX = 560000;
+
+  // Cenas seguem narracao.json (início de cada frase − 0,15 s).
+  const DUR = 34.8;
+  const CENAS = [['c1', 0, 5.85], ['c2', 5.85, 10.0], ['c3', 10.0, 16.4], ['c4', 16.4, 21.85], ['c5', 21.85, 28.7], ['c6', 28.7, 35.0]];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeInOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+  const easeBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  function surge(el, lt, a, dur, dy) {
+    const p = easeBack(prog(lt, a, a + (dur || 0.4)));
+    el.style.opacity = clamp(p, 0, 1);
+    el.style.transform = `translateY(${(1 - p) * (dy == null ? 40 : dy)}px) scale(${0.85 + 0.15 * p})`;
+  }
+  function caminho(s, ate) {
+    const pts = [];
+    const n = Math.max(1, Math.round(ate));
+    for (let i = 0; i <= n; i += 2) pts.push((i ? 'L' : 'M') + ((i / 480) * 940).toFixed(1) + ' ' + (800 - (s[i] / MAX) * 760).toFixed(1));
+    return pts.join(' ');
+  }
+
+  function render(t) {
+    for (const [id, a, b] of CENAS) {
+      const el = $(id);
+      const dentro = t >= a - 0.01 && t < b;
+      const fadeIn = id === 'c1' ? 1 : easeOut(prog(t, a, a + 0.25));
+      const fadeOut = 1 - prog(t, b - 0.2, b);
+      el.style.opacity = dentro ? Math.min(fadeIn, fadeOut) : 0;
+      el.style.display = dentro ? 'block' : 'none';
+      if (dentro) cenaExtra(id, t - a);
+    }
+    $('serie').style.opacity = t < 28.5 ? easeOut(prog(t, 0.3, 0.6)) : 1 - prog(t, 28.5, 28.8);
+    $('logoFixo').style.opacity = t < 30.2 ? 1 : 1 - prog(t, 30.2, 30.5);
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+
+  function cenaExtra(id, lt) {
+    if (id === 'c1') {
+      // "Arthur investiu 36 mil" 0,2–1,9 · "Caio, 108 mil" 2,0–3,2 · "Quem chegou aos 65 com mais?" 3,3–5,6
+      surge($('pa'), lt, 0.15, 0.4, 60);
+      surge($('pc'), lt, 1.9, 0.4, 60);
+      surge($('perg'), lt, 3.2, 0.4, 30);
+    }
+    if (id === 'c2') {
+      // "guardou 300 por mês dos 25 aos 35" 0,2–3,0 · "E parou." 3,2
+      $('fa2').style.width = 25 * easeInOut(prog(lt, 0.5, 2.8)) + '%';
+      surge($('sa'), lt, 1.4, 0.4, 30);
+      const p = easeBack(prog(lt, 3.1, 3.45));
+      $('parou').style.opacity = clamp(p, 0, 1);
+      $('parou').style.transform = `rotate(-4deg) scale(${2 - p})`;
+    }
+    if (id === 'c3') {
+      // "começou aos 35… até os 65" 0,2–3,5 · "O triplo." 3,7 · "Ele ganha, certo?" 4,6–6,0
+      $('fc3').style.width = 75 * easeInOut(prog(lt, 0.5, 3.4)) + '%';
+      surge($('sc'), lt, 2.4, 0.4, 30);
+      surge($('certo'), lt, 4.5, 0.35, 30);
+    }
+    if (id === 'c4') {
+      // "Errado." 0,15 · "Arthur chega com 544 mil" 0,8–3,0 · "Caio, com 423" 3,1–4,9
+      const e = easeBack(prog(lt, 0.05, 0.35));
+      $('errado').style.opacity = clamp(e, 0, 1);
+      $('errado').style.transform = `scale(${2 - e})`;
+      const p = easeInOut(prog(lt, 0.4, 3.4));
+      $('cArthur').setAttribute('d', caminho(ARTHUR, 480 * p));
+      $('cCaio').setAttribute('d', caminho(CAIO, 480 * p));
+      surge($('rA'), lt, 2.7, 0.35, 20);
+      surge($('rC'), lt, 3.6, 0.35, 20);
+      surge($('conc'), lt, 4.3, 0.35, 20);
+    }
+    if (id === 'c5') {
+      // "72 dividido pela taxa ao ano dá em quantos anos o dinheiro dobra" 0,6–4,2 · "A 8%, 9 anos" 4,5–6,3
+      surge($('f1'), lt, 0.6, 0.4, 20);
+      surge($('f2'), lt, 4.4, 0.4, 20);
+      surge($('f3'), lt, 5.4, 0.4, 20);
+    }
+    if (id === 'c6') {
+      // "Manda pra quem acha que ainda é cedo" 0,15–2,0 · "segue o Appliquei…" 2,1–3,9
+      surge($('md'), lt, 0.1, 0.4, 40);
+      surge($('as'), lt, 1.9, 0.45, 40);
+      surge($('av'), lt, 2.6, 0.4, 10);
+    }
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>
