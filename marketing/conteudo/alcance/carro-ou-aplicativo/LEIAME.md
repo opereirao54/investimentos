@@ -1,4 +1,4 @@
-# "Esse carro custa R$ 2.100 por mês. Parado na garagem." (70,5 s)
+# "Esse carro custa R$ 2.100 por mês. Parado na garagem." (72 s)
 
 Vídeo educativo de alcance no formato "conta na tela" (`modelo-conta.html`),
 na versão didática: abre com o número ("Esse carro custa R$ 2.100 por mês.
@@ -8,7 +8,7 @@ entrar na nota, com uma legenda embaixo: (1) todo carro perde valor, R$ 80 mil
 que ninguém vê, o que os R$ 80 mil renderiam aplicados. Depois soma, divide
 pelo preço da corrida (70 por mês) e compara com o uso real do Mateus (o mau
 exemplo): 8 dias por mês, ida e volta, 16 corridas, R$ 480. Regra: se você
-não chega nas 70 corridas, o carro é que sai caro; se roda todo dia, pode
+não chega nas 70 corridas, o carro é que pesa no bolso; se roda todo dia, pode
 compensar. O app não aparece; a marca só assina. Personagem fictício.
 
 - `appliquei-carro-ou-aplicativo.mp4`: final, narrado (-15 LUFS).
@@ -33,6 +33,10 @@ estudos de 2026 (R$ 1.100 a 1.500 sem combustível). R$ 2.100 ÷ R$ 30 = 70
 corridas por mês (2,3 por dia). Mateus: 8 dias × ida e volta = 16 corridas ×
 R$ 30 = R$ 480.
 
+A narração diz "pesa no bolso", nunca "caro": num vídeo sobre carro, "caro"
+soou como "carro". A leitura é um take único (emendar frases de outro pedido
+saiu 3–5 dB mais alto e com outro tom).
+
 Os totais aparecem já no valor final (sem contador): um contador passava por
 números intermediários que não batem com a nota.
 
@@ -43,16 +47,16 @@ compensar ter carro. O vídeo não diz que carro é ruim.
 
 > Esse carro custa R$ 2.100 por mês. Parado na garagem. 🚗
 >
-> O Mateus comprou um carro de R$ 80 mil porque achou que aplicativo saía caro,
+> O Mateus comprou um carro de R$ 80 mil porque achou que aplicativo pesava no bolso,
 > mas só usa no fim de semana. Somando desvalorização, IPVA, seguro, manutenção
 > e o que os R$ 80 mil deixam de render: R$ 25 mil por ano. Dá 70 corridas de
 > R$ 30 por mês. O Mateus faz 16.
 >
 > 📌 Regra de bolso: divida o custo do seu carro pelo preço da corrida. Se você
-> não anda tudo isso, o carro é que sai caro. (Roda todo dia? Aí pode
+> não anda tudo isso, o carro é que pesa no bolso. (Roda todo dia? Aí pode
 > compensar. Faz a conta com o seu e comenta.)
 >
-> Manda pra quem diz que aplicativo sai caro. 🔁
+> Manda pra quem acha que aplicativo pesa no bolso. 🔁
 >
 > Conteúdo educacional. Valores de exemplo para um carro de R$ 80 mil (IPVA de
 > 4%, como em SP); seguro, desvalorização e manutenção variam por modelo e

@@ -38,7 +38,10 @@ Modelos:
   `#34d399`, logo no canto e barra de progresso embaixo. Os modelos já trazem
   isso.
 - **Voz:** sempre a Charon (`narrar-gemini.py`), com as perguntas subindo o
-  tom no fim.
+  tom no fim. Ao corrigir uma frase, regrave o roteiro inteiro num pedido só:
+  frase emendada de outro pedido sai com outro volume e outro tom. Evite
+  palavras que o TTS confunde com outra do mesmo vídeo ("caro" num vídeo sobre
+  "carro"): troque a palavra em vez de confiar na pronúncia.
 - **Personagens:** sempre **Caio e Mateus** (fictícios), quando a conta
   pedir duas pessoas. Nada de nomes novos a cada vídeo; diga "Personagens
   fictícios" no aviso. **O Mateus é sempre o mau exemplo** (quem escolhe

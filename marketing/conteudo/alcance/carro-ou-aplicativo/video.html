@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  Vídeo EDUCATIVO de alcance (≈70 s, 1080×1920) — "Esse carro custa R$ 2.100
+  Vídeo EDUCATIVO de alcance (≈72 s, 1080×1920) — "Esse carro custa R$ 2.100
   por mês. Parado na garagem. Quer ver a conta?" Formato "conta na tela"
   (modelo-conta.html), didático: cada custo é explicado antes de entrar na
   nota, e a divisão final usa o uso real do Mateus (o mau exemplo). O app NÃO
@@ -165,7 +165,7 @@
   <!-- 2. O MATEUS -->
   <div class="cena" id="c2">
     <div class="quem q-mateus el" id="qm" style="top:330px;"><div class="av">M</div><div><b>Mateus</b><small>comprou um carro de</small><span class="v">R$ 80 mil</span></div></div>
-    <div class="pensa el" id="pn" style="top:690px;"><span>"Aplicativo sai caro."</span></div>
+    <div class="pensa el" id="pn" style="top:690px;"><span>"Aplicativo pesa no bolso."</span></div>
     <div class="semana" id="sm" style="top:930px;"></div>
     <div class="rot-semana el" id="rs" style="top:1070px;">mas só usa no fim de semana</div>
   </div>
@@ -223,14 +223,14 @@
     <div class="regra">
       <div class="rot el" id="r0">Então a regra é</div>
       <div class="formula el" id="f0"><b>custo do carro dividido pelo preço da corrida</b> = quantas corridas ele precisa substituir por mês</div>
-      <div class="caso el" id="f1">Não chega nas 70 por mês?<br>→ <b>o carro é que sai caro.</b></div>
+      <div class="caso el" id="f1">Não chega nas 70 por mês?<br>→ <b>o carro é que pesa no bolso.</b></div>
       <div class="caso el" id="f2">Roda todo dia?<br>→ <b class="v">aí ele pode compensar.</b></div>
     </div>
   </div>
 
   <!-- 8. FECHO -->
   <div class="cena" id="c8">
-    <div class="manda el" id="md"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 11.5 21 3l-8.5 18-2.2-7.3z" fill="#052e1f"/></svg></div><b>Manda pra quem diz que<br>aplicativo sai caro</b></div>
+    <div class="manda el" id="md"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 11.5 21 3l-8.5 18-2.2-7.3z" fill="#052e1f"/></svg></div><b>Manda pra quem acha que<br>aplicativo pesa no bolso</b></div>
     <div class="assina el" id="as"><img src="wordmark.svg" alt="Appliquei"><p>Mais contas assim: <em>siga o Appliquei</em></p></div>
     <div class="aviso el" id="av">Conteúdo educacional. Valores de exemplo para um carro de R$ 80 mil: IPVA de 4% (como em SP); seguro, desvalorização e manutenção variam por modelo e região. Sem combustível. *Supondo renda fixa perto de 1% ao mês. Personagem fictício.</div>
   </div>
@@ -250,8 +250,8 @@
   })();
 
   // Cenas seguem narracao.json (início de cada frase − 0,15 s).
-  const DUR = 70.5;
-  const CENAS = [['c1', 0, 6.82], ['c2', 6.82, 14.06], ['c3', 14.06, 37.64], ['c4', 37.64, 42.97], ['c5', 42.97, 49.54], ['c6', 49.54, 56.48], ['c7', 56.48, 64.43], ['c8', 64.43, 70.7]];
+  const DUR = 72.0;
+  const CENAS = [['c1', 0, 6.82], ['c2', 6.82, 14.06], ['c3', 14.06, 37.64], ['c4', 37.64, 42.97], ['c5', 42.97, 49.54], ['c6', 49.54, 56.48], ['c7', 56.48, 65.26], ['c8', 65.26, 72.2]];
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
   const easeOut = (x) => 1 - Math.pow(1 - x, 3);
@@ -279,30 +279,30 @@
       el.style.display = dentro ? 'block' : 'none';
       if (dentro) cenaExtra(id, t - a);
     }
-    $('serie').style.opacity = t < 64.2 ? easeOut(prog(t, 0.3, 0.6)) : 1 - prog(t, 64.2, 64.5);
+    $('serie').style.opacity = t < 65.0 ? easeOut(prog(t, 0.3, 0.6)) : 1 - prog(t, 65.0, 65.3);
     $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
   }
 
   // Tempos locais = fala + 0,15 s (pausas medidas na leitura).
   function cenaExtra(id, lt) {
     if (id === 'c1') {
-      // "Esse carro custa dois mil e cem reais por mês" 0,15–3,2 · "Parado na garagem" 3,6–4,75 · "Quer ver a conta?" 5,8–6,4
+      // "Esse carro custa dois mil e cem reais por mês" 0,15–2,9 · "Parado na garagem" 3,25–4,35 · "Quer ver a conta?" 5,0–5,7
       surge($('pr'), lt, 0.05, 0.4, 30);
       $('prN').textContent = 'R$ ' + real(2100 * easeOut(prog(lt, 0.9, 1.4)));
-      surge($('gr'), lt, 3.4, 0.4, 40);
-      surge($('rg'), lt, 3.7, 0.35, 10);
-      surge($('qv'), lt, 5.6, 0.35, 10);
+      surge($('gr'), lt, 3.15, 0.4, 40);
+      surge($('rg'), lt, 3.3, 0.35, 10);
+      surge($('qv'), lt, 4.9, 0.35, 10);
     }
     if (id === 'c2') {
-      // "O Mateus comprou um carro de oitenta mil" 0,15–2,3 · "Achou que aplicativo saía caro" 2,85–4,35
-      // "Mas ele só usa o carro no fim de semana" 5,0–6,95
+      // "O Mateus comprou um carro de oitenta mil" 0,15–2,2 · "Achou que aplicativo pesava no bolso" 2,85–4,55
+      // "Mas ele só usa o carro no fim de semana" 5,1–7,05
       surge($('qm'), lt, 0.1, 0.4, 50);
       surge($('pn'), lt, 2.75, 0.35, 20);
       for (let i = 0; i < 7; i++) {
-        surge($('d' + i), lt, 4.8 + i * 0.05, 0.3, 20);
-        $('d' + i).classList.toggle('usa', i >= 5 && lt > 5.9);
+        surge($('d' + i), lt, 5.0 + i * 0.05, 0.3, 20);
+        $('d' + i).classList.toggle('usa', i >= 5 && lt > 6.0);
       }
-      surge($('rs'), lt, 5.6, 0.35, 10);
+      surge($('rs'), lt, 5.8, 0.35, 10);
     }
     if (id === 'c3') {
       // 1 "Primeiro: todo carro perde valor" 0,15–2,3 · "uns dez por cento por ano" 2,7–3,95 · "São oito mil que somem, mesmo parado" 4,6–7,3
@@ -311,18 +311,18 @@
       janela($('e1'), lt, 0.9, 7.6);
       janela($('e2'), lt, 7.6, 15.8);
       janela($('e3'), lt, 15.8, 30);
-      [4.5, 9.45, 11.65, 13.75, 22.1].forEach((a, i) => surge($('l' + (i + 1)), lt, a, 0.35, 16));
+      [4.5, 9.6, 11.7, 13.75, 22.0].forEach((a, i) => surge($('l' + (i + 1)), lt, a, 0.35, 16));
     }
     if (id === 'c4') {
       // "Somando tudo" 0,15–0,95 · "vinte e cinco mil por ano" 1,15–2,3 · "Dois mil e cem por mês" 2,7–3,9 · "sem contar a gasolina" 4,05–5,1
-      surge($('ta'), lt, 0.7, 0.4, 20);
-      surge($('tm'), lt, 2.3, 0.4, 30);
+      surge($('ta'), lt, 0.95, 0.4, 20);
+      surge($('tm'), lt, 2.6, 0.4, 30);
       surge($('gs'), lt, 4.0, 0.35, 10);
     }
     if (id === 'c5') {
       // "Agora divida pelo preço de uma corrida" 0,15–1,85 · "uns trinta reais" 2,1–2,95 · "Dá setenta corridas por mês" 3,5–4,95 · "Mais de duas por dia" 5,3–6,3
       surge($('dq'), lt, 0.1, 0.4, 20);
-      $('dc').style.opacity = easeOut(prog(lt, 2.05, 2.4));
+      $('dc').style.opacity = easeOut(prog(lt, 2.15, 2.5));
       surge($('dr'), lt, 3.4, 0.4, 20);
       for (let i = 0; i < 70; i++) {
         const p = easeBack(prog(lt, 3.5 + i * 0.022, 3.75 + i * 0.022));
@@ -346,20 +346,20 @@
       $('b2').style.width = 22.9 * easeOut(prog(lt, 5.1, 5.7)) + '%';
     }
     if (id === 'c7') {
-      // "Então a regra é" 0,15–1,05 · "se você não chega nessas setenta corridas" 1,4–3,45 · "o carro é que sai caro" 3,9–4,75
-      // "Se roda todo dia" 5,35–6,25 · "aí ele pode compensar" 6,5–7,55
+      // "Então a regra é" 0,15–1,1 · "se você não chega nessas setenta corridas" 1,6–3,8 · "o carro é que pesa no bolso" 4,1–5,4
+      // "Se roda todo dia" 5,9–6,95 · "aí ele pode compensar" 7,2–8,4
       surge($('r0'), lt, 0.1, 0.4, 20);
       surge($('f0'), lt, 0.5, 0.4, 20);
-      surge($('f1'), lt, 1.4, 0.4, 20);
-      surge($('f2'), lt, 5.3, 0.4, 20);
+      surge($('f1'), lt, 1.55, 0.4, 20);
+      surge($('f2'), lt, 5.85, 0.4, 20);
     }
     if (id === 'c8') {
-      // "Manda pra quem diz que aplicativo sai caro" 0,15–2,1 · "E segue o Appliquei pra mais contas assim" 2,5–4,4
+      // "Manda pra quem acha que aplicativo pesa no bolso" 0,15–2,6 · "E segue o Appliquei pra mais contas assim" 3,05–5,1
       surge($('md'), lt, 0.1, 0.4, 40);
       $('md').querySelector('.ic').style.transform = `scale(${1 + 0.06 * Math.sin(lt * 7) * prog(lt, 0.5, 1)})`;
-      surge($('as'), lt, 2.3, 0.45, 40);
-      surge($('av'), lt, 3.1, 0.4, 10);
-      $('logoFixo').style.opacity = 1 - prog(lt, 2.0, 2.3);
+      surge($('as'), lt, 2.85, 0.45, 40);
+      surge($('av'), lt, 3.6, 0.4, 10);
+      $('logoFixo').style.opacity = 1 - prog(lt, 2.55, 2.85);
     } else $('logoFixo').style.opacity = 1;
   }
   window.render = render;
