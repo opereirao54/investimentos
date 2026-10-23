@@ -467,9 +467,9 @@ function textoSaldo(d, agora) {
   if (Math.abs(r.fora) >= 0.005) linhas.push(`❔ Fora de conta cadastrada: <b>${brl(r.fora)}</b>`);
 
   // Os dois números do topo do Controle Financeiro, com as legendas de lá:
-  // "Saldo em conta" é de AGORA (o dinheiro nas contas); "Saldo livre" é do
-  // MÊS (o que sobrou do que entrou). Juntos num número só, a pessoa leria um
-  // pelo outro — foi por isso que o app os separou em dois cards.
+  // "Saldo em conta" é de AGORA (o dinheiro nas contas); a sobra é o que
+  // entrou menos o que saiu. Juntos num número só, a pessoa leria um pelo
+  // outro — foi por isso que o app os separou em dois cards.
   const emConta = linhas.length
     ? `💰 <b>Saldo em conta: ${brl(r.total)}</b>\n` +
       '<i>o que existe hoje, somando as suas contas</i>\n' +
@@ -477,15 +477,20 @@ function textoSaldo(d, agora) {
     : '🏦 Você ainda não tem conta cadastrada. Cadastre no app ' +
       '(<b>Meu Patrimônio → Contas</b>) para eu mostrar o saldo em conta.';
 
+  // Mesmo nome do Início no celular (appliquei-mobile.js → mobRenderInicio).
+  // Era "Saldo livre de outubro", mas o número soma em cadeia a sobra de todos
+  // os meses anteriores: todo mês com despesa não lançada fica nessa conta, e
+  // ela acaba parecendo tudo o que entrou. Quando há sobra trazida, ela se
+  // chama "Sobra acumulada" e a linha de baixo diz quanto veio de antes.
   const l = consultas.saldoLivreMes(d, agora.getMonth(), agora.getFullYear());
-  const carregado =
-    Math.abs(l.carregado) >= 0.005
-      ? ` (${l.carregado > 0 ? '+' : '−'}${brl(Math.abs(l.carregado))} do mês anterior)`
-      : '';
+  const acumula = Math.abs(l.carregado) >= 0.005;
+  const titulo = acumula ? 'Sobra acumulada' : `Sobra de ${MESES[agora.getMonth()].toLowerCase()}`;
+  const legenda = acumula
+    ? 'o que entrou menos o que saiu, somando a sobra dos meses anteriores ' +
+      `(${l.carregado > 0 ? '+' : '−'}${brl(Math.abs(l.carregado))} de antes)`
+    : 'o que entrou menos o que saiu neste mês';
   const livre =
-    `${l.livre >= 0 ? '🟢' : '🔴'} <b>Saldo livre de ${MESES[agora.getMonth()].toLowerCase()}: ` +
-    `${brl(l.livre)}</b>\n` +
-    `<i>o que sobrou de tudo o que entrou neste mês</i>${carregado}`;
+    `${l.livre >= 0 ? '🟢' : '🔴'} <b>${titulo}: ${brl(l.livre)}</b>\n` + `<i>${legenda}</i>`;
 
   return emConta + '\n\n' + livre + rodapeConsulta(d);
 }
