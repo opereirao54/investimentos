@@ -489,14 +489,40 @@ test('/saldo responde o saldo por conta, esconde corretora zerada e manda o tecl
   assert.match(p.text, /Itaú: <b>R\$\s5\.700,00<\/b>/); // 1000 + 5000 − 300 (a fixa não foi paga)
   assert.match(p.text, /Nubank: <b>R\$\s250,50<\/b>/);
   assert.doesNotMatch(p.text, /Rico/);
-  // Saldo livre do mês: receita 5.000 − despesas 1.500 (a fixa conta mesmo não
+  // Sobra do mês: receita 5.000 − despesas 1.500 (a fixa conta mesmo não
   // paga, como no card do app) e nada trazido do mês anterior.
-  assert.match(p.text, /🟢 <b>Saldo livre de [a-zç]+: R\$\s3\.500,00<\/b>/);
-  assert.match(p.text, /o que sobrou de tudo o que entrou neste mês/);
-  assert.doesNotMatch(p.text, /do mês anterior/);
+  assert.match(p.text, /🟢 <b>Sobra de [a-zç]+: R\$\s3\.500,00<\/b>/);
+  assert.match(p.text, /o que entrou menos o que saiu neste mês/);
+  assert.doesNotMatch(p.text, /Sobra acumulada|de antes|Saldo livre/);
   assert.match(p.text, /Dados do app de/);
   assert.ok(p.reply_markup.keyboard, 'teclado fixo');
   assert.deepEqual(inbox(), {}, 'consulta não grava nada');
+});
+
+test('/saldo com sobra de meses anteriores: "Sobra acumulada" e quanto veio de antes', async () => {
+  semearTransacoes();
+  // Um mês antes, 2.000 que entraram e não tiveram saída lançada — é o caso que
+  // fazia o número parecer "tudo o que entrou".
+  const agora = require(path.join(ROOT, 'api/_lib/telegram-consultas.js')).agoraBrasilia();
+  const mAnt = agora.getMonth() === 0 ? 11 : agora.getMonth() - 1;
+  const aAnt = agora.getMonth() === 0 ? agora.getFullYear() - 1 : agora.getFullYear();
+  const dados = M.store.docs.get(`users/${UID}/data/main`);
+  const txs = JSON.parse(dados.keys.futurorico_transacoes);
+  txs.push({
+    id: 't0',
+    categoria: 'receita',
+    valor: 2000,
+    contaId: 'c_itau',
+    mes: mAnt,
+    ano: aAnt,
+  });
+  dados.keys.futurorico_transacoes = JSON.stringify(txs);
+  await conectar();
+  await webhook(mensagem('/saldo'));
+  const p = ultimoEnvio();
+  assert.match(p.text, /🟢 <b>Sobra acumulada: R\$\s5\.500,00<\/b>/); // 3.500 do mês + 2.000 de antes
+  assert.match(p.text, /somando a sobra dos meses anteriores \(\+R\$\s2\.000,00 de antes\)/);
+  assert.doesNotMatch(p.text, /Saldo livre|por dia/);
 });
 
 test('o botão do teclado e a palavra solta também consultam; "mercado 50" continua lançamento', async () => {
