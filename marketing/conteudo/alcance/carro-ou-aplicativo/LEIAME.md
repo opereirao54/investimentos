@@ -11,6 +11,8 @@ exemplo): 8 dias por mês, ida e volta, 16 corridas, R$ 480. Regra: se você
 não chega nas 70 corridas, o carro é que pesa no bolso; se roda todo dia, pode
 compensar. O app não aparece; a marca só assina. Personagem fictício.
 
+- `appliquei-carro-ou-aplicativo-com-capa.mp4`: **o arquivo para postar**: a capa no primeiro
+  quadro (0,1 s, vira a miniatura no TikTok e no Shorts) e embutida no arquivo.
 - `appliquei-carro-ou-aplicativo.mp4`: final, narrado (-15 LUFS).
 - `video.html`, `narracao.json`, `narracao-charon-leitura.wav`, `trilha.wav`
   (`trilha-alcance.py … --sem-moedas`).

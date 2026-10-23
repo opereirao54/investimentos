@@ -7,6 +7,8 @@ do tempo mostra o fechamento separando as duas faturas, e a regra de bolso é
 "melhor dia de compra: logo depois do fechamento". O app não aparece; a marca
 só assina. Caio e Mateus são personagens fictícios.
 
+- `appliquei-melhor-dia-compra-com-capa.mp4`: **o arquivo para postar**: a capa no primeiro
+  quadro (0,1 s, vira a miniatura no TikTok e no Shorts) e embutida no arquivo.
 - `appliquei-melhor-dia-compra.mp4`: final, narrado (-15 LUFS).
 - `video.html`, `narracao.json`, `narracao-charon-leitura.wav`, `trilha.wav`
   (`trilha-alcance.py … --sem-moedas`).

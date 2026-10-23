@@ -77,6 +77,11 @@ ffmpeg -i /tmp/trilha.wav -af "lowpass=f=13000,volume=3dB,alimiter=limit=0.70:le
 node marketing/ferramentas/shorts/render.js /tmp/r $D/video.html
 # 3. capa: escreva $D/capa.json ({"frase": "…<em>número</em>…", "apoio": "…"})
 node marketing/ferramentas/shorts/capa.js $D/capa.json $D/capa.png
+# 4. arquivo para postar: capa no 1º quadro (0,1 s) e embutida no arquivo
+ffmpeg -loop 1 -framerate 30 -t 0.1 -i $D/capa.png -i $D/appliquei-<tema>.mp4 -i $D/capa.png \
+  -filter_complex "[0:v]scale=1080:1920,setsar=1,format=yuv420p[c];[1:v]fps=30,setsar=1,format=yuv420p[v];[c][v]concat=n=2:v=1:a=0[vo];[1:a]adelay=100:all=1[ao]" \
+  -map "[vo]" -map "[ao]" -map 2:v -c:v:0 libx264 -crf 18 -c:a aac -b:a 192k -c:v:1 png -disposition:v:1 attached_pic \
+  -movflags +faststart $D/appliquei-<tema>-com-capa.mp4
 python3 marketing/ferramentas/shorts/mixar-narracao.py /tmp/voz $D/trilha.wav /tmp/r/video-sem-audio.mp4 $D/appliquei-<tema>.mp4
 ```
 
