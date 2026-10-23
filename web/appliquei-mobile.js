@@ -1002,8 +1002,8 @@ document.addEventListener('click', function (e) {
 // O Resumo era o desktop em fila: dois cartões-herói, cinco indicadores,
 // termômetro, composição — e a pergunta de quem abre o app ("quanto ainda
 // posso gastar?") ficava diluída. No celular o topo vira um cartão só, com
-// o livre para gastar, quanto isso dá por dia e três anéis (gastos,
-// investido, sonhos). Logo abaixo, os atalhos do dia a dia. Os blocos
+// a sobra (o que entrou menos o que saiu) e três anéis (gastos, investido,
+// sonhos). Logo abaixo, os atalhos do dia a dia. Os blocos
 // originais continuam na tela, reordenados pelo CSS; o que este código
 // desenha é resumo e atalho, e todo botão chama a função que o desktop usa.
 //
@@ -1178,12 +1178,6 @@ function mobRevelar(el) {
   if (typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'center' });
 }
 
-function _mobDiasRestantes(mes, ano) {
-  const hoje = new Date();
-  if (hoje.getMonth() !== mes || hoje.getFullYear() !== ano) return 0;
-  return new Date(ano, mes + 1, 0).getDate() - hoje.getDate() + 1;
-}
-
 /** Movimentações recentes do mês em visão: as últimas já realizadas. */
 function _mobMovimentos(mes, ano) {
   if (typeof transacoes === 'undefined' || !Array.isArray(transacoes)) return [];
@@ -1302,23 +1296,25 @@ function mobRenderInicio(d) {
   const saud = document.getElementById('mobSaudacao');
   if (saud) saud.textContent = _mobSaudacao();
 
+  // O número é a sobra: o que entrou menos o que saiu, mais o que sobrou dos
+  // meses anteriores (obterSaldoCarregadoParaMes, que soma em cadeia desde o
+  // primeiro lançamento). Ele se chamava "Livre para gastar" e vinha com
+  // "≈ R$ X por dia até o fim do mês" — mas a sobra acumulada carrega todo
+  // mês em que alguma despesa não foi lançada, e com o tempo vira quase tudo o
+  // que entrou. Ler isso como orçamento diário levava a gastar dinheiro que
+  // não existe (feedback de 23/10/2026). Agora o rótulo diz o que o
+  // número é, e a linha de baixo diz de onde ele vem.
   const livre = Number(d.saldoLivre) || 0;
-  const dias = _mobDiasRestantes(d.mes, d.ano);
-  const fimMes = new Date(d.ano, d.mes + 1, 0).toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-  });
-  const porDia =
-    dias > 0 && livre > 0
-      ? '≈ <b class="valor-mascarado">' +
-        _mobEsc(_mobDreFmt(livre / dias)) +
-        '</b> por dia até ' +
-        fimMes
-      : livre < 0
-        ? 'O mês fechou no vermelho: saiu mais do que entrou.'
-        : noMes
-          ? 'Tudo o que entrou já tem destino.'
-          : 'o que sobrou de tudo o que entrou no mês';
+  const acumula = Math.abs(Number(d.carregado) || 0) >= 0.005 || !!d.carregadoManual;
+  const rotulo = acumula ? 'Sobra acumulada' : 'Sobra do mês';
+  const origem =
+    livre < 0
+      ? 'Saiu mais do que entrou.'
+      : Math.abs(livre) < 0.005
+        ? 'Tudo o que entrou já tem destino.'
+        : acumula
+          ? 'O que entrou menos o que saiu, somando a sobra dos meses anteriores.'
+          : 'O que entrou menos o que saiu' + (noMes ? ' neste mês.' : ' no mês.');
 
   const scoreEl = document.getElementById('termChipScore');
   const rotEl = document.getElementById('termChipRotulo');
@@ -1386,14 +1382,14 @@ function mobRenderInicio(d) {
     termo +
     '<div class="mi-hero-corpo"><div class="mi-hero-num">' +
     '<span class="mi-rot">' +
-    (noMes ? 'Livre para gastar' : 'Saldo livre do mês') +
+    rotulo +
     '</span><span class="mi-livre valor-mascarado' +
     (livre < 0 ? ' neg' : '') +
     (_mobDreFmt(livre).length > 10 ? ' longo' : '') +
     '">' +
     _mobEsc(_mobDreFmt(livre)) +
     '</span><span class="mi-dia">' +
-    porDia +
+    origem +
     '</span></div>' +
     _mobSvgAneis(a) +
     '</div>' +
