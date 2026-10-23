@@ -1,0 +1,16 @@
+[
+  [0.2, 4.45, "Parcelado sem juros ou à vista com desconto? A maioria escolhe errado."],
+  [4.7, 8.45, "Exemplo: mil reais em dez vezes, ou novecentos à vista."],
+  [8.7, 12.0, "Parcelando, o seu dinheiro fica rendendo enquanto você paga, certo?"],
+  [
+    12.25,
+    19.25,
+    "Só que, pra empatar com esse desconto, ele teria que render quase dois por cento ao mês. Bem mais do que a renda fixa costuma pagar."
+  ],
+  [
+    19.5,
+    26.7,
+    "Regra de bolso: divida o desconto pela metade do número de parcelas. Se der mais do que o seu dinheiro rende por mês, pague à vista."
+  ],
+  [26.95, 30.4, "Salva pra próxima compra. E segue o Appliquei pra mais contas assim."]
+]

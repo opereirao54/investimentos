@@ -1,0 +1,361 @@
+<!doctype html>
+<!--
+  Resumo de 45 s (1080×1920) — "E se o seu controle financeiro trabalhasse por
+  você?". Vídeo para fixar no perfil: as automações do app, uma atrás da outra,
+  com um contador que sobe a cada uma (10 no fim), e a assinatura do teaser.
+
+  Cada automação existe no código, e o texto da tela copia o do app:
+   1. Telegram lança com categoria ........ api/_lib/telegram-bot.js (descreverLancamento)
+   2. Sugere a categoria pelo histórico .... web/appliquei-insights-ui.js ("Você costuma lançar isso como…")
+   3. Conta que vence amanhã ............... api/_lib/telegram-alertas.js ("📅 Amanhã vence…")
+   4. Fatura que vai fechar ................ idem ("💳 A fatura do … fecha amanhã…")
+   5. Saldo que vai ficar no vermelho ...... idem (saldo_negativo: "🔻 A partir de …, sai mais do que entra.")
+   6. Cobrança repetida .................... web/appliquei-insights-ui.js (duplicada)
+   7. Assinatura que subiu de preço ........ idem (reajuste)
+   8. Gasto fora do normal ................. idem (anomalia: "bem acima do seu normal")
+   9. Dividendos entram na conta ........... web/appliquei-aba-dividendos.js (lançamento automático)
+  10. Parcela do sonho no mês .............. web/appliquei-sonhos.js ("Já lançar no Controle Financeiro")
+  O Sistema inteligente é estatística sobre o histórico, não IA (produto.md).
+  Números iguais aos dos outros vídeos da série (patrimônio R$ 425.040, etc.).
+  Mesma mecânica do teaser: cenas em CENAS, movimentos em cenaExtra(),
+  render(t) desenha o segundo t. Narração: narracao.json (Charon/Gemini).
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root {
+    --campo1: #0b1410; --campo2: #0f1f18; --campo3: #112720;
+    --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa;
+    --sinal: #34d399; --verde: #10b981; --primaria: #059669; --ambar: #fbbf24; --vermelho: #f87171; --tg: #2aabee;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--campo1); }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: linear-gradient(150deg, var(--campo1) 0%, var(--campo2) 50%, var(--campo3) 100%); }
+  .halo { position: absolute; inset: -20%;
+    background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.22), transparent 70%),
+                radial-gradient(40% 35% at 10% 90%, rgba(5,150,105,.18), transparent 70%); }
+  .malha { position: absolute; inset: 0; }
+  .cena { position: absolute; inset: 0; opacity: 0; }
+  .tit { font-weight: 900; letter-spacing: -.035em; line-height: .98; color: var(--tinta); }
+  .tit em { font-style: normal; color: var(--sinal); }
+  .tit em.r { color: var(--vermelho); }
+  .linha { display: block; will-change: transform, opacity; }
+  .grande { position: absolute; left: 70px; right: 70px; text-align: center; }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 210px; z-index: 20; }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); z-index: 30; }
+
+  /* Contador de automações (canto superior direito, fora da área dos ícones das redes) */
+  .contador { position: absolute; right: 150px; top: 52px; display: flex; align-items: center; gap: 14px; padding: 12px 22px 12px 14px; border-radius: 99px;
+    background: rgba(52,211,153,.14); border: 2px solid rgba(52,211,153,.45); z-index: 20; opacity: 0; }
+  .contador b { width: 56px; height: 56px; border-radius: 50%; background: var(--sinal); color: #052e1f; display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace; font-size: 30px; font-weight: 500; }
+  .contador span { font-family: 'DM Mono', monospace; font-size: 24px; letter-spacing: .1em; text-transform: uppercase; color: var(--sinal); }
+  .mais1 { position: absolute; right: 170px; top: 130px; font-family: 'DM Mono', monospace; font-size: 34px; color: var(--sinal); opacity: 0; z-index: 20; }
+
+  .rotulo { position: absolute; left: 70px; right: 70px; top: 250px; text-align: center; font-size: 66px; font-weight: 900; letter-spacing: -.03em; line-height: 1.04; }
+  .rotulo em { font-style: normal; color: var(--sinal); }
+  .rotulo em.r { color: var(--vermelho); }
+  .chip-auto { display: inline-flex; align-items: center; gap: 12px; padding: 12px 24px; border-radius: 99px; background: rgba(52,211,153,.14); border: 2px solid rgba(52,211,153,.5);
+    color: var(--sinal); font-family: 'DM Mono', monospace; font-size: 26px; letter-spacing: .12em; text-transform: uppercase; }
+  .chip-auto i { width: 14px; height: 14px; border-radius: 50%; background: var(--sinal); box-shadow: 0 0 14px var(--sinal); }
+
+  /* 1. Gancho: notificações chegando */
+  .notif { position: absolute; left: 90px; right: 90px; display: flex; gap: 20px; align-items: flex-start; padding: 24px 26px; border-radius: 30px;
+    background: rgba(240,250,244,.94); color: #12241c; box-shadow: 0 20px 50px rgba(0,0,0,.45); opacity: 0; }
+  .notif .ic { width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, #10b981, #047857); color: #fff; display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 32px; flex: 0 0 auto; }
+  .notif .ic.tg { background: var(--tg); }
+  .notif .tx { flex: 1; font-size: 33px; line-height: 1.3; }
+  .notif .tx small { display: flex; justify-content: space-between; font-size: 21px; color: #51655b; font-weight: 700; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+  .notif .tx b { font-weight: 900; }
+  .notif.vermelho { background: #fff1f1; box-shadow: 0 20px 60px rgba(248,113,113,.35), 0 0 0 4px rgba(248,113,113,.7); }
+
+  /* Celular (Telegram e app) */
+  .celular { position: absolute; left: 50%; top: 540px; width: 660px; height: 860px; margin-left: -330px; border-radius: 72px; background: #050a08;
+    padding: 18px; box-shadow: 0 40px 90px rgba(0,0,0,.6), 0 0 0 3px rgba(240,250,244,.12), 0 0 120px rgba(52,211,153,.18); }
+  .tela { position: absolute; inset: 18px; border-radius: 56px; overflow: hidden; }
+  .tg { background: #0e1621; }
+  .tg-cab { height: 140px; padding: 52px 26px 0; display: flex; align-items: center; gap: 16px; background: #17212b; }
+  .tg-av { width: 66px; height: 66px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #047857); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 32px; color: #fff; }
+  .tg-cab b { display: block; font-size: 30px; color: #fff; }
+  .tg-cab small { font-size: 22px; color: #7f91a4; }
+  .tg-msgs { padding: 30px 22px; display: flex; flex-direction: column; gap: 20px; }
+  .bolha { max-width: 90%; padding: 20px 24px; border-radius: 26px; font-size: 34px; line-height: 1.36; opacity: 0; }
+  .bolha.eu { align-self: flex-end; background: #2b5278; color: #fff; border-bottom-right-radius: 8px; font-size: 40px; }
+  .bolha.bot { align-self: flex-start; background: #182533; color: #e8eef4; border-bottom-left-radius: 8px; }
+  .bolha.bot b { color: #fff; }
+  .bolha .cat { display: inline-block; padding: 2px 12px; border-radius: 10px; background: rgba(52,211,153,.25); color: #6ee7b7; font-weight: 800; }
+  .app { background: #f4f6f3; color: #12241c; }
+  .app-cab { padding: 56px 30px 22px; background: linear-gradient(160deg, #0f2a20, #0b1f18); color: #f0faf4; font-size: 36px; font-weight: 900; }
+  .app-cab small { display: block; font-family: 'DM Mono', monospace; font-size: 20px; letter-spacing: .1em; color: #9fb3aa; text-transform: uppercase; font-weight: 400; margin-bottom: 4px; }
+  .campo { margin: 26px 26px 0; }
+  .campo label { display: block; font-size: 22px; font-weight: 800; color: #51655b; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+  .campo .in { height: 84px; border-radius: 18px; border: 2px solid #059669; box-shadow: 0 0 0 4px rgba(5,150,105,.15); background: #fff; display: flex; align-items: center; padding: 0 24px; font-size: 36px; font-weight: 800; }
+  .campo .in .cur { display: inline-block; width: 3px; height: 40px; background: #059669; margin-left: 4px; }
+  .sugestao { margin: 18px 26px 0; padding: 20px 22px; border-radius: 20px; background: #effaf4; border: 2px solid #9fe0bf; display: flex; gap: 16px; align-items: center; opacity: 0; }
+  .sugestao .sp { font-size: 36px; color: #059669; }
+  .sugestao .tx { flex: 1; font-size: 27px; line-height: 1.3; }
+  .sugestao .tx small { display: block; font-size: 21px; color: #51655b; margin-top: 4px; }
+  .sugestao .usar { padding: 14px 22px; border-radius: 14px; background: #059669; color: #fff; font-weight: 900; font-size: 26px; }
+  .campo-cat .in { border-color: #d5ded9; box-shadow: none; color: #9aa8a1; }
+  .campo-cat .in.ok { border-color: #059669; color: #12241c; }
+
+  /* Sistema inteligente */
+  .insight { position: absolute; left: 80px; right: 80px; padding: 26px 28px; border-radius: 30px; background: #fff; color: #12241c; box-shadow: 0 24px 60px rgba(0,0,0,.45); opacity: 0;
+    display: flex; gap: 22px; align-items: center; }
+  .insight .ic { width: 80px; height: 80px; border-radius: 22px; display: flex; align-items: center; justify-content: center; font-size: 40px; flex: 0 0 auto; }
+  .insight .tx { flex: 1; }
+  .insight .tx b { display: block; font-size: 32px; font-weight: 900; line-height: 1.15; }
+  .insight .tx small { display: block; font-size: 23px; color: #51655b; margin-top: 6px; line-height: 1.3; }
+  .insight .dl { font-family: 'DM Mono', monospace; font-size: 34px; font-weight: 500; padding: 8px 14px; border-radius: 14px; }
+  .estat { position: absolute; left: 0; right: 0; top: 1530px; text-align: center; font-family: 'DM Mono', monospace; font-size: 27px; color: var(--deck); letter-spacing: .03em; }
+
+  /* Dividendos e sonho */
+  .extrato { position: absolute; left: 80px; right: 80px; top: 700px; border-radius: 34px; background: #fff; color: #12241c; overflow: hidden; box-shadow: 0 30px 70px rgba(0,0,0,.5); }
+  .extrato .cab { padding: 26px 30px; background: linear-gradient(160deg, #0f2a20, #0b1f18); color: #f0faf4; font-size: 34px; font-weight: 900; }
+  .extrato .cab small { display: block; font-family: 'DM Mono', monospace; font-size: 20px; letter-spacing: .1em; color: #9fb3aa; text-transform: uppercase; font-weight: 400; }
+  .lin { display: flex; align-items: center; gap: 18px; padding: 24px 28px; border-bottom: 2px solid #e8ede9; font-size: 30px; }
+  .lin .ic { width: 66px; height: 66px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 34px; flex: 0 0 auto; }
+  .lin .d { flex: 1; font-weight: 900; }
+  .lin .d small { display: block; font-size: 22px; font-weight: 600; color: #6b7d75; margin-top: 4px; }
+  .lin .v { font-family: 'DM Mono', monospace; font-weight: 500; }
+  .lin .tag { display: inline-block; font-family: 'DM Mono', monospace; font-size: 18px; padding: 4px 10px; border-radius: 8px; background: #059669; color: #fff; margin-left: 10px; vertical-align: 4px; }
+  .lin.novo { opacity: 0; }
+
+  /* Numa tela só */
+  .grade { position: absolute; left: 80px; right: 80px; top: 640px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .tile { padding: 30px 28px; border-radius: 30px; background: rgba(240,250,244,.07); border: 2px solid rgba(240,250,244,.16); opacity: 0; }
+  .tile .ic { font-size: 54px; }
+  .tile small { display: block; margin-top: 14px; font-family: 'DM Mono', monospace; font-size: 23px; letter-spacing: .08em; color: var(--sinal); text-transform: uppercase; }
+  .tile b { display: block; font-family: 'DM Mono', monospace; font-size: 44px; font-weight: 500; margin-top: 6px; letter-spacing: -.02em; }
+  .tile i { display: block; font-style: normal; font-size: 24px; color: var(--deck); margin-top: 4px; }
+
+  /* Marca */
+  .marca { width: 560px; margin: 0 auto; display: block; }
+  .pilula { display: inline-flex; align-items: center; gap: 16px; padding: 18px 34px; border-radius: 99px; border: 2px solid rgba(52,211,153,.5);
+    background: rgba(52,211,153,.12); color: var(--sinal); font-family: 'DM Mono', monospace; font-size: 34px; letter-spacing: .14em; text-transform: uppercase; }
+  .pilula i { width: 16px; height: 16px; border-radius: 50%; background: var(--sinal); box-shadow: 0 0 16px var(--sinal); }
+  .cta { display: inline-flex; align-items: center; gap: 24px; padding: 34px 54px; border-radius: 36px; background: var(--primaria);
+    font-weight: 900; font-size: 54px; letter-spacing: -.02em; color: #fff; box-shadow: 0 30px 70px rgba(5,150,105,.45); }
+  .dez { display: inline-flex; align-items: center; gap: 16px; font-family: 'DM Mono', monospace; font-size: 30px; color: var(--deck); letter-spacing: .06em; }
+  .dez b { color: var(--sinal); font-weight: 500; font-size: 40px; }
+  .aviso { position: absolute; left: 80px; right: 80px; top: 1440px; text-align: center; font-family: 'DM Mono', monospace; font-size: 31px; line-height: 1.5; color: var(--tinta); }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <div class="halo"></div>
+  <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+  <div class="contador" id="contador"><b id="contN">0</b><span>automações</span></div>
+  <div class="mais1" id="mais1">+1</div>
+
+  <!-- 1. GANCHO -->
+  <div class="cena" id="c1">
+    <div class="grande" style="top:300px;"><div class="tit linha" data-in="0" style="font-size:96px;">E se o seu controle<br>financeiro <em>trabalhasse</em><br><em>por você?</em></div></div>
+    <div class="notif" id="g0" style="top:880px;"><div class="ic">A</div><div class="tx"><small><span>Appliquei</span><span>agora</span></small>📅 <b>Amanhã</b> vence <b>Internet</b> · R$ 99,90</div></div>
+    <div class="notif" id="g1" style="top:1050px;"><div class="ic tg">✈</div><div class="tx"><small><span>Telegram · Appliquei</span><span>agora</span></small>✅ <b>Despesa lançada</b> · Mercado · R$ 52,90</div></div>
+    <div class="notif" id="g2" style="top:1220px;"><div class="ic">A</div><div class="tx"><small><span>Appliquei</span><span>agora</span></small>“Streaming” foi cobrada <b>2 vezes</b></div></div>
+  </div>
+
+  <!-- 2. TELEGRAM COM CATEGORIA -->
+  <div class="cena" id="c2">
+    <div class="rotulo"><span class="chip-auto linha" data-in="0"><i></i>Categoria automática</span><div class="linha" data-in="0.1" style="margin-top:22px;">Mandou, <em>lançou.</em></div></div>
+    <div class="celular" id="cel2"><div class="tela tg">
+      <div class="tg-cab"><div class="tg-av">A</div><div><b>Appliquei</b><small>bot</small></div></div>
+      <div class="tg-msgs">
+        <div class="bolha eu" id="t1">mercado 52,90</div>
+        <div class="bolha bot" id="t2">✅ <b>Despesa lançada</b><br>Mercado · <b>R$ 52,90</b><br><span class="cat" id="tcat">🛒 Alimentação</span><br>🏦 Conta corrente<br>📅 22/10/2026</div>
+      </div></div></div>
+  </div>
+
+  <!-- 3. SUGESTÃO NO APP -->
+  <div class="cena" id="c3">
+    <div class="rotulo"><span class="chip-auto linha" data-in="0"><i></i>Aprende com você</span><div class="linha" data-in="0.1" style="margin-top:22px;">Ele sugere a <em>categoria</em></div></div>
+    <div class="celular" id="cel3"><div class="tela app">
+      <div class="app-cab"><small>Controle financeiro</small>Nova despesa</div>
+      <div class="campo"><label>Descrição</label><div class="in" id="desc"></div></div>
+      <div class="sugestao" id="sug"><div class="sp">✦</div><div class="tx">Você costuma lançar isso como <b>🛒 Alimentação</b><small>com base em 14 lançamentos anteriores</small></div><div class="usar" id="usar">Usar</div></div>
+      <div class="campo campo-cat"><label>Categoria</label><div class="in" id="catIn">Escolha…</div></div>
+      <div class="campo"><label>Valor</label><div class="in" style="border-color:#d5ded9;box-shadow:none;">R$ 18,50</div></div>
+    </div></div>
+  </div>
+
+  <!-- 4. AVISOS -->
+  <div class="cena" id="c4">
+    <div class="rotulo"><span class="chip-auto linha" data-in="0"><i></i>Avisa antes</span><div class="linha" data-in="0.1" style="margin-top:22px;">Antes de <em class="r">apertar</em></div></div>
+    <div class="notif" id="a0" style="top:620px;"><div class="ic">A</div><div class="tx"><small><span>Appliquei</span><span>08:00</span></small>📅 <b>Amanhã</b> vence <b>Internet</b> · R$ 99,90</div></div>
+    <div class="notif" id="a1" style="top:840px;"><div class="ic">A</div><div class="tx"><small><span>Appliquei</span><span>08:00</span></small>💳 A fatura do <b>Cartão principal</b> fecha <b>amanhã</b> com R$ 1.240,00 até agora. O que você comprar depois entra na fatura seguinte.</div></div>
+    <div class="notif vermelho" id="a2" style="top:1150px;"><div class="ic" style="background:linear-gradient(135deg,#f87171,#b42318)">!</div><div class="tx"><small><span>Appliquei</span><span>daqui a 5 dias</span></small>🔻 <b>A partir de 27/10, sai mais do que entra.</b> Com o que está agendado, suas contas ficam <b id="vermelho" style="color:#b42318;">R$ 480,00 no vermelho</b>.</div></div>
+  </div>
+
+  <!-- 5. SISTEMA INTELIGENTE -->
+  <div class="cena" id="c5">
+    <div class="rotulo"><span class="chip-auto linha" data-in="0"><i></i>Percebe por você</span><div class="linha" data-in="0.1" style="margin-top:22px;">O que <em>passaria batido</em></div></div>
+    <div class="insight" id="i0" style="top:660px;"><div class="ic" style="background:#fee2e2">⧉</div><div class="tx"><b>“Streaming” foi cobrada 2 vezes</b><small>Nos meses anteriores aparecia uma vez só.</small></div><div class="dl" style="background:#fee2e2;color:#b42318;">2×</div></div>
+    <div class="insight" id="i1" style="top:920px;"><div class="ic" style="background:#fef3c7">↗</div><div class="tx"><b>“Academia” subiu de preço</b><small>Custa R$ 180,00 a mais em 12 meses.</small></div><div class="dl" style="background:#fef3c7;color:#92400e;">+12,5%</div></div>
+    <div class="insight" id="i2" style="top:1180px;"><div class="ic" style="background:#ede9fe">📈</div><div class="tx"><b>🍿 Lazer e Assinaturas bem acima do seu normal</b><small>Costuma ficar perto de R$ 310,00 por mês.</small></div><div class="dl" style="background:#ede9fe;color:#5b21b6;">×1,8</div></div>
+    <div class="estat linha" data-in="1.2">Estatística sobre o seu histórico, não IA.</div>
+  </div>
+
+  <!-- 6. DIVIDENDOS E SONHO -->
+  <div class="cena" id="c6">
+    <div class="rotulo"><span class="chip-auto linha" data-in="0"><i></i>Lança sozinho</span><div class="linha" data-in="0.1" style="margin-top:22px;">Dividendos e <em>sonhos</em></div></div>
+    <div class="extrato"><div class="cab"><small>Controle do mês · outubro</small>Extrato</div>
+      <div class="lin novo" id="x0"><div class="ic" style="background:#e7f6ee">💰</div><div class="d">Dividendos · FII A<span class="tag">AUTOMÁTICO</span><small>Calculados pelos ativos que você registrou</small></div><div class="v" style="color:#047857;">+ R$ 86,40</div></div>
+      <div class="lin novo" id="x1"><div class="ic" style="background:#fef3c7">⭐</div><div class="d">Sonho · Viagem ao Chile<span class="tag">AUTOMÁTICO</span><small>Parcela do mês · até out de 2028</small></div><div class="v" style="color:#b42318;">− R$ 455,53</div></div>
+      <div class="lin"><div class="ic" style="background:#e7f6ee">🛒</div><div class="d">Mercado<small>Alimentação · pelo Telegram</small></div><div class="v" style="color:#b42318;">− R$ 52,90</div></div>
+      <div class="lin" style="border-bottom:0;"><div class="ic" style="background:#e0f2fe">💼</div><div class="d">Salário<small>Receita fixa · dia 5</small></div><div class="v" style="color:#047857;">+ R$ 4.800,00</div></div>
+    </div>
+  </div>
+
+  <!-- 7. NUMA TELA SÓ -->
+  <div class="cena" id="c7">
+    <div class="rotulo"><div class="linha" data-in="0">Tudo numa <em>tela só</em></div></div>
+    <div class="grade">
+      <div class="tile" id="k0"><div class="ic">🏛️</div><small>Patrimônio</small><b>R$ 425.040</b><i>contas, investimentos e bens</i></div>
+      <div class="tile" id="k1"><div class="ic">📈</div><small>Investimentos</small><b>R$ 34.140</b><i>+8,38% · ganho capital</i></div>
+      <div class="tile" id="k2"><div class="ic">✈️</div><small>Sonhos</small><b>R$ 455/mês</b><i>cabe com folga</i></div>
+      <div class="tile" id="k3"><div class="ic">📅</div><small>O mês</small><b>R$ 1.100</b><i>de sobra média</i></div>
+    </div>
+  </div>
+
+  <!-- 8. MARCA -->
+  <div class="cena" id="c8">
+    <div style="position:absolute;left:0;right:0;top:300px;text-align:center;">
+      <img class="marca linha" data-in="0.05" src="wordmark.svg" alt="Appliquei">
+      <div class="tit linha" data-in="0.5" style="font-size:90px;margin-top:60px;">Seu dinheiro<br>precisa de <em>direção.</em></div>
+      <div class="linha" data-in="1.2" style="margin-top:44px;"><span class="dez"><b>10</b> automações trabalhando por você</span></div>
+      <div class="linha" data-in="2.2" style="margin-top:44px;"><span class="pilula"><i></i>Em breve · janeiro de 2027</span></div>
+      <div class="linha" data-in="2.7" style="margin-top:40px;"><span class="cta">Siga para saber primeiro</span></div>
+    </div>
+    <div class="aviso linha" data-in="1.0">Telas com dados de demonstração.<br>Telegram é marca de seu titular, sem vínculo com o Appliquei.</div>
+  </div>
+
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  function $(id) { return document.getElementById(id); }
+  (function () {
+    const L = 1080, A = 1920, t = [];
+    for (let x = 60; x < L; x += 60) t.push(`<line x1="${x}" y1="0" x2="${x}" y2="${A}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 60; y < A; y += 60) t.push(`<line x1="0" y1="${y}" x2="${L}" y2="${y}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 120; y < A; y += 120) {
+      t.push(`<line x1="0" y1="${y}" x2="16" y2="${y}" stroke="#34d399" stroke-opacity=".18" stroke-width="2"/>`);
+      t.push(`<line x1="${L - 16}" y1="${y}" x2="${L}" y2="${y}" stroke="#34d399" stroke-opacity=".18" stroke-width="2"/>`);
+    }
+    $('malha').innerHTML = t.join('');
+  })();
+
+  // Cenas seguem narracao.json (início de cada frase − 0,15 s).
+  const DUR = 44.5;
+  const CENAS = [['c1', 0, 3.8], ['c2', 3.8, 9.6], ['c3', 9.6, 13.95], ['c4', 13.95, 21.4], ['c5', 21.4, 26.4],
+    ['c6', 26.4, 31.4], ['c7', 31.4, 36.25], ['c8', 36.25, 44.7]];
+  // Instante (s) em que cada automação "acontece" na tela: o contador sobe junto.
+  const AUTOMACOES = [7.6, 11.6, 14.4, 15.9, 18.1, 22.1, 23.4, 24.7, 28.0, 29.6];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  function surge(el, lt, a, dur, dy) {
+    const p = easeBack(prog(lt, a, a + (dur || 0.5)));
+    el.style.opacity = clamp(p, 0, 1);
+    el.style.transform = `translateY(${(1 - p) * (dy == null ? 40 : dy)}px) scale(${0.85 + 0.15 * p})`;
+  }
+
+  function render(t) {
+    for (const [id, a, b] of CENAS) {
+      const el = $(id);
+      const dentro = t >= a - 0.01 && t < b;
+      const fadeIn = id === 'c1' ? 1 : easeOut(prog(t, a, a + 0.25));
+      const fadeOut = 1 - prog(t, b - 0.2, b);
+      el.style.opacity = dentro ? Math.min(fadeIn, fadeOut) : 0;
+      el.style.display = dentro ? 'block' : 'none';
+      if (!dentro) continue;
+      const lt = t - a;
+      el.querySelectorAll('.linha').forEach((ln) => {
+        const d = Number(ln.dataset.in || 0);
+        const p = id === 'c1' && d === 0 ? 1 : easeOut(prog(lt, d, d + 0.4));
+        ln.style.opacity = p;
+        ln.style.transform = `translateY(${(1 - p) * 36}px)`;
+      });
+      cenaExtra(id, lt);
+    }
+    // contador de automações
+    const n = AUTOMACOES.filter((a) => t >= a).length;
+    const cont = $('contador');
+    cont.style.opacity = t < 36.1 ? easeOut(prog(t, 4.0, 4.4)) : 1 - prog(t, 36.1, 36.4);
+    $('contN').textContent = n;
+    const ult = AUTOMACOES.filter((a) => t >= a).pop();
+    const bate = ult != null ? Math.exp(-(t - ult) * 6) : 0;
+    cont.style.transform = `scale(${1 + 0.18 * bate})`;
+    const m1 = $('mais1');
+    m1.style.opacity = ult != null && t < 36.1 ? clamp(1 - (t - ult) / 0.7, 0, 1) : 0;
+    m1.style.transform = `translateY(${ult != null ? -(t - ult) * 50 : 0}px)`;
+    $('logoFixo').style.opacity = t < 36.0 ? 1 : 1 - prog(t, 36.0, 36.3);
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+
+  function cenaExtra(id, lt) {
+    if (id === 'c1') {
+      // notificações caindo em sequência, como na tela de bloqueio
+      ['g0', 'g1', 'g2'].forEach((g, i) => surge($(g), lt, 0.7 + i * 0.5, 0.4, -60));
+    }
+    if (id === 'c2') {
+      surge($('cel2'), lt, 0.05, 0.45, 120);
+      surge($('t1'), lt, 0.9, 0.3, 20);
+      surge($('t2'), lt, 3.0, 0.4, 20);
+      const c = $('tcat');
+      const brilho = Math.exp(-Math.max(0, lt - 3.8) * 2.5) * (lt > 3.8 ? 1 : 0);
+      c.style.boxShadow = `0 0 ${24 * brilho}px rgba(52,211,153,${0.9 * brilho})`;
+      c.style.transform = `scale(${1 + 0.12 * brilho})`;
+    }
+    if (id === 'c3') {
+      surge($('cel3'), lt, 0.05, 0.45, 120);
+      const txt = 'Padaria';
+      const k = Math.round(prog(lt, 0.5, 1.2) * txt.length);
+      $('desc').innerHTML = txt.slice(0, k) + (lt < 2.6 ? '<span class="cur"></span>' : '');
+      surge($('sug'), lt, 1.4, 0.4, 16);
+      const usou = lt > 2.0;
+      $('usar').style.transform = `scale(${lt > 1.85 && lt < 2.1 ? 0.9 : 1})`;
+      const ci = $('catIn');
+      ci.className = 'in' + (usou ? ' ok' : '');
+      ci.textContent = usou ? '🛒 Alimentação' : 'Escolha…';
+      $('sug').style.opacity = usou ? 1 - 0.5 * prog(lt, 2.0, 2.4) : $('sug').style.opacity;
+    }
+    if (id === 'c4') {
+      surge($('a0'), lt, 0.35, 0.4, -60);
+      surge($('a1'), lt, 1.85, 0.4, -60);
+      surge($('a2'), lt, 4.05, 0.45, -60);
+      const tremor = lt > 4.5 && lt < 5.3 ? Math.sin(lt * 60) * 6 * (1 - prog(lt, 4.5, 5.3)) : 0;
+      // o alerta cresce e o valor em vermelho acende: é a informação que importa
+      const zoom = easeOut(prog(lt, 4.6, 5.4));
+      $('a2').style.transform += ` translateX(${tremor}px) translateY(${-60 * zoom}px) scale(${1 + 0.1 * zoom})`;
+      $('a0').style.opacity = 1 - 0.6 * zoom;
+      $('a1').style.opacity = 1 - 0.6 * zoom;
+      $('vermelho').style.background = `rgba(248,113,113,${0.25 * zoom})`;
+    }
+    if (id === 'c5') {
+      surge($('i0'), lt, 0.6, 0.4, 40);
+      surge($('i1'), lt, 1.9, 0.4, 40);
+      surge($('i2'), lt, 3.2, 0.4, 40);
+    }
+    if (id === 'c6') {
+      surge($('x0'), lt, 1.5, 0.4, 20);
+      surge($('x1'), lt, 3.1, 0.4, 20);
+      $('x0').style.background = `rgba(52,211,153,${0.25 * (1 - prog(lt, 2.2, 3.4))})`;
+      $('x1').style.background = `rgba(251,191,36,${0.25 * (1 - prog(lt, 3.8, 5.0))})`;
+    }
+    if (id === 'c7') {
+      ['k0', 'k1', 'k2', 'k3'].forEach((k, i) => surge($(k), lt, 0.25 + i * 0.6, 0.4, 40));
+    }
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>

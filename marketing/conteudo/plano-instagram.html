@@ -1,0 +1,294 @@
+<!doctype html>
+<!--
+  Plano de conteúdo do Instagram até o lançamento — fonte do PDF
+  (plano-instagram.pdf). Gerar de novo:
+    node marketing/conteudo/gerar-pdf.js
+  Mantenha alinhado com CALENDARIO.md e LEIAME.md desta pasta.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Plano de conteúdo · Instagram · Appliquei</title>
+<link rel="stylesheet" href="../.fontes.css">
+<style>
+  @page { size: A4; margin: 0; }
+  :root {
+    --campo1: #0b1410; --campo2: #0f1f18; --campo3: #112720;
+    --tinta: #12241c; --deck: #34463e; --mudo: #6b7d75; --linha: #dfe7e2; --fundo: #f6f9f7;
+    --sinal: #34d399; --primaria: #059669; --escuro: #047857; --ambar: #b45309; --ambar-bg: #fef3c7; --vermelho: #b42318;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Figtree', sans-serif; color: var(--tinta); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pag { width: 210mm; height: 297mm; padding: 20mm 18mm 16mm; position: relative; overflow: hidden; page-break-after: always; background: #fff; }
+  .pag:last-child { page-break-after: auto; }
+  .rod { position: absolute; left: 18mm; right: 18mm; bottom: 9mm; display: flex; justify-content: space-between; font-family: 'DM Mono', monospace; font-size: 8pt; color: var(--mudo); border-top: 1px solid var(--linha); padding-top: 3mm; }
+  .rod img { height: 4.2mm; filter: brightness(0) opacity(.55); }
+  h1 { font-weight: 900; letter-spacing: -.03em; font-size: 26pt; line-height: 1.05; }
+  h2 { font-weight: 900; letter-spacing: -.02em; font-size: 17pt; margin: 0 0 4mm; }
+  h2 em, h1 em { font-style: normal; color: var(--primaria); }
+  h3 { font-weight: 800; font-size: 11pt; margin: 4.2mm 0 2mm; }
+  p, li { font-size: 9.6pt; line-height: 1.5; color: var(--deck); }
+  p + p { margin-top: 2.2mm; }
+  ul { padding-left: 4.5mm; } li { margin: 1mm 0; }
+  b, strong { color: var(--tinta); }
+  .rot { font-family: 'DM Mono', monospace; font-size: 8pt; letter-spacing: .14em; text-transform: uppercase; color: var(--primaria); margin-bottom: 2mm; }
+  .mono { font-family: 'DM Mono', monospace; }
+
+  /* capa */
+  .capa { background: linear-gradient(150deg, var(--campo1) 0%, var(--campo2) 50%, var(--campo3) 100%); color: #f0faf4; padding: 26mm 20mm; }
+  .capa .halo { position: absolute; inset: -20%; background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.25), transparent 70%), radial-gradient(40% 35% at 10% 90%, rgba(5,150,105,.2), transparent 70%); }
+  .capa .malha { position: absolute; inset: 0; background-image: linear-gradient(rgba(240,250,244,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(240,250,244,.035) 1px, transparent 1px); background-size: 9mm 9mm; }
+  .capa > * { position: relative; }
+  .capa img.logo { width: 52mm; }
+  .capa h1 { color: #f0faf4; font-size: 40pt; margin-top: 52mm; }
+  .capa h1 em { color: var(--sinal); }
+  .capa .sub { margin-top: 7mm; font-size: 13pt; color: #c8d6cf; line-height: 1.45; max-width: 150mm; }
+  .capa .pil { display: inline-flex; align-items: center; gap: 3mm; margin-top: 12mm; padding: 3mm 6mm; border-radius: 99px; border: 1px solid rgba(52,211,153,.5); background: rgba(52,211,153,.12);
+    font-family: 'DM Mono', monospace; font-size: 9pt; letter-spacing: .12em; text-transform: uppercase; color: var(--sinal); }
+  .capa .pil i { width: 2.4mm; height: 2.4mm; border-radius: 50%; background: var(--sinal); }
+  .capa .nums { position: absolute; left: 20mm; right: 20mm; bottom: 26mm; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; }
+  .capa .nums div { padding: 5mm; border-radius: 4mm; background: rgba(240,250,244,.06); border: 1px solid rgba(240,250,244,.14); }
+  .capa .nums b { display: block; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 22pt; color: #f0faf4; }
+  .capa .nums span { font-size: 8.5pt; color: #9fb3aa; }
+
+  /* blocos */
+  .grade2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+  .caixa { padding: 5mm 6mm; border-radius: 4mm; background: var(--fundo); border: 1px solid var(--linha); }
+  .caixa.verde { background: #ecfdf5; border-color: #a7f3d0; }
+  .caixa.ambar { background: var(--ambar-bg); border-color: #fcd34d; }
+  .destaque { padding: 6mm 7mm; border-radius: 5mm; background: linear-gradient(150deg, var(--campo1), var(--campo3)); color: #f0faf4; }
+  .destaque p { color: #c8d6cf; font-size: 10pt; }
+  .destaque b { color: #f0faf4; }
+  .destaque .grande { font-size: 15pt; font-weight: 900; color: #f0faf4; line-height: 1.25; letter-spacing: -.01em; }
+  .destaque .grande em { font-style: normal; color: var(--sinal); }
+  table { width: 100%; border-collapse: collapse; font-size: 8.6pt; }
+  th { text-align: left; font-family: 'DM Mono', monospace; font-weight: 400; font-size: 7.4pt; letter-spacing: .08em; text-transform: uppercase; color: var(--mudo); padding: 2.2mm 2.4mm; border-bottom: 1.5px solid var(--tinta); }
+  td { padding: 2.4mm; border-bottom: 1px solid var(--linha); vertical-align: top; line-height: 1.38; color: var(--deck); }
+  td b { color: var(--tinta); }
+  tr.lanc td { background: #ecfdf5; }
+  .ok { color: var(--escuro); font-weight: 800; }
+  .faz { color: var(--ambar); font-weight: 800; }
+  .dec { color: var(--vermelho); font-weight: 800; }
+  .pct { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--primaria); }
+  .barra { height: 2.4mm; border-radius: 1.2mm; background: var(--linha); overflow: hidden; margin-top: 1.4mm; }
+  .barra i { display: block; height: 100%; background: var(--primaria); }
+  .meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; }
+  .meta div { padding: 4.5mm; border-radius: 4mm; border: 1px solid var(--linha); }
+  .meta b { display: block; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 18pt; color: var(--primaria); }
+  .meta span { font-size: 8.6pt; color: var(--deck); line-height: 1.35; display: block; margin-top: 1mm; }
+  .passos { counter-reset: p; list-style: none; padding: 0; }
+  .passos li { counter-increment: p; position: relative; padding-left: 9mm; margin: 1.8mm 0; }
+  .passos li::before { content: counter(p); position: absolute; left: 0; top: .2mm; width: 6mm; height: 6mm; border-radius: 50%; background: var(--primaria); color: #fff;
+    font-family: 'DM Mono', monospace; font-size: 8.5pt; display: flex; align-items: center; justify-content: center; }
+</style>
+</head>
+<body>
+
+<!-- 1. CAPA -->
+<section class="pag capa">
+  <div class="halo"></div><div class="malha"></div>
+  <img class="logo" src="../../appliquei-wordmark.svg" alt="Appliquei">
+  <h1>Plano de conteúdo<br>do <em>Instagram</em><br>até o lançamento</h1>
+  <p class="sub">Como chegar a janeiro de 2027 com público: o que publicar, em que ritmo, em que formato e como medir.</p>
+  <div class="pil"><i></i>26/10/2026 → janeiro de 2027 · 10 semanas</div>
+  <div class="nums">
+    <div><b>30</b><span>posts no feed (3 por semana)</span></div>
+    <div><b>60%</b><span>do conteúdo é educação e dor</span></div>
+    <div><b>12</b><span>vídeos já prontos</span></div>
+    <div><b>2–4</b><span>stories por dia</span></div>
+  </div>
+</section>
+
+<!-- 2. RESUMO -->
+<section class="pag">
+  <div class="rot">Em uma página</div>
+  <h2>A ideia do plano</h2>
+  <div class="destaque">
+    <p class="grande">Gente nova chega pelo que <em>ensina</em>.<br>Quem chegou fica pelo que o <em>app faz</em>.</p>
+    <p style="margin-top:3mm;">Perfil novo não ganha alcance mostrando produto. O Instagram entrega para quem não segue com base na <b>retenção nos 3 primeiros segundos</b>, nos <b>salvamentos</b> e nos <b>compartilhamentos</b>, e o que as pessoas salvam e mandam no grupo é conta que surpreende, regra de bolso e erro comum. O app entra como assinatura nesses vídeos e como prova nos vídeos de produto.</p>
+  </div>
+
+  <h3>Onde estamos</h3>
+  <div class="grade2">
+    <div class="caixa verde">
+      <p><b>A favor</b></p>
+      <ul>
+        <li><b>12 vídeos narrados prontos</b>, com voz padrão (Charon), identidade consistente e texto legível sem som.</li>
+        <li>Trilhas originais, sem risco de áudio silenciado por direito autoral.</li>
+        <li>Cuidado jurídico (CVM, CONAR, CDC) já feito em cada peça.</li>
+        <li>Dois vídeos educativos no formato que funciona: "Parcelado ou à vista?" e "Arthur × Caio".</li>
+        <li>Conteúdo revisado da Jornada (8 módulos) pronto para virar carrossel.</li>
+      </ul>
+    </div>
+    <div class="caixa ambar">
+      <p><b>O que falta</b></p>
+      <ul>
+        <li>Quase tudo pronto é <b>produto</b> (bom para converter, fraco para alcançar).</li>
+        <li>Nenhum <b>rosto humano</b>: perfis só de marca crescem mais devagar.</li>
+        <li>O CTA "Siga para saber primeiro" <b>não captura contato</b>: não existe lista de espera.</li>
+        <li>Lançamento em janeiro: o público precisa ser construído <b>agora</b>.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>O plano em 5 decisões</h3>
+  <ol class="passos">
+    <li><b>Ritmo fixo:</b> segunda = vídeo educativo de alcance, quarta = carrossel da Jornada, sexta = produto em ação. Stories todo dia.</li>
+    <li><b>Educação primeiro:</b> 60% do feed ensina algo útil sem depender do app. Teste antes de produzir: <i>se eu tirar a marca, o vídeo ainda vale a pena?</i></li>
+    <li><b>Um vídeo vira três:</b> o mesmo arquivo vai para Reels, TikTok e YouTube Shorts.</li>
+    <li><b>Primeira hora conta:</b> responder todos os comentários e puxar conversa nos stories.</li>
+    <li><b>Pouco dinheiro, bem medido:</b> R$ 10–20/dia para testar ganchos e, se houver verba, parceria com criadores pequenos de finanças (#publi).</li>
+  </ol>
+
+  <h3>Metas para saber se está funcionando</h3>
+  <div class="meta">
+    <div><b>&gt; 60%</b><span>passam dos 3 primeiros segundos do vídeo</span></div>
+    <div><b>&gt; 30%</b><span>assistem até o fim</span></div>
+    <div><b>&gt; 2%</b><span>do alcance vira salvamento ou compartilhamento</span></div>
+  </div>
+  <p style="margin-top:3mm;">Abaixo da meta: mude <b>só o gancho</b> e publique de novo. Uma variável por vez.</p>
+  <div class="rod"><span>Plano de conteúdo · Instagram</span><img src="../../appliquei-wordmark.svg" alt=""></div>
+</section>
+
+<!-- 3. ESTRATÉGIA -->
+<section class="pag">
+  <div class="rot">Estratégia</div>
+  <h2>O que publicar, e por quê</h2>
+  <table>
+    <tr><th style="width:24%">Pilar</th><th style="width:12%">Peso</th><th style="width:30%">Objetivo</th><th>Formato e exemplo</th></tr>
+    <tr><td><b>Educação e dor</b></td><td><span class="pct">60%</span><div class="barra"><i style="width:60%"></i></div></td><td>Alcançar quem não segue: salvamentos e compartilhamentos</td><td>Vídeo "conta na tela" (25–35 s) e carrossel da Jornada. Ex.: <i>Parcelado ou à vista?</i>, <i>R$ 10 por dia viram quanto?</i></td></tr>
+    <tr><td><b>Produto em ação</b></td><td><span class="pct">25%</span><div class="barra"><i style="width:25%"></i></div></td><td>Converter quem já chegou ao perfil</td><td>Reels narrados de cada função (Telegram, Sonhos, Patrimônio…) e o resumo de 55 s fixado</td></tr>
+    <tr><td><b>Bastidor</b></td><td><span class="pct">10%</span><div class="barra"><i style="width:10%"></i></div></td><td>Conexão e confiança</td><td>Vídeo de celular do time mostrando o app de verdade, sem citar nomes</td></tr>
+    <tr><td><b>Prova</b></td><td><span class="pct">5%</span><div class="barra"><i style="width:5%"></i></div></td><td>Converter</td><td>Só com depoimento real e autorizado (depois do lançamento)</td></tr>
+  </table>
+
+  <h3>O formato que puxa alcance: "conta na tela"</h3>
+  <div class="grade2">
+    <div class="caixa">
+      <p><b>Estrutura (25–35 s)</b></p>
+      <ol class="passos">
+        <li>Gancho com duas opções ("Qual sai mais barato?")</li>
+        <li>Exemplo concreto com números redondos</li>
+        <li>A intuição comum ("o dinheiro rende enquanto paga, certo?")</li>
+        <li>A virada: o número que surpreende</li>
+        <li>A regra de bolso para repassar</li>
+        <li>"Salva pra próxima compra" e a marca só assina</li>
+      </ol>
+    </div>
+    <div class="caixa">
+      <p><b>Por que funciona</b></p>
+      <ul>
+        <li>Resolve uma dúvida que a pessoa vai ter <b>de novo</b>, e por isso salva.</li>
+        <li>Contraria o senso comum, e por isso compartilha ("olha isso").</li>
+        <li>Não depende do app, e por isso não parece anúncio.</li>
+        <li>É fácil de produzir em série: o modelo <span class="mono">modelo-conta.html</span> troca só o texto, e cada vídeo gasta 1 pedido de narração por dia.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Regras de todas as peças</h3>
+  <ul>
+    <li><b>Identidade:</b> campo verde-escuro, Figtree e DM Mono, verde-sinal, logo no canto. <b>Voz:</b> Charon, perguntas subindo o tom.</li>
+    <li><b>Jurídico:</b> "sugestão", nunca "recomendação"; números com "supondo"; dados de demonstração; "não é recomendação de investimento" quando falar de investimento.</li>
+    <li><b>Carteira sugerida:</b> só orgânico, sem impulsionar, enquanto a pendência CVM estiver aberta.</li>
+    <li><b>Sem urgência falsa:</b> nada de "últimas vagas" ou "lista de espera" que não exista.</li>
+  </ul>
+  <div class="rod"><span>Plano de conteúdo · Instagram</span><img src="../../appliquei-wordmark.svg" alt=""></div>
+</section>
+
+<!-- 4. CALENDÁRIO -->
+<section class="pag">
+  <div class="rot">Calendário</div>
+  <h2>10 semanas até o lançamento</h2>
+  <p style="margin-bottom:3mm;">Horário de referência: 18h–21h em dia útil (ajustar pelas estatísticas do perfil depois de 3 semanas). <span class="ok">Pronto</span> · <span class="faz">A fazer</span> · <span class="dec">Depende de decisão</span>.</p>
+  <table>
+    <tr><th style="width:11%">Semana</th><th style="width:33%">Seg · alcance (vídeo educativo)</th><th style="width:28%">Qua · carrossel (Jornada)</th><th>Sex · produto em ação</th></tr>
+    <tr><td><b>1</b> · 26/10</td><td><span class="faz">A fazer</span> · R$ 10 por dia viram quanto?</td><td><span class="faz">A fazer</span> · Reserva de emergência: quanto é o seu número</td><td><span class="ok">Pronto</span> · Teaser de lançamento</td></tr>
+    <tr><td><b>2</b> · 02/11</td><td><span class="faz">A fazer</span> · Por que a sua planilha sempre morre em março</td><td><span class="faz">A fazer</span> · Disciplina rende mais que acerto</td><td><span class="ok">Pronto</span> · Tudo o que o Appliquei faz (55 s), <b>fixar no perfil</b></td></tr>
+    <tr><td><b>3</b> · 09/11</td><td><span class="faz">A fazer</span> · Aluguel ou financiamento: a conta que ninguém faz</td><td><span class="faz">A fazer</span> · Cartão de crédito não é renda</td><td><span class="ok">Pronto</span> · Lançar pelo Telegram</td></tr>
+    <tr><td><b>4</b> · 16/11</td><td><span class="ok">Pronto</span> · Arthur × Caio: quem começou cedo terminou com mais (juros compostos)</td><td><span class="faz">A fazer</span> · Poupança: o custo do automático</td><td><span class="ok">Pronto</span> · Sonhos</td></tr>
+    <tr><td><b>5</b> · 23/11</td><td><span class="ok">Pronto</span> · <b>Black Friday:</b> parcelado sem juros ou à vista?</td><td><span class="faz">A fazer</span> · Ordem a mercado × limitada</td><td><span class="faz">A fazer</span> · Aviso de caixa apertado</td></tr>
+    <tr><td><b>6</b> · 30/11</td><td><span class="faz">A fazer</span> · 13º salário: o que fazer primeiro</td><td><span class="faz">A fazer</span> · A armadilha do prazo na renda fixa</td><td><span class="ok">Pronto</span> · Meus investimentos</td></tr>
+    <tr><td><b>7</b> · 07/12</td><td><span class="faz">A fazer</span> · Quanto o seu delivery custa em um ano</td><td><span class="faz">A fazer</span> · A armadilha do dividend yield alto</td><td><span class="ok">Pronto</span> · Patrimônio</td></tr>
+    <tr><td><b>8</b> · 14/12</td><td><span class="faz">A fazer</span> · As contas de janeiro que você esquece em dezembro</td><td><span class="faz">A fazer</span> · Câmbio corta nos dois sentidos</td><td><span class="ok">Pronto</span> · Automações (45 s)</td></tr>
+    <tr><td><b>9</b> · 21/12</td><td><span class="faz">A fazer</span> · Meta de 2027 sem data é só desejo</td><td><span class="faz">A fazer</span> · Do custo de vida ao patrimônio-alvo</td><td><span class="dec">Decisão</span> · Carteira sugerida (só orgânico; trocar "conta aberta")</td></tr>
+    <tr><td><b>10</b> · 28/12</td><td><span class="faz">A fazer</span> · Para onde foi o seu dinheiro em 2026?</td><td><span class="faz">A fazer</span> · Checklist financeiro de janeiro</td><td><span class="faz">A fazer</span> · Contagem regressiva</td></tr>
+    <tr class="lanc"><td><b>Lançamento</b></td><td><span class="dec">Decisão</span> · Vídeo do dia com a oferta (confirmar "7 dias grátis, sem cartão")</td><td>Stories o dia todo</td><td>Mensagem para quem seguiu</td></tr>
+  </table>
+  <h3>Anúncios (impulsionar para testar, fora do calendário)</h3>
+  <p><span class="ok">Pronto</span> · "Abre o extrato e procura essas 3 coisas" · "3 sinais de que o seu dinheiro vai apertar" · Automações (45 s). Têm mais produto que educação: funcionam melhor pagos, com R$ 10–20/dia, para descobrir qual gancho segura mais.</p>
+  <div class="rod"><span>Plano de conteúdo · Instagram</span><img src="../../appliquei-wordmark.svg" alt=""></div>
+</section>
+
+<!-- 5. ROTINA E CRESCIMENTO -->
+<section class="pag">
+  <div class="rot">Rotina e crescimento</div>
+  <h2>A semana de quem publica</h2>
+  <table>
+    <tr><th style="width:18%">Quando</th><th>O que fazer</th></tr>
+    <tr><td><b>Todo dia</b></td><td>2–4 stories: enquete de dor ("Qual destas é você?"), uma tela do app, o post do dia com uma pergunta por cima. Responder direct e comentários.</td></tr>
+    <tr><td><b>Dia de post</b></td><td>Publicar entre 18h e 21h. <b>Ficar a primeira hora</b> respondendo comentários: é quando o Instagram decide se distribui mais. Repostar nos stories.</td></tr>
+    <tr><td><b>Mesmo dia</b></td><td>Publicar o mesmo vídeo no TikTok e no YouTube Shorts (legenda adaptada, palavras-chave no TikTok).</td></tr>
+    <tr><td><b>1× por semana</b></td><td>Caixa de perguntas nos stories: as respostas viram pauta de carrossel. Um vídeo de bastidor gravado no celular.</td></tr>
+    <tr><td><b>Fim de semana</b></td><td>Anotar no calendário os números de cada post (3 s, até o fim, salvamentos e compartilhamentos) e escolher o que repetir.</td></tr>
+  </table>
+
+  <h3>Aceleradores (quando houver verba)</h3>
+  <div class="grade2">
+    <div class="caixa">
+      <p><b>Parceria com criadores pequenos</b></p>
+      <p>Perfis de finanças com 10–50 mil seguidores, conteúdo em colaboração (#publi, regra do CONAR). É a alavanca de alcance mais forte para conta nova e costuma sair mais barata que anúncio.</p>
+    </div>
+    <div class="caixa">
+      <p><b>Impulsionamento para testar</b></p>
+      <p>R$ 10–20/dia em 2 ou 3 vídeos, por 3 a 5 dias, para achar o gancho vencedor; depois, a verba vai no vencedor. Após o lançamento, pagar até <b>~R$ 63 por assinante</b> (com cancelamento de 6% ao mês) ainda é saudável.</p>
+    </div>
+  </div>
+
+  <h3>O que esperar, com honestidade</h3>
+  <p>As primeiras semanas costumam ser lentas: o algoritmo ainda está entendendo para quem mostrar o perfil. O crescimento costuma vir em degraus, quando um ou dois vídeos educativos "pegam" e trazem uma leva de seguidores, e por isso <b>constância</b> vale mais que qualquer peça isolada. Ninguém consegue garantir números: o plano aumenta as chances, e as métricas dizem o que ajustar.</p>
+  <div class="rod"><span>Plano de conteúdo · Instagram</span><img src="../../appliquei-wordmark.svg" alt=""></div>
+</section>
+
+<!-- 6. PRONTO E PENDÊNCIAS -->
+<section class="pag">
+  <div class="rot">Inventário e próximos passos</div>
+  <h2>O que já está pronto</h2>
+  <table>
+    <tr><th style="width:44%">Vídeo</th><th style="width:16%">Duração</th><th>Uso</th></tr>
+    <tr><td><b>Tudo o que o Appliquei faz</b></td><td class="mono">55 s</td><td>Fixar no perfil · produto</td></tr>
+    <tr><td><b>Parcelado sem juros ou à vista?</b></td><td class="mono">32 s</td><td>Alcance (educativo) · Black Friday</td></tr>
+    <tr><td><b>Arthur × Caio: começar cedo</b></td><td class="mono">49 s</td><td>Alcance (educativo) · semana 4</td></tr>
+    <tr><td>Teaser de lançamento</td><td class="mono">31 s</td><td>Produto · semana 1</td></tr>
+    <tr><td>Lançar pelo Telegram</td><td class="mono">34 s</td><td>Produto</td></tr>
+    <tr><td>Sonhos</td><td class="mono">30 s</td><td>Produto</td></tr>
+    <tr><td>Meus investimentos</td><td class="mono">33 s</td><td>Produto</td></tr>
+    <tr><td>Patrimônio</td><td class="mono">36 s</td><td>Produto</td></tr>
+    <tr><td>Carteira sugerida</td><td class="mono">35 s</td><td>Produto · só orgânico (pendência CVM)</td></tr>
+    <tr><td>Automações</td><td class="mono">45 s</td><td>Anúncio de diferencial</td></tr>
+    <tr><td>3 cobranças no extrato · 3 sinais de aperto</td><td class="mono">23 s e 27 s</td><td>Anúncios</td></tr>
+  </table>
+  <p style="margin-top:2mm;">Todos estão em <span class="mono">marketing/</span>, com legenda pronta no LEIAME de cada pasta.</p>
+
+  <h3>Decisões que dependem dos sócios</h3>
+  <table>
+    <tr><th style="width:34%">Decisão</th><th>Por que importa</th></tr>
+    <tr><td><b>Criar a lista de espera</b> com benefício real</td><td>Transforma alcance em contatos para avisar no lançamento. Sem ela, "siga" é o único passo possível.</td></tr>
+    <tr><td><b>Confirmar a oferta de lançamento</b></td><td>O vídeo do dia só fica pronto com a oferta real ("7 dias grátis, sem cartão"?).</td></tr>
+    <tr><td><b>Pendência CVM da carteira</b></td><td>Enquanto estiver aberta, a carteira sugerida fica fora do impulsionamento.</td></tr>
+    <tr><td><b>Alguém do time aparecer</b> no bastidor</td><td>Rosto humano acelera a confiança. A voz continua sendo da empresa, sem citar nomes.</td></tr>
+    <tr><td><b>Frase "conta aberta"</b> no vídeo da carteira</td><td>Pode ser lida como abrir conta em banco. Sugestão: "O próximo aporte, com o cálculo à vista".</td></tr>
+  </table>
+
+  <h3>Próximos passos</h3>
+  <ol class="passos">
+    <li>Fixar no perfil o resumo de 55 s e publicar o teaser (semana 1).</li>
+    <li>Produzir os vídeos educativos das semanas 1 a 4 no modelo "conta na tela" (1 por dia de narração).</li>
+    <li>Montar os 4 primeiros carrosséis a partir da Jornada.</li>
+    <li>Decidir a lista de espera e a oferta antes da semana 9.</li>
+  </ol>
+  <div class="rod"><span>Plano de conteúdo · Instagram</span><img src="../../appliquei-wordmark.svg" alt=""></div>
+</section>
+
+</body>
+</html>

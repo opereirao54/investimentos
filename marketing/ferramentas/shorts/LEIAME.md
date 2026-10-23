@@ -14,7 +14,7 @@ npm run build
 BROWSER=none npx vite preview --port 4173 --strictPort &
 node marketing/ferramentas/telas-app.js /tmp/shorts
 
-# 2. (Opcional) narração offline no tempo das cenas
+# 2. (Opcional) narração rascunho, offline, no tempo das cenas
 pip install piper-tts
 python3 marketing/ferramentas/shorts/narrar.py /tmp/shorts marketing/ferramentas/shorts/roteiro.json --trilha
 
@@ -23,6 +23,30 @@ node marketing/ferramentas/shorts/render.js /tmp/shorts marketing/ferramentas/sh
 ```
 
 Saída: `video-sem-audio.mp4` e, com narração, `video-narrado.mp4`.
+
+## Narração padrão da marca: Gemini, voz Charon
+
+A voz oficial dos vídeos é a **Charon** do TTS do Gemini (escolhida pelo
+fundador no teaser de lançamento). Precisa de `GEMINI_API_KEY`.
+
+```bash
+pip install soundfile numpy praat-parselmouth
+python3 marketing/ferramentas/shorts/narrar-gemini.py /tmp/voz            # Charon
+python3 marketing/ferramentas/shorts/mixar-narracao.py /tmp/voz trilha.wav video-sem-audio.mp4 final.mp4
+```
+
+- Roteiro e tempos: `CENAS` no topo de `narrar-gemini.py` (o teaser); para um
+  vídeo novo, um JSON `[[início, fim, "texto"], ...]` em `ROTEIRO=` (exemplo:
+  `marketing/carteira-sugerida/narracao.json`). Gere a fala primeiro e acerte
+  os tempos das cenas pela duração real de cada frase.
+- As perguntas sobem o tom no fim (medido no áudio; se o Gemini ler com o tom
+  caindo, a subida é feita por PSOLA). Frase que não cabe na cena é acelerada
+  até 1,25x.
+- O plano gratuito dá 10 pedidos por dia por modelo; o roteiro inteiro sai num
+  pedido. Guarde o `leitura*.wav` da tomada aprovada (a do teaser é
+  `marketing/lancamento-janeiro/narracao-charon-leitura.wav`): com
+  `LEITURA=<arquivo>` o script refaz cortes e entonação sem gastar cota.
+- A mixagem abaixa a trilha sob a voz e sai em ~-15 LUFS, pico abaixo de -2 dBFS.
 
 ## Como o modelo funciona
 
@@ -42,8 +66,8 @@ Seguir `.claude/skills/marketing-saas/referencias/formatos.md` (estrutura de
 
 ## Limites do ambiente de nuvem
 
-- Vozes online (Microsoft, Google) e o Hugging Face ficam bloqueados; a voz do
-  Piper usada aqui é robótica. Para o post final: voz do fundador ou o "texto
-  para fala" do CapCut com o mesmo roteiro.
+- O TTS do Gemini funciona na nuvem com `GEMINI_API_KEY` (é a voz padrão,
+  acima). Hugging Face e as vozes online da Microsoft ficam bloqueados; o Piper
+  de `narrar.py` é robótico e serve só de rascunho.
 - Sem acesso ao CDN do Chart.js, os gráficos das telas capturadas saem vazios;
   prefira telas sem gráfico grande ou capture fora da nuvem.

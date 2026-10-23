@@ -1,0 +1,418 @@
+<!doctype html>
+<!--
+  Vídeo do Telegram (34 s, 1080×1920) — "Você já desistiu de anotar seus
+  gastos?". Persona "já tentei planilha": desistência → planilha esquecida,
+  app de dez telas, dinheiro sem rastro → "e se bastasse mandar uma
+  mensagem?" → o chat: "mercado 52,90" vira despesa lançada; parcelado no
+  cartão; lembrete de conta com "Já paguei" → tudo aparece no mês do app →
+  marca, "Em breve" e "Siga para saber primeiro".
+
+  As respostas do bot copiam o texto real de api/_lib/telegram-bot.js
+  (descreverLancamento) e api/_lib/telegram-alertas.js (contas a vencer). A IA
+  de reserva do bot não aparece: IA não se vende como pronta (produto.md).
+  Mesma mecânica do teaser: cenas em CENAS, movimentos em cenaExtra(),
+  render(t) desenha o segundo t. Narração: narracao.json (Charon/Gemini).
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root {
+    --campo1: #0b1410; --campo2: #0f1f18; --campo3: #112720;
+    --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa;
+    --sinal: #34d399; --verde: #10b981; --primaria: #059669; --ambar: #fbbf24; --vermelho: #f87171;
+    --tg: #2aabee;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--campo1); }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: linear-gradient(150deg, var(--campo1) 0%, var(--campo2) 50%, var(--campo3) 100%); }
+  .halo { position: absolute; inset: -20%;
+    background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.20), transparent 70%),
+                radial-gradient(40% 35% at 10% 90%, rgba(5,150,105,.16), transparent 70%); }
+  .malha { position: absolute; inset: 0; }
+  .cena { position: absolute; inset: 0; opacity: 0; }
+  .tit { font-weight: 900; letter-spacing: -.035em; line-height: .98; color: var(--tinta); }
+  .tit em { font-style: normal; color: var(--sinal); }
+  .tit em.r { color: var(--vermelho); }
+  .linha { display: block; will-change: transform, opacity; }
+  .grande { position: absolute; left: 70px; right: 70px; text-align: center; }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 210px; z-index: 20; }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); }
+
+  /* 1. Caderno abandonado */
+  .caderno { position: absolute; left: 190px; top: 820px; width: 700px; padding: 40px 50px; border-radius: 26px; background: #fdfbf3; color: #2c3a33;
+    box-shadow: 0 30px 70px rgba(0,0,0,.5); transform: rotate(-3deg);
+    background-image: repeating-linear-gradient(180deg, transparent 0 69px, rgba(42,120,200,.18) 69px 71px); }
+  .caderno div { height: 70px; display: flex; align-items: center; font-family: 'DM Mono', monospace; font-size: 38px; }
+  .caderno div span { color: #8a958f; margin-right: 26px; }
+  .caderno .vazio { color: #b7bfba; }
+
+  /* 2. Dor em três batidas */
+  .sub { position: absolute; left: 70px; right: 70px; top: 300px; text-align: center; }
+  .sub .tit { font-size: 88px; }
+  .planilha { position: absolute; left: 150px; top: 760px; width: 780px; border-radius: 22px; overflow: hidden; background: #fff; box-shadow: 0 30px 70px rgba(0,0,0,.5); }
+  .planilha .barra { height: 56px; background: #1e6f43; color: #fff; font-family: 'DM Mono', monospace; font-size: 26px; display: flex; align-items: center; padding: 0 22px; }
+  .planilha table { border-collapse: collapse; width: 100%; font-family: 'DM Mono', monospace; font-size: 32px; color: #333; }
+  .planilha td { border: 1px solid #d5d5d5; padding: 10px 14px; height: 70px; }
+  .planilha td.erro { color: #c0392b; font-weight: 700; }
+  .planilha .poeira { position: absolute; inset: 56px 0 0; background: linear-gradient(180deg, rgba(120,110,90,.0), rgba(120,110,90,.55)); }
+  .toques { position: absolute; left: 290px; top: 760px; width: 500px; height: 860px; border-radius: 60px; background: #0a0f0d; border: 3px solid rgba(240,250,244,.15); overflow: hidden; }
+  .toques .tl { position: absolute; left: 30px; right: 30px; height: 120px; border-radius: 24px; background: #1a2620; display: flex; align-items: center; padding: 0 30px;
+    font-size: 34px; font-weight: 700; color: var(--deck); }
+  .toque { position: absolute; width: 110px; height: 110px; margin: -55px 0 0 -55px; border-radius: 50%; border: 6px solid var(--ambar); opacity: 0; }
+  .contaToques { position: absolute; left: 0; right: 0; top: 1660px; text-align: center; font-family: 'DM Mono', monospace; font-size: 54px; color: var(--ambar); }
+  .notaV { position: absolute; width: 230px; height: 112px; border-radius: 14px; background: linear-gradient(135deg, #2f7d5c, #1f5f45);
+    border: 3px solid rgba(240,250,244,.35); box-shadow: 0 16px 40px rgba(0,0,0,.4); color: rgba(240,250,244,.85);
+    font-family: 'DM Mono', monospace; font-weight: 700; font-size: 40px; display: flex; align-items: center; justify-content: center; }
+
+  /* 3. Mensagem */
+  .aviao { position: absolute; left: 390px; top: 900px; width: 300px; height: 300px; border-radius: 50%; background: var(--tg);
+    box-shadow: 0 30px 80px rgba(42,171,238,.45); display: flex; align-items: center; justify-content: center; }
+  .aviao svg { width: 160px; height: 160px; margin-left: -14px; }
+
+  /* 4. Chat */
+  .rotulo { position: absolute; left: 70px; right: 70px; top: 260px; text-align: center; font-size: 66px; font-weight: 900; letter-spacing: -.03em; line-height: 1.05; }
+  .rotulo em { font-style: normal; color: var(--sinal); }
+  .celular { position: absolute; left: 50%; top: 450px; width: 680px; height: 1100px; margin-left: -340px; border-radius: 74px; background: #050a08;
+    padding: 18px; box-shadow: 0 40px 90px rgba(0,0,0,.6), 0 0 0 3px rgba(240,250,244,.12), 0 0 120px rgba(42,171,238,.18); }
+  .tela { position: absolute; inset: 18px; border-radius: 58px; overflow: hidden; background: #0e1621; }
+  .tg-cab { position: absolute; left: 0; right: 0; top: 0; height: 150px; padding: 56px 28px 0; display: flex; align-items: center; gap: 18px; background: #17212b; z-index: 3; }
+  .tg-av { width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #047857);
+    display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 34px; color: #fff; flex: 0 0 auto; }
+  .tg-cab b { display: block; font-size: 32px; color: #fff; }
+  .tg-cab small { font-size: 24px; color: #7f91a4; }
+  .tg-rolo { position: absolute; left: 0; right: 0; top: 150px; bottom: 120px; overflow: hidden; }
+  .tg-msgs { position: absolute; left: 22px; right: 22px; top: 0; display: flex; flex-direction: column; gap: 18px; padding-top: 24px; }
+  .bolha { max-width: 90%; padding: 18px 22px; border-radius: 26px; font-size: 33px; line-height: 1.36; opacity: 0; }
+  .bolha.eu { align-self: flex-end; background: #2b5278; color: #fff; border-bottom-right-radius: 8px; font-size: 38px; }
+  .bolha.bot { align-self: flex-start; background: #182533; color: #e8eef4; border-bottom-left-radius: 8px; }
+  .bolha.bot b { color: #fff; }
+  .bolha.bot i { color: #8fa3b5; }
+  .botoes { display: flex; gap: 10px; margin-top: 14px; }
+  .botoes span { flex: 1; text-align: center; padding: 12px 8px; border-radius: 14px; background: rgba(240,250,244,.08); font-size: 26px; font-weight: 700; color: #cfe3f5; }
+  .botoes span.pagar { background: rgba(52,211,153,.2); color: #6ee7b7; }
+  .digitando { align-self: flex-start; display: flex; gap: 8px; padding: 20px 24px; border-radius: 24px; background: #182533; opacity: 0; }
+  .digitando span { width: 13px; height: 13px; border-radius: 50%; background: #7f91a4; }
+  .tg-campo { position: absolute; left: 0; right: 0; bottom: 0; height: 120px; display: flex; align-items: center; gap: 16px; padding: 0 22px 18px; background: #17212b; z-index: 3; }
+  .tg-campo .txt { flex: 1; height: 76px; border-radius: 38px; background: #0e1621; display: flex; align-items: center; padding: 0 28px; font-size: 32px; color: #fff; }
+  .tg-campo .txt.ph { color: #5d6f80; }
+  .tg-campo .env { width: 76px; height: 76px; border-radius: 50%; background: var(--tg); display: flex; align-items: center; justify-content: center; }
+  .tg-campo .env svg { width: 40px; height: 40px; margin-left: -4px; }
+  .cursor { display: inline-block; width: 3px; height: 38px; background: var(--tg); margin-left: 4px; }
+  .dedo { position: absolute; width: 96px; height: 96px; margin: -48px 0 0 -48px; border-radius: 50%; background: rgba(251,191,36,.35); border: 5px solid var(--ambar); opacity: 0; z-index: 9; }
+  .relogio { position: absolute; right: 70px; top: 1580px; font-family: 'DM Mono', monospace; font-size: 34px; color: var(--sinal); }
+
+  /* 5. Cai no app */
+  .app { position: absolute; left: 50%; top: 600px; width: 680px; height: 900px; margin-left: -340px; border-radius: 48px; background: #f4f6f3; color: #12241c; overflow: hidden;
+    box-shadow: 0 40px 90px rgba(0,0,0,.6), 0 0 0 3px rgba(52,211,153,.5); }
+  .app-cab { padding: 34px 36px 26px; background: linear-gradient(160deg, #0f2a20, #0b1f18); color: #f0faf4; }
+  .app-cab small { display: block; font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .1em; color: #9fb3aa; text-transform: uppercase; }
+  .app-cab b { display: block; margin-top: 6px; font-size: 40px; font-weight: 900; }
+  .app-lin { display: flex; align-items: center; gap: 20px; padding: 24px 32px; border-bottom: 2px solid #e2e8e4; font-size: 30px; opacity: 0; }
+  .app-lin .ic { width: 64px; height: 64px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 32px; background: #e7f6ee; flex: 0 0 auto; }
+  .app-lin .d { flex: 1; font-weight: 800; }
+  .app-lin .d small { display: block; font-size: 22px; color: #6b7d75; font-weight: 600; margin-top: 4px; }
+  .app-lin .v { font-family: 'DM Mono', monospace; font-weight: 500; color: #b42318; }
+  .app-lin.novo { background: #eafaf2; }
+  .app-lin .tag { font-family: 'DM Mono', monospace; font-size: 18px; padding: 4px 10px; border-radius: 8px; background: #2aabee; color: #fff; margin-left: 8px; vertical-align: 3px; }
+  .app-rod { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; display: flex; align-items: center; justify-content: center; background: #e9efeb;
+    font-family: 'DM Mono', monospace; font-size: 21px; color: #51655b; }
+  .voo { position: absolute; padding: 16px 22px; border-radius: 22px; background: #182533; color: #e8eef4; font-size: 28px; font-weight: 700; box-shadow: 0 20px 40px rgba(0,0,0,.45); opacity: 0; white-space: nowrap; }
+
+  /* 6. Marca */
+  .marca { width: 560px; margin: 0 auto; display: block; }
+  .pilula { display: inline-flex; align-items: center; gap: 16px; padding: 18px 34px; border-radius: 99px; border: 2px solid rgba(52,211,153,.5);
+    background: rgba(52,211,153,.12); color: var(--sinal); font-family: 'DM Mono', monospace; font-size: 34px; letter-spacing: .14em; text-transform: uppercase; }
+  .pilula i { width: 16px; height: 16px; border-radius: 50%; background: var(--sinal); box-shadow: 0 0 16px var(--sinal); }
+  .cta { display: inline-flex; align-items: center; gap: 24px; padding: 34px 54px; border-radius: 36px; background: var(--primaria);
+    font-weight: 900; font-size: 54px; letter-spacing: -.02em; color: #fff; box-shadow: 0 30px 70px rgba(5,150,105,.45); }
+  .aviso { position: absolute; left: 80px; right: 80px; top: 1440px; text-align: center; font-family: 'DM Mono', monospace; font-size: 30px; line-height: 1.5; color: var(--tinta); }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <div class="halo"></div>
+  <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+
+  <!-- 1. GANCHO (0–3 s) -->
+  <div class="cena" id="c1">
+    <div class="grande" style="top:320px;"><div class="tit linha" data-in="0" style="font-size:100px;">Você já <em class="r">desistiu</em><br>de anotar<br>seus gastos?</div></div>
+    <div class="caderno" id="caderno">
+      <div><span>01/10</span>mercado 52,90</div>
+      <div><span>02/10</span>uber 18,00</div>
+      <div><span>03/10</span>farmácia 34</div>
+      <div class="vazio"><span>04/10</span>…</div>
+      <div class="vazio"><span>05/10</span></div>
+      <div class="vazio"><span>06/10</span></div>
+    </div>
+  </div>
+
+  <!-- 2. DOR (3–9,2 s) -->
+  <div class="cena" id="c2">
+    <div class="sub" id="s1"><div class="tit">Planilha<br><em class="r">esquecida.</em></div></div>
+    <div class="sub" id="s2"><div class="tit">App que pede<br><em class="r">dez telas.</em></div></div>
+    <div class="sub" id="s3"><div class="tit">E o dinheiro some<br>sem deixar <em class="r">rastro.</em></div></div>
+    <div class="planilha" id="planilha">
+      <div class="barra">gastos_2026_FINAL_v3.xlsx</div>
+      <table>
+        <tr><td>jan</td><td>R$ 3.120</td><td>ok</td></tr>
+        <tr><td>fev</td><td>R$ 2.870</td><td>ok</td></tr>
+        <tr><td>mar</td><td class="erro">#REF!</td><td></td></tr>
+        <tr><td>abr</td><td></td><td></td></tr>
+        <tr><td>mai</td><td></td><td></td></tr>
+      </table>
+      <div class="poeira" id="poeira"></div>
+    </div>
+    <div class="toques" id="toques">
+      <div class="tl" style="top:60px;">Menu</div><div class="tl" style="top:200px;">Nova transação</div>
+      <div class="tl" style="top:340px;">Tipo · Conta</div><div class="tl" style="top:480px;">Categoria</div><div class="tl" style="top:620px;">Data · Salvar</div>
+    </div>
+    <div class="toque" id="tq"></div>
+    <div class="contaToques" id="contaToques"></div>
+    <div class="notaV" id="n1">R$ 52</div><div class="notaV" id="n2">R$ 18</div><div class="notaV" id="n3">R$ 34</div>
+    <div class="notaV" id="n4">R$ 120</div><div class="notaV" id="n5">R$ 9,90</div>
+  </div>
+
+  <!-- 3. E SE (9,2–11,8 s) -->
+  <div class="cena" id="c3">
+    <div class="grande" style="top:380px;"><div class="tit linha" data-in="0" style="font-size:100px;">E se bastasse<br>mandar uma<br><em>mensagem?</em></div></div>
+    <div class="aviao" id="aviao"><svg viewBox="0 0 24 24"><path d="M2 11.5 21 3l-3.2 18-6.3-5.2-3.4 3.3.4-5L18 6.5 7.7 13.4z" fill="#fff"/></svg></div>
+  </div>
+
+  <!-- 4. O CHAT (11,8–24,9 s) -->
+  <div class="cena" id="c4">
+    <div class="rotulo" id="r1">Mandou, <em>lançou.</em></div>
+    <div class="rotulo" id="r2">Parcelou? <em>Ele divide.</em></div>
+    <div class="rotulo" id="r3">Lembra <em>antes</em><br>de vencer.</div>
+    <div class="celular" id="cel">
+      <div class="tela">
+        <div class="tg-cab"><div class="tg-av">A</div><div><b>Appliquei</b><small>bot</small></div></div>
+        <div class="tg-rolo"><div class="tg-msgs" id="msgs">
+          <div class="bolha eu" id="m1">mercado 52,90</div>
+          <div class="digitando" id="d1"><span></span><span></span><span></span></div>
+          <div class="bolha bot" id="m2">✅ <b>Despesa lançada</b><br>Mercado · <b>R$ 52,90</b><br>🛒 Alimentação<br>🏦 Conta corrente<br>📅 21/10/2026<br><i>Aparece no app assim que ele abrir.</i>
+            <div class="botoes"><span>🏷️ Categoria</span><span>✏️ Descrição</span><span>↩️ Desfazer</span></div></div>
+          <div class="bolha eu" id="m3">tênis 300 3x no cartão</div>
+          <div class="digitando" id="d2"><span></span><span></span><span></span></div>
+          <div class="bolha bot" id="m4">✅ <b>Despesa lançada</b><br>Tênis · <b>R$ 300,00</b><br>💆 Cuidados Pessoais<br>💳 Cartão principal · 3x de R$ 100,00<br>📅 21/10/2026</div>
+          <div class="bolha bot" id="m5">📅 <b>Amanhã</b> vence <b>Internet</b> · R$ 99,90
+            <div class="botoes"><span class="pagar" id="btPagar">✅ Já paguei: Internet</span></div></div>
+          <div class="bolha bot" id="m6">✅ <b>Internet</b> marcado como pago.<br><i>Entra no app assim que ele abrir.</i></div>
+        </div></div>
+        <div class="tg-campo"><div class="txt ph" id="campo">mercado 52,90</div>
+          <div class="env"><svg viewBox="0 0 24 24"><path d="M2 11.5 21 3l-3.2 18-6.3-5.2-3.4 3.3.4-5L18 6.5 7.7 13.4z" fill="#fff"/></svg></div></div>
+      </div>
+    </div>
+    <div class="dedo" id="dedo"></div>
+  </div>
+
+  <!-- 5. CAI NO APP (24,9–29,1 s) -->
+  <div class="cena" id="c5">
+    <div class="grande" style="top:250px;"><div class="tit linha" data-in="0" style="font-size:80px;">Sem abrir o app.</div>
+      <div class="tit linha" data-in="1.4" style="font-size:72px;margin-top:20px;color:var(--deck);">E tudo aparece<br>no seu <em>mês.</em></div></div>
+    <div class="app" id="app">
+      <div class="app-cab"><small>Controle do mês · outubro</small><b>Extrato</b></div>
+      <div class="app-lin novo" id="a1"><div class="ic">🛒</div><div class="d">Mercado<span class="tag">TELEGRAM</span><small>Alimentação · Conta corrente</small></div><div class="v">− R$ 52,90</div></div>
+      <div class="app-lin novo" id="a2"><div class="ic">💳</div><div class="d">Tênis 1/3<span class="tag">TELEGRAM</span><small>Fatura do Cartão principal</small></div><div class="v">− R$ 100,00</div></div>
+      <div class="app-lin novo" id="a3"><div class="ic">🏠</div><div class="d">Internet<span class="tag">TELEGRAM</span><small>Moradia · Conta corrente · ✓ paga</small></div><div class="v">− R$ 99,90</div></div>
+      <div class="app-lin" id="a4"><div class="ic">💼</div><div class="d">Salário<small>Receita fixa · dia 5</small></div><div class="v" style="color:#047857;">+ R$ 4.800,00</div></div>
+      <div class="app-rod">Dados de demonstração</div>
+    </div>
+    <div class="voo" id="v1">🛒 Mercado · R$ 52,90</div>
+    <div class="voo" id="v2">💳 Tênis · 3x de R$ 100</div>
+    <div class="voo" id="v3">✅ Internet paga</div>
+  </div>
+
+  <!-- 6. MARCA (29,1–34 s) -->
+  <div class="cena" id="c6">
+    <div style="position:absolute;left:0;right:0;top:320px;text-align:center;">
+      <img class="marca linha" data-in="0.05" src="wordmark.svg" alt="Appliquei">
+      <div class="tit linha" data-in="0.6" style="font-size:86px;margin-top:64px;">Seu controle<br>financeiro numa<br><em>mensagem.</em></div>
+      <div class="linha" data-in="2.6" style="margin-top:60px;"><span class="pilula"><i></i>Em breve · janeiro de 2027</span></div>
+      <div class="linha" data-in="3.0" style="margin-top:44px;"><span class="cta">Siga para saber primeiro</span></div>
+    </div>
+    <div class="aviso linha" data-in="1.0">Telas com dados de demonstração.<br>Telegram é marca de seu titular,<br>sem vínculo com o Appliquei.</div>
+  </div>
+
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  (function () {
+    const L = 1080, A = 1920, t = [];
+    for (let x = 60; x < L; x += 60) t.push(`<line x1="${x}" y1="0" x2="${x}" y2="${A}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 60; y < A; y += 60) t.push(`<line x1="0" y1="${y}" x2="${L}" y2="${y}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 120; y < A; y += 120) {
+      t.push(`<line x1="0" y1="${y}" x2="16" y2="${y}" stroke="#34d399" stroke-opacity=".18" stroke-width="2"/>`);
+      t.push(`<line x1="${L - 16}" y1="${y}" x2="${L}" y2="${y}" stroke="#34d399" stroke-opacity=".18" stroke-width="2"/>`);
+    }
+    document.getElementById('malha').innerHTML = t.join('');
+  })();
+
+  const DUR = 34;
+  const CENAS = [['c1', 0, 3.0], ['c2', 3.0, 9.2], ['c3', 9.2, 11.8], ['c4', 11.8, 24.9], ['c5', 24.9, 29.15], ['c6', 29.15, 34.2]];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeInOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+  const easeBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  const $ = (id) => document.getElementById(id);
+  function surge(el, lt, a, dur, dy) {
+    const p = easeBack(prog(lt, a, a + (dur || 0.5)));
+    el.style.opacity = clamp(p, 0, 1);
+    el.style.transform = `translateY(${(1 - p) * (dy == null ? 40 : dy)}px) scale(${0.85 + 0.15 * p})`;
+  }
+  // mostra um bloco entre a e b com fusão nas pontas
+  function janela(el, lt, a, b, dy) {
+    const v = prog(lt, a, a + 0.3) * (1 - prog(lt, b - 0.25, b));
+    el.style.opacity = v;
+    el.style.transform = `translateY(${(1 - v) * (dy == null ? 30 : dy)}px)`;
+    return v;
+  }
+
+  function render(t) {
+    for (const [id, a, b] of CENAS) {
+      const el = $(id);
+      const dentro = t >= a - 0.01 && t < b;
+      const fadeIn = id === 'c1' ? 1 : easeOut(prog(t, a, a + 0.3));
+      const fadeOut = 1 - prog(t, b - 0.25, b);
+      el.style.opacity = dentro ? Math.min(fadeIn, fadeOut) : 0;
+      el.style.display = dentro ? 'block' : 'none';
+      if (!dentro) continue;
+      const lt = t - a;
+      el.querySelectorAll('.linha').forEach((ln) => {
+        const d = Number(ln.dataset.in || 0);
+        const p = id === 'c1' && d === 0 ? 1 : easeOut(prog(lt, d, d + 0.45));
+        ln.style.opacity = p;
+        ln.style.transform = `translateY(${(1 - p) * 40}px)`;
+      });
+      cenaExtra(id, lt);
+    }
+    $('logoFixo').style.opacity = t < 28.9 ? 1 : 1 - prog(t, 28.9, 29.2);
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+
+  const NOTAS = [['n1', 180, 1100, -12], ['n2', 640, 1040, 10], ['n3', 420, 1220, -4], ['n4', 760, 1300, 16], ['n5', 140, 1340, 8]];
+
+  function cenaExtra(id, lt) {
+    if (id === 'c1') {
+      const c = $('caderno');
+      c.style.opacity = easeOut(prog(lt, 0.2, 0.6));
+      // o caderno vai ficando para trás: desbota e afunda
+      const p = prog(lt, 1.2, 2.8);
+      c.style.transform = `rotate(${-3 - 4 * p}deg) translateY(${p * 60}px)`;
+      c.style.filter = `grayscale(${p}) brightness(${1 - 0.45 * p})`;
+    }
+    if (id === 'c2') {
+      // batidas da fala: 0–1,5 planilha · 1,5–3,4 dez telas · 3,4–6,2 dinheiro some
+      janela($('s1'), lt, 0.05, 1.55);
+      janela($('s2'), lt, 1.55, 3.45);
+      janela($('s3'), lt, 3.45, 6.3);
+      const vp = janela($('planilha'), lt, 0.05, 1.55, 60);
+      $('poeira').style.opacity = prog(lt, 0.4, 1.3);
+      $('planilha').style.transform += ` rotate(${2 * prog(lt, 0.3, 1.5)}deg)`;
+      janela($('toques'), lt, 1.55, 3.45, 60);
+      const tq = $('tq');
+      const k = Math.floor(prog(lt, 1.8, 3.3) * 10);
+      const fr = (prog(lt, 1.8, 3.3) * 10) % 1;
+      if (lt > 1.8 && lt < 3.35) {
+        const ys = [120, 260, 400, 540, 680];
+        tq.style.left = (420 + ((k * 137) % 240)) + 'px';
+        tq.style.top = (760 + ys[k % 5]) + 'px';
+        tq.style.opacity = 1 - fr;
+        tq.style.transform = `scale(${0.6 + 0.6 * fr})`;
+      } else tq.style.opacity = 0;
+      const ct = $('contaToques');
+      ct.textContent = lt > 1.8 && lt < 3.45 ? `toque ${Math.min(10, k + 1)} de 10…` : '';
+      NOTAS.forEach(([n, x, y, rot], i) => {
+        const a = 3.6 + i * 0.15;
+        const p = easeInOut(prog(lt, a, a + 2.4));
+        const el = $(n);
+        el.style.left = x + (i % 2 ? 1 : -1) * 520 * p + 'px';
+        el.style.top = y - 300 * p + 'px';
+        el.style.opacity = prog(lt, a, a + 0.25) * (1 - prog(lt, a + 1.6, a + 2.4));
+        el.style.transform = `rotate(${rot + 70 * p * (i % 2 ? 1 : -1)}deg) scale(${1 - 0.4 * p})`;
+      });
+    }
+    if (id === 'c3') {
+      const av = $('aviao');
+      const p = easeBack(prog(lt, 0.5, 1.0));
+      av.style.opacity = clamp(p, 0, 1);
+      // o avião "decola" no fim da cena, na passagem para o chat
+      const sai = easeInOut(prog(lt, 1.9, 2.6));
+      av.style.transform = `translate(${sai * 400}px, ${-sai * 300}px) scale(${p * (1 - 0.5 * sai)}) rotate(${-8 * sai}deg)`;
+    }
+    if (id === 'c4') {
+      surge($('cel'), lt, 0.05, 0.5, 140);
+      // fala: "Mercado, 52,90" 0,1–2,0 · "Pronto: despesa lançada…" ~2,7 · parcelado 6,6 · lembrete 10,05
+      const campo = $('campo');
+      const msg1 = 'mercado 52,90', msg2 = 'tênis 300 3x no cartão';
+      const dig = (txt, a, b) => txt.slice(0, Math.round(prog(lt, a, b) * txt.length));
+      if (lt < 0.4) { campo.className = 'txt ph'; campo.textContent = msg1; }
+      else if (lt < 1.75) { campo.className = 'txt'; campo.innerHTML = dig(msg1, 0.4, 1.6) + '<span class="cursor"></span>'; }
+      else if (lt < 6.4) { campo.className = 'txt ph'; campo.textContent = 'Mensagem'; }
+      else if (lt < 7.55) { campo.className = 'txt'; campo.innerHTML = dig(msg2, 6.4, 7.4) + '<span class="cursor"></span>'; }
+      else { campo.className = 'txt ph'; campo.textContent = 'Mensagem'; }
+      surge($('m1'), lt, 1.75, 0.3, 20);
+      $('d1').style.display = lt < 2.55 ? 'flex' : 'none';
+      $('d1').style.opacity = prog(lt, 1.95, 2.05);
+      surge($('m2'), lt, 2.55, 0.4, 20);
+      $('m3').style.display = lt < 7.5 ? 'none' : 'block';
+      surge($('m3'), lt, 7.55, 0.3, 20);
+      $('d2').style.display = lt > 7.6 && lt < 8.2 ? 'flex' : 'none';
+      $('d2').style.opacity = 1;
+      $('m4').style.display = lt < 8.2 ? 'none' : 'block';
+      surge($('m4'), lt, 8.2, 0.4, 20);
+      $('m5').style.display = lt < 10.05 ? 'none' : 'block';
+      surge($('m5'), lt, 10.05, 0.4, 20);
+      $('m6').style.display = lt < 11.75 ? 'none' : 'block';
+      surge($('m6'), lt, 11.75, 0.35, 20);
+      // a conversa sobe conforme as mensagens chegam (rolagem suave até o fim)
+      const msgs = $('msgs');
+      const visivel = 1064 - 150 - 120;
+      const excesso = Math.max(0, msgs.scrollHeight - visivel + 20);
+      msgs.style.transform = `translateY(${-Math.min(excesso, excesso * easeInOut(prog(lt, 7.4, 8.8)) + 0) }px)`;
+      if (lt > 9.9) msgs.style.transform = `translateY(${-excesso}px)`;
+      // dedo: envia as duas mensagens e toca no "Já paguei"
+      const dedo = $('dedo');
+      const toques = [[1.6, 945, 1395], [7.4, 945, 1395], [11.4, 0, 0]];
+      dedo.style.opacity = 0;
+      for (const [a, x, y] of toques) {
+        if (lt > a - 0.25 && lt < a + 0.25) {
+          let px = x, py = y;
+          if (!x) { const r = $('btPagar').getBoundingClientRect(); px = r.left + r.width / 2; py = r.top + r.height / 2; }
+          dedo.style.left = px + 'px'; dedo.style.top = py + 'px';
+          const f = prog(lt, a - 0.25, a + 0.25);
+          dedo.style.opacity = Math.sin(f * Math.PI);
+          dedo.style.transform = `scale(${1.3 - 0.4 * Math.sin(f * Math.PI)})`;
+        }
+      }
+      const pagar = $('btPagar');
+      pagar.style.background = lt > 11.4 ? 'rgba(52,211,153,.45)' : '';
+      [['r1', 0.1, 6.4], ['r2', 6.4, 9.95], ['r3', 9.95, 99]].forEach(([rid, a, b]) => janela($(rid), lt, a, b, 24));
+    }
+    if (id === 'c5') {
+      surge($('app'), lt, 0.1, 0.5, 120);
+      // as três mensagens voam do topo e viram linhas do extrato
+      [['v1', 'a1', 0.7], ['v2', 'a2', 1.05], ['v3', 'a3', 1.4]].forEach(([vid, aid, a]) => {
+        const v = $(vid);
+        const p = easeInOut(prog(lt, a, a + 0.55));
+        v.style.left = 120 + p * 120 + 'px';
+        v.style.top = 520 + p * (260 + (Number(aid.slice(1)) - 1) * 114) + 'px';
+        v.style.opacity = prog(lt, a - 0.1, a) * (1 - prog(lt, a + 0.45, a + 0.6));
+        const l = $(aid);
+        const q = easeOut(prog(lt, a + 0.45, a + 0.75));
+        l.style.opacity = q;
+        l.style.background = `rgba(52,211,153,${0.28 * (1 - prog(lt, a + 1.2, a + 2.6))})`;
+      });
+      $('a4').style.opacity = easeOut(prog(lt, 0.3, 0.6));
+    }
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>

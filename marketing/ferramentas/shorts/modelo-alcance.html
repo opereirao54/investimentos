@@ -1,0 +1,260 @@
+<!doctype html>
+<!--
+  Vídeo de ALCANCE (≈23 s, 1080×1920) — "Abre o extrato e procura essas 3
+  coisas". Pilar dor/educação: útil mesmo sem o app, feito para ser salvo e
+  compartilhado; o app só aparece no fecho.
+
+  É também o MODELO dos vídeos de alcance (cópia em
+  marketing/ferramentas/shorts/modelo-alcance.html): gancho → extrato de
+  exemplo → 3 itens destacados no extrato → "salva e manda pra quem precisa"
+  → fecho com a marca. Para um vídeo novo, troque só CONTEUDO e T (os tempos
+  vêm do narracao.json, início de cada frase − 0,15 s).
+
+  Veracidade: o fecho mostra os três avisos REAIS do Sistema inteligente
+  (web/appliquei-insights-ui.js): cobrança duplicada, reajuste e "parece ser
+  despesa fixa" (recorrente oculto) — é por este último que a assinatura
+  esquecida aparece; o app não sabe se você usa o serviço, e o vídeo não diz
+  que sabe. Marcas genéricas (Streaming, App de idiomas), dados de exemplo.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root {
+    --campo1: #0b1410; --campo2: #0f1f18; --campo3: #112720;
+    --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa;
+    --sinal: #34d399; --primaria: #059669; --ambar: #fbbf24; --vermelho: #f87171;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--campo1); }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: linear-gradient(150deg, var(--campo1) 0%, var(--campo2) 50%, var(--campo3) 100%); }
+  .halo { position: absolute; inset: -20%;
+    background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.22), transparent 70%),
+                radial-gradient(40% 35% at 10% 90%, rgba(5,150,105,.18), transparent 70%); }
+  .malha { position: absolute; inset: 0; }
+  .tit { font-weight: 900; letter-spacing: -.035em; line-height: 1; color: var(--tinta); }
+  .tit em { font-style: normal; color: var(--sinal); }
+  .tit em.r { color: var(--ambar); }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 200px; z-index: 20; }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); z-index: 30; }
+
+  /* Texto do topo: gancho e títulos dos itens (troca com fusão) */
+  .topo { position: absolute; left: 70px; right: 70px; top: 230px; height: 380px; }
+  .bloco { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; opacity: 0; }
+  .bloco .tit { font-size: 86px; }
+  .num { display: inline-flex; align-items: center; justify-content: center; width: 116px; height: 116px; border-radius: 50%; background: var(--ambar); color: #1d1a0f;
+    font-family: 'DM Mono', monospace; font-size: 66px; font-weight: 500; margin-bottom: 26px; box-shadow: 0 0 50px rgba(251,191,36,.45); }
+
+  /* Extrato de exemplo */
+  .extrato { position: absolute; left: 70px; right: 70px; top: 650px; border-radius: 36px; background: #fff; color: #12241c; overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,.55); opacity: 0; }
+  .extrato .cab { display: flex; justify-content: space-between; align-items: baseline; padding: 26px 32px; background: #f1f4f2; border-bottom: 2px solid #e2e8e4; }
+  .extrato .cab b { font-size: 34px; font-weight: 900; }
+  .extrato .cab span { font-family: 'DM Mono', monospace; font-size: 24px; color: #6b7d75; }
+  .lin { position: relative; display: flex; align-items: center; gap: 20px; padding: 22px 32px; border-bottom: 2px solid #eef2ef; transition: none; }
+  .lin:last-child { border-bottom: 0; }
+  .lin .dt { font-family: 'DM Mono', monospace; font-size: 24px; color: #8a958f; width: 82px; }
+  .lin .d { flex: 1; font-size: 34px; font-weight: 800; }
+  .lin .v { font-family: 'DM Mono', monospace; font-size: 34px; font-weight: 500; }
+  .lin .marca-t { position: absolute; inset: 4px 10px; border: 6px solid var(--ambar); border-radius: 18px; opacity: 0; box-shadow: 0 0 26px rgba(251,191,36,.55); }
+  .lin .etq { position: absolute; right: 26px; top: -22px; padding: 6px 16px; border-radius: 12px; background: var(--ambar); color: #1d1a0f; font-weight: 900; font-size: 26px; opacity: 0; white-space: nowrap; }
+  .lin.apaga { opacity: .35; }
+  .lupa { position: absolute; width: 180px; height: 180px; border-radius: 50%; border: 10px solid var(--ambar); box-shadow: 0 0 40px rgba(251,191,36,.5), inset 0 0 30px rgba(251,191,36,.25);
+    opacity: 0; z-index: 8; }
+  .lupa::after { content: ''; position: absolute; right: -58px; bottom: -40px; width: 80px; height: 22px; border-radius: 11px; background: var(--ambar); transform: rotate(40deg); }
+
+  /* CTA de alcance */
+  .soma { position: absolute; left: 70px; right: 70px; top: 1420px; text-align: center; opacity: 0; }
+  .soma small { display: block; font-family: 'DM Mono', monospace; font-size: 26px; letter-spacing: .1em; color: var(--ambar); text-transform: uppercase; }
+  .soma b { display: block; font-family: 'DM Mono', monospace; font-size: 64px; font-weight: 500; margin-top: 6px; }
+  .soma span { font-size: 30px; color: var(--deck); }
+  .acoes { position: absolute; left: 0; right: 0; top: 760px; display: flex; justify-content: center; gap: 30px; opacity: 0; }
+  .acao { width: 400px; padding: 40px 30px; border-radius: 40px; background: rgba(240,250,244,.08); border: 3px solid rgba(52,211,153,.5); text-align: center; }
+  .acao .ic { width: 130px; height: 130px; margin: 0 auto; border-radius: 34px; background: var(--sinal); display: flex; align-items: center; justify-content: center; }
+  .acao .ic svg { width: 76px; height: 76px; }
+  .acao b { display: block; margin-top: 22px; font-size: 44px; font-weight: 900; }
+  .acao small { display: block; margin-top: 6px; font-size: 28px; color: var(--deck); }
+
+  /* Fecho */
+  .fecho { position: absolute; inset: 0; opacity: 0; }
+  .marca { width: 470px; display: block; margin: 0 auto; }
+  .insight { position: absolute; left: 80px; right: 80px; display: flex; gap: 18px; align-items: center; padding: 20px 24px; border-radius: 26px; background: #fff; color: #12241c;
+    box-shadow: 0 18px 44px rgba(0,0,0,.45); opacity: 0; }
+  .insight .ic { width: 64px; height: 64px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 34px; flex: 0 0 auto; }
+  .insight b { flex: 1; font-size: 29px; font-weight: 900; line-height: 1.15; }
+  .insight b small { display: block; font-size: 24px; font-weight: 600; color: #51655b; margin-top: 4px; }
+  .insight .dl { font-family: 'DM Mono', monospace; font-size: 28px; padding: 6px 12px; border-radius: 12px; }
+  .pilula { display: inline-flex; align-items: center; gap: 16px; padding: 16px 30px; border-radius: 99px; border: 2px solid rgba(52,211,153,.5);
+    background: rgba(52,211,153,.12); color: var(--sinal); font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .14em; text-transform: uppercase; }
+  .pilula i { width: 14px; height: 14px; border-radius: 50%; background: var(--sinal); box-shadow: 0 0 16px var(--sinal); }
+  .aviso { position: absolute; left: 80px; right: 80px; top: 1470px; text-align: center; font-family: 'DM Mono', monospace; font-size: 30px; line-height: 1.4; color: var(--tinta); }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <div class="halo"></div>
+  <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+
+  <div class="topo" id="topo"></div>
+  <div class="extrato" id="extrato"><div class="cab"><b id="extTit"></b><span id="extSub"></span></div><div id="linhas"></div></div>
+  <div class="lupa" id="lupa"></div>
+
+  <div class="acoes" id="acoes">
+    <div class="acao" id="ac0"><div class="ic"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z" fill="#052e1f"/></svg></div><b>Salva</b><small>para conferir depois</small></div>
+    <div class="acao" id="ac1"><div class="ic"><svg viewBox="0 0 24 24"><path d="M2 11.5 21 3l-3.2 18-6.3-5.2-3.4 3.3.4-5L18 6.5 7.7 13.4z" fill="#052e1f"/></svg></div><b>Manda</b><small>pra quem precisa</small></div>
+  </div>
+  <div class="soma" id="soma"></div>
+
+  <div class="fecho" id="fecho">
+    <div style="position:absolute;left:0;right:0;top:240px;text-align:center;">
+      <img class="marca" src="wordmark.svg" alt="Appliquei">
+      <div class="tit" id="fechoTit" style="font-size:76px;margin-top:40px;"></div>
+    </div>
+    <div id="insights"></div>
+    <div style="position:absolute;left:0;right:0;top:1380px;text-align:center;"><span class="pilula" id="pil"><i></i>Em breve · janeiro de 2027</span></div>
+    <div class="aviso" id="aviso"></div>
+  </div>
+
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  // ══════════════ CONTEÚDO — troque aqui para um vídeo novo ══════════════
+  const CONTEUDO = {
+    gancho: 'Abre o extrato do seu <em>cartão</em> e procura <em>essas 3 coisas</em>',
+    extrato: {
+      titulo: 'Fatura · outubro', sub: 'exemplo',
+      linhas: [
+        ['03/10', 'Mercado', 'R$ 212,40'],
+        ['05/10', 'Streaming', 'R$ 39,90'],
+        ['05/10', 'Streaming', 'R$ 39,90'],
+        ['08/10', 'App de idiomas', 'R$ 29,90'],
+        ['10/10', 'Academia', 'R$ 135,00'],
+        ['12/10', 'Farmácia', 'R$ 48,70'],
+      ],
+    },
+    // cada item: título do topo e as linhas do extrato que ele destaca, com etiqueta
+    itens: [
+      { titulo: 'Assinatura que você <em class="r">nem usa</em> mais', linhas: [3], etiqueta: 'você ainda usa?' },
+      { titulo: 'A mesma cobrança, <em class="r">2× no mês</em>', linhas: [1, 2], etiqueta: '2×' },
+      { titulo: 'Subiu de preço e <em class="r">ninguém avisou</em>', linhas: [4], etiqueta: 'era R$ 120 · +12,5%' },
+    ],
+    cta: 'Achou <em>alguma?</em>',
+    soma: { rotulo: 'só nesse exemplo', mes: 'R$ 84,80/mês', ano: '≈ R$ 1.017 por ano' },
+    fecho: 'O Appliquei procura<br>isso <em>por você.</em>',
+    // avisos reais do Sistema inteligente (web/appliquei-insights-ui.js)
+    insights: [
+      ['#fef3c7', '↻', '“App de idiomas” parece ser despesa fixa', 'aparece há 6 meses seguidos', '6 meses', '#92400e'],
+      ['#fee2e2', '⧉', '“Streaming” foi cobrada 2 vezes', 'nos meses anteriores, uma vez só', '2×', '#b42318'],
+      ['#ede9fe', '↗', '“Academia” subiu de preço', 'custa R$ 180,00 a mais em 12 meses', '+12,5%', '#5b21b6'],
+    ],
+    aviso: 'Dados de exemplo · Sistema inteligente: estatística sobre o seu histórico',
+  };
+  // Tempos (s): seguem narracao.json — início de cada frase − 0,15 s.
+  const T = { item1: 3.95, item2: 7.0, item3: 10.4, cta: 14.45, fecho: 18.3, fim: 23.5 };
+  // ═══════════════════════════════════════════════════════════════════════
+
+  function $(id) { return document.getElementById(id); }
+  (function montar() {
+    const L = 1080, A = 1920, m = [];
+    for (let x = 60; x < L; x += 60) m.push(`<line x1="${x}" y1="0" x2="${x}" y2="${A}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 60; y < A; y += 60) m.push(`<line x1="0" y1="${y}" x2="${L}" y2="${y}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    $('malha').innerHTML = m.join('');
+    const C = CONTEUDO;
+    const blocos = [`<div class="tit">${C.gancho}</div>`]
+      .concat(C.itens.map((it, i) => `<div class="num">${i + 1}</div><div class="tit">${it.titulo}</div>`))
+      .concat([`<div class="tit" style="font-size:110px;">${C.cta}</div>`]);
+    $('topo').innerHTML = blocos.map((b, i) => `<div class="bloco" id="bl${i}">${b}</div>`).join('');
+    $('extTit').textContent = C.extrato.titulo;
+    $('extSub').textContent = C.extrato.sub;
+    $('linhas').innerHTML = C.extrato.linhas.map((l, i) =>
+      `<div class="lin" id="l${i}"><span class="dt">${l[0]}</span><span class="d">${l[1]}</span><span class="v">${l[2]}</span><div class="marca-t"></div><div class="etq"></div></div>`).join('');
+    $('soma').innerHTML = `<small>${C.soma.rotulo}</small><b>${C.soma.mes}</b><span>${C.soma.ano}</span>`;
+    $('fechoTit').innerHTML = C.fecho;
+    $('insights').innerHTML = C.insights.map((x, i) =>
+      `<div class="insight" id="in${i}" style="top:${760 + i * 175}px;"><div class="ic" style="background:${x[0]}">${x[1]}</div><b>${x[2]}<small>${x[3]}</small></b><div class="dl" style="background:${x[0]};color:${x[5]};">${x[4]}</div></div>`).join('');
+    $('aviso').textContent = C.aviso;
+  })();
+
+  const DUR = T.fim;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeInOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+  const easeBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  function janela(el, t, a, b, dy) {
+    const v = (a <= 0.01 ? 1 : easeOut(prog(t, a, a + 0.25))) * (1 - prog(t, b - 0.2, b));
+    el.style.opacity = v;
+    el.style.transform = `translateY(${(1 - v) * (dy == null ? 30 : dy)}px)`;
+    return v;
+  }
+  function surge(el, t, a, dur, dy) {
+    const p = easeBack(prog(t, a, a + (dur || 0.4)));
+    el.style.opacity = clamp(p, 0, 1);
+    el.style.transform = `translateY(${(1 - p) * (dy == null ? 40 : dy)}px) scale(${0.88 + 0.12 * p})`;
+  }
+
+  function render(t) {
+    const C = CONTEUDO;
+    const marcos = [0, T.item1, T.item2, T.item3, T.cta, T.fecho];
+    // topo: gancho, itens 1–3, CTA
+    for (let i = 0; i < 5; i++) {
+      const v = janela($('bl' + i), t, marcos[i], marcos[i + 1], 30);
+      const n = $('bl' + i).querySelector('.num');
+      if (n) n.style.transform = `scale(${0.6 + 0.4 * easeBack(prog(t, marcos[i], marcos[i] + 0.35))})`;
+    }
+    // extrato: entra no gancho, fica até o CTA
+    const ex = $('extrato');
+    const exIn = easeOut(prog(t, 0.6, 1.1));
+    const exOut = prog(t, T.cta - 0.1, T.cta + 0.3);
+    ex.style.opacity = exIn * (1 - exOut);
+    ex.style.transform = `translateY(${(1 - exIn) * 80 + exOut * 60}px)`;
+    // lupa passeando no gancho
+    const lupa = $('lupa');
+    const lp = prog(t, 1.2, T.item1);
+    lupa.style.opacity = easeOut(prog(t, 1.2, 1.5)) * (1 - prog(t, T.item1 - 0.3, T.item1));
+    lupa.style.left = 180 + Math.sin(lp * 5) * 300 + 'px';
+    lupa.style.top = 780 + lp * 520 + 'px';
+    // destaques por item
+    const ativo = [T.item1, T.item2, T.item3].filter((a) => t >= a).length - 1;
+    C.extrato.linhas.forEach((_, li) => {
+      const el = $('l' + li);
+      const it = ativo >= 0 && t < T.cta ? C.itens[ativo] : null;
+      const marcada = it && it.linhas.includes(li);
+      const a = it ? [T.item1, T.item2, T.item3][ativo] : 0;
+      const p = marcada ? easeBack(prog(t, a + 0.25, a + 0.6)) : 0;
+      el.querySelector('.marca-t').style.opacity = clamp(p, 0, 1);
+      const etq = el.querySelector('.etq');
+      const ehPrimeira = marcada && it.linhas[0] === li;
+      etq.textContent = ehPrimeira ? it.etiqueta : '';
+      etq.style.opacity = ehPrimeira ? clamp(p, 0, 1) : 0;
+      etq.style.transform = `scale(${0.7 + 0.3 * clamp(p, 0, 1.1)})`;
+      el.style.opacity = it && !marcada ? 0.35 : 1;
+      el.style.background = marcada ? `rgba(251,191,36,${0.12 * clamp(p, 0, 1)})` : 'transparent';
+    });
+    // CTA: salvar / mandar + soma do exemplo
+    const ac = janela($('acoes'), t, T.cta + 0.2, T.fecho, 60);
+    surge($('ac0'), t, T.cta + 1.0, 0.35, 30);
+    surge($('ac1'), t, T.cta + 1.6, 0.35, 30);
+    if (t > T.cta && t < T.fecho) {
+      $('ac0').style.transform += ` scale(${1 + 0.05 * Math.sin((t - T.cta) * 6)})`;
+      $('ac1').style.transform += ` scale(${1 + 0.05 * Math.sin((t - T.cta) * 6 + 1.5)})`;
+    }
+    janela($('soma'), t, T.cta + 0.5, T.fecho, 30);
+    // fecho
+    const f = $('fecho');
+    f.style.opacity = easeOut(prog(t, T.fecho, T.fecho + 0.3));
+    C.insights.forEach((_, i) => surge($('in' + i), t, T.fecho + 0.9 + i * 0.45, 0.35, 30));
+    $('pil').style.opacity = easeOut(prog(t, T.fecho + 2.6, T.fecho + 2.9));
+    $('aviso').style.opacity = easeOut(prog(t, T.fecho + 1.2, T.fecho + 1.5));
+    $('logoFixo').style.opacity = t < T.fecho - 0.2 ? 1 : 1 - prog(t, T.fecho - 0.2, T.fecho + 0.1);
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>

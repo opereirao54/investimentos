@@ -1,0 +1,418 @@
+<!doctype html>
+<!--
+  "Tudo o que o Appliquei faz" (55 s, 1080×1920) — o resumo completo para
+  fixar no perfil: o mês (com Telegram e categoria automática), os avisos e o
+  Sistema inteligente, o patrimônio (com FIPE), os investimentos (rentabilidade,
+  dividendos, futuro), a carteira sugerida, os sonhos e o simulador, o
+  relatório com nota e a Jornada — e fecha com a grade de todas as funções.
+
+  Os textos da tela copiam o app e os números são os mesmos dos vídeos de cada
+  função (patrimônio R$ 425.040, investimentos R$ 34.140, sonho R$ 455,53…).
+  Cuidados: carteira = só a divisão por classe, "sugestão informativa", sem
+  nota de ativo (a análise ativo a ativo fica no vídeo próprio, só orgânico); projeção e
+  simulador = "simulação"; Sistema inteligente = estatística, não IA; aviso
+  final de material informativo (CVM), dados de demonstração e Telegram como
+  marca de terceiro. O critério do Applicash fica fora do relatório (em
+  reformulação, produto.md).
+  Mesma mecânica do teaser: cenas em CENAS, movimentos em cenaExtra(),
+  render(t) desenha o segundo t. Narração: narracao-tudo.json (Charon/Gemini).
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root {
+    --campo1: #0b1410; --campo2: #0f1f18; --campo3: #112720;
+    --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa;
+    --sinal: #34d399; --verde: #10b981; --primaria: #059669; --ambar: #fbbf24; --vermelho: #f87171; --tg: #2aabee;
+    --rf: #059669; --acao: #7c3aed; --fii: #d97706; --cripto: #f59e0b;
+    --conta: #0ea5e9; --inv: #7c3aed; --imovel: #f59e0b; --veiculo: #ec4899;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--campo1); }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: linear-gradient(150deg, var(--campo1) 0%, var(--campo2) 50%, var(--campo3) 100%); }
+  .halo { position: absolute; inset: -20%;
+    background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.22), transparent 70%),
+                radial-gradient(40% 35% at 10% 90%, rgba(5,150,105,.18), transparent 70%); }
+  .malha { position: absolute; inset: 0; }
+  .cena { position: absolute; inset: 0; opacity: 0; }
+  .tit { font-weight: 900; letter-spacing: -.035em; line-height: .98; color: var(--tinta); }
+  .tit em { font-style: normal; color: var(--sinal); }
+  .linha { display: block; will-change: transform, opacity; }
+  .grande { position: absolute; left: 70px; right: 70px; text-align: center; }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 210px; z-index: 20; }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); z-index: 30; }
+
+  /* Etapa: "1/8 · O MÊS" no canto, para a pessoa sentir que é um tour completo */
+  .etapa { position: absolute; right: 150px; top: 58px; padding: 12px 22px; border-radius: 99px; background: rgba(52,211,153,.14); border: 2px solid rgba(52,211,153,.45);
+    font-family: 'DM Mono', monospace; font-size: 24px; letter-spacing: .1em; text-transform: uppercase; color: var(--sinal); z-index: 20; opacity: 0; }
+  .rotulo { position: absolute; left: 70px; right: 70px; top: 250px; text-align: center; font-size: 68px; font-weight: 900; letter-spacing: -.03em; line-height: 1.04; }
+  .rotulo em { font-style: normal; color: var(--sinal); }
+  .rotulo small { display: block; margin-top: 12px; font-size: 34px; font-weight: 600; color: var(--deck); letter-spacing: 0; }
+
+  .card { position: absolute; left: 80px; right: 80px; border-radius: 32px; background: #fff; color: #12241c; box-shadow: 0 26px 60px rgba(0,0,0,.45); overflow: hidden; opacity: 0; }
+  .card .cab { padding: 22px 28px; background: linear-gradient(160deg, #0f2a20, #0b1f18); color: #f0faf4; font-size: 32px; font-weight: 900; }
+  .card .cab small { display: block; font-family: 'DM Mono', monospace; font-size: 20px; letter-spacing: .1em; color: #9fb3aa; text-transform: uppercase; font-weight: 400; margin-bottom: 2px; }
+  .card .corpo { padding: 22px 28px; }
+  .mono { font-family: 'DM Mono', monospace; font-weight: 500; }
+  .tag { display: inline-block; font-family: 'DM Mono', monospace; font-size: 18px; padding: 4px 10px; border-radius: 8px; background: #059669; color: #fff; vertical-align: 4px; }
+
+  /* mês */
+  .linhames { display: flex; justify-content: space-between; align-items: center; font-size: 30px; padding: 10px 0; border-bottom: 2px solid #eef2ef; }
+  .linhames:last-child { border-bottom: 0; }
+  .linhames b { font-family: 'DM Mono', monospace; font-weight: 500; }
+  .bolha { position: absolute; max-width: 760px; padding: 20px 26px; border-radius: 28px; font-size: 36px; line-height: 1.35; box-shadow: 0 20px 44px rgba(0,0,0,.4); opacity: 0; }
+  .bolha.eu { right: 90px; background: #2b5278; color: #fff; border-bottom-right-radius: 8px; font-size: 40px; }
+  .bolha.bot { left: 90px; background: #182533; color: #e8eef4; border-bottom-left-radius: 8px; }
+  .bolha.bot b { color: #fff; }
+  .cat { display: inline-block; padding: 2px 12px; border-radius: 10px; background: rgba(52,211,153,.25); color: #6ee7b7; font-weight: 800; }
+  .fonte-tg { position: absolute; left: 90px; font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .1em; color: var(--tg); text-transform: uppercase; opacity: 0; }
+
+  /* avisos e insights */
+  .notif { position: absolute; left: 80px; right: 80px; display: flex; gap: 18px; align-items: flex-start; padding: 20px 24px; border-radius: 28px;
+    background: rgba(240,250,244,.95); color: #12241c; box-shadow: 0 18px 44px rgba(0,0,0,.45); opacity: 0; }
+  .notif .ic { width: 58px; height: 58px; border-radius: 15px; background: linear-gradient(135deg, #10b981, #047857); color: #fff; display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 30px; flex: 0 0 auto; }
+  .notif .tx { flex: 1; font-size: 31px; line-height: 1.28; }
+  .notif .tx small { display: block; font-size: 20px; color: #51655b; font-weight: 800; margin-bottom: 2px; text-transform: uppercase; letter-spacing: .04em; }
+  .notif.vermelho { background: #fff1f1; box-shadow: 0 18px 50px rgba(248,113,113,.35), 0 0 0 4px rgba(248,113,113,.75); }
+  .insight { position: absolute; left: 80px; right: 80px; display: flex; gap: 18px; align-items: center; padding: 20px 24px; border-radius: 26px; background: #fff; color: #12241c;
+    box-shadow: 0 18px 44px rgba(0,0,0,.45); opacity: 0; }
+  .insight .ic { width: 64px; height: 64px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 34px; flex: 0 0 auto; }
+  .insight b { flex: 1; font-size: 30px; font-weight: 900; line-height: 1.15; }
+  .insight .dl { font-family: 'DM Mono', monospace; font-size: 30px; padding: 6px 12px; border-radius: 12px; }
+  .nota-rod { position: absolute; left: 0; right: 0; text-align: center; font-family: 'DM Mono', monospace; font-size: 26px; color: var(--deck); opacity: 0; }
+
+  /* patrimônio */
+  .total { position: absolute; left: 80px; right: 80px; top: 560px; padding: 30px 34px; border-radius: 36px; background: linear-gradient(160deg, #11281f, #0d1f18);
+    border: 3px solid rgba(52,211,153,.5); text-align: center; box-shadow: 0 30px 80px rgba(0,0,0,.5); opacity: 0; }
+  .total small { display: block; font-family: 'DM Mono', monospace; font-size: 26px; letter-spacing: .12em; color: var(--sinal); text-transform: uppercase; }
+  .total b { display: block; font-family: 'DM Mono', monospace; font-size: 92px; font-weight: 500; letter-spacing: -.04em; margin-top: 4px; }
+  .partes { position: absolute; left: 80px; right: 80px; top: 870px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .parte { padding: 24px 26px; border-radius: 26px; background: rgba(240,250,244,.07); border: 2px solid rgba(240,250,244,.16); opacity: 0; position: relative; }
+  .parte .ic { font-size: 44px; }
+  .parte small { display: block; margin-top: 8px; font-family: 'DM Mono', monospace; font-size: 21px; letter-spacing: .06em; text-transform: uppercase; }
+  .parte b { display: block; font-family: 'DM Mono', monospace; font-size: 40px; font-weight: 500; margin-top: 4px; }
+  .fipe { position: absolute; right: 18px; top: 18px; padding: 6px 12px; border-radius: 10px; background: #e7f6ee; color: #047857; font-size: 20px; font-weight: 900; opacity: 0; }
+
+  /* investimentos */
+  .barras { display: flex; align-items: flex-end; gap: 8px; height: 170px; margin-top: 14px; border-bottom: 2px solid #d5ded9; }
+  .barras i { flex: 1; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, #34d399, #059669); height: 0; }
+  .futuro { margin-top: 18px; border-radius: 22px; padding: 20px 24px; color: #fff; background: linear-gradient(135deg, #059669, #2563eb); opacity: 0; }
+  .futuro small { display: block; font-size: 20px; text-transform: uppercase; letter-spacing: .06em; font-weight: 800; opacity: .9; }
+  .futuro b { display: block; font-family: 'DM Mono', monospace; font-size: 52px; font-weight: 500; margin-top: 2px; }
+
+  /* carteira */
+  .cl { margin-bottom: 14px; }
+  .cl .h { display: flex; justify-content: space-between; font-size: 27px; font-weight: 800; }
+  .cl .h span { font-family: 'DM Mono', monospace; font-weight: 500; color: #3b4d45; }
+  .cl .tr { height: 16px; border-radius: 8px; background: #e2e8e4; margin-top: 6px; overflow: hidden; }
+  .cl .tr i { display: block; height: 100%; width: 0; border-radius: 8px; }
+  .score { display: flex; align-items: center; gap: 16px; margin-top: 18px; padding: 16px 18px; border-radius: 20px; border: 2px solid rgba(52,211,153,.7); opacity: 0; }
+  .score .n { flex: 1; font-size: 28px; font-weight: 900; }
+  .score .n small { display: block; font-size: 20px; color: #6b7d75; font-weight: 600; }
+  .score .s { width: 110px; height: 90px; border-radius: 20px; background: #059669; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-size: 44px; line-height: 1; }
+  .score .s small { font-size: 18px; opacity: .85; margin-top: 2px; }
+  .pil { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 14px; opacity: 0; }
+  .pil div { text-align: center; font-size: 18px; font-weight: 700; color: #51655b; }
+  .pil div i { display: block; height: 70px; border-radius: 8px; background: #e2e8e4; position: relative; overflow: hidden; margin-bottom: 6px; }
+  .pil div i span { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, #34d399, #059669); height: 0; }
+
+  /* sonhos e simulador */
+  .hero { border-radius: 22px; padding: 22px 26px; color: #fff; background: linear-gradient(135deg, #059669, #7c3aed); }
+  .hero small { display: block; font-size: 20px; text-transform: uppercase; letter-spacing: .06em; font-weight: 800; opacity: .9; }
+  .hero b { display: block; font-family: 'DM Mono', monospace; font-size: 58px; font-weight: 500; margin-top: 2px; }
+  .hero b span { font-size: 28px; opacity: .85; }
+  .verd { margin-top: 14px; border-radius: 18px; padding: 14px 18px; background: #e7f6ee; border: 2px solid #6fcf97; color: #0b6b43; font-size: 26px; font-weight: 900; }
+  .sim { display: flex; gap: 14px; }
+  .sim div { flex: 1; padding: 18px 20px; border-radius: 20px; background: #f1f5f2; }
+  .sim small { display: block; font-size: 20px; font-weight: 800; color: #51655b; text-transform: uppercase; letter-spacing: .03em; }
+  .sim b { display: block; font-family: 'DM Mono', monospace; font-size: 38px; font-weight: 500; margin-top: 4px; }
+  .sim .mais b { color: #047857; }
+
+  /* relatório e jornada */
+  .gauge { display: flex; align-items: center; gap: 26px; }
+  .gauge svg { width: 200px; height: 120px; flex: 0 0 auto; }
+  .gauge .r b { display: block; font-family: 'DM Mono', monospace; font-size: 64px; font-weight: 500; }
+  .gauge .r span { font-size: 28px; font-weight: 900; color: #047857; }
+  .crit { display: flex; justify-content: space-between; font-size: 25px; padding: 8px 0; border-bottom: 2px solid #eef2ef; opacity: 0; }
+  .crit:last-child { border-bottom: 0; }
+  .crit b { font-weight: 900; }
+  .mod { display: flex; align-items: center; gap: 14px; font-size: 26px; padding: 8px 0; opacity: 0; }
+  .mod i { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-style: normal; font-weight: 900; font-size: 22px; flex: 0 0 auto; }
+  .mod.ok i { background: #059669; color: #fff; }
+  .mod.agora i { background: #fef3c7; color: #92400e; border: 3px solid #f59e0b; }
+  .mod.fech { color: #9aa8a1; }
+  .mod.fech i { background: #e2e8e4; color: #9aa8a1; }
+
+  /* final */
+  .marca { width: 470px; margin: 0 auto; display: block; }
+  .chips { position: absolute; left: 50px; right: 50px; top: 640px; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+  .chips span { display: inline-flex; align-items: center; gap: 10px; padding: 12px 20px; border-radius: 99px; background: rgba(240,250,244,.08); border: 2px solid rgba(52,211,153,.4);
+    font-size: 27px; font-weight: 800; opacity: 0; white-space: nowrap; }
+  .pilula { display: inline-flex; align-items: center; gap: 16px; padding: 16px 30px; border-radius: 99px; border: 2px solid rgba(52,211,153,.5);
+    background: rgba(52,211,153,.12); color: var(--sinal); font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .14em; text-transform: uppercase; }
+  .pilula i { width: 14px; height: 14px; border-radius: 50%; background: var(--sinal); box-shadow: 0 0 16px var(--sinal); }
+  .cta { display: inline-flex; align-items: center; gap: 24px; padding: 28px 48px; border-radius: 32px; background: var(--primaria);
+    font-weight: 900; font-size: 50px; letter-spacing: -.02em; color: #fff; box-shadow: 0 30px 70px rgba(5,150,105,.45); }
+  .aviso { position: absolute; left: 70px; right: 70px; top: 1375px; text-align: center; font-size: 28px; line-height: 1.4; color: var(--tinta); font-weight: 600;
+    padding: 18px 22px; border-radius: 22px; background: rgba(11,20,16,.9); border: 2px solid rgba(240,250,244,.35); }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <div class="halo"></div>
+  <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+  <div class="etapa" id="etapa"></div>
+
+  <!-- 1. GANCHO -->
+  <div class="cena" id="c1">
+    <div class="grande" style="top:400px;"><div class="tit linha" data-in="0" style="font-size:108px;">E se um app só<br>cuidasse de <em>todo</em><br>o seu dinheiro?</div></div>
+    <div class="chips" id="previa" style="top:1060px;">
+      <span>📅 Mês</span><span>🔔 Avisos</span><span>🏛️ Patrimônio</span><span>📈 Investimentos</span><span>✈️ Sonhos</span><span>📊 Relatório</span><span>🎓 Jornada</span>
+    </div>
+  </div>
+
+  <!-- 2. O MÊS + TELEGRAM -->
+  <div class="cena" id="c2">
+    <div class="rotulo"><div class="linha" data-in="0">O <em>mês</em> inteiro</div><small class="linha" data-in="0.2">receitas, despesas e cartões</small></div>
+    <div class="card" id="mes" style="top:520px;"><div class="cab"><small>Controle financeiro</small>Outubro</div>
+      <div class="corpo">
+        <div class="linhames"><span>Receitas</span><b style="color:#047857;">R$ 6.200,00</b></div>
+        <div class="linhames"><span>Despesas</span><b style="color:#b42318;">R$ 3.580,00</b></div>
+        <div class="linhames"><span>💳 Fatura do cartão</span><b>R$ 1.240,00</b></div>
+        <div class="linhames"><span><b style="font-family:Figtree;font-weight:900;">Sobrou</b></span><b style="color:#047857;">R$ 1.380,00</b></div>
+      </div></div>
+    <div class="fonte-tg" id="ftg" style="top:1030px;">✈ pelo Telegram</div>
+    <div class="bolha eu" id="b1" style="top:1080px;">mercado 52,90</div>
+    <div class="bolha bot" id="b2" style="top:1200px;">✅ <b>Despesa lançada</b> · Mercado · <b>R$ 52,90</b><br><span class="cat" id="cat">🛒 Alimentação</span> <span class="tag">AUTOMÁTICO</span></div>
+  </div>
+
+  <!-- 3. AVISOS + SISTEMA INTELIGENTE -->
+  <div class="cena" id="c3">
+    <div class="rotulo"><div class="linha" data-in="0">Avisa <em>antes</em></div><small class="linha" data-in="0.2">e percebe o que passaria batido</small></div>
+    <div class="notif" id="n0" style="top:520px;"><div class="ic">A</div><div class="tx"><small>Appliquei · 08:00</small>📅 <b>Amanhã</b> vence <b>Internet</b> · R$ 99,90</div></div>
+    <div class="notif" id="n1" style="top:660px;"><div class="ic">A</div><div class="tx"><small>Appliquei · 08:00</small>💳 A fatura do <b>Cartão principal</b> fecha <b>amanhã</b></div></div>
+    <div class="notif vermelho" id="n2" style="top:800px;"><div class="ic" style="background:linear-gradient(135deg,#f87171,#b42318)">!</div><div class="tx"><small>Appliquei · daqui a 5 dias</small>🔻 <b>A partir de 27/10, sai mais do que entra.</b> <span style="color:#b42318;font-weight:900;">R$ 480,00 no vermelho</span></div></div>
+    <div class="insight" id="i0" style="top:1050px;"><div class="ic" style="background:#fee2e2">⧉</div><b>“Streaming” foi cobrada 2 vezes</b><div class="dl" style="background:#fee2e2;color:#b42318;">2×</div></div>
+    <div class="insight" id="i1" style="top:1190px;"><div class="ic" style="background:#fef3c7">↗</div><b>“Academia” subiu de preço</b><div class="dl" style="background:#fef3c7;color:#92400e;">+12,5%</div></div>
+    <div class="insight" id="i2" style="top:1330px;"><div class="ic" style="background:#ede9fe">📈</div><b>Lazer bem acima do seu normal</b><div class="dl" style="background:#ede9fe;color:#5b21b6;">×1,8</div></div>
+    <div class="nota-rod" id="est" style="top:1480px;">estatística sobre o seu histórico, não IA</div>
+  </div>
+
+  <!-- 4. PATRIMÔNIO -->
+  <div class="cena" id="c4">
+    <div class="rotulo"><div class="linha" data-in="0">Seu <em>patrimônio</em> somado</div></div>
+    <div class="total" id="tot"><small>Patrimônio total</small><b id="totN">R$ 0</b></div>
+    <div class="partes">
+      <div class="parte" id="p0"><div class="ic">🏦</div><small style="color:var(--conta)">Saldo em conta</small><b>R$ 8.400</b></div>
+      <div class="parte" id="p1"><div class="ic">📈</div><small style="color:#a78bfa">Total investido</small><b>R$ 34.140</b></div>
+      <div class="parte" id="p2"><div class="ic">🏠</div><small style="color:var(--imovel)">Imóveis</small><b>R$ 320.000</b></div>
+      <div class="parte" id="p3"><div class="ic">🚗</div><small style="color:#f472b6">Veículos</small><b>R$ 62.500</b><div class="fipe" id="fipe">✓ FIPE</div></div>
+    </div>
+  </div>
+
+  <!-- 5. INVESTIMENTOS -->
+  <div class="cena" id="c5">
+    <div class="rotulo"><div class="linha" data-in="0">Seus <em>investimentos</em></div></div>
+    <div class="card" id="inv" style="top:470px;"><div class="cab"><small>Investimentos hoje</small><span class="mono" style="font-size:58px;">R$ 34.140,00</span> <span class="mono" style="font-size:28px;color:#34d399;">+8,38%</span></div>
+      <div class="corpo">
+        <div style="font-size:24px;font-weight:900;color:#51655b;text-transform:uppercase;letter-spacing:.04em;">Dividendos · últimos 12 meses</div>
+        <div class="barras" id="barras"><i data-h="52"></i><i data-h="64"></i><i data-h="48"></i><i data-h="71"></i><i data-h="66"></i><i data-h="80"></i><i data-h="58"></i><i data-h="85"></i><i data-h="74"></i><i data-h="90"></i><i data-h="83"></i><i data-h="100"></i></div>
+        <div class="futuro" id="fut"><small>Em 10 anos, sem colocar mais nada · simulação</small><b>R$ 50.536</b></div>
+      </div></div>
+  </div>
+
+  <!-- 6. CARTEIRA SUGERIDA -->
+  <div class="cena" id="c6">
+    <div class="rotulo"><div class="linha" data-in="0">Carteira <em>sugerida</em></div><small class="linha" data-in="0.2">com o cálculo à vista</small></div>
+    <div class="card" id="cart" style="top:560px;"><div class="cab"><small>Aporte do mês · R$ 1.000</small>Perfil Moderado</div>
+      <div class="corpo">
+        <div class="cl"><div class="h">Renda Fixa <span>40%</span></div><div class="tr"><i data-w="40" style="background:var(--rf)"></i></div></div>
+        <div class="cl"><div class="h">Ações <span>32%</span></div><div class="tr"><i data-w="32" style="background:var(--acao)"></i></div></div>
+        <div class="cl"><div class="h">FIIs <span>25%</span></div><div class="tr"><i data-w="25" style="background:var(--fii)"></i></div></div>
+        <div class="cl"><div class="h">Criptos <span>3%</span></div><div class="tr"><i data-w="3" style="background:var(--cripto)"></i></div></div>
+        <div class="score" id="score" style="justify-content:center;text-align:center;"><div class="n">Cada ativo com os critérios à vista<small>sugestão informativa · você decide</small></div></div>
+      </div></div>
+  </div>
+
+  <!-- 7. SONHOS + SIMULADOR -->
+  <div class="cena" id="c7">
+    <div class="rotulo"><div class="linha" data-in="0">Sonhos e <em>liberdade</em></div></div>
+    <div class="card" id="son" style="top:470px;"><div class="cab"><small>Meus sonhos</small>✈️ Viagem ao Chile</div>
+      <div class="corpo"><div class="hero"><small>Você vai precisar separar</small><b>R$ 455,53<span>/mês</span></b></div>
+        <div class="verd">✅ Cabe no seu mês com folga</div></div></div>
+    <div class="card" id="simc" style="top:1010px;"><div class="cab"><small>Simule sua liberdade · simulação</small>Para viver de renda</div>
+      <div class="corpo"><div class="sim"><div><small>Renda passiva estimada</small><b>R$ 3.250/mês</b></div><div class="mais"><small>A mais vs. INSS</small><b>+R$ 1.120</b></div></div></div></div>
+  </div>
+
+  <!-- 8. RELATÓRIO + JORNADA -->
+  <div class="cena" id="c8">
+    <div class="rotulo"><div class="linha" data-in="0">Nota no mês e <em>estudo</em></div></div>
+    <div class="card" id="rel" style="top:450px;"><div class="cab"><small>Relatório mensal · outubro</small>Termômetro</div>
+      <div class="corpo">
+        <div class="gauge"><svg viewBox="0 0 200 120"><path d="M20 110 A80 80 0 0 1 180 110" fill="none" stroke="#e2e8e4" stroke-width="22" stroke-linecap="round"/>
+          <path id="arco" d="M20 110 A80 80 0 0 1 180 110" fill="none" stroke="#10b981" stroke-width="22" stroke-linecap="round" stroke-dasharray="252" stroke-dashoffset="252"/></svg>
+          <div class="r"><b id="notaN">0</b><span>Saudável</span></div></div>
+        <div class="crit" id="cr0"><span>Despesas ≤ 60% da entrada</span><b style="color:#047857;">58% ✓</b></div>
+        <div class="crit" id="cr1"><span>Sonhos no prazo</span><b style="color:#047857;">✓</b></div>
+        <div class="crit" id="cr2"><span>Jornada Financeira</span><b style="color:#047857;">✓</b></div>
+      </div></div>
+    <div class="card" id="jor" style="top:1080px;"><div class="cab"><small>Jornada Financeira · 8 módulos</small>Aprender a investir, passo a passo</div>
+      <div class="corpo" style="padding-top:12px;padding-bottom:14px;">
+        <div class="mod ok" id="m0"><i>✓</i>1. Alinhamento de mindset</div>
+        <div class="mod ok" id="m1"><i>✓</i>2. Otimização de caixa</div>
+        <div class="mod agora" id="m2"><i>3</i>3. Colchão de liquidez</div>
+        <div class="mod fech" id="m3"><i>4</i>4. Execução no broker · e mais 4</div>
+      </div></div>
+  </div>
+
+  <!-- 9. FINAL -->
+  <div class="cena" id="c9">
+    <div style="position:absolute;left:0;right:0;top:270px;text-align:center;">
+      <img class="marca linha" data-in="0.05" src="wordmark.svg" alt="Appliquei">
+      <div class="tit linha" data-in="0.5" style="font-size:78px;margin-top:40px;">Seu dinheiro inteiro,<br>numa <em>tela só.</em></div>
+    </div>
+    <div class="chips" id="grade">
+      <span>📅 Controle do mês</span><span>✈ Lançar pelo Telegram</span><span>🏷️ Categoria automática</span><span>🔔 Contas e faturas</span>
+      <span>🔻 Aviso de saldo</span><span>🔍 Sistema inteligente</span><span>🏛️ Patrimônio</span><span>🚗 Tabela FIPE</span>
+      <span>📈 Investimentos</span><span>💰 Dividendos</span><span>🧮 Carteira sugerida</span><span>✈️ Sonhos</span>
+      <span>🌱 Simulador</span><span>📊 Relatório mensal</span><span>🎓 Jornada</span><span>📱 No celular</span>
+    </div>
+    <div style="position:absolute;left:0;right:0;top:1150px;text-align:center;">
+      <div class="linha" data-in="3.4"><span class="pilula"><i></i>Em breve · janeiro de 2027</span></div>
+      <div class="linha" data-in="3.8" style="margin-top:26px;"><span class="cta">Siga para saber primeiro</span></div>
+    </div>
+    <div class="aviso linha" data-in="1.2"><b>Dados de demonstração.</b> Carteira sugerida, projeções e simulações são material informativo, não recomendação de investimento. Investimentos envolvem risco. Telegram é marca de seu titular.</div>
+  </div>
+
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  function $(id) { return document.getElementById(id); }
+  (function () {
+    const L = 1080, A = 1920, t = [];
+    for (let x = 60; x < L; x += 60) t.push(`<line x1="${x}" y1="0" x2="${x}" y2="${A}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 60; y < A; y += 60) t.push(`<line x1="0" y1="${y}" x2="${L}" y2="${y}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 120; y < A; y += 120) {
+      t.push(`<line x1="0" y1="${y}" x2="16" y2="${y}" stroke="#34d399" stroke-opacity=".18" stroke-width="2"/>`);
+      t.push(`<line x1="${L - 16}" y1="${y}" x2="${L}" y2="${y}" stroke="#34d399" stroke-opacity=".18" stroke-width="2"/>`);
+    }
+    $('malha').innerHTML = t.join('');
+  })();
+
+  // Cenas seguem narracao-tudo.json (início de cada frase − 0,15 s).
+  const DUR = 55;
+  const CENAS = [['c1', 0, 3.2], ['c2', 3.2, 10.2], ['c3', 10.2, 18.3], ['c4', 18.3, 24.75], ['c5', 24.75, 30.4],
+    ['c6', 30.4, 34.35], ['c7', 34.35, 40.2], ['c8', 40.2, 46.9], ['c9', 46.9, 55.2]];
+  const ETAPAS = { c2: '1/7 · o mês', c3: '2/7 · avisos', c4: '3/7 · patrimônio', c5: '4/7 · investimentos', c6: '5/7 · carteira', c7: '6/7 · sonhos', c8: '7/7 · relatório' };
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  const brl = (v) => 'R$ ' + Math.round(v).toLocaleString('pt-BR');
+  function surge(el, lt, a, dur, dy) {
+    const p = easeBack(prog(lt, a, a + (dur || 0.45)));
+    el.style.opacity = clamp(p, 0, 1);
+    el.style.transform = `translateY(${(1 - p) * (dy == null ? 40 : dy)}px) scale(${0.88 + 0.12 * p})`;
+  }
+
+  function render(t) {
+    let atual = null;
+    for (const [id, a, b] of CENAS) {
+      const el = $(id);
+      const dentro = t >= a - 0.01 && t < b;
+      const fadeIn = id === 'c1' ? 1 : easeOut(prog(t, a, a + 0.25));
+      const fadeOut = 1 - prog(t, b - 0.2, b);
+      el.style.opacity = dentro ? Math.min(fadeIn, fadeOut) : 0;
+      el.style.display = dentro ? 'block' : 'none';
+      if (!dentro) continue;
+      atual = id;
+      const lt = t - a;
+      el.querySelectorAll('.linha').forEach((ln) => {
+        const d = Number(ln.dataset.in || 0);
+        const p = id === 'c1' && d === 0 ? 1 : easeOut(prog(lt, d, d + 0.4));
+        ln.style.opacity = p;
+        ln.style.transform = `translateY(${(1 - p) * 36}px)`;
+      });
+      cenaExtra(id, lt);
+    }
+    const et = $('etapa');
+    et.textContent = ETAPAS[atual] || '';
+    et.style.opacity = ETAPAS[atual] ? 1 : 0;
+    $('logoFixo').style.opacity = t < 46.7 ? 1 : 1 - prog(t, 46.7, 47.0);
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+
+  function cenaExtra(id, lt) {
+    if (id === 'c1') {
+      $('previa').querySelectorAll('span').forEach((s, i) => surge(s, lt, 0.5 + i * 0.18, 0.35, 30));
+    }
+    if (id === 'c2') {
+      // fala: "O mês: receitas, despesas e cartões" 0,15–2,9 · "pelo Telegram" 3,2 · "já põe a categoria" 5,2
+      surge($('mes'), lt, 0.2, 0.45, 50);
+      $('ftg').style.opacity = easeOut(prog(lt, 3.1, 3.4));
+      surge($('b1'), lt, 3.3, 0.3, 20);
+      surge($('b2'), lt, 4.3, 0.4, 20);
+      const br = lt > 5.2 ? Math.exp(-(lt - 5.2) * 2.5) : 0;
+      $('cat').style.boxShadow = `0 0 ${26 * br}px rgba(52,211,153,${br})`;
+      $('cat').style.transform = `scale(${1 + 0.14 * br})`;
+    }
+    if (id === 'c3') {
+      // "avisa contas e faturas" 0,15–2,1 · "saldo vai apertar" 2,3–3,9 · "cobrança repetida e gasto fora do normal" 4,2–7,8
+      surge($('n0'), lt, 0.35, 0.35, -40);
+      surge($('n1'), lt, 1.2, 0.35, -40);
+      surge($('n2'), lt, 2.3, 0.4, -40);
+      const tremor = lt > 2.7 && lt < 3.4 ? Math.sin(lt * 60) * 6 * (1 - prog(lt, 2.7, 3.4)) : 0;
+      $('n2').style.transform += ` translateX(${tremor}px)`;
+      surge($('i0'), lt, 4.5, 0.35, 30);
+      surge($('i1'), lt, 5.3, 0.35, 30);
+      surge($('i2'), lt, 6.3, 0.35, 30);
+      $('est').style.opacity = easeOut(prog(lt, 6.8, 7.2));
+    }
+    if (id === 'c4') {
+      // "patrimônio somado" 0,6 · contas 1,4 · investimentos 2,0 · imóveis 3,0 · "carro pela tabela FIPE" 3,6–5,8
+      surge($('tot'), lt, 0.2, 0.45, 40);
+      $('totN').textContent = brl(425040 * easeOut(prog(lt, 0.4, 4.6)));
+      [1.3, 2.0, 2.9, 3.6].forEach((a, i) => surge($('p' + i), lt, a, 0.35, 30));
+      surge($('fipe'), lt, 4.8, 0.35, 10);
+    }
+    if (id === 'c5') {
+      // "rentabilidade" 1,3 · "dividendos" 2,4 · "quanto isso vira no futuro" 3,3–5,1
+      surge($('inv'), lt, 0.15, 0.45, 50);
+      $('barras').querySelectorAll('i').forEach((b, i) => (b.style.height = Number(b.dataset.h) * easeOut(prog(lt, 2.2 + i * 0.06, 2.7 + i * 0.06)) + '%'));
+      surge($('fut'), lt, 3.5, 0.4, 20);
+    }
+    if (id === 'c6') {
+      surge($('cart'), lt, 0.1, 0.4, 50);
+      $('cart').querySelectorAll('.tr i').forEach((b, i) => (b.style.width = Number(b.dataset.w) * 2.2 * easeOut(prog(lt, 0.5 + i * 0.15, 1.0 + i * 0.15)) + '%'));
+      surge($('score'), lt, 1.7, 0.35, 16);
+    }
+    if (id === 'c7') {
+      // "Sonhos com prazo e parcela" 0,15–2,4 · "simulador… viver de renda" 2,7–5,6
+      surge($('son'), lt, 0.2, 0.45, 50);
+      surge($('simc'), lt, 2.7, 0.45, 50);
+    }
+    if (id === 'c8') {
+      // "relatório que dá nota" 0,15–2,6 · "jornada para aprender a investir, passo a passo" 3,0–6,3
+      surge($('rel'), lt, 0.15, 0.45, 50);
+      const g = easeOut(prog(lt, 0.6, 1.8));
+      $('arco').setAttribute('stroke-dashoffset', (252 * (1 - 0.72 * g)).toFixed(1));
+      $('notaN').textContent = Math.round(72 * g);
+      ['cr0', 'cr1', 'cr2'].forEach((c, i) => surge($(c), lt, 1.2 + i * 0.25, 0.3, 10));
+      surge($('jor'), lt, 3.0, 0.45, 50);
+      ['m0', 'm1', 'm2', 'm3'].forEach((m, i) => surge($(m), lt, 3.5 + i * 0.4, 0.3, 10));
+    }
+    if (id === 'c9') {
+      $('grade').querySelectorAll('span').forEach((s, i) => surge(s, lt, 0.9 + i * 0.12, 0.3, 24));
+    }
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>
