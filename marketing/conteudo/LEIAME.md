@@ -39,6 +39,9 @@ Modelos:
   isso.
 - **Voz:** sempre a Charon (`narrar-gemini.py`), com as perguntas subindo o
   tom no fim.
+- **Personagens:** sempre **Caio e Mateus** (fictícios), quando a conta
+  pedir duas pessoas. Nada de nomes novos a cada vídeo; diga "Personagens
+  fictícios" no aviso.
 - **Antes de publicar:** rode o checklist de
   `.claude/skills/marketing-saas/referencias/voz-e-compliance.md`.
 - **Nas peças de alcance, o app só aparece no fecho.** Nos últimos 3–5 s, com
