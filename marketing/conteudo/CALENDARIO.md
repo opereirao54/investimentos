@@ -1,56 +1,126 @@
-# Calendário até o lançamento (jan/2027)
+# Calendário até o lançamento: 34 Reels, de 26/10/2026 a 02/01/2027
 
-Três posts por semana e stories todo dia. Ritmo de cada semana:
+**Objetivo:** fazer a pessoa seguir a página (educação e planejamento
+financeiro) e criar expectativa pelo lançamento de **02/01/2027**, sem mostrar
+o app antes da última semana. Cada vídeo resolve uma dor real e termina com
+uma pista do que vem.
 
-- **Segunda:** alcance (vídeo de 15–25 s).
-- **Quarta:** carrossel educativo.
-- **Sexta:** produto em ação.
+PDF simples para compartilhar: `plano-instagram.pdf` (fonte
+`plano-instagram.html`; gerar com `node marketing/conteudo/gerar-pdf.js`).
 
-Horário de referência: 18h–21h em dia útil. Ajuste pelas estatísticas do
-perfil depois de 3 semanas.
+## Regras
 
-Status: ✅ pronto · 🛠️ a fazer · ⚠️ depende de decisão.
+- **3 Reels por semana** (seg, qua, sex) até 26/12 e **todo dia na semana do
+  lançamento** (27/12 a 02/01). São 34 Reels: 12 já prontos e 22 novos.
+- **Contagem regressiva em todo Reel:** selo "Faltam X dias" no canto e fecho
+  com a pista ("Em 47 dias, …").
+- **Stories todo dia**, com o adesivo de contagem regressiva do Instagram
+  apontando para 02/01 ("ative o lembrete") desde 26/10.
+- **Até 26/12 o app não aparece.** As pistas falam do que a pessoa vai
+  sentir, não de telas. Na última semana, os 7 vídeos de produto revelam o
+  app função por função.
+- **Formato:** "conta na tela" (`modelo-conta.html`), voz Charon, Caio (bom
+  exemplo) e Mateus (mau exemplo), capa com a frase do gancho (`capa.js`),
+  aviso educacional e números conferidos com fonte antes de gravar.
+- **Sem urgência ou escassez inventadas** (CONAR). "Lista de espera" só se
+  existir de verdade.
+- **Carteira sugerida** fora da série enquanto a pendência CVM estiver aberta
+  (`docs/PENDENCIAS-LANCAMENTO.md`).
+- **Ao publicar:** marque ✅ na coluna "Publicado" e anote retenção em 3 s,
+  assistido até o fim, salvamentos e compartilhamentos.
 
-| Semana     | Seg — alcance (vídeo curto)                                                                     | Qua — carrossel (educação)                                          | Sex — produto em ação                                                                         |
-| ---------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| 1 · 26/10  | ✅ "Mesma geladeira: 11 ou 38 dias pra pagar?" (`alcance/melhor-dia-compra`)                    | 🛠️ Reserva de emergência: quanto é o seu número (Jornada m3)        | ✅ Teaser de lançamento (`lancamento-janeiro/`)                                               |
-| 2 · 02/11  | ✅ "Seu carro custa R$ 2.100 por mês parado" (`alcance/carro-ou-aplicativo`)                    | 🛠️ Disciplina rende mais que acerto: duas pessoas, 20 anos (m1)     | ✅ Resumo "Tudo o que o Appliquei faz", **fixar no perfil** (`resumo/appliquei-tudo-55s.mp4`) |
-| 3 · 09/11  | 🛠️ "Aluguel ou financiamento: a conta que ninguém faz" (conta na tela)                          | 🛠️ Cartão de crédito não é renda (m2)                               | ✅ Telegram (`telegram/`)                                                                     |
-| 4 · 16/11  | ✅ "Mateus investiu R$ 36 mil, Caio R$ 108 mil: quem chegou com mais?" (`alcance/comecar-cedo`) | 🛠️ Poupança: o custo do automático (m3)                             | ✅ Sonhos (`sonhos/`)                                                                         |
-| 5 · 23/11  | ✅ Black Friday: "Parcelado sem juros ou à vista com desconto?" (`alcance/avista-ou-parcelado`) | 🛠️ Ordem a mercado × ordem limitada (m4)                            | 🛠️ Aviso de caixa apertado (Reels narrado novo)                                               |
-| 6 · 30/11  | 🛠️ 13º salário: "o que fazer primeiro" (educativo, sem recomendação)                            | 🛠️ A armadilha do prazo na renda fixa (m5)                          | ✅ Meus investimentos (`investimentos/`)                                                      |
-| 7 · 07/12  | 🛠️ "Quanto o seu delivery custa em um ano"                                                      | 🛠️ A armadilha do dividend yield alto (m6)                          | ✅ Patrimônio (`patrimonio/`)                                                                 |
-| 8 · 14/12  | 🛠️ "As contas de janeiro que você esquece em dezembro" (IPVA, IPTU, escola)                     | 🛠️ Câmbio corta nos dois sentidos (m7)                              | ✅ Automações, 45 s (`resumo/appliquei-resumo-45s.mp4`)                                       |
-| 9 · 21/12  | 🛠️ "Meta de 2027 sem data é só desejo"                                                          | 🛠️ Do custo de vida ao patrimônio-alvo (m8, com aviso de simulação) | ⚠️ Carteira sugerida (`carteira-sugerida/`): só orgânico; trocar "conta aberta" antes         |
-| 10 · 28/12 | 🛠️ "Para onde foi o seu dinheiro em 2026?"                                                      | 🛠️ Checklist financeiro de janeiro                                  | 🛠️ Contagem regressiva (10–15 s, reaproveitando cenas)                                        |
-| Lançamento | ⚠️ Vídeo do dia com a oferta ("7 dias grátis, sem cartão"): confirmar a oferta antes            | Stories o dia todo                                                  | Mensagem para quem seguiu                                                                     |
+## As quatro fases
 
-## Anúncios (impulsionar, não é alcance orgânico)
+| Fase                             | Datas         | Tema                                                       | O que a pessoa sente           |
+| -------------------------------- | ------------- | ---------------------------------------------------------- | ------------------------------ |
+| 1. Abrir os olhos                | 26/10 a 13/11 | Custos invisíveis do dia a dia                             | "Eu perdia dinheiro e não via" |
+| 2. Organizar                     | 16/11 a 27/11 | Divisão do salário, reserva, Black Friday, 13º             | "Dá pra controlar"             |
+| 3. Fazer crescer e planejar 2027 | 30/11 a 26/12 | Juros compostos, inflação, Natal, contas de janeiro, metas | "Quero começar"                |
+| 4. Lançamento                    | 27/12 a 02/01 | O app, função por função                                   | "É isso que eu precisava"      |
+
+## Os 34 Reels
+
+✅ pronto · 🆕 a fazer
+
+| #   | Data      | Faltam | Reel                                                                                                      | Status | Publicado |
+| --- | --------- | ------ | --------------------------------------------------------------------------------------------------------- | ------ | --------- |
+| 1   | seg 26/10 | 68     | Mesma compra: 11 ou 38 dias pra pagar? (`alcance/melhor-dia-compra`)                                      | ✅     |           |
+| 2   | qua 28/10 | 66     | Seu banco é obrigado a te dar conta de graça (serviços essenciais × pacote de tarifas)                    | 🆕     |           |
+| 3   | sex 30/10 | 64     | Frete grátis acima de R$ 99: a pegadinha do carrinho                                                      | 🆕     |           |
+| 4   | seg 02/11 | 61     | Seu carro custa R$ 2.100 por mês. Parado. (`alcance/carro-ou-aplicativo`)                                 | ✅     |           |
+| 5   | qua 04/11 | 59     | Ganha até R$ 5 mil? Confira seu holerite (isenção do IR desde jan/2026)                                   | 🆕     |           |
+| 6   | sex 06/11 | 57     | Garantia estendida: o seguro que paga a loja                                                              | 🆕     |           |
+| 7   | seg 09/11 | 54     | Quanto o seu delivery custa em um ano                                                                     | 🆕     |           |
+| 8   | qua 11/11 | 52     | Pague-se primeiro: guardar no dia 1 ou no dia 30?                                                         | 🆕     |           |
+| 9   | sex 13/11 | 50     | Seu salário subiu e você não ficou mais rico (aumento × inflação)                                         | 🆕     |           |
+| 10  | seg 16/11 | 47     | A regra 50-30-20 em 30 segundos                                                                           | 🆕     |           |
+| 11  | qua 18/11 | 45     | Financiou um carro de R$ 80 mil? Você paga um carro e meio                                                | 🆕     |           |
+| 12  | sex 20/11 | 43     | Reserva de emergência: qual é o seu número                                                                | 🆕     |           |
+| 13  | seg 23/11 | 40     | Parcelado sem juros ou à vista com desconto? (`alcance/avista-ou-parcelado`)                              | ✅     |           |
+| 14  | qua 25/11 | 38     | Black Friday: o desconto de 25% que deixou a TV mais cara                                                 | 🆕     |           |
+| 15  | sex 27/11 | 36     | 13º: o investimento que rende 100% ao ano é quitar dívida cara (dia da Black Friday)                      | 🆕     |           |
+| 16  | seg 30/11 | 33     | R$ 100 de 2016 valem quanto hoje? (a regra dos 72 da inflação)                                            | 🆕     |           |
+| 17  | qua 02/12 | 31     | Investiu 3× menos e chegou aos 65 com mais (`alcance/comecar-cedo`)                                       | ✅     |           |
+| 18  | sex 04/12 | 29     | Quanto tempo até os primeiros R$ 100 mil                                                                  | 🆕     |           |
+| 19  | seg 07/12 | 26     | Alugar ou comprar? A regra do 0,5%                                                                        | 🆕     |           |
+| 20  | qua 09/12 | 24     | R$ 30 por mês ou R$ 300 no ano? (`alcance/mensal-ou-anual`)                                               | ✅     |           |
+| 21  | sex 11/12 | 22     | As contas de janeiro que você esquece em dezembro (IPVA, IPTU, escola)                                    | 🆕     |           |
+| 22  | seg 14/12 | 19     | Natal sem fatura em janeiro: o orçamento dos presentes                                                    | 🆕     |           |
+| 23  | qua 16/12 | 17     | Natal em 10× vira janeiro até outubro (parcelas empilhadas)                                               | 🆕     |           |
+| 24  | sex 18/12 | 15     | 2ª parcela do 13º (20/12): para onde vai cada real                                                        | 🆕     |           |
+| 25  | seg 21/12 | 12     | Para onde foi o seu dinheiro em 2026?                                                                     | 🆕     |           |
+| 26  | qua 23/12 | 10     | Teaser de mistério: "Em 10 dias, você vai parar de adivinhar" (sem tela do app)                           | 🆕     |           |
+| 27  | sáb 26/12 | 7      | Meta de 2027 sem data é só desejo (sábado: o 25/12 fica livre)                                            | 🆕     |           |
+| 28  | dom 27/12 | 6      | Sonhos (`sonhos/`)                                                                                        | ✅     |           |
+| 29  | seg 28/12 | 5      | Meus investimentos (`investimentos/`)                                                                     | ✅     |           |
+| 30  | ter 29/12 | 4      | Patrimônio (`patrimonio/`)                                                                                | ✅     |           |
+| 31  | qua 30/12 | 3      | Telegram (`telegram/`)                                                                                    | ✅     |           |
+| 32  | qui 31/12 | 2      | Automações, 45 s (`resumo/appliquei-resumo-45s.mp4`), Réveillon                                           | ✅     |           |
+| 33  | sex 01/01 | 1      | Teaser: "Você sabe quanto realmente tem?" (`lancamento-janeiro/`)                                         | ✅     |           |
+| 34  | sáb 02/01 | 0      | **Lançamento:** "Tudo o que o Appliquei faz", 55 s (`resumo/appliquei-tudo-55s.mp4`), **fixar no perfil** | ✅     |           |
+
+Os vídeos prontos de alcance são publicados na versão `appliquei-<tema>-com-capa.mp4`.
+
+## Stories, todo dia (5 a 10 minutos)
+
+| Dia           | Story                                                                     |
+| ------------- | ------------------------------------------------------------------------- |
+| Seg, qua, sex | Repost do Reel do dia + enquete sobre o tema                              |
+| Ter           | Caixa de perguntas: "Qual conta você quer que a gente faça?" (vira pauta) |
+| Qui           | Quiz de 1 pergunta (ex.: "R$ 100 por mês em 10 anos viram quanto?")       |
+| **Sáb**       | **Pista da semana** (abaixo)                                              |
+| Dom           | Resumo da semana + "Faltam X dias"                                        |
+
+### As 9 pistas de sábado
+
+Cada pista prepara um dos vídeos de produto da última semana, sem mostrar a
+tela.
+
+| Sábado | Faltam | Pista                                                                  |
+| ------ | ------ | ---------------------------------------------------------------------- |
+| 31/10  | 63     | "Você sabe quanto tem agora? Em 2027, vai saber sem abrir planilha."   |
+| 07/11  | 56     | "E se o seu dinheiro te avisasse antes de apertar?"                    |
+| 14/11  | 49     | "Lançar um gasto vai levar 3 segundos. Pelo chat."                     |
+| 21/11  | 42     | "Seus sonhos vão ter valor, prazo e quanto falta."                     |
+| 28/11  | 35     | "Seus investimentos, todos numa tela, com o quanto rendem de verdade." |
+| 05/12  | 28     | "Patrimônio é mais do que saldo. Você vai ver o seu inteiro."          |
+| 12/12  | 21     | "Faltam 3 semanas. Já ativou o lembrete?"                              |
+| 19/12  | 14     | "02/01/2027. Anota." (data + identidade visual)                        |
+| 26/12  | 7      | "Amanhã começa. Uma função por dia até o lançamento."                  |
+
+## Produção
+
+- **22 vídeos novos em 9 semanas**, 3 por semana. Toda quinta eu entrego os
+  Reels da semana seguinte (vídeo, capa e legenda) para revisão em lote.
+- **Cota de voz:** 1 pedido por vídeo, às vezes 2; cabe nos 10 por dia.
+- **Revisão em 16/11** (3 semanas de dados): os temas que mais renderem
+  ganham variações na fase 3.
+
+## Anúncios (impulsionar, fora da série)
 
 Peças com mais produto que educação. Servem para testar ganchos com R$ 10–20
-por dia, não para a segunda-feira de alcance.
+por dia.
 
 - ✅ "Abre o extrato e procura essas 3 coisas" (`alcance/tres-cobrancas`)
 - ✅ "3 sinais de que o seu dinheiro vai apertar este mês" (`alcance/tres-sinais-aperto`)
 - ✅ Automações, 45 s (`resumo/appliquei-resumo-45s.mp4`)
-
-## Stories (todo dia, 2–4)
-
-- **Enquete de dor:** "Qual destas é você?", "Você sabe quanto gastou ontem?".
-- **Bastidor:** uma tela do app sendo construída, um ajuste vindo do grupo de
-  teste.
-- **Repost:** o post do dia, com uma pergunta por cima.
-- **Caixa de perguntas** uma vez por semana. As respostas viram pauta de
-  carrossel.
-
-## Regras do calendário
-
-- **Carrossel:** conteúdo da Jornada (`web/appliquei-jornada-conteudo.js`), que
-  já está revisado. Todo número vem com "supondo" e o rodapé "Conteúdo
-  educacional: não é recomendação de investimento".
-- **Carteira sugerida:** fora do impulsionamento enquanto a pendência CVM
-  estiver aberta (`docs/PENDENCIAS-LANCAMENTO.md`).
-- **Escassez:** sem urgência ou escassez que não existam. "Lista de espera" só
-  se for criada de verdade, com o benefício real.
-- **Status:** ao publicar, marque ✅ e anote o resultado (retenção 3 s,
-  assistido até o fim, salvamentos e compartilhamentos) na linha da semana.

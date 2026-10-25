@@ -1,9 +1,10 @@
 # Conteúdo das redes: estrutura
 
-O plano completo, para ler e compartilhar, está em `plano-instagram.pdf`
-(fonte: `plano-instagram.html`; gerar de novo com
-`node marketing/conteudo/gerar-pdf.js`). O que publicar está em `CALENDARIO.md` (10 semanas até o lançamento, 3 posts
-por semana + stories). As peças ficam nesta pasta, separadas pelo pilar da
+O que publicar está em `CALENDARIO.md`: a série até o lançamento de
+02/01/2027, com 34 Reels (3 por semana e todo dia na semana do lançamento),
+contagem regressiva "Faltam X dias", stories diários e as pistas de sábado. O
+PDF simples para compartilhar, `plano-instagram.pdf`, sai do próprio
+calendário com `node marketing/conteudo/gerar-pdf.js`. As peças ficam nesta pasta, separadas pelo pilar da
 skill de marketing (`.claude/skills/marketing-saas/referencias/calendario-e-metricas.md`):
 
 | Pasta          | Pilar                               | % do total       | Para quê                                        | Formato                                                                                   |
