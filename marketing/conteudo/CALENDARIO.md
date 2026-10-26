@@ -45,7 +45,7 @@ PDF simples para compartilhar: `plano-instagram.pdf` (fonte
 | #   | Data      | Faltam | Reel                                                                                                      | Status | Publicado |
 | --- | --------- | ------ | --------------------------------------------------------------------------------------------------------- | ------ | --------- |
 | 1   | seg 26/10 | 68     | Mesma compra: 11 ou 38 dias pra pagar? (`alcance/melhor-dia-compra`)                                      | ✅     |           |
-| 2   | qua 28/10 | 66     | Seu banco é obrigado a te dar conta de graça (serviços essenciais × pacote de tarifas)                    | 🆕     |           |
+| 2   | qua 28/10 | 66     | Seu banco é obrigado a te dar conta de graça (`alcance/tarifas-banco`)                                    | ✅     |           |
 | 3   | sex 30/10 | 64     | Frete grátis acima de R$ 99: a pegadinha do carrinho                                                      | 🆕     |           |
 | 4   | seg 02/11 | 61     | Seu carro custa R$ 2.100 por mês. Parado. (`alcance/carro-ou-aplicativo`)                                 | ✅     |           |
 | 5   | qua 04/11 | 59     | Ganha até R$ 5 mil? Confira seu holerite (isenção do IR desde jan/2026)                                   | 🆕     |           |

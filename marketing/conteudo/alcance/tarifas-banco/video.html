@@ -1,0 +1,301 @@
+<!doctype html>
+<!--
+  Vídeo EDUCATIVO de alcance (≈49 s, 1080×1920), Reel #2 da série até o
+  lançamento — "Seu banco é obrigado a te dar uma conta sem tarifa. Você
+  sabia?" Formato "conta na tela". O Mateus (mau exemplo) paga um pacote de
+  R$ 40/mês há anos; o Caio (bom exemplo) trocou pelos serviços essenciais.
+  O app NÃO aparece; a marca só assina no fim, com a pista da contagem.
+
+  Fatos: Resolução CMN nº 3.919/2010 — serviços essenciais gratuitos na conta
+  de pessoa física: cartão de débito, até 4 saques, 2 extratos e 2
+  transferências por mês entre contas do próprio cliente na mesma instituição,
+  consultas pela internet. O banco pode oferecer pacote, mas não pode obrigar.
+  Pix para pessoa física é gratuito. Pacote de R$ 40/mês é exemplo (há de
+  ~R$ 9 a ~R$ 220). Conta: R$ 40 × 12 = R$ 480/ano; 120 meses a ~1% ao mês =
+  R$ 9.202.
+  Mesma mecânica dos outros vídeos: render(t) desenha o segundo t.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root {
+    --campo1: #0b1410; --campo2: #0f1f18; --campo3: #112720;
+    --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa;
+    --sinal: #34d399; --primaria: #059669; --ambar: #fbbf24; --vermelho: #f87171; --azul: #60a5fa;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--campo1); }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: linear-gradient(150deg, var(--campo1) 0%, var(--campo2) 50%, var(--campo3) 100%); }
+  .halo { position: absolute; inset: -20%;
+    background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.22), transparent 70%),
+                radial-gradient(40% 35% at 10% 90%, rgba(5,150,105,.18), transparent 70%); }
+  .malha { position: absolute; inset: 0; }
+  .cena { position: absolute; inset: 0; opacity: 0; }
+  .tit { font-weight: 900; letter-spacing: -.035em; line-height: 1.02; color: var(--tinta); }
+  .tit em { font-style: normal; color: var(--sinal); }
+  .tit em.a { color: var(--ambar); }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 200px; z-index: 20; }
+  .serie { position: absolute; right: 150px; top: 60px; padding: 10px 20px; border-radius: 99px; border: 2px solid rgba(52,211,153,.45); background: rgba(52,211,153,.12);
+    font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .12em; text-transform: uppercase; color: var(--sinal); z-index: 20; }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); z-index: 30; }
+  .el { opacity: 0; }
+  .chip { position: absolute; left: 0; right: 0; text-align: center; }
+  .chip span { display: inline-block; padding: 14px 32px; border-radius: 20px; border: 3px solid rgba(240,250,244,.4); font-size: 40px; font-weight: 800; color: var(--deck); }
+  .chip.am span { border-color: var(--ambar); color: var(--ambar); }
+  .carimbo { position: absolute; left: 0; right: 0; text-align: center; }
+  .carimbo span { display: inline-block; padding: 18px 50px; border: 7px solid var(--sinal); border-radius: 24px; color: var(--sinal); font-weight: 900; font-size: 92px; transform: rotate(-4deg); }
+
+  /* 1. Gancho */
+  .zero { position: absolute; left: 0; right: 0; top: 700px; text-align: center; }
+  .zero small { display: block; font-family: 'DM Mono', monospace; font-size: 34px; letter-spacing: .14em; text-transform: uppercase; color: var(--mudo); }
+  .zero b { display: block; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 260px; letter-spacing: -.05em; color: var(--sinal); line-height: 1.05; }
+
+  /* 2. Mateus e o extrato */
+  .quem { position: absolute; left: 90px; right: 90px; display: flex; align-items: center; gap: 30px; padding: 32px 40px; border-radius: 40px; }
+  .quem .av { flex: none; width: 120px; height: 120px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 64px; font-weight: 900; color: #052e1f; }
+  .quem b { display: block; font-size: 44px; font-weight: 900; }
+  .quem small { display: block; margin-top: 6px; font-size: 30px; color: var(--deck); }
+  .quem .v { display: block; margin-top: 4px; font-family: 'DM Mono', monospace; font-size: 64px; letter-spacing: -.04em; line-height: 1.05; }
+  .q-mateus { background: rgba(96,165,250,.12); border: 3px solid rgba(96,165,250,.55); }
+  .q-mateus .av { background: var(--azul); } .q-mateus .v { color: var(--azul); }
+  .q-caio { background: rgba(52,211,153,.12); border: 3px solid rgba(52,211,153,.55); }
+  .q-caio .av { background: var(--sinal); } .q-caio .v { color: var(--sinal); }
+  .extrato { position: absolute; left: 90px; right: 90px; top: 640px; padding: 34px 40px 20px; border-radius: 32px; background: #fff; color: #12241c; box-shadow: 0 30px 70px rgba(0,0,0,.5); }
+  .extrato .cab { font-family: 'DM Mono', monospace; font-size: 24px; letter-spacing: .12em; text-transform: uppercase; color: #51655b; padding-bottom: 14px; border-bottom: 3px dashed #c9d5cf; }
+  .extrato .ln { display: flex; justify-content: space-between; padding: 14px 0; border-bottom: 2px solid #eef3f0; font-family: 'DM Mono', monospace; font-size: 30px; opacity: 0; }
+  .extrato .ln span { color: #b91c1c; }
+  .nunca { position: absolute; left: 70px; right: 70px; top: 1380px; text-align: center; font-size: 46px; font-weight: 900; color: var(--deck); }
+
+  /* 3. A regra do Banco Central */
+  .bc { position: absolute; left: 90px; right: 90px; top: 560px; padding: 50px 44px; border-radius: 40px; text-align: center; background: rgba(240,250,244,.06); border: 3px solid rgba(52,211,153,.5); }
+  .bc svg { width: 150px; height: 150px; }
+  .bc b { display: block; margin-top: 20px; font-size: 64px; font-weight: 900; letter-spacing: -.03em; }
+  .bc small { display: block; margin-top: 14px; font-family: 'DM Mono', monospace; font-size: 26px; color: var(--mudo); }
+
+  /* 4. A lista */
+  .lista { position: absolute; left: 90px; right: 90px; top: 440px; }
+  .lista .it { display: flex; align-items: center; gap: 26px; padding: 26px 30px; margin-bottom: 18px; border-radius: 28px; background: rgba(240,250,244,.06); border: 2px solid rgba(240,250,244,.14); font-size: 42px; font-weight: 800; line-height: 1.15; opacity: 0; }
+  .lista .it i { flex: none; width: 62px; height: 62px; border-radius: 50%; background: var(--sinal); display: flex; align-items: center; justify-content: center; }
+  .lista .it i svg { width: 36px; height: 36px; }
+  .lista .it small { display: block; margin-top: 4px; font-size: 28px; font-weight: 700; color: var(--mudo); }
+  .gratis { position: absolute; left: 0; right: 0; top: 1500px; text-align: center; font-family: 'DM Mono', monospace; font-size: 44px; color: var(--sinal); }
+
+  /* 6. A conta */
+  .conta { position: absolute; left: 0; right: 0; top: 380px; text-align: center; }
+  .conta .l1 { font-family: 'DM Mono', monospace; font-size: 66px; letter-spacing: -.02em; }
+  .conta .l1 b { color: var(--azul); font-weight: 500; }
+  .conta .l1 small { font-family: 'Figtree', sans-serif; font-size: 40px; font-weight: 800; color: var(--deck); }
+  .conta .l2 { margin-top: 120px; font-size: 48px; font-weight: 800; color: var(--deck); }
+  .conta .l3 { margin-top: 20px; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 170px; letter-spacing: -.05em; color: var(--ambar); line-height: 1; }
+  .conta .l3 small { display: block; margin-top: 18px; font-family: 'Figtree', sans-serif; font-size: 44px; font-weight: 900; color: var(--tinta); letter-spacing: -.01em; }
+
+  /* 7. Regra de bolso */
+  .regra { position: absolute; left: 70px; right: 70px; top: 440px; padding: 46px 44px; border-radius: 44px; background: rgba(240,250,244,.06); border: 3px solid rgba(52,211,153,.5);
+    box-shadow: 0 0 80px rgba(52,211,153,.15); }
+  .regra .rot { font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .14em; text-transform: uppercase; color: var(--sinal); }
+  .regra .formula { margin-top: 22px; font-size: 56px; font-weight: 900; letter-spacing: -.03em; line-height: 1.15; }
+  .regra .formula em { font-style: normal; color: var(--ambar); }
+  .regra .caso { margin-top: 30px; padding-top: 28px; border-top: 2px dashed rgba(240,250,244,.25); font-size: 46px; font-weight: 800; line-height: 1.25; }
+  .regra .caso b { color: var(--sinal); }
+  .regra .ressalva { margin-top: 22px; font-size: 30px; color: var(--deck); line-height: 1.35; }
+
+  /* 8. Fecho */
+  .manda { position: absolute; left: 0; right: 0; top: 420px; text-align: center; }
+  .manda .ic { width: 160px; height: 160px; margin: 0 auto; border-radius: 44px; background: var(--sinal); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 70px rgba(52,211,153,.4); }
+  .manda .ic svg { width: 90px; height: 90px; margin-left: -8px; }
+  .manda b { display: block; margin-top: 30px; font-size: 62px; font-weight: 900; letter-spacing: -.03em; line-height: 1.1; }
+  .pista { position: absolute; left: 90px; right: 90px; top: 850px; padding: 22px 30px; border-radius: 26px; border: 2px dashed rgba(251,191,36,.6); text-align: center; font-size: 36px; font-weight: 800; color: #fde68a; line-height: 1.3; }
+  .pista b { color: var(--ambar); }
+  .assina { position: absolute; left: 0; right: 0; top: 1060px; text-align: center; }
+  .assina img { width: 400px; }
+  .assina p { margin-top: 22px; font-size: 42px; font-weight: 800; color: var(--deck); }
+  .assina p em { font-style: normal; color: var(--sinal); }
+  .aviso { position: absolute; left: 80px; right: 80px; top: 1360px; padding: 22px 26px; border-radius: 22px; background: rgba(11,20,16,.9); border: 2px solid rgba(240,250,244,.35);
+    text-align: center; font-size: 25px; line-height: 1.4; color: var(--tinta); }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <div class="halo"></div>
+  <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+  <div class="serie" id="serie">Conta de padaria</div>
+
+  <!-- 1. GANCHO -->
+  <div class="cena" id="c1">
+    <div class="tit el" id="t1" style="position:absolute;left:70px;right:70px;top:300px;text-align:center;font-size:84px;">Seu banco é<br><em class="a">obrigado</em> a te dar<br>uma conta sem tarifa</div>
+    <div class="zero el" id="z0"><small>tarifa</small><b>R$ 0</b></div>
+    <div class="chip am el" id="vs" style="top:1240px;"><span>Você sabia?</span></div>
+  </div>
+
+  <!-- 2. MATEUS E O EXTRATO -->
+  <div class="cena" id="c2">
+    <div class="quem q-mateus el" id="qm" style="top:330px;"><div class="av">M</div><div><b>Mateus</b><small>paga um pacote de</small><span class="v">R$ 40/mês</span></div></div>
+    <div class="extrato el" id="ex"><div class="cab">Extrato da conta</div><div id="lns"></div></div>
+    <div class="nunca el" id="nc">Nunca perguntou o que tem nele.</div>
+  </div>
+
+  <!-- 3. A REGRA DO BANCO CENTRAL -->
+  <div class="cena" id="c3">
+    <div class="tit" style="position:absolute;left:70px;right:70px;top:300px;text-align:center;font-size:72px;">Só que o<br><em>Banco Central</em> obriga</div>
+    <div class="bc el" id="bc">
+      <svg viewBox="0 0 64 64"><path d="M32 6 6 20h52L32 6Z" fill="#34d399"/><rect x="10" y="24" width="6" height="24" rx="2" fill="#34d399"/><rect x="22" y="24" width="6" height="24" rx="2" fill="#34d399"/><rect x="36" y="24" width="6" height="24" rx="2" fill="#34d399"/><rect x="48" y="24" width="6" height="24" rx="2" fill="#34d399"/><rect x="6" y="52" width="52" height="6" rx="2" fill="#34d399"/></svg>
+      <b>Serviços essenciais</b>
+      <small>regra para todo banco · Resolução CMN 3.919</small>
+    </div>
+    <div class="carimbo el" id="gr" style="top:1210px;"><span>de graça</span></div>
+  </div>
+
+  <!-- 4. A LISTA -->
+  <div class="cena" id="c4">
+    <div class="lista">
+      <div class="it" id="i1"><i><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="#052e1f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></i><div>Cartão de débito</div></div>
+      <div class="it" id="i2"><i><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="#052e1f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></i><div>4 saques por mês</div></div>
+      <div class="it" id="i3"><i><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="#052e1f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></i><div>2 extratos por mês</div></div>
+      <div class="it" id="i4"><i><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="#052e1f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></i><div>2 transferências por mês<small>entre contas suas, no mesmo banco</small></div></div>
+      <div class="it" id="i5"><i><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="#052e1f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></i><div>Pix<small>para pessoa física, já é grátis</small></div></div>
+    </div>
+    <div class="gratis el" id="g0">tarifa: R$ 0</div>
+  </div>
+
+  <!-- 5. O CAIO -->
+  <div class="cena" id="c5">
+    <div class="quem q-caio el" id="qc" style="top:420px;"><div class="av">C</div><div><b>Caio</b><small>só usa o essencial. Trocou o</small><span class="v" style="font-size:52px">pacote → essenciais</span></div></div>
+    <div class="zero el" id="z1" style="top:820px;"><small>tarifa do Caio</small><b>R$ 0</b></div>
+  </div>
+
+  <!-- 6. A CONTA -->
+  <div class="cena" id="c6">
+    <div class="conta">
+      <div class="l1 el" id="k1">R$ 40 × 12 = <b>R$ 480</b> <small>por ano</small></div>
+      <div class="l2 el" id="k2">Em 10 anos, rendendo*:</div>
+      <div class="l3 el" id="k3">R$ 9.200<small>que o Mateus poderia ter juntado</small></div>
+    </div>
+  </div>
+
+  <!-- 7. REGRA DE BOLSO -->
+  <div class="cena" id="c7">
+    <div class="regra">
+      <div class="rot el" id="r0">Regra de bolso</div>
+      <div class="formula el" id="f1">Abra o extrato e procure <em>"tarifa"</em> ou <em>"pacote"</em></div>
+      <div class="caso el" id="f2">Não usa o que paga?<br>→ <b>peça os serviços essenciais.</b></div>
+      <div class="ressalva el" id="f3">Usa mais que isso? Compare: às vezes um pacote menor sai mais barato que pagar cada serviço avulso.</div>
+    </div>
+  </div>
+
+  <!-- 8. FECHO -->
+  <div class="cena" id="c8">
+    <div class="manda el" id="md"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 11.5 21 3l-8.5 18-2.2-7.3z" fill="#052e1f"/></svg></div><b>Manda pra quem paga<br>tarifa sem saber</b></div>
+    <div class="pista el" id="ps">Em <b>66 dias</b>, você vai saber pra onde vai cada real.</div>
+    <div class="assina el" id="as"><img src="wordmark.svg" alt="Appliquei"><p>Mais contas assim: <em>siga o Appliquei</em></p></div>
+    <div class="aviso el" id="av">Conteúdo educacional. Serviços essenciais gratuitos pela Resolução CMN nº 3.919/2010; Pix gratuito para pessoa física. Confira as condições no seu banco. Pacote de R$ 40 é exemplo. *Supondo renda fixa perto de 1% ao mês. Personagens fictícios.</div>
+  </div>
+
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  function $(id) { return document.getElementById(id); }
+  (function () {
+    const L = 1080, A = 1920, m = [];
+    for (let x = 60; x < L; x += 60) m.push(`<line x1="${x}" y1="0" x2="${x}" y2="${A}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 60; y < A; y += 60) m.push(`<line x1="0" y1="${y}" x2="${L}" y2="${y}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    $('malha').innerHTML = m.join('');
+    $('lns').innerHTML = ['05', '06', '07', '08', '09', '10'].map((mm, i) =>
+      `<div class="ln" id="e${i}">01/${mm} TARIFA PACOTE <span>−40,00</span></div>`).join('');
+  })();
+
+  // Cenas seguem narracao.json (início de cada frase − 0,15 s).
+  const DUR = 49.5;
+  const CENAS = [['c1', 0, 4.81], ['c2', 4.81, 10.39], ['c3', 10.39, 15.24], ['c4', 15.24, 24.59], ['c5', 24.59, 30.34], ['c6', 30.34, 36.85], ['c7', 36.85, 43.5], ['c8', 43.5, 49.7]];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  function surge(el, lt, a, dur, dy) {
+    const p = easeBack(prog(lt, a, a + (dur || 0.4)));
+    el.style.opacity = clamp(p, 0, 1);
+    el.style.transform = `translateY(${(1 - p) * (dy == null ? 40 : dy)}px) scale(${0.85 + 0.15 * p})`;
+  }
+  function carimba(el, lt, a) {
+    const c = easeBack(prog(lt, a, a + 0.35));
+    el.style.opacity = clamp(c, 0, 1);
+    el.style.transform = `scale(${2 - c})`;
+  }
+
+  function render(t) {
+    for (const [id, a, b] of CENAS) {
+      const el = $(id);
+      const dentro = t >= a - 0.01 && t < b;
+      const fadeIn = id === 'c1' ? 1 : easeOut(prog(t, a, a + 0.25));
+      const fadeOut = 1 - prog(t, b - 0.2, b);
+      el.style.opacity = dentro ? Math.min(fadeIn, fadeOut) : 0;
+      el.style.display = dentro ? 'block' : 'none';
+      if (dentro) cenaExtra(id, t - a);
+    }
+    $('serie').style.opacity = t < 43.3 ? easeOut(prog(t, 0.3, 0.6)) : 1 - prog(t, 43.3, 43.6);
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+
+  // Tempos locais = fala + 0,15 s (pausas medidas na leitura).
+  function cenaExtra(id, lt) {
+    if (id === 'c1') {
+      // "Seu banco é obrigado a te dar uma conta sem tarifa" 0,15–3,25 · "Você sabia?" 3,8–4,45
+      surge($('t1'), lt, 0.05, 0.4, 30);
+      surge($('z0'), lt, 2.4, 0.4, 30);
+      surge($('vs'), lt, 3.65, 0.35, 10);
+    }
+    if (id === 'c2') {
+      // "O Mateus paga um pacote de quarenta reais por mês" 0,15–2,7 · "Há anos" 3,0–3,55 · "Nunca perguntou o que tem nele" 3,9–5,35
+      surge($('qm'), lt, 0.1, 0.4, 50);
+      surge($('ex'), lt, 2.7, 0.35, 30);
+      for (let i = 0; i < 6; i++) $('e' + i).style.opacity = prog(lt, 2.95 + i * 0.12, 3.1 + i * 0.12);
+      surge($('nc'), lt, 3.85, 0.35, 10);
+    }
+    if (id === 'c3') {
+      // "Só que o Banco Central obriga" 0,15–1,6 · "todo banco a oferecer os serviços essenciais de graça" 1,75–4,6
+      surge($('bc'), lt, 1.7, 0.4, 30);
+      carimba($('gr'), lt, 3.9);
+    }
+    if (id === 'c4') {
+      // "Cartão de débito" 0,15–1,0 · "Quatro saques e dois extratos por mês" 1,35–3,3
+      // "Duas transferências entre contas suas" 3,6–6,35 · "no mesmo banco" 6,6–7,15 · "E o Pix…" 7,3–9,0
+      [0.1, 1.35, 2.5, 3.6, 7.3].forEach((a, i) => surge($('i' + (i + 1)), lt, a, 0.35, 20));
+      surge($('g0'), lt, 8.4, 0.35, 10);
+    }
+    if (id === 'c5') {
+      // "O Caio só usa isso" 0,15–1,25 · "Pediu pra trocar o pacote pelos serviços essenciais" 1,6–4,1 · "Tarifa: zero" 4,45–5,45
+      surge($('qc'), lt, 0.1, 0.4, 40);
+      surge($('z1'), lt, 4.35, 0.4, 30);
+    }
+    if (id === 'c6') {
+      // "O Mateus paga quatrocentos e oitenta por ano" 0,15–2,45 · "Em dez anos, rendendo" 2,8–4,15 · "isso daria mais de nove mil reais" 4,25–6,2
+      surge($('k1'), lt, 0.1, 0.4, 20);
+      surge($('k2'), lt, 2.7, 0.35, 20);
+      surge($('k3'), lt, 4.2, 0.4, 30);
+    }
+    if (id === 'c7') {
+      // "Regra de bolso" 0,15–1,0 · "abre o extrato e procura tarifa ou pacote" 1,4–3,8 · "Se você não usa o que paga" 4,1–5,4 · "pede pra trocar" 5,6–6,3
+      surge($('r0'), lt, 0.1, 0.4, 20);
+      surge($('f1'), lt, 1.3, 0.4, 20);
+      surge($('f2'), lt, 4.05, 0.4, 20);
+      surge($('f3'), lt, 5.6, 0.4, 10);
+    }
+    if (id === 'c8') {
+      // "Manda pra quem paga tarifa sem saber" 0,15–1,95 · "E segue o Appliquei pra mais contas assim" 2,25–4,35
+      surge($('md'), lt, 0.1, 0.4, 40);
+      $('md').querySelector('.ic').style.transform = `scale(${1 + 0.06 * Math.sin(lt * 7) * prog(lt, 0.5, 1)})`;
+      surge($('ps'), lt, 1.2, 0.4, 10);
+      surge($('as'), lt, 2.2, 0.45, 40);
+      surge($('av'), lt, 3.0, 0.4, 10);
+      $('logoFixo').style.opacity = 1 - prog(lt, 1.9, 2.2);
+    } else $('logoFixo').style.opacity = 1;
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>

@@ -42,3 +42,25 @@ Horário de referência: 18h–21h.
 2. `stories/26-10-enquete.png` + adesivo de **enquete**: "Sim, sei o dia" /
    "Nem ideia".
 3. Repost do Reel com o texto "Saiu: o dia certo de usar o cartão 👆".
+
+## Ter 27/10 · sem Reel · Faltam 67 dias
+
+**Stories:**
+
+1. `stories/27-10-contagem.png` + o adesivo de contagem regressiva (o mesmo
+   de ontem).
+2. `stories/27-10-caixa.png` + adesivo de **caixa de perguntas**: "Qual conta
+   você quer que a gente faça?". As respostas viram pauta.
+3. Repost do Reel de ontem: "Já sabe o dia que a sua fatura fecha? 👆".
+
+## Qua 28/10 · Reel #2 · Faltam 66 dias
+
+**Reel:** `02-28-10-tarifas-banco.mp4`, capa `02-28-10-tarifas-banco-capa.png`.
+Legenda em `../alcance/tarifas-banco/LEIAME.md` (já com o "Faltam 66 dias").
+
+**Stories:**
+
+1. `stories/28-10-contagem.png` + adesivo de contagem regressiva.
+2. `stories/28-10-enquete.png` + adesivo de **enquete**: "Pago e nem sei
+   quanto" / "Não pago".
+3. Repost do Reel: "Seu banco é obrigado a te dar isso de graça 👆".
