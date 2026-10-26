@@ -39,8 +39,10 @@ svg.malha { position: absolute; inset: 0; }
   font-family: 'Syne', 'Figtree', sans-serif; font-weight: 800; font-size: 150px; letter-spacing: -.03em; line-height: 1;
   color: #f0faf4; text-shadow: 0 20px 60px rgba(0,0,0,.45); }
 .faixa em { font-style: normal; color: #34d399; }
-.sub { position: absolute; left: 0; right: 0; top: 700px; text-align: center; font-family: 'DM Mono', monospace; font-size: 34px;
-  letter-spacing: .32em; text-transform: uppercase; color: #9fb3aa; }
+.sub { position: absolute; left: 0; right: 0; top: 690px; text-align: center; font-family: 'Figtree', sans-serif; font-size: 60px; font-weight: 800;
+  letter-spacing: -.01em; color: #c8d6cf; }
+.faixa-logo { position: absolute; left: 50%; top: 150px; width: 1800px; transform: translateX(-50%); filter: drop-shadow(0 20px 60px rgba(0,0,0,.45)); }
+.sub em { font-style: normal; color: #34d399; }
 /* um bloco por post */
 .bloco { position: absolute; top: 840px; width: 900px; padding: 46px 50px; border-radius: 40px;
   background: rgba(11,20,16,.72); border: 2px solid rgba(52,211,153,.4); box-shadow: 0 30px 70px rgba(0,0,0,.35); }
@@ -54,9 +56,8 @@ svg.malha { position: absolute; inset: 0; }
 .num { position: absolute; bottom: 60px; font-family: 'DM Mono', monospace; font-size: 26px; letter-spacing: .14em; color: #6f8a7f; }
 </style></head><body>
 <div class="halo"></div><svg class="malha" viewBox="0 0 3240 1440">${malha.join('')}</svg>
-<img class="logo" style="left:90px" src="data:image/svg+xml;base64,${WM}" alt="Appliquei">
-<div class="faixa">Dinheiro com <em>direção.</em></div>
-<div class="sub">por que o Appliquei existe</div>
+<img class="faixa-logo" src="data:image/svg+xml;base64,${WM}" alt="Appliquei">
+<div class="sub">Seu dinheiro precisa de <em>direção.</em></div>
 
 <div class="bloco" style="left:90px">
   <div class="rot">Missão</div>
