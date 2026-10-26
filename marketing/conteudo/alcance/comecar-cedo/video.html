@@ -1,15 +1,15 @@
 <!doctype html>
 <!--
-  Vídeo EDUCATIVO de alcance (≈49 s, 1080×1920) — "Arthur investiu R$ 36 mil,
+  Vídeo EDUCATIVO de alcance (≈49 s, 1080×1920) — "Mateus investiu R$ 36 mil,
   Caio R$ 108 mil. Quem chegou aos 65 com mais?". Formato "conta na tela"
   (modelo-conta.html): duas pessoas, as linhas do tempo, a intuição comum
   ("o triplo, ele ganha"), a virada, o porquê (regra dos 72) e a regra
-  aplicada ao Arthur, dobra a dobra: 54 mil (35) → 108 (44) → 216 (53) →
+  aplicada ao Mateus, dobra a dobra: 54 mil (35) → 108 (44) → 216 (53) →
   432 (62) → 544 mil (65). O app não aparece; a marca só assina.
 
   A conta (conferida), supondo 8% ao ano acima da inflação, em valores de hoje
   (taxa mensal equivalente, aporte no fim de cada mês):
-    Arthur: R$ 300/mês dos 25 aos 35 (120 meses = R$ 36 mil), parado até os 65 → R$ 543.759
+    Mateus: R$ 300/mês dos 25 aos 35 (120 meses = R$ 36 mil), parado até os 65 → R$ 543.759
     Caio:   R$ 300/mês dos 35 aos 65 (360 meses = R$ 108 mil)                 → R$ 422.565
   Regra dos 72: 72 ÷ 8 = 9 anos para dobrar (exato: 9,006).
   Personagens fictícios. Os 8% são a mesma suposição do módulo 1 da Jornada.
@@ -50,8 +50,8 @@
   .pessoa b { display: block; margin-top: 18px; font-size: 54px; font-weight: 900; }
   .pessoa small { display: block; margin-top: 8px; font-size: 28px; color: var(--deck); }
   .pessoa .v { display: block; margin-top: 4px; font-family: 'DM Mono', monospace; font-size: 66px; letter-spacing: -.03em; }
-  .p-arthur { left: 60px; background: rgba(52,211,153,.12); border: 3px solid rgba(52,211,153,.55); }
-  .p-arthur .av { background: var(--sinal); } .p-arthur .v { color: var(--sinal); }
+  .p-mateus { left: 60px; background: rgba(52,211,153,.12); border: 3px solid rgba(52,211,153,.55); }
+  .p-mateus .av { background: var(--sinal); } .p-mateus .v { color: var(--sinal); }
   .p-caio { right: 60px; background: rgba(96,165,250,.12); border: 3px solid rgba(96,165,250,.55); }
   .p-caio .av { background: var(--azul); } .p-caio .v { color: var(--azul); }
 
@@ -121,15 +121,15 @@
 
   <!-- 1. GANCHO -->
   <div class="cena" id="c1">
-    <div class="pessoa p-arthur el" id="pa" style="top:560px;"><div class="av">A</div><b>Arthur</b><small>investiu</small><span class="v">R$ 36 mil</span></div>
+    <div class="pessoa p-mateus el" id="pa" style="top:560px;"><div class="av">M</div><b>Mateus</b><small>investiu</small><span class="v">R$ 36 mil</span></div>
     <div class="pessoa p-caio el" id="pc" style="top:560px;"><div class="av">C</div><b>Caio</b><small>investiu</small><span class="v">R$ 108 mil</span></div>
     <div class="tit el" id="perg" style="position:absolute;left:70px;right:70px;top:1150px;text-align:center;font-size:84px;">Quem chegou aos 65<br>com <em>mais</em>?</div>
   </div>
 
-  <!-- 2. ARTHUR -->
+  <!-- 2. MATEUS -->
   <div class="cena" id="c2">
-    <div class="tit" style="position:absolute;left:70px;right:70px;top:300px;text-align:center;font-size:74px;">Arthur começou <em>cedo</em></div>
-    <div class="regua" style="top:620px;"><div class="nome"><span style="background:var(--sinal)">A</span>Arthur</div><div class="faixa"><i id="fa2" style="left:0;background:linear-gradient(90deg,#059669,#34d399)"></i></div></div>
+    <div class="tit" style="position:absolute;left:70px;right:70px;top:300px;text-align:center;font-size:74px;">Mateus começou <em>cedo</em></div>
+    <div class="regua" style="top:620px;"><div class="nome"><span style="background:var(--sinal)">M</span>Mateus</div><div class="faixa"><i id="fa2" style="left:0;background:linear-gradient(90deg,#059669,#34d399)"></i></div></div>
     <div class="idades" style="top:780px;"><span>25</span><span>35</span><span>45</span><span>55</span><span>65</span></div>
     <div class="parou el" id="parou" style="left:345px;top:690px;">e parou</div>
     <div class="soma el" id="sa" style="top:1000px;"><small>R$ 300 por mês · 10 anos</small><b style="color:var(--sinal)">= R$ 36 mil</b></div>
@@ -138,7 +138,7 @@
   <!-- 3. CAIO -->
   <div class="cena" id="c3">
     <div class="tit" style="position:absolute;left:70px;right:70px;top:300px;text-align:center;font-size:74px;">Caio começou <em class="a">tarde</em></div>
-    <div class="regua" style="top:560px;"><div class="nome"><span style="background:var(--sinal)">A</span>Arthur</div><div class="faixa"><i style="left:0;width:25%;background:linear-gradient(90deg,#059669,#34d399)"></i></div></div>
+    <div class="regua" style="top:560px;"><div class="nome"><span style="background:var(--sinal)">M</span>Mateus</div><div class="faixa"><i style="left:0;width:25%;background:linear-gradient(90deg,#059669,#34d399)"></i></div></div>
     <div class="regua" style="top:760px;"><div class="nome"><span style="background:var(--azul)">C</span>Caio</div><div class="faixa"><i id="fc3" style="left:25%;background:linear-gradient(90deg,#2563eb,#60a5fa)"></i></div></div>
     <div class="idades" style="top:920px;"><span>25</span><span>35</span><span>45</span><span>55</span><span>65</span></div>
     <div class="soma el" id="sc" style="top:1080px;"><small>R$ 300 por mês · 30 anos</small><b style="color:var(--azul)">= R$ 108 mil</b><small style="margin-top:10px;color:var(--ambar);">o triplo</small></div>
@@ -152,11 +152,11 @@
       <svg viewBox="0 0 940 860" preserveAspectRatio="none">
         <line x1="0" y1="800" x2="940" y2="800" stroke="rgba(240,250,244,.25)" stroke-width="3"/>
         <path id="cCaio" fill="none" stroke="#60a5fa" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-        <path id="cArthur" fill="none" stroke="#34d399" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+        <path id="cMateus" fill="none" stroke="#34d399" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
         <text x="0" y="850" fill="#9fb3aa" font-family="DM Mono" font-size="28">25 anos</text>
         <text x="940" y="850" fill="#9fb3aa" font-family="DM Mono" font-size="28" text-anchor="end">65 anos</text>
       </svg>
-      <div class="rot-final el" id="rA" style="top:30px;background:rgba(52,211,153,.18);border:2px solid #34d399;color:#34d399;"><small style="color:#d1fae5">Arthur · pôs R$ 36 mil</small>R$ 544 mil</div>
+      <div class="rot-final el" id="rA" style="top:30px;background:rgba(52,211,153,.18);border:2px solid #34d399;color:#34d399;"><small style="color:#d1fae5">Mateus · pôs R$ 36 mil</small>R$ 544 mil</div>
       <div class="rot-final el" id="rC" style="top:200px;background:rgba(96,165,250,.16);border:2px solid #60a5fa;color:#60a5fa;"><small style="color:#dbeafe">Caio · pôs R$ 108 mil</small>R$ 423 mil</div>
     </div>
     <div class="conclusao el" id="conc">Quem começou antes<br>terminou com <em>mais</em>.</div>
@@ -172,9 +172,9 @@
     </div>
   </div>
 
-  <!-- 6. AS DOBRAS DO ARTHUR -->
+  <!-- 6. AS DOBRAS DO MATEUS -->
   <div class="cena" id="c6">
-    <div class="tit" style="position:absolute;left:70px;right:70px;top:250px;text-align:center;font-size:68px;">O dinheiro do Arthur,<br><em>dobrando sozinho</em></div>
+    <div class="tit" style="position:absolute;left:70px;right:70px;top:250px;text-align:center;font-size:68px;">O dinheiro do Mateus,<br><em>dobrando sozinho</em></div>
     <div class="escada" id="escada"></div>
     <div class="nota-escada el" id="ne">Sem pôr <em>mais nada</em>.<small>O do Caio teve menos tempo para dobrar.</small></div>
   </div>
@@ -209,7 +209,7 @@
     }
     return s;
   }
-  const ARTHUR = serie(0, 120), CAIO = serie(120, 480);
+  const MATEUS = serie(0, 120), CAIO = serie(120, 480);
   const MAX = 560000;
 
   // Cenas seguem narracao.json (início de cada frase − 0,15 s).
@@ -252,7 +252,7 @@
 
   function cenaExtra(id, lt) {
     if (id === 'c1') {
-      // "Arthur investiu 36 mil" 0,2–2,1 · "Caio, 108 mil" 2,3–3,7 · "Quem chegou aos 65 com mais?" 3,9–6,5
+      // "Mateus investiu 36 mil" 0,2–2,1 · "Caio, 108 mil" 2,3–3,7 · "Quem chegou aos 65 com mais?" 3,9–6,5
       surge($('pa'), lt, 0.15, 0.4, 60);
       surge($('pc'), lt, 2.2, 0.4, 60);
       surge($('perg'), lt, 3.8, 0.4, 30);
@@ -272,12 +272,12 @@
       surge($('certo'), lt, 4.8, 0.35, 30);
     }
     if (id === 'c4') {
-      // "Errado." 0,15 · "Arthur chega com 544 mil" 0,8–3,0 · "Caio, com 423" 3,1–4,9
+      // "Errado." 0,15 · "Mateus chega com 544 mil" 0,8–3,0 · "Caio, com 423" 3,1–4,9
       const e = easeBack(prog(lt, 0.05, 0.35));
       $('errado').style.opacity = clamp(e, 0, 1);
       $('errado').style.transform = `scale(${2 - e})`;
       const p = easeInOut(prog(lt, 0.4, 3.4));
-      $('cArthur').setAttribute('d', caminho(ARTHUR, 480 * p));
+      $('cMateus').setAttribute('d', caminho(MATEUS, 480 * p));
       $('cCaio').setAttribute('d', caminho(CAIO, 480 * p));
       surge($('rA'), lt, 2.9, 0.35, 20);
       surge($('rC'), lt, 4.1, 0.35, 20);

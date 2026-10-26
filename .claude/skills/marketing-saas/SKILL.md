@@ -64,7 +64,9 @@ por quê. Banco de ganchos e estruturas em `referencias/formatos.md`.
 ### 3. Escrever e produzir
 
 - **Copy:** gancho nos 2 primeiros segundos/linha; uma ideia por bloco;
-  números concretos do app; CTA único no fim.
+  números concretos do app; CTA único no fim. Quando a história pede
+  personagens, são sempre **Caio e Mateus** (fictícios, com "Personagens
+  fictícios" no aviso). O **Mateus é sempre o mau exemplo** e o **Caio, o bom**.
 - **Visual:** identidade em `marketing/clareza-instrumental.md` (campo verde
   escuro, malha fina, Syne/Figtree/DM Mono, verde-sinal `#34d399`). Use as
   ferramentas de `marketing/ferramentas/` em vez de desenhar do zero.
@@ -102,6 +104,7 @@ Todas usam as fontes da marca: rode `marketing/fontes.sh` uma vez antes.
 | `telas-app.js`               | Captura telas reais do app no celular (Início, Patrimônio, Sonhos, Simulador, Extrato, aviso de aperto) com dados de exemplo e ícones                                                                                       | precisa do app servido: `npm run build && npx vite preview --port 4173`; depois `node marketing/ferramentas/telas-app.js <pasta-saida>` |
 | `shorts/`                    | Vídeo vertical 1080×1920 de 30 s a partir de cenas HTML (o `video.html` é o modelo do primeiro Shorts), com narração opcional                                                                                               | ver `marketing/ferramentas/shorts/LEIAME.md`                                                                                            |
 | `shorts/modelo-conta.html`   | Vídeo **educativo de alcance** ("conta na tela", 25–35 s): duas opções, exemplo, a intuição comum, a virada com o número, regra de bolso e "salva". O app não aparece; a marca só assina                                    | ver `marketing/conteudo/LEIAME.md`                                                                                                      |
+| `shorts/capa.js`             | **Capa** de Reels/Shorts (1080×1920) com a frase do gancho e o número em destaque, dentro do recorte 3:4 da grade. Todo vídeo novo sai com `capa.png`                                                                       | `node marketing/ferramentas/shorts/capa.js capa.json capa.png`                                                                          |
 | `shorts/modelo-alcance.html` | Vídeo "lista de 3" de 15–25 s, melhor como anúncio de diferencial ("lista de 3": gancho, extrato de exemplo, 3 itens, "salva e manda", fecho com o app). Trilha: `shorts/trilha-alcance.py` lê os tempos do `narracao.json` | ver `marketing/conteudo/LEIAME.md`                                                                                                      |
 
 Narração: a voz padrão da marca é a **Charon** do TTS do Gemini

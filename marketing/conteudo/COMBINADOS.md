@@ -1,0 +1,83 @@
+# Combinados com o fundador (marketing e redes)
+
+Fonte única do que já foi decidido. Ler antes de produzir qualquer peça e
+lembrar o fundador do que estiver pendente. Atualizar quando um combinado
+mudar (com a data).
+
+## Série até o lançamento (aprovada em 25/10/2026)
+
+- **Lançamento:** sábado, **02/01/2027**. Calendário em `CALENDARIO.md` (PDF
+  simples gerado dele com `node marketing/conteudo/gerar-pdf.js`).
+- **Ritmo:** **3 Reels por semana** (seg, qua, sex) de 26/10 a 26/12 e **todo
+  dia** de 27/12 a 02/01 (os 7 vídeos de produto prontos). 34 Reels: 12
+  prontos e 22 novos.
+- **Stories todo dia.** O story de contagem é um **vídeo curto de suspense, o
+  "relógio"** (6–8 s, sem narração, só som): o número de ontem vira o de
+  hoje, "Algo novo em 2027.", espaço para o adesivo de contagem regressiva
+  "Lançamento Appliquei" (02/01/2027, 00:00). **Aos sábados**, o relógio
+  traz a **pista da semana** no lugar da frase (`CALENDARIO.md`). Gerar com
+  `marketing/ferramentas/shorts/relogio.js`.
+- **Selo "Faltam X dias"** em todo Reel (`contagem.js`) e linha "⏳ Faltam X
+  dias…" na legenda.
+- **Até 26/12 o app não aparece.** Pistas falam do que a pessoa vai sentir,
+  nunca de telas. Sem urgência ou escassez inventadas (CONAR).
+- **Reel #2 (qua 28/10) é o "Parcelado ou à vista?"**; o das tarifas foi para
+  seg 23/11 (trocados a pedido do fundador em 25/10).
+
+## Produção e entrega
+
+- **Lembrete diário** (tarefa agendada `trig_019vXHyXmHucriBQz9u1PASR`, 9h56,
+  horário de Brasília): produz e manda o pacote do dia seguinte e lembra os
+  pendentes. Desligar depois de 02/01/2027.
+
+- **Um dia por vez:** cada dia se produz só o pacote do dia seguinte.
+- **Pacote para quem posta:** um **bloco de texto por postagem**, pronto para
+  copiar e encaminhar, **sem nome de arquivo** (chamar a imagem/vídeo pelo que
+  mostra), com **horário**, passo a passo, **legenda e hashtags** (stories
+  também levam 2–3 hashtags). Mandar os arquivos junto.
+- **Três redes, o mesmo vídeo e a mesma capa** (arquivo original, nunca o
+  baixado de outra rede com marca d'água). O Reel vai para **Instagram,
+  TikTok e YouTube Shorts**, com um bloco de texto para cada rede:
+  - **Instagram:** legenda completa, 5 hashtags, capa pela galeria, CTA "ativa
+    o lembrete nos stories". Stories só no Instagram.
+  - **TikTok:** legenda curta (gancho + regra em 1–2 frases + CTA "segue pra
+    não perder"), 4–5 hashtags, capa = primeiro quadro.
+  - **YouTube Shorts:** título de até 100 caracteres com a pergunta do gancho
+    e `#shorts`, descrição curta com a regra, aviso e 3–4 hashtags, CTA
+    "inscreva-se"; capa = primeiro quadro (escolher no app do YouTube).
+- **Horários (fundador, 26/10): os mesmos nas três redes.** Story 8h30 e
+  12h30 (Instagram), **Reel às 19h no Instagram, TikTok e YouTube Shorts**,
+  repost no story 19h30. Ajustar pelas estatísticas de cada rede depois de 3
+  semanas.
+- Guia diário com os arquivos: `publicar/LEIAME.md`; arquivos em `publicar/`.
+
+## Como os vídeos são feitos
+
+- **Voz:** sempre a **Charon** (Gemini TTS). Regravar o roteiro inteiro num
+  pedido só (frase emendada muda volume e tom). Trocar palavras que o TTS
+  confunde no contexto ("caro" num vídeo sobre "carro" → "pesa no bolso").
+- **Personagens:** sempre **Caio e Mateus**, fictícios. **Mateus é sempre o
+  mau exemplo; Caio, o bom.** (Vale para vídeos novos desde 23/10.)
+- **Formato que funciona:** "conta na tela", educativo primeiro, situação do
+  dia a dia, conta que surpreende, regra de bolso, Mateus × Caio, didático.
+  Ideias rejeitadas: repetir o tema "pagar antes com desconto", queda de 50%
+  (não é do dia a dia), cheque especial, horas de trabalho, álcool ou
+  gasolina.
+- **Capa** com a frase do gancho em todo vídeo (`capa.js`), na capa e no
+  primeiro quadro (`appliquei-<tema>-com-capa.mp4`).
+- **Números conferidos com fonte** antes de gravar; aviso educacional e
+  "Personagens fictícios" no fim; nada de recomendação (CVM).
+
+## Pendentes (lembrar o fundador)
+
+- **Métricas:** pedir os números de cada Reel no dia seguinte (visualizações,
+  retenção, salvamentos, compartilhamentos) e anotar no calendário. Revisão
+  dos temas em **16/11**.
+- **Tarifas do banco (23/11):** renderizar de novo antes de postar (o mp4
+  ainda diz "Em 66 dias"; o `video.html` já diz 40).
+- **Carteira sugerida:** trocar a cena "conta aberta" por "O próximo aporte,
+  com o cálculo à vista" (o fundador deixou para depois) e resolver a
+  pendência CVM antes de usar.
+- **Adiados pelo fundador:** Jornada em vídeos longos; postagem automática
+  pela API do Instagram.
+- **Os 12 vídeos prontos** ganham o selo "Faltam X dias" na véspera de cada um.

@@ -5,9 +5,12 @@ passo a passo e a pessoa sai com uma regra de bolso para repassar. O app não
 aparece. A marca só assina no fim ("Mais contas assim: siga o Appliquei"). É a
 base do `marketing/ferramentas/shorts/modelo-conta.html`.
 
+- `appliquei-avista-ou-parcelado-com-capa.mp4`: **o arquivo para postar**: a capa no primeiro
+  quadro (0,1 s, vira a miniatura no TikTok e no Shorts) e embutida no arquivo.
 - `appliquei-avista-ou-parcelado.mp4`: final, narrado (-15 LUFS).
 - `video.html`, `narracao.json`, `narracao-charon-leitura.wav`, `trilha.wav`
   (`trilha-alcance.py … --sem-moedas`).
+- `capa.png` (`capa.json`): capa com a frase do gancho (`capa.js`).
 
 ## A conta (conferida)
 

@@ -1,9 +1,10 @@
 # Conteúdo das redes: estrutura
 
-O plano completo, para ler e compartilhar, está em `plano-instagram.pdf`
-(fonte: `plano-instagram.html`; gerar de novo com
-`node marketing/conteudo/gerar-pdf.js`). O que publicar está em `CALENDARIO.md` (10 semanas até o lançamento, 3 posts
-por semana + stories). As peças ficam nesta pasta, separadas pelo pilar da
+O que publicar está em `CALENDARIO.md`: a série até o lançamento de
+02/01/2027, com 34 Reels (3 por semana e todo dia na semana do lançamento),
+contagem regressiva "Faltam X dias", stories diários e as pistas de sábado. O
+PDF simples para compartilhar, `plano-instagram.pdf`, sai do próprio
+calendário com `node marketing/conteudo/gerar-pdf.js`. As peças ficam nesta pasta, separadas pelo pilar da
 skill de marketing (`.claude/skills/marketing-saas/referencias/calendario-e-metricas.md`):
 
 | Pasta          | Pilar                               | % do total       | Para quê                                        | Formato                                                                                   |
@@ -38,11 +39,24 @@ Modelos:
   `#34d399`, logo no canto e barra de progresso embaixo. Os modelos já trazem
   isso.
 - **Voz:** sempre a Charon (`narrar-gemini.py`), com as perguntas subindo o
-  tom no fim.
+  tom no fim. Ao corrigir uma frase, regrave o roteiro inteiro num pedido só:
+  frase emendada de outro pedido sai com outro volume e outro tom. Evite
+  palavras que o TTS confunde com outra do mesmo vídeo ("caro" num vídeo sobre
+  "carro"): troque a palavra em vez de confiar na pronúncia.
+- **Personagens:** sempre **Caio e Mateus** (fictícios), quando a conta
+  pedir duas pessoas. Nada de nomes novos a cada vídeo; diga "Personagens
+  fictícios" no aviso. **O Mateus é sempre o mau exemplo** (quem escolhe
+  errado, chuta errado ou cai na pegadinha) e o **Caio, o bom exemplo**. Vale
+  a partir de 23/10/2026; os vídeos anteriores ficam como estão.
 - **Antes de publicar:** rode o checklist de
   `.claude/skills/marketing-saas/referencias/voz-e-compliance.md`.
 - **Nas peças de alcance, o app só aparece no fecho.** Nos últimos 3–5 s, com
   o aviso real do app que resolve a dor.
+- **Capa com a frase do gancho:** todo vídeo sai com `capa.png`
+  (`marketing/ferramentas/shorts/capa.js`), com a frase que faz parar e o
+  número em destaque, dentro do recorte 3:4 da grade do perfil. No Instagram,
+  suba a capa em "Editar capa" › "Adicionar da galeria". No TikTok e no
+  YouTube Shorts, escolha o quadro do gancho e escreva a mesma frase por cima.
 - **Um vídeo vira três:** publique o mesmo arquivo como Reels, TikTok e YouTube
   Shorts.
 - **Medir:** retenção nos 3 s acima de 60%, assistido até o fim acima de 30% e
@@ -62,6 +76,13 @@ ROTEIRO=$D/narracao.json python3 marketing/ferramentas/shorts/narrar-gemini.py /
 python3 marketing/ferramentas/shorts/trilha-alcance.py $D/narracao.json /tmp/trilha.wav
 ffmpeg -i /tmp/trilha.wav -af "lowpass=f=13000,volume=3dB,alimiter=limit=0.70:level=disabled:attack=1:release=60" $D/trilha.wav
 node marketing/ferramentas/shorts/render.js /tmp/r $D/video.html
+# 3. capa: escreva $D/capa.json ({"frase": "…<em>número</em>…", "apoio": "…"})
+node marketing/ferramentas/shorts/capa.js $D/capa.json $D/capa.png
+# 4. arquivo para postar: capa no 1º quadro (0,1 s) e embutida no arquivo
+ffmpeg -loop 1 -framerate 30 -t 0.1 -i $D/capa.png -i $D/appliquei-<tema>.mp4 -i $D/capa.png \
+  -filter_complex "[0:v]scale=1080:1920,setsar=1,format=yuv420p[c];[1:v]fps=30,setsar=1,format=yuv420p[v];[c][v]concat=n=2:v=1:a=0[vo];[1:a]adelay=100:all=1[ao]" \
+  -map "[vo]" -map "[ao]" -map 2:v -c:v:0 libx264 -crf 18 -c:a aac -b:a 192k -c:v:1 png -disposition:v:1 attached_pic \
+  -movflags +faststart $D/appliquei-<tema>-com-capa.mp4
 python3 marketing/ferramentas/shorts/mixar-narracao.py /tmp/voz $D/trilha.wav /tmp/r/video-sem-audio.mp4 $D/appliquei-<tema>.mp4
 ```
 
