@@ -3,7 +3,7 @@
 // frase grande atravessa os três, e cada post tem um bloco: Missão, Visão e
 // Valores (tirados do carrossel "Por que o Appliquei existe").
 //
-//   node marketing/conteudo/fixados/gerar-fixados.js
+//   node marketing/conteudo/fixados/gerar-fixados.js [logo|direcao|conquistas]
 //
 // Gera fixado-1.png, fixado-2.png, fixado-3.png (ordem de postagem: 3, 2, 1,
 // para o 1 ficar à esquerda na grade) e grade.png (prévia de como fica no
@@ -23,6 +23,29 @@ for (let x = 60; x < 3240; x += 60)
 for (let y = 60; y < 1440; y += 60)
   malha.push(`<line x1="0" y1="${y}" x2="3240" y2="${y}" stroke="#f0faf4" stroke-opacity=".03"/>`);
 
+const VARIANTES = {
+  logo: {
+    topo: `<img class="faixa-logo" src="data:image/svg+xml;base64,${WM}" alt="Appliquei">`,
+    sub: 'Seu dinheiro precisa de <em>direção.</em>',
+  },
+  direcao: {
+    topo: '<div class="faixa">Dinheiro com <em>direção.</em></div>',
+    sub: 'Por que o Appliquei existe',
+  },
+  conquistas: {
+    topo: '<div class="faixa duas">Pequenas atitudes,<br><em>grandes conquistas.</em></div>',
+    sub: 'Por que o Appliquei existe',
+  },
+};
+const variante = process.argv[2] || 'logo';
+const V = VARIANTES[variante];
+if (!V) {
+  console.error('variantes: ' + Object.keys(VARIANTES).join(', '));
+  process.exit(1);
+}
+const PASTA = path.join(__dirname, variante);
+fs.mkdirSync(PASTA, { recursive: true });
+
 const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><style>
 ${FONTES}
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -39,6 +62,8 @@ svg.malha { position: absolute; inset: 0; }
   font-family: 'Syne', 'Figtree', sans-serif; font-weight: 800; font-size: 150px; letter-spacing: -.03em; line-height: 1;
   color: #f0faf4; text-shadow: 0 20px 60px rgba(0,0,0,.45); }
 .faixa em { font-style: normal; color: #34d399; }
+.faixa.duas { top: 300px; font-size: 140px; line-height: 1.1; }
+.logo { position: absolute; left: 90px; top: 80px; width: 260px; }
 .sub { position: absolute; left: 0; right: 0; top: 690px; text-align: center; font-family: 'Figtree', sans-serif; font-size: 60px; font-weight: 800;
   letter-spacing: -.01em; color: #c8d6cf; }
 .faixa-logo { position: absolute; left: 50%; top: 150px; width: 1800px; transform: translateX(-50%); filter: drop-shadow(0 20px 60px rgba(0,0,0,.45)); }
@@ -56,8 +81,9 @@ svg.malha { position: absolute; inset: 0; }
 .num { position: absolute; bottom: 60px; font-family: 'DM Mono', monospace; font-size: 26px; letter-spacing: .14em; color: #6f8a7f; }
 </style></head><body>
 <div class="halo"></div><svg class="malha" viewBox="0 0 3240 1440">${malha.join('')}</svg>
-<img class="faixa-logo" src="data:image/svg+xml;base64,${WM}" alt="Appliquei">
-<div class="sub">Seu dinheiro precisa de <em>direção.</em></div>
+${V.topo}
+<div class="sub">${V.sub}</div>
+${variante === 'logo' ? '' : `<img class="logo" src="data:image/svg+xml;base64,${WM}" alt="Appliquei">`}
 
 <div class="bloco" style="left:90px">
   <div class="rot">Missão</div>
@@ -88,11 +114,11 @@ svg.malha { position: absolute; inset: 0; }
   const p = await b.newPage({ viewport: { width: 3240, height: 1440 } });
   await p.setContent(html);
   await p.evaluate(() => document.fonts.ready);
-  const pano = path.join(__dirname, 'panorama.png');
+  const pano = path.join(PASTA, 'panorama.png');
   await p.screenshot({ path: pano });
   await b.close();
   for (let i = 0; i < 3; i++) {
-    const saida = path.join(__dirname, `fixado-${i + 1}.png`);
+    const saida = path.join(PASTA, `fixado-${i + 1}.png`);
     execFileSync('ffmpeg', [
       '-y',
       '-loglevel',
@@ -110,14 +136,14 @@ svg.malha { position: absolute; inset: 0; }
     '-loglevel',
     'error',
     '-i',
-    path.join(__dirname, 'fixado-1.png'),
+    path.join(PASTA, 'fixado-1.png'),
     '-i',
-    path.join(__dirname, 'fixado-2.png'),
+    path.join(PASTA, 'fixado-2.png'),
     '-i',
-    path.join(__dirname, 'fixado-3.png'),
+    path.join(PASTA, 'fixado-3.png'),
     '-filter_complex',
     '[0]pad=iw+6:ih:0:0:white[a];[1]pad=iw+6:ih:0:0:white[b];[a][b][2]hstack=3,scale=1200:-1',
-    path.join(__dirname, 'grade.png'),
+    path.join(PASTA, 'grade.png'),
   ]);
-  console.log('gerado: fixado-1..3.png, panorama.png e grade.png em', __dirname);
+  console.log('gerado: fixado-1..3.png, panorama.png e grade.png em', PASTA);
 })();
