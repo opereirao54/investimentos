@@ -2,7 +2,7 @@
   "id": "/app",
   "name": "Appliquei — Gestão Financeira",
   "short_name": "Appliquei",
-  "description": "Controle de patrimônio, investimentos, metas e Applicash em um só lugar.",
+  "description": "Controle do mês, patrimônio, investimentos e metas em um só lugar.",
   "lang": "pt-BR",
   "dir": "ltr",
   "start_url": "/app",

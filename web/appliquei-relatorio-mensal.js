@@ -305,7 +305,7 @@ function buildMonthlyReport(yyyymm) {
 }
 
 // ====== Régua do score — as três faixas de cor ======
-// Fonte única das faixas do termômetro: o score (média dos 5 critérios, cada
+// Fonte única das faixas do termômetro: o score (média dos critérios, cada
 // um valendo 100/50/0) vira cor, rótulo e recomendação a partir daqui — na
 // aba, no gauge e no PDF. Mudou a régua neste array, mudou nos três lugares.
 var RM_SCORE_PONTOS = 101; // 0..100 inclusive — a largura de cada faixa sai daqui
@@ -453,7 +453,13 @@ function rmBarraFaixasHtml(score, opts) {
   );
 }
 
-// Termômetro — 5 critérios → score 0-100 + status por critério
+// Applicash (indicações) fora do ar até nova decisão — ver APPLICASH_ATIVO no
+// <head> do app. Sem a flag (sandbox do PDF, testes) vale desligado.
+function rmApplicashAtivo() {
+  return typeof window !== 'undefined' && window.APPLICASH_ATIVO === true;
+}
+
+// Termômetro — 4 critérios (5 com o Applicash no ar) → score 0-100 + status por critério
 function rmCalcularTermometro(rep) {
   const criterios = [];
   // 1. Despesas ≤ 60% (verde), 60-75% (amarelo), >75% (vermelho)
@@ -507,17 +513,21 @@ function rmCalcularTermometro(rep) {
     status: stJor,
     icone: 'ph-graduation-cap',
   });
-  // 5. Applicash: ≥2 (verde), 1 (amarelo), 0 (vermelho)
-  let stApp = 'vermelho';
-  if (rep.applicash.indicacoes >= 2) stApp = 'verde';
-  else if (rep.applicash.indicacoes === 1) stApp = 'amarelo';
-  criterios.push({
-    label: 'Applicash — indicações ativas',
-    valor: rep.applicash.indicacoes + ' ativa(s)',
-    meta: '≥ 2',
-    status: stApp,
-    icone: 'ph-currency-dollar',
-  });
+  // 5. Applicash: ≥2 (verde), 1 (amarelo), 0 (vermelho). Só com o programa
+  // no ar: desligado, contava vermelho para todo mundo e puxava a nota para
+  // baixo por algo que o usuário nem tem como fazer.
+  if (rmApplicashAtivo()) {
+    let stApp = 'vermelho';
+    if (rep.applicash.indicacoes >= 2) stApp = 'verde';
+    else if (rep.applicash.indicacoes === 1) stApp = 'amarelo';
+    criterios.push({
+      label: 'Applicash — indicações ativas',
+      valor: rep.applicash.indicacoes + ' ativa(s)',
+      meta: '≥ 2',
+      status: stApp,
+      icone: 'ph-currency-dollar',
+    });
+  }
 
   // Score = média ponderada (cada critério vale 20 pontos; verde=100%, amarelo=50%, vermelho=0%, cinza=neutro)
   const pesos = { verde: 100, amarelo: 50, vermelho: 0, cinza: 50 };
@@ -685,7 +695,13 @@ function rmRenderTermometro(rep, repB) {
         '<strong>Crítico.</strong> Vários pilares fora do alvo. Foque em revisar despesas e retomar aportes.';
     // A faixa e seus limites ficam na régua logo abaixo — repeti-los aqui só
     // faria a frase dizer "atenção" duas vezes.
-    resumo.innerHTML = txt + ' Score ponderado dos 5 critérios abaixo — ' + t.score + '/100.';
+    resumo.innerHTML =
+      txt +
+      ' Score ponderado dos ' +
+      t.criterios.length +
+      ' critérios abaixo — ' +
+      t.score +
+      '/100.';
   }
 
   // Barra das faixas com a atual destacada.
@@ -948,7 +964,7 @@ function rmRenderSecundarios(rep) {
     tagApp +
     '</div></div>';
 
-  grid.innerHTML = sonhosHtml + jornadaHtml + appHtml;
+  grid.innerHTML = sonhosHtml + jornadaHtml + (rmApplicashAtivo() ? appHtml : '');
 }
 
 // ====== Gráficos premium ======

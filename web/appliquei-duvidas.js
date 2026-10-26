@@ -38,7 +38,7 @@ var FAQ_DADOS = [
     cat: 'conta',
     catLbl: 'Conta',
     p: 'Quanto custa e quais as formas de pagamento?',
-    r: 'O plano mensal é de <strong>R$ 15,00</strong>. Você escolhe entre <strong>cartão de crédito</strong> (renovação automática) ou <strong>Pix / boleto</strong>. Com um cupom de indicação, o preço cai <strong>10%</strong> em qualquer forma de pagamento.',
+    r: 'O plano mensal é de <strong>R$ 15,00</strong>. Você escolhe entre <strong>cartão de crédito</strong> (renovação automática) ou <strong>Pix / boleto</strong>.',
   },
   {
     cat: 'conta',
@@ -332,6 +332,9 @@ function renderizarFaq() {
   const termo = (document.getElementById('faqBuscaInput')?.value || '').toLowerCase().trim();
   const cat = document.getElementById('faqCategoriaFiltro')?.value || '';
   const filtrados = FAQ_DADOS.map((item, idx) => ({ ...item, idx })).filter((item) => {
+    // Applicash fora do ar: as perguntas dele saem da lista (o idx fica, para
+    // abrirFaqItem continuar apontando para o item certo).
+    if (item.cat === 'applicash' && window.APPLICASH_ATIVO !== true) return false;
     if (cat && item.cat !== cat) return false;
     if (!termo) return true;
     return item.p.toLowerCase().includes(termo) || item.r.toLowerCase().includes(termo);

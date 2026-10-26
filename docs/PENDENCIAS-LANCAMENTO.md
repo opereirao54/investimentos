@@ -3,7 +3,36 @@
 Lista viva do que falta para abrir a Appliquei a mais testadores e depois
 divulgar. Ao concluir um item, mova-o para "Feito" com a data e o PR.
 
-Última revisão: 12/10/2026.
+Última revisão: 26/10/2026.
+
+## Entrada em produção (cobrança de verdade)
+
+O código está pronto (26/10/2026); o resto é painel. Passo a passo completo em
+`BILLING.md` → "Virada do sandbox para a produção".
+
+- [ ] **Conta Asaas de produção aprovada** (documentos da empresa + conta
+      bancária para saque).
+- [ ] **Chave de produção** (`$aact_prod_...`) em `ASAAS_API_KEY`, só no
+      ambiente _Production_ da Vercel; _Preview_ fica com a do sandbox.
+      `ASAAS_API_URL=https://api.asaas.com/v3` (ou vazia).
+- [ ] **`ASAAS_WEBHOOK_TOKEN` novo** + **webhook criado na conta de produção**
+      com todos os eventos de Cobrança e Assinatura (inclui os quatro do item
+      "Webhook da Asaas" abaixo).
+- [ ] **Redeploy** e **teste com cartão real**: assinar → acesso liberado →
+      webhook `200` no painel → estornar → acesso cai.
+- [ ] **Plano Pro da Vercel.** O Hobby é só para uso pessoal, não comercial:
+      cobrar assinatura em cima dele viola os termos da Vercel. O Pro também
+      tira o teto de 12 funções e dá o Spend Management do item "Teto de gastos".
+- [ ] **Domínio próprio** (ex.: appliquei.com.br). Hoje o canônico é
+      `investimentos-ebon.vercel.app` (script no `<head>` do app). Ao trocar:
+      canônico no app, URL do webhook no Asaas, domínios autorizados no
+      Firebase Auth e webhook do Telegram (`npm run telegram:webhook`).
+- [ ] **Cadastro aberto**: desligar "cadastro só com convite" no admin no dia
+      de abrir para o público.
+- [ ] **Sentry do navegador**: `window.__APPLIQUEI_SENTRY_DSN__` está vazio no
+      HTML (só o servidor reporta erro hoje).
+- [ ] **Termos v2026-10-26**: saiu a seção do Applicash; todos aceitam de
+      novo no próximo acesso. Entra na revisão jurídica abaixo.
 
 ## Jurídico (antes de divulgar)
 
@@ -50,6 +79,10 @@ divulgar. Ao concluir um item, mova-o para "Feito" com a data e o PR.
 
 ## Feito
 
+- 26/10/2026 · produção — Applicash desligado (tela: `APPLICASH_ATIVO` no
+  `<head>` do app; servidor: `APPLICASH_ENABLED`); "Pro + IA" fora da landing e
+  do app (um plano só); Asaas: ambiente pela chave, erro claro com chave e URL
+  trocadas, troca automática do cliente do sandbox no `/subscribe`.
 - 11/10/2026 · #153 — Termos de Uso + aceite registrado no servidor; Política
   com Telegram/Gemini/GitHub; termo do testador; Sentry sem dados pessoais;
   "sugestão" no lugar de "recomendação"; selo Beta; razão social e CNPJ.
