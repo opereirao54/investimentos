@@ -26,6 +26,10 @@ mudar (com a data).
 
 ## Produção e entrega
 
+- **Lembrete diário** (tarefa agendada `trig_019vXHyXmHucriBQz9u1PASR`, 9h56,
+  horário de Brasília): produz e manda o pacote do dia seguinte e lembra os
+  pendentes. Desligar depois de 02/01/2027.
+
 - **Um dia por vez:** cada dia se produz só o pacote do dia seguinte.
 - **Pacote para quem posta:** um **bloco de texto por postagem**, pronto para
   copiar e encaminhar, **sem nome de arquivo** (chamar a imagem/vídeo pelo que
