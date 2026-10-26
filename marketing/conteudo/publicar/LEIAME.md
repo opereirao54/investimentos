@@ -5,6 +5,11 @@ horário, o que postar, arquivo e o texto pronto para copiar (legenda com
 hashtags no Reel; texto e adesivo nos stories). Reels saem de
 `marketing/ferramentas/shorts/contagem.js`; stories, de `capa.js`.
 
+**Para quem posta:** o pacote do dia vai num bloco de texto único, pronto para
+copiar e encaminhar, sem nome de arquivo (as imagens são chamadas pela ordem e
+pelo que mostram, ex.: "imagem 1, Faltam 68 dias"), com horário, passo a
+passo, legenda e hashtags.
+
 Horários de referência: story da manhã 8h30, do almoço 12h30, Reel 18h30,
 repost 19h30. Ajuste depois de 3 semanas pelas estatísticas do perfil.
 
