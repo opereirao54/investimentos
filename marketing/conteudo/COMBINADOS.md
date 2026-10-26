@@ -35,7 +35,19 @@ mudar (com a data).
   copiar e encaminhar, **sem nome de arquivo** (chamar a imagem/vídeo pelo que
   mostra), com **horário**, passo a passo, **legenda e hashtags** (stories
   também levam 2–3 hashtags). Mandar os arquivos junto.
-- **Horários:** story 8h30, story 12h30, Reel 18h30, repost 19h30.
+- **Três redes, o mesmo vídeo e a mesma capa** (arquivo original, nunca o
+  baixado de outra rede com marca d'água). O Reel vai para **Instagram,
+  TikTok e YouTube Shorts**, com um bloco de texto para cada rede:
+  - **Instagram:** legenda completa, 5 hashtags, capa pela galeria, CTA "ativa
+    o lembrete nos stories". Stories só no Instagram.
+  - **TikTok:** legenda curta (gancho + regra em 1–2 frases + CTA "segue pra
+    não perder"), 4–5 hashtags, capa = primeiro quadro.
+  - **YouTube Shorts:** título de até 100 caracteres com a pergunta do gancho
+    e `#shorts`, descrição curta com a regra, aviso e 3–4 hashtags, CTA
+    "inscreva-se"; capa = primeiro quadro (escolher no app do YouTube).
+- **Horários:** story 8h30, story 12h30, Reel no Instagram 18h30, TikTok 19h,
+  YouTube Shorts 19h30, repost no story 20h. Ajustar pelas estatísticas de
+  cada rede depois de 3 semanas.
 - Guia diário com os arquivos: `publicar/LEIAME.md`; arquivos em `publicar/`.
 
 ## Como os vídeos são feitos
