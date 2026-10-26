@@ -45,9 +45,10 @@ mudar (com a data).
   - **YouTube Shorts:** título de até 100 caracteres com a pergunta do gancho
     e `#shorts`, descrição curta com a regra, aviso e 3–4 hashtags, CTA
     "inscreva-se"; capa = primeiro quadro (escolher no app do YouTube).
-- **Horários:** story 8h30, story 12h30, Reel no Instagram 18h30, TikTok 19h,
-  YouTube Shorts 19h30, repost no story 20h. Ajustar pelas estatísticas de
-  cada rede depois de 3 semanas.
+- **Horários (fundador, 26/10): os mesmos nas três redes.** Story 8h30 e
+  12h30 (Instagram), **Reel às 19h no Instagram, TikTok e YouTube Shorts**,
+  repost no story 19h30. Ajustar pelas estatísticas de cada rede depois de 3
+  semanas.
 - Guia diário com os arquivos: `publicar/LEIAME.md`; arquivos em `publicar/`.
 
 ## Como os vídeos são feitos

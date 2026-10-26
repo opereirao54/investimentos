@@ -15,9 +15,9 @@ cima da imagem, pequenas, ou com o adesivo de hashtag).
 produz só o pacote do dia seguinte (Reel, se houver, stories, legendas e
 hashtags), no formato de blocos acima.
 
-Horários de referência: story da manhã 8h30, do almoço 12h30, Reel no
-Instagram 18h30, TikTok 19h, YouTube Shorts 19h30, repost no story 20h. O Reel
-leva um bloco por rede (regras em `../COMBINADOS.md`). Ajuste depois de 3 semanas pelas estatísticas do perfil.
+Horários: story 8h30 e 12h30, Reel às 19h nas três redes (Instagram, TikTok,
+YouTube Shorts), repost no story 19h30. O Reel leva um bloco de texto por rede
+(regras em `../COMBINADOS.md`). Ajuste depois de 3 semanas pelas estatísticas do perfil.
 
 O story de contagem da manhã é o vídeo "relógio" (`relogio.js <dias>`; aos
 sábados com a pista: `relogio.js <dias> saida.mp4 "pista"`). O adesivo de
