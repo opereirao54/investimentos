@@ -1,66 +1,95 @@
-# Publicar: o que sai em cada dia
+# Publicar: o passo a passo de cada dia
 
-Arquivos finais da série (`../CALENDARIO.md`), prontos para subir: Reel com o
-selo "Faltam X dias", capa com o selo e os stories do dia. Cada Reel sai de
-`marketing/ferramentas/shorts/contagem.js`; os stories, de `capa.js`.
+Arquivos finais da série (`../CALENDARIO.md`). Cada dia vem no mesmo formato:
+horário, o que postar, arquivo e o texto pronto para copiar (legenda com
+hashtags no Reel; texto e adesivo nos stories). Reels saem de
+`marketing/ferramentas/shorts/contagem.js`; stories, de `capa.js`.
 
-**Stories:** o adesivo de contagem regressiva do Instagram vai no story de
-contagem (Adesivos › Contagem regressiva › "Lançamento Appliquei", 02/01/2027,
-00:00). Criado uma vez, ele é reaproveitado nos dias seguintes. Enquete e quiz
-também são adesivos do Instagram, colocados por cima da imagem.
+Horários de referência: story da manhã 8h30, do almoço 12h30, Reel 18h30,
+repost 19h30. Ajuste depois de 3 semanas pelas estatísticas do perfil.
 
-## Seg 26/10 · Reel #1 · Faltam 68 dias
+O adesivo de contagem regressiva é criado uma vez (seg 26/10) com o nome
+"Lançamento Appliquei", data 02/01/2027, 00:00, e reaproveitado nos dias
+seguintes (Adesivos › Contagem regressiva › escolher o que já existe).
 
-**Reel:** `01-26-10-melhor-dia-compra.mp4`, capa
-`01-26-10-melhor-dia-compra-capa.png` (Editar capa › Adicionar da galeria).
-Horário de referência: 18h–21h.
+---
 
-**Legenda:**
+## SEGUNDA 26/10 · Faltam 68 dias
 
-> Mesma geladeira, mesmo cartão. Um teve 11 dias pra pagar, o outro 38. 🤔
->
-> A fatura fecha no dia 1. Quem compra no dia 30 entra na fatura que vence dia 10. Quem compra no dia 2 fica pra fatura do mês seguinte: quase 4 semanas a
-> mais com o dinheiro na conta, sem juros.
->
-> 📌 Regra de bolso: o melhor dia de compra é logo depois do fechamento.
-> Confira a data no app do seu cartão.
->
-> Manda pra quem compra sem olhar o calendário. 🔁
->
-> ⏳ Faltam 68 dias para o que estamos preparando pra 2027. Ativa o lembrete
-> nos stories.
->
-> Conteúdo educacional. As datas de fechamento e vencimento mudam de cartão
-> para cartão. Pague sempre a fatura inteira. Personagens fictícios.
->
-> #educacaofinanceira #cartaodecredito #financaspessoais #dinheiro #dicasdefinancas
+**1) 8h30 · STORY** · `stories/26-10-contagem.png`
+Adesivo: Contagem regressiva › criar "Lançamento Appliquei", 02/01/2027,
+00:00. Colocar embaixo da frase.
 
-**Stories:**
+**2) 12h30 · STORY** · `stories/26-10-enquete.png`
+Adesivo: Enquete › "Sim, sei o dia" / "Nem ideia".
 
-1. `stories/26-10-contagem.png` + adesivo de **contagem regressiva** para
-   02/01/2027 (criar hoje).
-2. `stories/26-10-enquete.png` + adesivo de **enquete**: "Sim, sei o dia" /
-   "Nem ideia".
-3. Repost do Reel com o texto "Saiu: o dia certo de usar o cartão 👆".
+**3) 18h30 · REEL** · `01-26-10-melhor-dia-compra.mp4`
+Capa: Editar capa › Adicionar da galeria › `01-26-10-melhor-dia-compra-capa.png`.
+Legenda:
 
-## Ter 27/10 · sem Reel · Faltam 67 dias
+```
+Mesma geladeira, mesmo cartão. Um teve 11 dias pra pagar, o outro 38. 🤔
 
-**Stories:**
+A fatura fecha no dia 1. Quem compra no dia 30 entra na fatura que vence dia 10. Quem compra no dia 2 fica pra fatura do mês seguinte: quase 4 semanas a mais com o dinheiro na conta, sem juros.
 
-1. `stories/27-10-contagem.png` + o adesivo de contagem regressiva (o mesmo
-   de ontem).
-2. `stories/27-10-caixa.png` + adesivo de **caixa de perguntas**: "Qual conta
-   você quer que a gente faça?". As respostas viram pauta.
-3. Repost do Reel de ontem: "Já sabe o dia que a sua fatura fecha? 👆".
+📌 Regra de bolso: o melhor dia de compra é logo depois do fechamento. Confira a data no app do seu cartão.
 
-## Qua 28/10 · Reel #2 · Faltam 66 dias
+Manda pra quem compra sem olhar o calendário. 🔁
 
-**Reel:** `02-28-10-tarifas-banco.mp4`, capa `02-28-10-tarifas-banco-capa.png`.
-Legenda em `../alcance/tarifas-banco/LEIAME.md` (já com o "Faltam 66 dias").
+⏳ Faltam 68 dias para o que estamos preparando pra 2027. Ativa o lembrete nos stories.
 
-**Stories:**
+Conteúdo educacional. As datas de fechamento e vencimento mudam de cartão para cartão. Pague sempre a fatura inteira. Personagens fictícios.
 
-1. `stories/28-10-contagem.png` + adesivo de contagem regressiva.
-2. `stories/28-10-enquete.png` + adesivo de **enquete**: "Pago e nem sei
-   quanto" / "Não pago".
-3. Repost do Reel: "Seu banco é obrigado a te dar isso de graça 👆".
+#educacaofinanceira #cartaodecredito #financaspessoais #dinheiro #dicasdefinancas
+```
+
+**4) 19h30 · STORY** · repost do Reel (avião de papel › Adicionar ao story)
+Texto por cima: `Saiu: o dia certo de usar o cartão 👆`
+
+---
+
+## TERÇA 27/10 · Faltam 67 dias · sem Reel
+
+**1) 8h30 · STORY** · `stories/27-10-contagem.png`
+Adesivo: Contagem regressiva › escolher "Lançamento Appliquei".
+
+**2) 12h30 · STORY** · `stories/27-10-caixa.png`
+Adesivo: Perguntas › texto `Manda aqui sua dúvida de dinheiro 💬`.
+As respostas viram pauta (mandar para o Claude).
+
+**3) 19h30 · STORY** · repost do Reel de segunda
+Texto por cima: `Já sabe o dia que a sua fatura fecha? 👆`
+Adesivo (opcional): Enquete › "Já sei!" / "Vou ver agora".
+
+---
+
+## QUARTA 28/10 · Faltam 66 dias
+
+**1) 8h30 · STORY** · `stories/28-10-contagem.png`
+Adesivo: Contagem regressiva › escolher "Lançamento Appliquei".
+
+**2) 12h30 · STORY** · `stories/28-10-enquete.png`
+Adesivo: Enquete › "Pago e nem sei quanto" / "Não pago".
+
+**3) 18h30 · REEL** · `02-28-10-tarifas-banco.mp4`
+Capa: Editar capa › Adicionar da galeria › `02-28-10-tarifas-banco-capa.png`.
+Legenda:
+
+```
+Seu banco é obrigado a te dar uma conta sem tarifa. Você sabia? 🏦
+
+O Mateus paga R$ 40 por mês num pacote que nunca olhou. O Caio pediu os serviços essenciais, que todo banco tem que oferecer de graça: cartão de débito, 4 saques e 2 extratos por mês, 2 transferências entre contas suas no mesmo banco. E o Pix, que pra pessoa física já é grátis.
+
+📌 Regra de bolso: abre o extrato e procura "tarifa" ou "pacote". Se você não usa o que paga, pede pra trocar.
+
+Manda pra quem paga tarifa sem saber. 🔁
+
+⏳ Faltam 66 dias. Ativa o lembrete nos stories.
+
+Conteúdo educacional. Serviços essenciais pela Resolução CMN nº 3.919/2010; confira as condições no seu banco. Pacote de R$ 40 é exemplo. Supondo renda fixa perto de 1% ao mês. Personagens fictícios.
+
+#educacaofinanceira #tarifabancaria #financaspessoais #dinheiro #dicasdefinancas
+```
+
+**4) 19h30 · STORY** · repost do Reel
+Texto por cima: `Seu banco é obrigado a te dar isso de graça 👆`
