@@ -18,7 +18,9 @@ hashtags), no formato de blocos acima.
 Horários de referência: story da manhã 8h30, do almoço 12h30, Reel 18h30,
 repost 19h30. Ajuste depois de 3 semanas pelas estatísticas do perfil.
 
-O adesivo de contagem regressiva é criado uma vez (seg 26/10) com o nome
+O story de contagem da manhã é o vídeo "relógio" (`relogio.js <dias>`; aos
+sábados com a pista: `relogio.js <dias> saida.mp4 "pista"`). O adesivo de
+contagem regressiva é criado uma vez (seg 26/10) com o nome
 "Lançamento Appliquei", data 02/01/2027, 00:00, e reaproveitado nos dias
 seguintes (Adesivos › Contagem regressiva › escolher o que já existe).
 
@@ -26,9 +28,10 @@ seguintes (Adesivos › Contagem regressiva › escolher o que já existe).
 
 ## SEGUNDA 26/10 · Faltam 68 dias
 
-**1) 8h30 · STORY** · `stories/26-10-contagem.png`
+**1) 8h30 · STORY** · `stories/26-10-relogio.mp4` (vídeo "relógio", 7,5 s)
 Adesivo: Contagem regressiva › criar "Lançamento Appliquei", 02/01/2027,
-00:00. Colocar embaixo da frase.
+00:00. Colocar na faixa vazia embaixo da data.
+Hashtags: `#educacaofinanceira #appliquei #em2027`
 
 **2) 12h30 · STORY** · `stories/26-10-enquete.png`
 Adesivo: Enquete › "Sim, sei o dia" / "Nem ideia".

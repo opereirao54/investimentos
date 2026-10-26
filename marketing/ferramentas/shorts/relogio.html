@@ -1,0 +1,93 @@
+<!doctype html>
+<!--
+  Story de contagem regressiva, o "relógio" (7,5 s, 1080×1920, sem narração).
+  O número de ontem treme e vira o de hoje com um impacto; uma luz passa e
+  aparece a frase (todo dia "Algo novo em 2027."; aos sábados, a pista da
+  semana). A faixa de baixo (y 1380–1640) fica livre para o adesivo de
+  contagem regressiva do Instagram. Não use direto: relogio.js preenche
+  DIAS, ANTES e FRASE e renderiza.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: #050a08; }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: #f0faf4; }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: radial-gradient(70% 45% at 50% 42%, #10241b 0%, #07100c 60%, #030605 100%); }
+  .malha { position: absolute; inset: 0; }
+  .vinheta { position: absolute; inset: 0; background: radial-gradient(80% 60% at 50% 45%, transparent 40%, rgba(0,0,0,.65) 100%); }
+  .flash { position: absolute; inset: 0; background: #fbbf24; opacity: 0; mix-blend-mode: screen; }
+  .faltam { position: absolute; left: 0; right: 0; top: 470px; text-align: center; font-family: 'DM Mono', monospace; font-size: 46px; letter-spacing: .4em; text-transform: uppercase; color: #9fb3aa; opacity: 0; }
+  .num { position: absolute; left: 0; right: 0; top: 560px; height: 420px; text-align: center; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 400px; letter-spacing: -.06em; line-height: 420px; }
+  .num span { position: absolute; left: 0; right: 0; }
+  #antes { color: rgba(251,191,36,.55); }
+  #hoje { color: #fbbf24; text-shadow: 0 0 60px rgba(251,191,36,.45); opacity: 0; }
+  .dias { position: absolute; left: 0; right: 0; top: 990px; text-align: center; font-size: 60px; font-weight: 900; letter-spacing: -.02em; opacity: 0; }
+  .luz { position: absolute; top: 520px; width: 260px; height: 520px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent); transform: skewX(-18deg); opacity: 0; }
+  .frase { position: absolute; left: 90px; right: 90px; top: 1130px; text-align: center; font-size: 58px; font-weight: 900; line-height: 1.15; letter-spacing: -.02em; opacity: 0; }
+  .frase em { font-style: normal; color: #34d399; }
+  .data { position: absolute; left: 0; right: 0; top: 1300px; text-align: center; font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .2em; color: #9fb3aa; opacity: 0; }
+  .marca { position: absolute; left: 0; right: 0; top: 1700px; text-align: center; opacity: 0; }
+  .marca img { width: 260px; }
+</style>
+</head>
+<body>
+<div class="palco">
+  <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
+  <div class="vinheta"></div>
+  <div class="faltam" id="faltam">Faltam</div>
+  <div class="num"><span id="antes">__ANTES__</span><span id="hoje">__DIAS__</span></div>
+  <div class="dias" id="dias">__ROTULO__</div>
+  <div class="luz" id="luz"></div>
+  <div class="frase" id="frase">__FRASE__</div>
+  <div class="data" id="data">02 · 01 · 2027</div>
+  <div class="marca" id="marca"><img src="wordmark.svg" alt="Appliquei"></div>
+  <div class="flash" id="flash"></div>
+</div>
+<script>
+  function $(id) { return document.getElementById(id); }
+  (function () {
+    const m = [];
+    for (let x = 60; x < 1080; x += 60) m.push(`<line x1="${x}" y1="0" x2="${x}" y2="1920" stroke="#f0faf4" stroke-opacity=".025"/>`);
+    for (let y = 60; y < 1920; y += 60) m.push(`<line x1="0" y1="${y}" x2="1080" y2="${y}" stroke="#f0faf4" stroke-opacity=".025"/>`);
+    $('malha').innerHTML = m.join('');
+  })();
+  const DUR = 7.5;
+  const BATIDA = 2.0; // o número vira aqui (o impacto do som cai no mesmo quadro)
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+
+  function render(t) {
+    $('faltam').style.opacity = easeOut(prog(t, 0.2, 0.9));
+    // o número de ontem aparece, treme cada vez mais e cai
+    const tremor = t < BATIDA ? 3 + 22 * prog(t, 0.8, BATIDA) : 0;
+    const ant = $('antes');
+    ant.style.opacity = t < BATIDA ? easeOut(prog(t, 0.0, 0.6)) : 1 - prog(t, BATIDA, BATIDA + 0.18);
+    ant.style.transform = t < BATIDA
+      ? `translate(${Math.sin(t * 61) * tremor}px, ${Math.cos(t * 47) * tremor * 0.6}px)`
+      : `translateY(${prog(t, BATIDA, BATIDA + 0.3) * 160}px) scale(${1 - 0.2 * prog(t, BATIDA, BATIDA + 0.3)})`;
+    // o de hoje entra grande e assenta
+    const h = $('hoje');
+    const ph = easeOut(prog(t, BATIDA, BATIDA + 0.35));
+    h.style.opacity = ph;
+    h.style.transform = `scale(${1.35 - 0.35 * ph})`;
+    $('flash').style.opacity = t >= BATIDA ? 0.35 * (1 - prog(t, BATIDA, BATIDA + 0.45)) : 0;
+    $('dias').style.opacity = easeOut(prog(t, BATIDA + 0.3, BATIDA + 0.8));
+    // luz que passa por cima do número
+    const pl = prog(t, 2.9, 3.7);
+    $('luz').style.opacity = pl > 0 && pl < 1 ? 1 : 0;
+    $('luz').style.left = (-300 + pl * 1500) + 'px';
+    const pf = easeOut(prog(t, 3.6, 4.3));
+    $('frase').style.opacity = pf;
+    $('frase').style.transform = `translateY(${(1 - pf) * 30}px)`;
+    $('data').style.opacity = easeOut(prog(t, 4.4, 5.0));
+    $('marca').style.opacity = 0.9 * easeOut(prog(t, 5.0, 5.6));
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>
