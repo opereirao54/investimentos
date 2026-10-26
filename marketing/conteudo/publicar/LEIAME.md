@@ -37,7 +37,7 @@ Hashtags: `#educacaofinanceira #appliquei #em2027`
 **2) 12h30 · STORY** · `stories/26-10-enquete.png`
 Adesivo: Enquete › "Sim, sei o dia" / "Nem ideia".
 
-**3) 18h30 · REEL** · `01-26-10-melhor-dia-compra.mp4`
+**3) 19h · REEL** · `01-26-10-melhor-dia-compra.mp4`
 Capa: Editar capa › Adicionar da galeria › `01-26-10-melhor-dia-compra-capa.png`.
 Legenda:
 
@@ -64,16 +64,18 @@ Texto por cima: `Saiu: o dia certo de usar o cartão 👆`
 
 ## TERÇA 27/10 · Faltam 67 dias · sem Reel
 
-**1) 8h30 · STORY** · `stories/27-10-contagem.png`
+**1) 8h30 · STORY** · `stories/27-10-relogio.mp4` (vídeo "relógio")
 Adesivo: Contagem regressiva › escolher "Lançamento Appliquei".
+Hashtags: `#educacaofinanceira #appliquei #em2027`
 
 **2) 12h30 · STORY** · `stories/27-10-caixa.png`
 Adesivo: Perguntas › texto `Manda aqui sua dúvida de dinheiro 💬`.
-As respostas viram pauta (mandar para o Claude).
+Hashtags: `#financaspessoais #dinheiro`
 
 **3) 19h30 · STORY** · repost do Reel de segunda
 Texto por cima: `Já sabe o dia que a sua fatura fecha? 👆`
 Adesivo (opcional): Enquete › "Já sei!" / "Vou ver agora".
+Hashtags: `#cartaodecredito #dicasdefinancas`
 
 ---
 
@@ -87,7 +89,7 @@ Hashtags: `#educacaofinanceira #appliquei #em2027`
 Adesivo: Enquete › "Parcelado" / "À vista".
 Hashtags: `#financaspessoais #dicasdefinancas`
 
-**3) 18h30 · REEL** · `02-28-10-avista-ou-parcelado.mp4`
+**3) 19h · REEL** · `02-28-10-avista-ou-parcelado.mp4`
 Capa: Editar capa › Adicionar da galeria › `02-28-10-avista-ou-parcelado-capa.png`.
 Legenda:
 
