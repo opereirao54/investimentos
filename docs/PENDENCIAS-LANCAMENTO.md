@@ -12,17 +12,15 @@ O código está pronto (26/10/2026); o resto é painel. Passo a passo completo e
 
 - [ ] **Conta Asaas de produção aprovada** (documentos da empresa + conta
       bancária para saque).
-- [ ] **Chave de produção** (`$aact_prod_...`) em `ASAAS_API_KEY`, só no
-      ambiente _Production_ da Vercel; _Preview_ fica com a do sandbox.
-      `ASAAS_API_URL=https://api.asaas.com/v3` (ou vazia).
+- [ ] **Chave de produção** (`$aact_prod_...`) em `ASAAS_API_KEY` no lugar
+      da do sandbox, na mesma Vercel de hoje (um ambiente só, sem
+      homologação). `ASAAS_API_URL=https://api.asaas.com/v3` (ou vazia).
+      A partir daí todo teste de pagamento cobra de verdade.
 - [ ] **`ASAAS_WEBHOOK_TOKEN` novo** + **webhook criado na conta de produção**
       com todos os eventos de Cobrança e Assinatura (inclui os quatro do item
       "Webhook da Asaas" abaixo).
 - [ ] **Redeploy** e **teste com cartão real**: assinar → acesso liberado →
       webhook `200` no painel → estornar → acesso cai.
-- [ ] **Plano Pro da Vercel.** O Hobby é só para uso pessoal, não comercial:
-      cobrar assinatura em cima dele viola os termos da Vercel. O Pro também
-      tira o teto de 12 funções e dá o Spend Management do item "Teto de gastos".
 - [ ] **Domínio próprio** (ex.: appliquei.com.br). Hoje o canônico é
       `investimentos-ebon.vercel.app` (script no `<head>` do app). Ao trocar:
       canônico no app, URL do webhook no Asaas, domínios autorizados no
@@ -69,6 +67,9 @@ O código está pronto (26/10/2026); o resto é painel. Passo a passo completo e
   enquanto a conta existir" — confirmar.
 - Aviso de 30 dias antes de mudar o preço (nos Termos) — manter ou tirar.
 - Plano B se o advogado exigir credenciamento para a carteira sugerida.
+- Vercel: fica no Hobby, um ambiente só, por enquanto (26/10/2026). Revisitar
+  quando a receita justificar: os termos do Hobby são para uso não comercial,
+  e o Pro tira o teto de 12 funções e dá o Spend Management.
 
 ## Código ainda não feito
 

@@ -163,12 +163,16 @@ O código já está pronto; a virada é configuração. Em ordem:
    bancária para saque cadastrada). Sem aprovação, o Asaas recusa cobranças.
 2. **Chave de produção**: Asaas (conta de produção, não a do sandbox) →
    Integrações → API → gerar chave. Ela começa com `$aact_prod_`.
-3. **Vercel → Settings → Environment Variables, ambiente _Production_**:
+3. **Vercel → Settings → Environment Variables**: troque os valores do
+   sandbox pelos de produção, na mesma estrutura de hoje (um projeto, um
+   ambiente só — decisão de 26/10/2026, sem homologação separada):
    - `ASAAS_API_KEY` = a chave `$aact_prod_...`
    - `ASAAS_API_URL` = `https://api.asaas.com/v3` (ou apague: a chave decide)
    - `ASAAS_WEBHOOK_TOKEN` = um token novo, longo e aleatório
-   - Deixe as variáveis de _Preview_ com a chave do sandbox: deploy de teste
-     nunca cobra de verdade.
+
+   Sem homologação, **todo deploy cobra de verdade** — inclusive o link de
+   _Preview_ de um PR, se as variáveis estiverem marcadas para Preview também.
+   Teste de pagamento passa a ser com cartão real e estorno pelo painel.
 
    Chave e URL de ambientes diferentes não chegam ao Asaas: `api/_lib/asaas.js`
    falha antes, com a mensagem "ASAAS_API_KEY é de ..., mas ASAAS_API_URL
