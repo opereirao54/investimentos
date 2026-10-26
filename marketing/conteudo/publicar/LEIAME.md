@@ -77,29 +77,32 @@ Adesivo (opcional): Enquete › "Já sei!" / "Vou ver agora".
 
 **1) 8h30 · STORY** · `stories/28-10-contagem.png`
 Adesivo: Contagem regressiva › escolher "Lançamento Appliquei".
+Hashtags: `#educacaofinanceira #appliquei #em2027`
 
 **2) 12h30 · STORY** · `stories/28-10-enquete.png`
-Adesivo: Enquete › "Pago e nem sei quanto" / "Não pago".
+Adesivo: Enquete › "Parcelado" / "À vista".
+Hashtags: `#financaspessoais #dicasdefinancas`
 
-**3) 18h30 · REEL** · `02-28-10-tarifas-banco.mp4`
-Capa: Editar capa › Adicionar da galeria › `02-28-10-tarifas-banco-capa.png`.
+**3) 18h30 · REEL** · `02-28-10-avista-ou-parcelado.mp4`
+Capa: Editar capa › Adicionar da galeria › `02-28-10-avista-ou-parcelado-capa.png`.
 Legenda:
 
 ```
-Seu banco é obrigado a te dar uma conta sem tarifa. Você sabia? 🏦
+Parcelado sem juros ou à vista com desconto? 🤔
 
-O Mateus paga R$ 40 por mês num pacote que nunca olhou. O Caio pediu os serviços essenciais, que todo banco tem que oferecer de graça: cartão de débito, 4 saques e 2 extratos por mês, 2 transferências entre contas suas no mesmo banco. E o Pix, que pra pessoa física já é grátis.
+Parcelando, o dinheiro fica rendendo enquanto você paga… mas, para empatar com 10% de desconto em 10×, ele teria que render quase 2% ao mês.
 
-📌 Regra de bolso: abre o extrato e procura "tarifa" ou "pacote". Se você não usa o que paga, pede pra trocar.
+📌 Regra de bolso: divida o desconto pela metade do número de parcelas. Se der mais do que o seu dinheiro rende por mês, pague à vista (sem tirar da reserva de emergência).
 
-Manda pra quem paga tarifa sem saber. 🔁
+Salva para a próxima compra e manda para quem vive parcelando. 🔖
 
-⏳ Faltam 66 dias. Ativa o lembrete nos stories.
+⏳ Faltam 66 dias para o que estamos preparando pra 2027. Ativa o lembrete nos stories.
 
-Conteúdo educacional. Serviços essenciais pela Resolução CMN nº 3.919/2010; confira as condições no seu banco. Pacote de R$ 40 é exemplo. Supondo renda fixa perto de 1% ao mês. Personagens fictícios.
+Conteúdo educacional, não é recomendação de investimento. Supondo renda fixa perto de 1% ao mês; confira as taxas do momento.
 
-#educacaofinanceira #tarifabancaria #financaspessoais #dinheiro #dicasdefinancas
+#educacaofinanceira #financaspessoais #dinheiro #parceladoouavista #dicasdefinancas
 ```
 
 **4) 19h30 · STORY** · repost do Reel
-Texto por cima: `Seu banco é obrigado a te dar isso de graça 👆`
+Texto por cima: `Desconto ÷ metade das parcelas. Salva essa 👆`
+Hashtags: `#educacaofinanceira #dicasdefinancas`

@@ -45,7 +45,7 @@ PDF simples para compartilhar: `plano-instagram.pdf` (fonte
 | #   | Data      | Faltam | Reel                                                                                                      | Status | Publicado |
 | --- | --------- | ------ | --------------------------------------------------------------------------------------------------------- | ------ | --------- |
 | 1   | seg 26/10 | 68     | Mesma compra: 11 ou 38 dias pra pagar? (`alcance/melhor-dia-compra`)                                      | ✅     |           |
-| 2   | qua 28/10 | 66     | Seu banco é obrigado a te dar conta de graça (`alcance/tarifas-banco`)                                    | ✅     |           |
+| 2   | qua 28/10 | 66     | Parcelado sem juros ou à vista com desconto? (`alcance/avista-ou-parcelado`)                              | ✅     |           |
 | 3   | sex 30/10 | 64     | Frete grátis acima de R$ 99: a pegadinha do carrinho                                                      | 🆕     |           |
 | 4   | seg 02/11 | 61     | Seu carro custa R$ 2.100 por mês. Parado. (`alcance/carro-ou-aplicativo`)                                 | ✅     |           |
 | 5   | qua 04/11 | 59     | Ganha até R$ 5 mil? Confira seu holerite (isenção do IR desde jan/2026)                                   | 🆕     |           |
@@ -56,7 +56,7 @@ PDF simples para compartilhar: `plano-instagram.pdf` (fonte
 | 10  | seg 16/11 | 47     | A regra 50-30-20 em 30 segundos                                                                           | 🆕     |           |
 | 11  | qua 18/11 | 45     | Financiou um carro de R$ 80 mil? Você paga um carro e meio                                                | 🆕     |           |
 | 12  | sex 20/11 | 43     | Reserva de emergência: qual é o seu número                                                                | 🆕     |           |
-| 13  | seg 23/11 | 40     | Parcelado sem juros ou à vista com desconto? (`alcance/avista-ou-parcelado`)                              | ✅     |           |
+| 13  | seg 23/11 | 40     | Seu banco é obrigado a te dar conta de graça (`alcance/tarifas-banco`)                                    | ✅     |           |
 | 14  | qua 25/11 | 38     | Black Friday: o desconto de 25% que deixou a TV mais cara                                                 | 🆕     |           |
 | 15  | sex 27/11 | 36     | 13º: o investimento que rende 100% ao ano é quitar dívida cara (dia da Black Friday)                      | 🆕     |           |
 | 16  | seg 30/11 | 33     | R$ 100 de 2016 valem quanto hoje? (a regra dos 72 da inflação)                                            | 🆕     |           |

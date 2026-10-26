@@ -1,15 +1,20 @@
 # "Seu banco é obrigado a te dar uma conta sem tarifa" (49,5 s)
 
-Reel #2 da série até o lançamento (`../../CALENDARIO.md`, qua 28/10, faltam
-66). Formato "conta na tela": o Mateus (mau exemplo) paga um pacote de R$ 40
+Reel #13 da série até o lançamento (`../../CALENDARIO.md`, seg 23/11, faltam
+40; trocou de lugar com o parcelado). Formato "conta na tela": o Mateus (mau exemplo) paga um pacote de R$ 40
 por mês há anos sem saber o que tem nele; o Banco Central obriga todo banco a
 oferecer os serviços essenciais de graça; o Caio (bom exemplo) trocou o pacote
 por eles. A conta: R$ 480 por ano, mais de R$ 9 mil em 10 anos rendendo. O app
-não aparece; a marca assina com a pista "Em 66 dias, você vai saber pra onde
+não aparece; a marca assina com a pista "Em 40 dias, você vai saber pra onde
 vai cada real". Personagens fictícios.
 
+> **Antes de postar (22/11):** o `video.html` já diz "Em 40 dias", mas os mp4
+> desta pasta ainda têm "66" (feitos quando o Reel era o #2). Renderizar de
+> novo, mixar, refazer a versão com capa e rodar `contagem.js … 40`.
+
 - `appliquei-tarifas-banco-com-capa.mp4`: capa no primeiro quadro e embutida;
-  a versão com o selo "Faltam 66 dias" está em `../../publicar/`.
+  a versão com o selo "Faltam X dias" é gerada na véspera da postagem
+  (`contagem.js`) em `../../publicar/`.
 - `appliquei-tarifas-banco.mp4`: final, narrado (-15 LUFS).
 - `video.html`, `narracao.json`, `narracao-charon-leitura.wav`, `trilha.wav`
   (`trilha-alcance.py … --sem-moedas`).
@@ -42,7 +47,7 @@ vai cada real". Personagens fictícios.
 >
 > Manda pra quem paga tarifa sem saber. 🔁
 >
-> ⏳ Faltam 66 dias. Ativa o lembrete nos stories.
+> ⏳ Faltam 40 dias. Ativa o lembrete nos stories.
 >
 > Conteúdo educacional. Serviços essenciais pela Resolução CMN nº 3.919/2010;
 > confira as condições no seu banco. Pacote de R$ 40 é exemplo. Supondo renda
