@@ -11,6 +11,10 @@ pelo que mostram, ex.: imagem "Faltam 68 dias"), com horário, passo a passo,
 legenda e hashtags. Os stories também levam hashtags (2 ou 3, escritas por
 cima da imagem, pequenas, ou com o adesivo de hashtag).
 
+**Ritmo de produção (combinado em 25/10):** um dia por vez. Cada dia se
+produz só o pacote do dia seguinte (Reel, se houver, stories, legendas e
+hashtags), no formato de blocos acima.
+
 Horários de referência: story da manhã 8h30, do almoço 12h30, Reel 18h30,
 repost 19h30. Ajuste depois de 3 semanas pelas estatísticas do perfil.
 
