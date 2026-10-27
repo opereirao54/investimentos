@@ -27,7 +27,10 @@
 // 10. o estorno de "Pet Shop R$ 18,00" mandava apagar o "lanchonete 18" —
 //     uma compra legítima;
 // 11. "pet" não casava com "MP*PETSHOPAMIGOFIEL" (nome grudado da
-//     maquininha): o "pet 109" estornado casava com outra compra no pet shop.
+//     maquininha): o "pet 109" estornado casava com outra compra no pet shop;
+// 12. com duas compras no açougue (R$ 31,14 e uma estornada de R$ 31,48), o
+//     aviso mandava apagar o "açougue 31" da legítima; e o "livraria 124"
+//     estornado casava só pelo valor com uma compra de R$ 124,00 em outra loja.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -35,7 +38,7 @@ const F = require('../web/appliquei-importar-fatura.js');
 const { rodarSequenciaImportacao } = require('./_sequencias-importacao.js');
 
 // Sementes que já acharam defeito: rodam sempre.
-const ACHADAS = [1, 10, 13, 16, 716, 2213, 3175, 5133, 5739, 7588, 7770];
+const ACHADAS = [1, 10, 13, 16, 716, 2213, 3175, 5133, 5739, 7588, 7770, 11762, 13791];
 const SEMENTES_CI = Number(process.env.SEMENTES_IMPORTACAO) || 300;
 
 test('caça: sementes que já acharam defeito', () => {
@@ -230,4 +233,29 @@ test('trava 11: "pet" reconhece o nome grudado da maquininha', () => {
   );
   assert.match(p.itens[0].aviso, /"pet": apague/);
   assert.equal(p.itens[2].status, 'nova', 'a outra compra no pet shop entra');
+});
+
+test('trava 12: nome e valor mais perto decidem entre a compra estornada e a legítima', () => {
+  const p = plano(
+    csv([
+      ['2026-10-02', 'Açougue São João', '31.48'],
+      ['2026-10-05', 'Estorno de "Açougue São João"', '-31.48'],
+      ['2026-10-06', 'Açougue São João', '31.14'],
+    ]),
+    NOV,
+    [tx('a', 'açougue', 31, NOV)]
+  );
+  assert.equal(p.itens[0].aviso, '', 'não manda apagar o lançamento da compra legítima');
+  assert.equal(p.itens[2].status, 'parecida');
+  const p2 = plano(
+    csv([
+      ['2026-10-02', 'Livraria Leitura', '124.07'],
+      ['2026-10-05', 'Estorno de "Livraria Leitura"', '-124.07'],
+      ['2026-10-06', 'Auto Peças Centro', '124.00'],
+    ]),
+    NOV,
+    [tx('l', 'livraria', 124, NOV)]
+  );
+  assert.match(p2.itens[0].aviso, /"livraria": apague/);
+  assert.equal(p2.itens[2].status, 'nova', 'a compra de R$ 124,00 em outra loja entra');
 });

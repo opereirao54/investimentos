@@ -302,7 +302,13 @@ o saldo em atraso, cada correção da caça) — e o teste falhou em todas.
 8. mover de uma fatura já importada fazia uma compra sumir;
 9. a compra à vista casava com a parcela de outra compra na mesma loja;
 10. o aviso de estorno mandava apagar uma compra legítima só pelo valor;
-11. "pet" não casava com o nome grudado da maquininha (`MP*PETSHOPAMIGOFIEL`).
+11. "pet" não casava com o nome grudado da maquininha (`MP*PETSHOPAMIGOFIEL`);
+12. com duas compras parecidas na mesma loja, uma estornada, o aviso mandava
+    apagar o lançamento da compra legítima — agora o par mais parecido e de
+    valor mais perto decide.
+
+Última rodada funda: 20.000 sequências de 30 ações (600 mil ações), todas
+limpas.
 
 **Outros bancos.** O leitor não é "do Nubank": entende OFX (o padrão que
 quase todo banco exporta) e CSV com colunas de data, descrição e valor em

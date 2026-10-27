@@ -824,6 +824,68 @@ function impfatPlanejar(opts) {
 
   // (c) P1/P3: valor igual na mesma fatura, um para um. O nome parecido só
   // desempata — quem lança "mercado" pelo Telegram não escreve o CNPJ da loja.
+  // NOME EM COMUM E VALOR IGUAL OU QUASE IGUAL (lançada pelo Telegram com o
+  // valor arredondado) — a evidência mais forte depois do FITID e da parcela,
+  // por isso vem antes do casamento só pelo valor. Entram na MESMA disputa as
+  // compras estornadas nesta fatura (aviso: "apague") e as que seguem valendo:
+  // cada lançamento do app vai para a linha mais parecida, e entre iguais para
+  // o valor mais perto. A caça de furos achou os dois lados: o aviso mandava
+  // apagar o "açougue 31" de uma compra legítima de R$ 31,14 por causa de uma
+  // estornada de R$ 31,48; e o "livraria 124" estornado casava, só pelo valor,
+  // com uma compra de R$ 124,00 em outra loja.
+  (function () {
+    var limite = function (v) {
+      return Math.max(IMPFAT_LIMITES.quaseIgualAbs, v * IMPFAT_LIMITES.quaseIgualPct);
+    };
+    var alvos = itens.filter(function (it) {
+      return (
+        (!it.status && (it.tipo === 'compra' || it.tipo === 'encargo')) ||
+        (it.status === 'anulada' && it.valor > 0)
+      );
+    });
+    var pares = [];
+    alvos.forEach(function (it) {
+      daFatura.forEach(function (t) {
+        if (!livre(t) || !mesmaForma(it, t) || t.cartaoFixoMensal) return;
+        var dif = Math.abs((Number(t.valor) || 0) - it.valor);
+        if (dif > limite(it.valor)) return;
+        var sim = impfatSimilaridade(t.descricao, it.descricao);
+        if (sim < IMPFAT_LIMITES.similaridade) return;
+        pares.push({ it: it, t: t, sim: sim, dif: dif });
+      });
+    });
+    pares.sort(function (a, b) {
+      return b.sim - a.sim || a.dif - b.dif || a.it.ref - b.it.ref;
+    });
+    var feitos = {};
+    pares.forEach(function (par) {
+      var it = par.it;
+      var t = par.t;
+      if (feitos[it.ref] || !livre(t)) return;
+      feitos[it.ref] = true;
+      if (it.status === 'anulada') {
+        usados[t.id] = true;
+        it.casadoCom = t.id;
+        it.valorApp = Number(t.valor) || 0;
+        it.aviso = 'Está lançada no app como "' + t.descricao + '": apague, porque foi estornada.';
+      } else if (par.dif <= IMPFAT_LIMITES.centavos) {
+        usar(it, t, 'ja_lancada', 'Já lançada no app como "' + t.descricao + '".');
+      } else {
+        usar(
+          it,
+          t,
+          'parecida',
+          'Parecida com "' +
+            t.descricao +
+            '" (' +
+            impfatMoeda(Number(t.valor) || 0) +
+            '), já no app. Se for a mesma compra, deixe desmarcada.'
+        );
+        it.marcado = false;
+      }
+    });
+  })();
+
   // Parcela só casa com lançamento parcelado, e à vista só com à vista
   // (mesmaForma): o "doceria 33" do Telegram casava pelo valor com a "Auto
   // Peças 4/7 R$ 33,00", e a importação do mês da compra criava a 4/7 de novo
@@ -840,33 +902,6 @@ function impfatPlanejar(opts) {
       return 'Já lançada no app como "' + t.descricao + '".';
     }
   );
-
-  // Compra anulada pelo estorno que estava lançada no app: avisa para apagar.
-  itens
-    .filter(function (it) {
-      return it.status === 'anulada' && it.valor > 0;
-    })
-    .forEach(function (it) {
-      // O aviso manda APAGAR um lançamento: exige o nome em comum, com valor
-      // igual ou quase igual (lançada pelo Telegram com o valor arredondado).
-      // Só pelo valor, o estorno de "Pet Shop R$ 18,00" mandava apagar o
-      // "lanchonete 18" — uma compra legítima (caça de furos).
-      var cands = daFatura.filter(function (x) {
-        if (!livre(x) || !mesmaForma(it, x)) return false;
-        var dif = Math.abs((Number(x.valor) || 0) - it.valor);
-        return (
-          dif <= Math.max(IMPFAT_LIMITES.quaseIgualAbs, it.valor * IMPFAT_LIMITES.quaseIgualPct) &&
-          impfatSimilaridade(x.descricao, it.descricao) >= IMPFAT_LIMITES.similaridade
-        );
-      });
-      var t = melhor(cands, it);
-      if (t) {
-        usados[t.id] = true;
-        it.casadoCom = t.id;
-        it.valorApp = Number(t.valor) || 0;
-        it.aviso = 'Está lançada no app como "' + t.descricao + '": apague, porque foi estornada.';
-      }
-    });
 
   // (d) U6/D2: assinatura fixa no cartão com preço novo.
   pendentes().forEach(function (it) {
