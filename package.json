@@ -19,6 +19,7 @@
     "test:simulacao": "node --test \"test/simulacao-*.test.js\"",
     "cacar": "node scripts/cacar-interacoes.js",
     "cacar:pagamentos": "node scripts/cacar-pagamentos.js",
+    "cacar:importacao": "node scripts/cacar-importacao.js",
     "impacto": "node scripts/impacto-integracoes.js",
     "test:flows": "node scripts/test-subscription-flow.js && node scripts/test-referral-flow.js",
     "test:e2e": "playwright test",

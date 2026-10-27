@@ -1,13 +1,28 @@
-# Importar fatura do cartão (Nubank) — análise antes de codar
+# Importar fatura do cartão (Nubank)
 
 Ideia de um testador: subir a fatura do cartão e o app já identificar as
-despesas. Este documento lista os casos de uso, o que pode dar errado e como
-mitigar, ANTES de escrever código. Status: proposta, nada implementado.
+despesas. Este documento listou os casos de uso, o que pode dar errado e como
+mitigar ANTES de escrever código, e continua sendo o mapa do que o código faz.
 
-Decisões já tomadas pelo fundador (27/10/2026):
+**Status: implementado (27/10/2026).** Telas → Faturas → "Importar fatura do
+Nubank". Código:
 
-- Banco da primeira versão: **Nubank**.
-- Formato: **CSV/OFX primeiro**; PDF e foto ficam para depois (exigem IA).
+| Peça                      | Onde                                                                |
+| ------------------------- | ------------------------------------------------------------------- |
+| Motor (sem DOM)           | `web/appliquei-importar-fatura.js`                                  |
+| Tela                      | `web/appliquei-importar-fatura-ui.js` + `#telaImportarFatura`       |
+| Palavras → categoria      | `web/appliquei-categorias-palavras.js` (a mesma tabela do Telegram) |
+| Registro das importações  | `appliquei_importacoes_fatura` (sincroniza; serve ao Desfazer)      |
+| Testes                    | `test/importar-fatura.test.js`, `test/integracao-inv27-*.test.js`   |
+| Fatura real (anonimizada) | `test/fixtures/nubank/Nubank_2026-11-05.ofx`                        |
+| Trava de integração       | INV-27 em `.claude/integracoes/mapa.json`                           |
+
+Decisões do fundador (27/10/2026):
+
+- Banco da primeira versão: **Nubank**. Formato: **OFX e CSV**; PDF e foto
+  ficam para depois (exigem IA).
+- D1, D2, D3, D4 e D7 como recomendado abaixo. **D5 não precisa**: a fatura
+  sempre entra pendente. **D6 fica para depois.**
 
 ## Como o app guarda uma compra no cartão hoje
 
@@ -75,7 +90,7 @@ e é o que dá valor ao aviso de caixa. O cuidado: ao importar a fatura de
 novembro, a linha "Parcela 4/10" tem de ser reconhecida como **já lançada**
 (caso P2 abaixo).
 
-## O arquivo do Nubank (hipóteses a confirmar com um arquivo real)
+## O arquivo do Nubank (o que a fatura real mostrou)
 
 O Nubank envia por e-mail o CSV/OFX de **faturas fechadas** (Resumo de faturas
 → escolher a fatura → compartilhar/enviar por e-mail). Pelo que se sabe hoje,
@@ -89,9 +104,31 @@ e que **precisa ser confirmado com um arquivo real antes de codar**:
 - o nome do arquivo traz a data (provavelmente o vencimento): `Nubank_AAAA-MM-DD.csv`;
 - só para conta pessoa física (PJ não exporta).
 
-**Ação antes de codar:** pedir ao testador 2 ou 3 arquivos reais (CSV e OFX),
-de meses diferentes, com pelo menos um parcelado, um estorno e uma compra
-internacional. Ele pode trocar os nomes das lojas. Viram os arquivos de teste.
+**Confirmado com arquivos reais** (OFX e CSV de uma fatura de um testador, que
+não ficam no repositório — os testes usam faturas inventadas no mesmo formato):
+
+- OFX SGML, `CHARSET:1252`; compra é `TRNAMT` negativo, "Pagamento recebido"
+  positivo; cada linha tem um `FITID` próprio (usado contra reimportação);
+- `LEDGERBAL` é o total da fatura (as compras somadas, sem o pagamento);
+- o nome do arquivo traz o vencimento: `Nubank_2026-11-05.ofx`;
+- parcela no título, `Loja - Parcela 3/10` — e **a parcela antiga vem com a
+  data do início do ciclo**, não a da compra. Por isso `dataCompra` só é
+  gravada na compra à vista e na parcela 1; nas outras a fatura mostra "—";
+- títulos com intermediador: `Asa*Nome`, `Rappi*Rappi Brasil Int`,
+  `Amazonmktplc*Loja`, `Loja - NuPay`;
+- o CSV é `date,title,amount`, com valor brasileiro entre aspas (`"18,37"`) e
+  o pagamento com espaço depois do sinal (`"- 1.234,56"`); não tem FITID nem
+  o total, e lê as mesmas linhas que o OFX da mesma fatura.
+
+**Achado na primeira rodada na tela:** uma compra lançada pelo Telegram com o
+valor arredondado ("padaria 20") e o nome que o banco dá à loja, sem nada em
+comum, entrava como compra nova — centavos de diferença bastavam. Virou regra: diferença de
+até R$ 0,50 (ou 1%) é **parecida** mesmo com outro nome, e só entra se o
+usuário marcar.
+
+**Ainda falta:** uma fatura real com estorno e com compra internacional (IOF).
+Esses casos estão cobertos pelas faturas sintéticas (abaixo), mas a forma
+exata como o Nubank escreve o título do estorno ainda não foi vista.
 
 ## Casos de uso
 
@@ -202,7 +239,7 @@ internacional. Ele pode trocar os nomes das lojas. Viram os arquivos de teste.
 | M2  | Tela de revisão com 60 linhas no celular                        | Agrupar: primeiro "precisa da sua atenção" (conflitos, sem categoria), depois "novas", depois "já lançadas" fechadas |
 | M3  | Usuário confirma sem olhar                                      | Padrões seguros: duplicata desmarcada, conflito não importa sozinho, totais sempre visíveis                          |
 
-## Decisões que dependem de você
+## Decisões (tomadas em 27/10/2026)
 
 - **D1 — Parcelado antigo (pergunta 3):** recomendação **(b)**, criar da
   parcela atual até a última.
@@ -223,24 +260,59 @@ internacional. Ele pode trocar os nomes das lojas. Viram os arquivos de teste.
 - **D4 — Data da compra:** guardar num campo novo `dataCompra` e mostrar na
   fatura; ou deixar só na descrição. Recomendação: **campo novo**, que não mexe
   em competência nem em caixa (quem manda continua `dataVencimento` e `pago`).
-- **D5 — Fatura antiga já paga:** importar como paga (debita a conta pagadora
-  agora, e o saldo de hoje pode ficar errado) ou pendente? Recomendação:
-  importar **pendente** e o usuário marca "paga" sabendo o efeito.
-- **D6 — Sugerir "marcar como assinatura" (U7):** quando o mesmo nome aparece
-  em duas faturas seguidas com o mesmo valor. Pode ficar para depois.
+- **D5 — Fatura antiga já paga:** **não precisa** (fundador). A fatura sempre
+  entra pendente; quem já pagou usa "Marcar como paga".
+- **D6 — Sugerir "marcar como assinatura" (U7):** **fica para depois.**
 - **D7 — Plano:** é parte do Pro (sem custo, porque roda no aparelho).
 
-## Como testar (quando for codar)
+## Como está testado
 
-1. **Leitor:** arquivos reais do testador como fixtures; mais os casos A1–A9
-   e R1 escritos à mão.
-2. **Casamento (duplicidade):** P1–P7 como testes unitários puros.
-3. **Fluxo inteiro** na sandbox do app (`scripts/lib/app-sandbox.js`): importar,
-   importar de novo, importar a seguinte, desfazer — e validar as invariantes
-   (`scripts/lib/invariantes.js`, sobretudo INV-08 e INV-17) depois de cada passo.
-4. **Skills do projeto:** `simular-acao` no botão de importar e `validar-integracoes`
-   no diff, antes do PR.
-5. **Teste na mão** com o testador que deu a ideia, com a fatura dele.
+Ninguém tem cartão em todos os bancos para testar com arquivo de verdade. A
+garantia vem de quatro camadas, que rodam no CI a cada PR (as três últimas
+também vão fundo, toda semana, em `.github/workflows/cacar-importacao.yml`):
+
+| Camada                        | Arquivo                                                                                             | O que prova                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ----------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Casos escritos                | `test/importar-fatura.test.js`                                                                      | Cada risco desta análise (A1–A9, P1–P7, R1–R4, D1–D4, C1–C4, G4) com um teste legível; o fluxo inteiro na sandbox do app; o formato do lançamento igual ao manual                                                                                                                                                                                                                                                                                                                                      |
+| Faturas sintéticas × dialetos | `test/importar-fatura-dialetos.test.js` + `test/_faturas-sinteticas.js`                             | O gerador inventa a vida de um cartão (compras, parcelas que avançam, IOF, juros, anuidade, estorno, crédito antigo, pagamento, saldo em atraso) e escreve cada fatura em **12 formatos** de arquivo. Para cada uma: lê igual à verdade, linha a linha (D1–D3); o app fica com as mesmas compras, o mesmo total e o número certo de parcelas (D4); a diferença de totais é explicada e fecha no centavo (D5); competência certa (D6); reimportar — no mesmo formato ou noutro — não cria nada (D7, D8) |
+| Arquivo estragado             | `test/importar-fatura-robustez.test.js`                                                             | Faturas válidas cortadas, com linhas apagadas, duplicadas, bytes trocados, sem cabeçalho, com lixo: nunca quebra, recusa com mensagem ou lê o que dá, e nunca cria lançamento com valor ou data inválidos (R1–R4)                                                                                                                                                                                                                                                                                      |
+| Caça de furos                 | `test/simulacao-importacao.test.js` + `test/_sequencias-importacao.js` + `npm run cacar:importacao` | Sequências aleatórias de uso real por meses: lançar pelo Telegram (com valor arredondado e outro nome), importar meses fora de ordem, reimportar noutro formato, desfazer, pagar. Depois de cada ação: nenhuma compra duplicada ou faltando, total igual ao do banco, desfazer volta ao estado anterior, invariantes INV-08/20/27 (IMP01–IMP07)                                                                                                                                                        |
+
+**Os 12 formatos** cobrem o que os bancos fazem: OFX SGML (Nubank), OFX XML,
+OFX numa linha só, OFX com vírgula decimal e `NAME` no lugar de `MEMO`; CSV
+do Nubank (atual e antigo), CSV do Excel em Latin-1 e em UTF-8 com BOM,
+compra negativa, colunas a mais com a parcela numa coluna própria ("3/10" ou
+"3 de 10"), "R$" no valor, data DD/MM/AAAA e colunas em outra ordem.
+
+**Os testes testam de verdade:** cada camada foi conferida sabotando o código
+de propósito (tirar o Latin-1, a coluna de parcela, o pareamento do estorno,
+o saldo em atraso, cada correção da caça) — e o teste falhou em todas.
+
+**O que a caça já achou e corrigiu** (cada um com trava em
+`test/simulacao-importacao.test.js`):
+
+1. importar os meses fora de ordem duplicava as parcelas;
+2. "mover da fatura vizinha" roubava a parcela do mês seguinte;
+3. a regra de conflito de parcelas roubava a parcela de outra compra na mesma
+   loja;
+4. o casamento guloso pela ordem das linhas trocava compras (juros × ótica);
+5. a compra estornada lançada pelo Telegram com valor arredondado ficava órfã;
+6. R$ 52,00 contava como igual a R$ 51,99;
+7. lançamento à vista casava com parcela só pelo valor;
+8. mover de uma fatura já importada fazia uma compra sumir;
+9. a compra à vista casava com a parcela de outra compra na mesma loja;
+10. o aviso de estorno mandava apagar uma compra legítima só pelo valor;
+11. "pet" não casava com o nome grudado da maquininha (`MP*PETSHOPAMIGOFIEL`).
+
+**Outros bancos.** O leitor não é "do Nubank": entende OFX (o padrão que
+quase todo banco exporta) e CSV com colunas de data, descrição e valor em
+vários nomes. O que é do Nubank é o que foi conferido com arquivo real. Um
+arquivo de outro banco entra com o aviso "não parece do Nubank, confira a
+revisão". Banco novo com formato diferente: um arquivo de exemplo vira um
+dialeto em `test/_faturas-sinteticas.js`, e todas as camadas passam a cobri-lo.
+
+Também: `validar-integracoes` (INV-08, INV-20 e a nova INV-27) e o fluxo no
+navegador (Playwright, computador e celular).
 
 ## Fora da primeira versão
 

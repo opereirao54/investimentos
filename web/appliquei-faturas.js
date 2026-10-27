@@ -436,6 +436,14 @@ function renderizarFaturas() {
       '</div>';
   }
 
+  // Trazer as compras do arquivo do banco (appliquei-importar-fatura-ui.js).
+  if (typeof abrirImportarFatura === 'function') {
+    html +=
+      '<button type="button" class="btn-secundario fat-importar" onclick="abrirImportarFatura(\'' +
+      _fatEsc(cartaoId) +
+      '\')"><i class="ph ph-upload-simple" aria-hidden="true"></i> Importar fatura do Nubank</button>';
+  }
+
   if (!c) {
     corpo.innerHTML =
       html +
@@ -535,12 +543,22 @@ function renderizarFaturas() {
     html += '<div class="fat-itens-vazio">Nenhuma compra nesta fatura ainda.</div>';
   } else {
     html += '<div class="fat-itens">';
+    // Compra importada da fatura do banco traz a data da COMPRA (dataCompra);
+    // a lançada no app só tem `data`, o momento do cadastro.
+    // Parcela antiga importada não tem data de compra (o banco manda a do início
+    // do ciclo): fica sem dia, em vez de mostrar o dia da importação.
+    const quando = (t) => {
+      if (t.dataCompra && /^\d{4}-\d{2}-\d{2}$/.test(t.dataCompra)) return t.dataCompra;
+      if (t.importacao) return '';
+      const dt = t.data ? new Date(t.data) : null;
+      return dt && !isNaN(dt) ? _fatYmd(dt) : '';
+    };
     c.itens
       .slice()
-      .sort((a, b) => String(b.data || '').localeCompare(String(a.data || '')))
+      .sort((a, b) => quando(b).localeCompare(quando(a)))
       .forEach((t) => {
-        const dt = t.data ? new Date(t.data) : null;
-        const dia = dt && !isNaN(dt) ? _fatDdMm(_fatYmd(dt)) : '';
+        const ymd = quando(t);
+        const dia = ymd ? _fatDdMm(ymd) : '—';
         const cat =
           t.categoriaDespesa && typeof rotuloCategoriaDespesa === 'function'
             ? rotuloCategoriaDespesa(t.categoriaDespesa)

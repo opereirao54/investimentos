@@ -2969,6 +2969,84 @@
         .alert-danger { border-color: var(--cor-borda-erro); background: var(--cor-bg-erro); color: var(--cor-txt-erro); }
         .alert-contextual i { font-size: 17px; flex-shrink: 0; }
 
+        /* === IMPORTAR FATURA (web/appliquei-importar-fatura-ui.js) ===
+           Reaproveita a moldura das Faturas (.fat-overlay/.fat-folha) e fica
+           por cima dela. */
+        #telaImportarFatura { z-index: 9996; }
+        .imp-rodape {
+            border-top: 1px solid var(--cor-borda); padding: 12px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+            display: flex; flex-direction: column; gap: 10px; background: var(--cor-branco);
+        }
+        .imp-botoes { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+        .imp-botoes .btn-acao[disabled] { opacity: .5; cursor: not-allowed; }
+        .fat-importar { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; }
+        .imp-passos { display: flex; flex-direction: column; gap: 14px; }
+        .imp-intro { margin: 0; font-size: 14px; color: var(--cor-texto-principal); }
+        .imp-como { margin: 0; padding-left: 20px; display: grid; gap: 8px; font-size: 13.5px; color: var(--cor-texto-secundario); line-height: 1.5; }
+        .imp-escolher { align-self: stretch; justify-content: center; min-height: 46px; display: inline-flex; align-items: center; gap: 8px; }
+        .imp-privado { margin: 0; font-size: 12px; color: var(--cor-texto-mutado); }
+        .imp-erro {
+            background: var(--cor-bg-erro); border: 1px solid var(--cor-borda-erro); color: var(--cor-txt-erro);
+            border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.5;
+        }
+        .imp-cab { display: flex; flex-direction: column; gap: 10px; }
+        .imp-arquivo { font-size: 13px; color: var(--cor-texto-secundario); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; word-break: break-all; }
+        .imp-trocar { background: none; border: none; color: var(--cor-primaria); font-weight: 700; cursor: pointer; font-family: inherit; font-size: 13px; padding: 4px; }
+        .imp-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        @media (max-width: 480px) { .imp-campos { grid-template-columns: 1fr; } }
+        .imp-campos label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--cor-texto-mutado); }
+        .imp-campos select, .imp-campos input, .imp-cat {
+            min-height: 40px; padding: 8px 10px; border: 1.5px solid var(--cor-borda); border-radius: 9px;
+            background: var(--cor-superficie, var(--cor-branco)); color: var(--cor-texto-principal); font-family: inherit; font-size: 14px;
+        }
+        .imp-dia { font-size: 12.5px; color: var(--cor-texto-secundario); display: flex; gap: 8px; align-items: flex-start; }
+        .imp-aviso-topo {
+            background: var(--cor-bg-info); border: 1px solid var(--cor-borda-info); color: var(--cor-txt-info);
+            border-radius: 10px; padding: 9px 12px; font-size: 12.5px; line-height: 1.5;
+        }
+        .imp-grupo { display: flex; flex-direction: column; gap: 8px; }
+        .imp-grupo h3, .imp-grupo summary {
+            margin: 4px 0 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--cor-texto-mutado);
+        }
+        .imp-grupo summary { cursor: pointer; padding: 6px 0; }
+        .imp-grupo h3 span, .imp-grupo summary span { font-weight: 600; }
+        .imp-grupo[data-grupo="atencao"] h3 { color: var(--cor-txt-amber); }
+        .imp-item {
+            border: 1px solid var(--cor-borda); border-radius: 12px; padding: 10px 12px; background: var(--cor-branco);
+            display: flex; flex-direction: column; gap: 6px;
+        }
+        .imp-item.st-atencao { border-color: var(--cor-borda-amber); background: var(--cor-bg-amber); }
+        .imp-item.st-fora, .imp-item.st-ja { opacity: .78; }
+        .imp-item-linha { display: flex; align-items: center; gap: 10px; }
+        .imp-check { width: 20px; height: 20px; flex: 0 0 20px; accent-color: var(--cor-primaria); cursor: pointer; }
+        .imp-check-vazio { width: 20px; flex: 0 0 20px; }
+        .imp-item-corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .imp-item-desc { font-size: 14px; font-weight: 600; color: var(--cor-texto-principal); overflow-wrap: anywhere; }
+        .imp-item-sub { font-size: 11.5px; color: var(--cor-texto-mutado); overflow-wrap: anywhere; }
+        .imp-item-valor { font-family: 'DM Mono', monospace; font-size: 13.5px; font-weight: 600; color: var(--cor-texto-principal); white-space: nowrap; }
+        .imp-parc { font-size: 11px; font-weight: 700; color: var(--cor-cartao); margin-left: 4px; }
+        .imp-chip { font-weight: 700; }
+        .imp-item.st-nova .imp-chip { color: var(--cor-primaria); }
+        .imp-item.st-atencao .imp-chip { color: var(--cor-txt-amber); }
+        .imp-motivo, .imp-aviso { margin: 0 0 0 30px; font-size: 12px; line-height: 1.45; color: var(--cor-texto-secundario); }
+        .imp-aviso { color: var(--cor-txt-erro); }
+        .imp-cat { margin-left: 30px; min-height: 36px; font-size: 13px; }
+        .imp-cat.vazia { border-color: var(--cor-borda-amber); }
+        .imp-totais { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 12px; color: var(--cor-texto-mutado); }
+        .imp-totais > div { display: flex; flex-direction: column; gap: 2px; }
+        .imp-totais strong { font-family: 'DM Mono', monospace; font-size: 15px; color: var(--cor-texto-principal); }
+        .imp-totais strong.bate { color: var(--cor-primaria); }
+        .imp-totais strong.nao-bate { color: var(--cor-cartao); }
+        .imp-dif-porque { grid-column: 1 / -1; font-size: 12px; color: var(--cor-texto-secundario); }
+        .imp-feito { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 28px 8px; }
+        .imp-feito i { font-size: 44px; color: var(--cor-primaria); }
+        .imp-feito strong { font-size: 17px; color: var(--cor-texto-principal); }
+        .imp-feito span, .imp-feito p { font-size: 13.5px; color: var(--cor-texto-secundario); margin: 0; }
+        @media (max-width: 768px) {
+            .imp-rodape { padding: 10px 16px calc(12px + env(safe-area-inset-bottom, 0px)); }
+            .imp-botoes .btn-acao, .imp-botoes .btn-secundario { flex: 1; min-height: 44px; justify-content: center; }
+        }
+
         /* === FATURAS DO CARTÃO (web/appliquei-faturas.js) === */
         .fat-overlay {
             position: fixed; inset: 0; z-index: 9995; background: rgba(15,23,42,0.5);
@@ -13202,6 +13280,23 @@
         </div>
     </div>
 
+    <!-- Importar fatura do cartão (web/appliquei-importar-fatura-ui.js). Abre por
+         cima das Faturas; nada é gravado antes do botão Importar. -->
+    <div id="telaImportarFatura" class="fat-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="impfatTitulo" onclick="if(event.target===this) fecharImportarFatura()">
+        <div class="fat-folha">
+            <div class="fat-topo">
+                <button type="button" class="fat-voltar" onclick="fecharImportarFatura()" aria-label="Fechar importação"><i class="ph ph-x" aria-hidden="true"></i></button>
+                <div class="fat-topo-txt">
+                    <span>Faturas</span>
+                    <h2 id="impfatTitulo">Importar fatura do Nubank</h2>
+                </div>
+            </div>
+            <div id="impfatCorpo" class="fat-corpo"></div>
+            <div id="impfatRodape" class="imp-rodape"></div>
+            <input type="file" id="impfatArquivo" accept=".ofx,.csv,.txt,application/x-ofx,text/csv" hidden onchange="impfatUiArquivoSelecionado(this)">
+        </div>
+    </div>
+
     <!-- Gaveta de filtros do extrato no celular (appliquei-aba-controle-financeiro.js,
          abrirFolhaFiltros). O id não começa com "modal": a regra global de
          modais forçaria margem e largura. -->
@@ -16685,7 +16780,10 @@
     <script src="/web/appliquei-ir.js?v=fase4"></script>
     <script src="/web/appliquei-insights.js?v=insights-1"></script>
     <script src="/web/appliquei-aba-controle-financeiro.js?v=faturas-1"></script>
-    <script src="/web/appliquei-faturas.js?v=faturas-1"></script>
+    <script src="/web/appliquei-faturas.js?v=importar-fatura-1"></script>
+    <script src="/web/appliquei-categorias-palavras.js?v=importar-fatura-1"></script>
+    <script src="/web/appliquei-importar-fatura.js?v=importar-fatura-1"></script>
+    <script src="/web/appliquei-importar-fatura-ui.js?v=importar-fatura-1"></script>
     <script src="/web/appliquei-insights-ui.js?v=inicio-mob"></script>
     <script src="/web/appliquei-relatorio-mensal.js?v=detalhe-categorias"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
