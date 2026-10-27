@@ -595,6 +595,15 @@ function impfatValorParecido(a, b) {
  *   valorApp, aviso }
  *
  * status:
+ * Cada item que pede decisão traz `escolha` (a tela mostra as duas opções
+ * por extenso; o padrão é o mais provável):
+ *   parecida      'mesma' (corrige o valor do app para o do banco) | 'diferente'
+ *   conflito      'manter' | 'diferente'
+ *   outra_fatura  'mover' | 'diferente'
+ *   reajuste      'atualizar' | 'manter'
+ *   anulada c/ lançamento no app  'apagar' | 'manter'
+ * 'diferente' = importar esta linha como compra nova, além da do app.
+ *
  *   nova         entra (marcado)
  *   ja_lancada   já está no app, nesta fatura (P1, P2, P6)
  *   parecida     valor ou nome perto de um lançamento do app (P4) — só
@@ -1024,13 +1033,24 @@ function impfatPlanejar(opts) {
     }
   });
 
+  // Padrão de cada decisão: o mais provável, e o que deixa a fatura do app
+  // igual à do banco.
+  itens.forEach(function (it) {
+    if (it.status === 'parecida') it.escolha = 'mesma';
+    else if (it.status === 'conflito') it.escolha = 'manter';
+    else if (it.status === 'outra_fatura') it.escolha = 'mover';
+    else if (it.status === 'reajuste') it.escolha = 'atualizar';
+    else if (it.status === 'anulada' && it.casadoCom) it.escolha = 'apagar';
+    if (it.escolha) it.marcado = false;
+  });
+
   // Parcelas FUTURAS que já estão no app não são criadas de novo. Achado pela
   // caça de furos: importar novembro e depois outubro criava duas vezes as
   // parcelas de novembro em diante (uma por importação). Casa como a parcela
   // desta fatura (b): mesmo N/M e valor, um para um.
   var futurasUsadas = {};
   itens.forEach(function (it) {
-    if (it.status !== 'nova' && it.status !== 'parecida' && it.status !== 'conflito') return;
+    if (['nova', 'parecida', 'conflito', 'outra_fatura'].indexOf(it.status) === -1) return;
     var p = it.parcela;
     if (!p) return;
     it.criar = [];
@@ -1096,9 +1116,20 @@ function impfatMoeda(v) {
 
 /** Itens que viram lançamento novo com as escolhas atuais. */
 function impfatEntra(it) {
+  if (it.status === 'nova') return !!it.marcado;
   return (
-    it.marcado && (it.status === 'nova' || it.status === 'parecida' || it.status === 'conflito')
+    it.escolha === 'diferente' &&
+    (it.status === 'parecida' || it.status === 'conflito' || it.status === 'outra_fatura')
   );
+}
+
+/** Quanto cada item tira ou põe na fatura do app, além das compras novas. */
+function impfatAjusteNoApp(it) {
+  if (it.status === 'outra_fatura' && it.escolha === 'mover') return it.valorApp;
+  if (it.status === 'reajuste' && it.escolha === 'atualizar') return it.valor - it.valorApp;
+  if (it.status === 'parecida' && it.escolha === 'mesma') return it.valor - it.valorApp;
+  if (it.status === 'anulada' && it.escolha === 'apagar') return -it.valorApp;
+  return 0;
 }
 
 // Por que o total do app (depois de importar) pode diferir do total do banco.
@@ -1129,6 +1160,7 @@ function impfatResumo(plano) {
   var novas = 0;
   var qtdNovas = 0;
   var lancamentosCriados = 0;
+  var ateVencimento = null;
   var depois = plano.appAntes;
   var motivos = {};
   function motivo(chave, valor) {
@@ -1147,22 +1179,27 @@ function impfatResumo(plano) {
       qtdNovas++;
       depois += it.valor;
       lancamentosCriados += it.criar ? it.criar.length : 1;
-    } else if (it.status === 'outra_fatura' && it.marcado) depois += it.valorApp;
-    else if (it.status === 'reajuste' && it.marcado) depois += it.valor - it.valorApp;
+    }
+    depois += impfatAjusteNoApp(it);
+    if (impfatEntra(it) && it.criar) {
+      var ultimoK = it.criar[it.criar.length - 1];
+      var vUlt = impfatSomarMeses(plano.vencimento, ultimoK - it.parcela.n);
+      if (!ateVencimento || vUlt > ateVencimento) ateVencimento = vUlt;
+    }
 
     var st = it.status;
     if (st === 'nova' && !it.marcado) motivo('desmarcadas', -it.valor);
     else if (st === 'parecida' || st === 'conflito') {
-      if (it.marcado) motivo('parecidas_importadas', it.valorApp);
-      else motivo('parecidas_mantidas', it.valorApp - it.valor);
+      if (it.escolha === 'diferente') motivo('parecidas_importadas', it.valorApp);
+      else if (it.escolha !== 'mesma') motivo('parecidas_mantidas', it.valorApp - it.valor);
     } else if (st === 'ja_lancada') {
       if (Math.abs(it.valorApp - it.valor) >= 0.005) motivo('centavos', it.valorApp - it.valor);
     } else if (st === 'outra_fatura') {
-      if (!it.marcado) motivo('desmarcadas', -it.valor);
-      else if (Math.abs(it.valorApp - it.valor) >= 0.005)
+      if (it.escolha === 'mover' && Math.abs(it.valorApp - it.valor) >= 0.005)
         motivo('centavos', it.valorApp - it.valor);
-    } else if (st === 'reajuste' && !it.marcado) motivo('reajuste_mantido', it.valorApp - it.valor);
-    else if (st === 'anulada' && it.valor > 0 && it.valorApp != null)
+    } else if (st === 'reajuste' && it.escolha === 'manter')
+      motivo('reajuste_mantido', it.valorApp - it.valor);
+    else if (st === 'anulada' && it.valor > 0 && it.valorApp != null && it.escolha !== 'apagar')
       motivo('estornada_no_app', it.valorApp);
     else if (st === 'credito_fora' && temLedger) motivo('creditos', -it.valor);
     else if (st === 'ignorada' && it.tipo === 'saldo_anterior' && temLedger)
@@ -1190,6 +1227,9 @@ function impfatResumo(plano) {
     qtdNovas: qtdNovas,
     valorNovas: impfatArred(novas),
     lancamentosCriados: lancamentosCriados,
+    // Parcelas que entram nas PRÓXIMAS faturas (a tela diz antes de importar).
+    parcelasFuturas: lancamentosCriados - qtdNovas,
+    ateVencimento: ateVencimento,
     qtdJaLancadas: plano.itens.filter(function (it) {
       return it.status === 'ja_lancada';
     }).length,
@@ -1221,6 +1261,7 @@ function impfatAplicar(plano, ctx) {
   });
   var novos = [];
   var alteracoes = [];
+  var removidos = [];
   var seq = 0;
 
   plano.itens.forEach(function (it) {
@@ -1260,7 +1301,7 @@ function impfatAplicar(plano, ctx) {
           },
         });
       });
-    } else if (it.status === 'outra_fatura' && it.marcado && porId[it.casadoCom]) {
+    } else if (it.status === 'outra_fatura' && it.escolha === 'mover' && porId[it.casadoCom]) {
       var t = porId[it.casadoCom];
       var p2 = plano.vencimento.split('-').map(Number);
       alteracoes.push({
@@ -1268,7 +1309,20 @@ function impfatAplicar(plano, ctx) {
         antes: { dataVencimento: t.dataVencimento, mes: t.mes, ano: t.ano },
         depois: { dataVencimento: plano.vencimento, mes: p2[1] - 1, ano: p2[0] },
       });
-    } else if (it.status === 'reajuste' && it.marcado && porId[it.casadoCom]) {
+    } else if (it.status === 'parecida' && it.escolha === 'mesma' && porId[it.casadoCom]) {
+      // "Mesma compra": o valor do app vira o do banco (lançada arredondada).
+      var par = porId[it.casadoCom];
+      if (Math.abs((Number(par.valor) || 0) - it.valor) >= 0.005) {
+        alteracoes.push({ id: par.id, antes: { valor: par.valor }, depois: { valor: it.valor } });
+      }
+    } else if (it.status === 'anulada' && it.escolha === 'apagar' && porId[it.casadoCom]) {
+      // Estornada no banco: sai do app junto (o Desfazer devolve no lugar).
+      var est = porId[it.casadoCom];
+      removidos.push({
+        indice: (ctx.transacoes || []).indexOf(est),
+        t: JSON.parse(JSON.stringify(est)),
+      });
+    } else if (it.status === 'reajuste' && it.escolha === 'atualizar' && porId[it.casadoCom]) {
       var fixo = porId[it.casadoCom];
       // Esta e as próximas, ainda não pagas, da mesma assinatura.
       (ctx.transacoes || []).forEach(function (x) {
@@ -1284,9 +1338,13 @@ function impfatAplicar(plano, ctx) {
     }
   });
 
+  removidos.sort(function (a, b) {
+    return a.indice - b.indice;
+  });
   return {
     novos: novos,
     alteracoes: alteracoes,
+    removidos: removidos,
     registro: {
       id: impId,
       cartaoId: plano.cartaoId,
@@ -1296,6 +1354,7 @@ function impfatAplicar(plano, ctx) {
       criados: novos.length,
       totalBanco: plano.totalBanco,
       alteracoes: alteracoes,
+      removidos: removidos,
     },
   };
 }
@@ -1336,7 +1395,22 @@ function impfatDesfazer(transacoes, registro) {
     return t && !t.pago;
   });
   impfatAplicarAlteracoes(lista, naoPagas, 'antes');
+  // O que a importação apagou (compra estornada) volta no mesmo lugar.
+  var devolvidos = 0;
+  (registro.removidos || []).forEach(function (x) {
+    if (
+      lista.some(function (t) {
+        return t.id === x.t.id;
+      })
+    )
+      return;
+    var copia = JSON.parse(JSON.stringify(x.t));
+    if (x.indice >= 0 && x.indice <= lista.length) lista.splice(x.indice, 0, copia);
+    else lista.push(copia);
+    devolvidos++;
+  });
   return {
+    devolvidos: devolvidos,
     transacoes: lista,
     removidos: removidos,
     mantidosPagos: mantidos,
@@ -1353,6 +1427,13 @@ function impfatDesfazer(transacoes, registro) {
 function impfatConfirmar(transacoes, plano, ctx) {
   var r = impfatAplicar(plano, Object.assign({}, ctx, { transacoes: transacoes }));
   impfatAplicarAlteracoes(transacoes, r.alteracoes, 'depois');
+  var fora = {};
+  r.removidos.forEach(function (x) {
+    fora[x.t.id] = true;
+  });
+  for (var i = transacoes.length - 1; i >= 0; i--) {
+    if (fora[transacoes[i].id]) transacoes.splice(i, 1);
+  }
   r.novos.forEach(function (t) {
     transacoes.push(t);
   });

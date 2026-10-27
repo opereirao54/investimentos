@@ -381,6 +381,22 @@ function _fatLinhaPrazo(c) {
   return (fech ? 'Fecha ' + fech + ' · ' : '') + 'vence ' + venc;
 }
 
+/** Sem cartão: leva ao formulário de lançamento, já em "novo cartão". */
+function faturasCadastrarCartao() {
+  fecharFaturas();
+  if (typeof abrirPainelLancamento === 'function') abrirPainelLancamento();
+  const cat = document.getElementById('categoriaTransacao');
+  if (cat) {
+    cat.value = 'cartao_credito';
+    if (typeof verificarRegraCartao === 'function') verificarRegraCartao();
+  }
+  const sel = document.getElementById('selectCartao');
+  if (sel) {
+    sel.value = '__novo__';
+    if (typeof onChangeSelectCartao === 'function') onChangeSelectCartao();
+  }
+}
+
 function renderizarFaturas() {
   const corpo = document.getElementById('faturasCorpo');
   if (!corpo) return;
@@ -392,7 +408,8 @@ function renderizarFaturas() {
     corpo.innerHTML =
       '<div class="fat-vazio"><i class="ph ph-credit-card" aria-hidden="true"></i>' +
       '<strong>Nenhum cartão cadastrado</strong>' +
-      '<span>Cadastre um cartão ao lançar uma compra no crédito; as faturas aparecem aqui.</span></div>';
+      '<span>Cadastre o cartão para ver as faturas e importar a do banco.</span>' +
+      '<button type="button" class="btn-acao fat-cadastrar" onclick="faturasCadastrarCartao()"><i class="ph ph-plus" aria-hidden="true"></i> Cadastrar um cartão</button></div>';
     return;
   }
   if (btnAtual) btnAtual.style.display = '';
@@ -509,6 +526,12 @@ function renderizarFaturas() {
         '</span>'
       : '') +
     '</div>';
+
+  // Fatura que veio de um arquivo do banco: o Desfazer continua aqui enquanto
+  // nada daquela importação foi pago (appliquei-importar-fatura-ui.js).
+  if (typeof impfatHtmlLinhaImportada === 'function') {
+    html += impfatHtmlLinhaImportada(cartaoId, c.vencimento);
+  }
 
   if (c.aPagar > 0 && (c.status === 'fechada' || c.status === 'vencida')) {
     html +=

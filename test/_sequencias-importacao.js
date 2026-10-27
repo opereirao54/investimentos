@@ -19,9 +19,9 @@
  *   IMP01  as invariantes do app: INV-08 (competência), INV-20 (cartão),
  *          INV-27 (a mesma linha do banco não vira dois lançamentos);
  *   IMP02  fatura importada tem exatamente uma entrada por compra do banco
- *          (nem duplicada, nem faltando);
- *   IMP03  o total da fatura no app = o do banco, a menos do arredondamento
- *          do que veio pelo Telegram (que a tela mantém e explica);
+ *          (nem duplicada, nem faltando — a estornada lançada antes sai junto);
+ *   IMP03  o total da fatura no app = o do banco, no centavo (a "parecida"
+ *          lançada arredondada assume o valor do banco);
  *   IMP04  desfazer volta o app EXATAMENTE ao que era antes da importação;
  *   IMP05  a mesma compra não é criada duas vezes pela importação na mesma
  *          fatura — inclusive importando os meses fora de ordem;
@@ -275,27 +275,19 @@ function verificar(m) {
     if (!imp.has(k)) continue;
     const verdade = S.linhasDaFatura(m.hist, k);
     const esperado = S.esperadoDaFatura(verdade);
-    // Compra que veio pelo Telegram e depois foi estornada no banco: a tela
-    // avisa para apagar, mas ela segue no app até a pessoa apagar.
-    const anuladasNoApp = verdade.filter(
-      (l) => l.anulada && l.tipo === 'compra' && m.telegram[l.compraId]
-    );
-    const extra = anuladasNoApp.length;
-    const extraValor = anuladasNoApp.reduce((s, l) => s + l.valor, 0);
-    if (naFatura.length !== esperado.compras + extra) {
+    // Com as escolhas que a tela sugere, a fatura do app fica IGUAL à do banco:
+    // a "parecida" (lançada arredondada pelo Telegram) assume o valor do banco
+    // e a compra estornada que estava no app sai junto.
+    if (naFatura.length !== esperado.compras) {
       problemas.push(
         `IMP02 fatura ${k}: ${naFatura.length} lançamentos no app, o banco tem ${esperado.compras} compras` +
-          (extra ? ` (+${extra} estornada(s) lançada(s) pelo Telegram)` : '') +
           ` — ${naFatura.map((t) => t.descricao + ' ' + t.valor).join(', ')}`
       );
     }
-    const ruido = Object.values(m.telegram)
-      .filter((tg) => tg.k === k)
-      .reduce((s, tg) => s + tg.ruido, 0);
     const totalApp = naFatura.reduce((s, t) => s + t.valor, 0);
-    if (Math.abs(totalApp - extraValor - esperado.total) > ruido + 0.01) {
+    if (Math.abs(totalApp - esperado.total) > 0.01) {
       problemas.push(
-        `IMP03 fatura ${k}: total no app ${totalApp.toFixed(2)}, no banco ${esperado.total.toFixed(2)} (arredondamento do Telegram: ${ruido.toFixed(2)})`
+        `IMP03 fatura ${k}: total no app ${totalApp.toFixed(2)}, no banco ${esperado.total.toFixed(2)}`
       );
     }
   }

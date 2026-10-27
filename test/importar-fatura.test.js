@@ -290,16 +290,21 @@ test('(P3) duas compras iguais no arquivo e uma no app: uma já lançada, uma no
   assert.deepEqual(p.itens.map((it) => it.status).sort(), ['ja_lancada', 'nova']);
 });
 
-test('(P4) valor parecido (50 × 49,90): pergunta, não importa sozinho', () => {
+test('(P4) valor parecido (50 × 49,90): "mesma compra" corrige o valor; "diferentes" importa', () => {
   const csv = 'date,title,amount\n2026-10-02,Padaria Bom Pao,49.90\n';
   const tx = [compra('padaria bom pão', 50)];
   const p = plano(tx, F.lerArquivo(csv, 'Nubank_2026-11-05.csv'));
   const it = p.itens[0];
   assert.equal(it.status, 'parecida');
-  assert.equal(it.marcado, false);
-  assert.equal(aplicar(p, tx).novos.length, 0);
-  it.marcado = true; // o usuário diz que é outra compra
-  assert.equal(aplicar(p, tx).novos.length, 1);
+  assert.equal(it.escolha, 'mesma', 'o padrão é a mesma compra');
+  let r = aplicar(p, tx);
+  assert.equal(r.novos.length, 0);
+  assert.deepEqual(r.alteracoes, [{ id: tx[0].id, antes: { valor: 50 }, depois: { valor: 49.9 } }]);
+  assert.equal(F.resumo(p).diferenca, 0, 'a fatura fecha com o banco');
+  it.escolha = 'diferente'; // o usuário diz que são duas compras
+  r = aplicar(p, tx);
+  assert.equal(r.novos.length, 1);
+  assert.equal(r.alteracoes.length, 0);
 });
 
 test('(P4) lançou "pão doce 18" pelo Telegram, o banco cobrou R$ 18,37: parecida', () => {
@@ -310,8 +315,8 @@ test('(P4) lançou "pão doce 18" pelo Telegram, o banco cobrou R$ 18,37: pareci
   const p = plano(tx);
   const it = item(p, 'Padaria Sol Nascente');
   assert.equal(it.status, 'parecida');
-  assert.equal(it.marcado, false);
-  assert.equal(F.resumo(p).appDepois, 724.74, 'fica a diferença de centavos, não R$ 18 a mais');
+  assert.equal(it.escolha, 'mesma');
+  assert.equal(F.resumo(p).appDepois, 725.11, 'o "pão doce" vira R$ 18,37 e a fatura fecha');
   // Valor longe (R$ 30 × R$ 18,37) e nome diferente: são compras diferentes.
   assert.equal(item(plano([compra('pão doce', 30)]), 'Padaria Sol').status, 'nova');
 });
@@ -326,7 +331,7 @@ test('(P5) lançada na fatura do mês seguinte: oferece mover; paga, não', () =
   });
   const p = plano([errada], arq);
   assert.equal(p.itens[0].status, 'outra_fatura');
-  assert.equal(p.itens[0].marcado, true);
+  assert.equal(p.itens[0].escolha, 'mover');
   const r = aplicar(p, [errada]);
   assert.equal(r.novos.length, 0);
   assert.deepEqual(r.alteracoes, [
@@ -423,7 +428,7 @@ test('(U6/D2) assinatura fixa com preço novo: atualiza esta e as próximas não
   const p = plano(tx, F.lerArquivo(csv, 'Nubank_2026-11-05.csv'));
   const it = p.itens[0];
   assert.equal(it.status, 'reajuste');
-  assert.equal(it.marcado, true);
+  assert.equal(it.escolha, 'atualizar');
   const r = aplicar(p, tx);
   assert.equal(r.novos.length, 0);
   assert.deepEqual(

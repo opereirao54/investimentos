@@ -2969,21 +2969,58 @@
         .alert-danger { border-color: var(--cor-borda-erro); background: var(--cor-bg-erro); color: var(--cor-txt-erro); }
         .alert-contextual i { font-size: 17px; flex-shrink: 0; }
 
+        /* Parcelado: Nº parcelas + parcela atual lado a lado; corrigir a série. */
+        .parcelas-linha { display: flex; gap: 10px; }
+        .parcelas-linha > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .corrigir-parcelas {
+            margin-top: 12px; padding: 14px; border: 1px solid var(--cor-borda); border-radius: var(--radius-sm);
+            background: var(--cor-superficie); display: flex; flex-direction: column; gap: 8px;
+        }
+        .cp-linha { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13.5px; font-weight: 600; color: var(--cor-texto-principal); }
+        .cp-linha i { font-size: 18px; color: var(--cor-cartao); }
+        #grupoCorrigirParcelas .cp-linha input { flex: 0 0 64px; width: 64px; min-height: 40px; padding: 6px 8px; border: 1.5px solid var(--cor-borda); border-radius: 8px; font-family: inherit; font-size: 14px; background: var(--cor-branco); color: var(--cor-texto-principal); }
+        .cp-ajuda, .cp-nota { margin: 0; font-size: 12px; line-height: 1.5; color: var(--cor-texto-mutado); }
+        .cp-previa ul { margin: 0 0 6px; padding-left: 18px; font-size: 13px; line-height: 1.6; color: var(--cor-texto-secundario); }
+        .cp-erro { margin: 0; font-size: 12.5px; color: var(--cor-txt-erro); }
+        .cp-botoes { display: flex; gap: 8px; margin-top: 6px; }
+        .cp-botoes > * { flex: 1; justify-content: center; }
+        .cp-ver { min-height: 42px; }
+
         /* === IMPORTAR FATURA (web/appliquei-importar-fatura-ui.js) ===
            Reaproveita a moldura das Faturas (.fat-overlay/.fat-folha) e fica
-           por cima dela. */
+           por cima dela. Alvos de toque com 44px no mínimo. */
         #telaImportarFatura { z-index: 9996; }
+        /* O rodapé fica no pé da tela mesmo com pouco conteúdo (tela "feito" no celular). */
+        #telaImportarFatura .fat-corpo { flex: 1 1 auto; }
         .imp-rodape {
             border-top: 1px solid var(--cor-borda); padding: 12px 20px calc(14px + env(safe-area-inset-bottom, 0px));
             display: flex; flex-direction: column; gap: 10px; background: var(--cor-branco);
         }
         .imp-botoes { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+        .imp-botoes > button { width: auto; margin: 0; }
         .imp-botoes .btn-acao[disabled] { opacity: .5; cursor: not-allowed; }
-        .fat-importar { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; }
+        .fat-importar { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; }
+        .fat-cadastrar { margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; }
+        .fat-importada {
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 12px; border-radius: 10px;
+            background: var(--cor-bg-info); border: 1px solid var(--cor-borda-info); color: var(--cor-txt-info); font-size: 12.5px;
+        }
+        .fat-importada span { flex: 1; min-width: 0; }
+        .fat-importada.pendente { flex-direction: column; align-items: stretch; background: var(--cor-bg-amber); border-color: var(--cor-borda-amber); color: var(--cor-txt-amber); }
+        .fat-importada-botoes { display: flex; gap: 8px; }
+        .fat-importada-botoes > * { flex: 1; justify-content: center; min-height: 40px; }
+        .link-importar-fatura {
+            display: inline-flex; align-items: center; gap: 6px; background: none; border: none; padding: 6px 0 2px;
+            color: var(--cor-primaria); font-weight: 700; font-size: 12.5px; cursor: pointer; font-family: inherit;
+        }
         .imp-passos { display: flex; flex-direction: column; gap: 14px; }
         .imp-intro { margin: 0; font-size: 14px; color: var(--cor-texto-principal); }
-        .imp-como { margin: 0; padding-left: 20px; display: grid; gap: 8px; font-size: 13.5px; color: var(--cor-texto-secundario); line-height: 1.5; }
-        .imp-escolher { align-self: stretch; justify-content: center; min-height: 46px; display: inline-flex; align-items: center; gap: 8px; }
+        .imp-como { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; font-size: 13.5px; color: var(--cor-texto-secundario); line-height: 1.5; }
+        .imp-como li { display: flex; gap: 10px; align-items: flex-start; }
+        .imp-como li i { font-size: 20px; color: var(--cor-primaria); flex: 0 0 auto; margin-top: 1px; }
+        .imp-como-recolhido summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--cor-texto-secundario); padding: 8px 0; }
+        .imp-como-recolhido .imp-como { margin-top: 6px; }
+        .imp-escolher { align-self: stretch; justify-content: center; min-height: 48px; display: inline-flex; align-items: center; gap: 8px; }
         .imp-privado { margin: 0; font-size: 12px; color: var(--cor-texto-mutado); }
         .imp-erro {
             background: var(--cor-bg-erro); border: 1px solid var(--cor-borda-erro); color: var(--cor-txt-erro);
@@ -2991,60 +3028,87 @@
         }
         .imp-cab { display: flex; flex-direction: column; gap: 10px; }
         .imp-arquivo { font-size: 13px; color: var(--cor-texto-secundario); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; word-break: break-all; }
-        .imp-trocar { background: none; border: none; color: var(--cor-primaria); font-weight: 700; cursor: pointer; font-family: inherit; font-size: 13px; padding: 4px; }
+        .imp-trocar, .imp-link { background: none; border: none; color: var(--cor-primaria); font-weight: 700; cursor: pointer; font-family: inherit; font-size: 13px; padding: 8px 4px; }
         .imp-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .imp-campos.um { grid-template-columns: 1fr; }
         @media (max-width: 480px) { .imp-campos { grid-template-columns: 1fr; } }
         .imp-campos label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--cor-texto-mutado); }
-        .imp-campos select, .imp-campos input, .imp-cat {
-            min-height: 40px; padding: 8px 10px; border: 1.5px solid var(--cor-borda); border-radius: 9px;
+        .imp-campos select, .imp-campos input {
+            min-height: 44px; padding: 8px 10px; border: 1.5px solid var(--cor-borda); border-radius: 9px;
             background: var(--cor-superficie, var(--cor-branco)); color: var(--cor-texto-principal); font-family: inherit; font-size: 14px;
         }
-        .imp-dia { font-size: 12.5px; color: var(--cor-texto-secundario); display: flex; gap: 8px; align-items: flex-start; }
+        .imp-dia { font-size: 12.5px; color: var(--cor-texto-secundario); display: flex; gap: 8px; align-items: flex-start; min-height: 32px; }
         .imp-aviso-topo {
             background: var(--cor-bg-info); border: 1px solid var(--cor-borda-info); color: var(--cor-txt-info);
             border-radius: 10px; padding: 9px 12px; font-size: 12.5px; line-height: 1.5;
         }
         .imp-grupo { display: flex; flex-direction: column; gap: 8px; }
+        .imp-grupo-topo { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
         .imp-grupo h3, .imp-grupo summary {
             margin: 4px 0 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--cor-texto-mutado);
         }
-        .imp-grupo summary { cursor: pointer; padding: 6px 0; }
+        .imp-grupo summary { cursor: pointer; padding: 10px 0; }
         .imp-grupo h3 span, .imp-grupo summary span { font-weight: 600; }
-        .imp-grupo[data-grupo="atencao"] h3 { color: var(--cor-txt-amber); }
+        .imp-grupo[data-grupo="decisoes"] h3 { color: var(--cor-txt-amber); }
+        .imp-grupo-nota { margin: -2px 0 2px; font-size: 12px; color: var(--cor-texto-mutado); }
         .imp-item {
-            border: 1px solid var(--cor-borda); border-radius: 12px; padding: 10px 12px; background: var(--cor-branco);
-            display: flex; flex-direction: column; gap: 6px;
+            border: 1px solid var(--cor-borda); border-radius: 12px; padding: 8px 12px; background: var(--cor-branco);
+            display: flex; flex-direction: column; gap: 6px; margin: 0; min-width: 0;
         }
-        .imp-item.st-atencao { border-color: var(--cor-borda-amber); background: var(--cor-bg-amber); }
-        .imp-item.st-fora, .imp-item.st-ja { opacity: .78; }
-        .imp-item-linha { display: flex; align-items: center; gap: 10px; }
-        .imp-check { width: 20px; height: 20px; flex: 0 0 20px; accent-color: var(--cor-primaria); cursor: pointer; }
-        .imp-check-vazio { width: 20px; flex: 0 0 20px; }
+        .imp-item.imp-decisao { border-color: var(--cor-borda-amber); background: var(--cor-bg-amber); padding: 10px 12px 12px; }
+        .imp-item.imp-nova:not(.on) { opacity: .6; }
+        .imp-item.imp-leitura { opacity: .8; }
+        .imp-item-linha { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; width: 100%; padding: 0; }
+        .imp-decisao legend.imp-item-linha { cursor: default; float: left; }
+        .imp-decisao legend + * { clear: both; }
+        .imp-leitura .imp-item-linha { cursor: default; }
+        .imp-check { width: 22px; height: 22px; flex: 0 0 22px; accent-color: var(--cor-primaria); cursor: pointer; margin: 0; }
         .imp-item-corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
         .imp-item-desc { font-size: 14px; font-weight: 600; color: var(--cor-texto-principal); overflow-wrap: anywhere; }
         .imp-item-sub { font-size: 11.5px; color: var(--cor-texto-mutado); overflow-wrap: anywhere; }
         .imp-item-valor { font-family: 'DM Mono', monospace; font-size: 13.5px; font-weight: 600; color: var(--cor-texto-principal); white-space: nowrap; }
         .imp-parc { font-size: 11px; font-weight: 700; color: var(--cor-cartao); margin-left: 4px; }
         .imp-chip { font-weight: 700; }
-        .imp-item.st-nova .imp-chip { color: var(--cor-primaria); }
-        .imp-item.st-atencao .imp-chip { color: var(--cor-txt-amber); }
-        .imp-motivo, .imp-aviso { margin: 0 0 0 30px; font-size: 12px; line-height: 1.45; color: var(--cor-texto-secundario); }
-        .imp-aviso { color: var(--cor-txt-erro); }
-        .imp-cat { margin-left: 30px; min-height: 36px; font-size: 13px; }
-        .imp-cat.vazia { border-color: var(--cor-borda-amber); }
+        .imp-nova .imp-chip { color: var(--cor-primaria); }
+        .imp-decisao .imp-chip { color: var(--cor-txt-amber); }
+        .imp-nova-pe { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-left: 32px; }
+        .imp-decisao .imp-nova-pe { padding-left: 0; }
+        .imp-cat {
+            appearance: none; -webkit-appearance: none; border: 1px solid var(--cor-borda); border-radius: 999px;
+            padding: 6px 12px; min-height: 32px; font-size: 12.5px; font-family: inherit; font-weight: 600; cursor: pointer;
+            background: var(--cor-superficie, var(--cor-branco)); color: var(--cor-texto-secundario); max-width: 100%;
+        }
+        .imp-cat.vazia { border-style: dashed; color: var(--cor-texto-mutado); font-weight: 500; }
+        .imp-motivo-curto { font-size: 11.5px; color: var(--cor-texto-mutado); }
+        .imp-motivo, .imp-contexto { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--cor-texto-secundario); }
+        .imp-opcoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        @media (max-width: 480px) { .imp-opcoes { grid-template-columns: 1fr; } }
+        .imp-opcao {
+            display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; min-height: 44px; border-radius: 10px; cursor: pointer;
+            border: 1.5px solid var(--cor-borda); background: var(--cor-branco);
+        }
+        .imp-opcao.on { border-color: var(--cor-primaria); box-shadow: 0 0 0 1px var(--cor-primaria) inset; }
+        .imp-opcao input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--cor-primaria); flex: 0 0 20px; }
+        .imp-opcao span { display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--cor-texto-principal); min-width: 0; overflow-wrap: anywhere; }
+        .imp-opcao small { font-size: 11.5px; color: var(--cor-texto-mutado); }
         .imp-totais { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 12px; color: var(--cor-texto-mutado); }
         .imp-totais > div { display: flex; flex-direction: column; gap: 2px; }
         .imp-totais strong { font-family: 'DM Mono', monospace; font-size: 15px; color: var(--cor-texto-principal); }
         .imp-totais strong.bate { color: var(--cor-primaria); }
-        .imp-totais strong.nao-bate { color: var(--cor-cartao); }
+        .imp-totais strong.nao-bate { color: var(--cor-texto-principal); }
         .imp-dif-porque { grid-column: 1 / -1; font-size: 12px; color: var(--cor-texto-secundario); }
-        .imp-feito { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 28px 8px; }
-        .imp-feito i { font-size: 44px; color: var(--cor-primaria); }
-        .imp-feito strong { font-size: 17px; color: var(--cor-texto-principal); }
-        .imp-feito span, .imp-feito p { font-size: 13.5px; color: var(--cor-texto-secundario); margin: 0; }
+        .imp-futuras { margin: 0; font-size: 12.5px; color: var(--cor-texto-secundario); display: flex; gap: 6px; align-items: center; }
+        .imp-feito { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 24px 8px; }
+        .imp-feito > i { font-size: 44px; color: var(--cor-primaria); }
+        .imp-feito > strong { font-size: 17px; color: var(--cor-texto-principal); }
+        .imp-feito p { font-size: 13px; color: var(--cor-texto-secundario); margin: 0; max-width: 420px; }
+        .imp-feito-total { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 20px; border-radius: 12px; background: var(--cor-superficie, var(--cor-branco)); border: 1px solid var(--cor-borda); font-size: 12.5px; color: var(--cor-texto-mutado); }
+        .imp-feito-total b { font-family: 'DM Mono', monospace; font-size: 22px; color: var(--cor-texto-principal); }
+        .imp-feito-total.bate span:last-child { color: var(--cor-primaria); font-weight: 700; }
+        .imp-feito-lista { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 13.5px; color: var(--cor-texto-secundario); }
         @media (max-width: 768px) {
             .imp-rodape { padding: 10px 16px calc(12px + env(safe-area-inset-bottom, 0px)); }
-            .imp-botoes .btn-acao, .imp-botoes .btn-secundario { flex: 1; min-height: 44px; justify-content: center; }
+            .imp-botoes .btn-acao, .imp-botoes .btn-secundario { flex: 1; min-height: 46px; justify-content: center; }
         }
 
         /* === FATURAS DO CARTÃO (web/appliquei-faturas.js) === */
@@ -14690,7 +14754,14 @@
                     </div>
                     <div class="grid-2-iguais" style="gap:12px;align-items:end;">
                         <div class="form-group"><label id="lblValorOpControle">Valor (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="valorTransacao" placeholder="0,00" oninput="aplicarMascaraBRL(this); atualizarResumoFatura()"></span></div>
-                        <div class="form-group" id="grupoParcelas" style="display:none;"><label>Nº Parcelas</label><input type="number" id="qtdParcelas" value="1" min="1" oninput="atualizarResumoFatura()"></div>
+                        <div class="form-group" id="grupoParcelas" style="display:none;">
+                            <!-- "Parcela atual": compra que já começou a ser paga entra
+                                 na parcela certa (relato: lançou 1/10, era 2/10). -->
+                            <div class="parcelas-linha">
+                                <div><label for="qtdParcelas">Nº Parcelas</label><input type="number" id="qtdParcelas" value="1" min="1" max="48" oninput="atualizarParcelaInicialUI(); atualizarResumoFatura()"></div>
+                                <div id="grupoParcelaInicial" style="display:none;"><label for="parcelaInicial" title="Se a compra já começou a ser paga, em qual parcela ela está nesta fatura">Parcela atual</label><input type="number" id="parcelaInicial" value="1" min="1" oninput="atualizarResumoFatura()"></div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="form-group" id="grupoBancoReceita" style="display:none;">
@@ -14725,6 +14796,8 @@
                             <label>Cartão</label>
                             <select id="selectCartao" onchange="onChangeSelectCartao()"></select>
                         </div>
+                        <!-- Atalho: quem tem a fatura do banco não precisa lançar uma a uma. -->
+                        <button type="button" class="link-importar-fatura" onclick="abrirImportarFaturaDoLancamento()"><i class="ph ph-file-arrow-up" aria-hidden="true"></i> Tem o arquivo da fatura? Importar de uma vez</button>
                         <div id="formNovoCartaoInline" style="display:none;background:var(--cor-superficie);border:1px dashed var(--cor-borda);border-radius:9px;padding:12px;margin-bottom:8px;">
                             <div class="form-group" style="margin-bottom:8px;"><label style="font-size:11px;">Nome do cartão</label><input type="text" id="inlineCartaoNome" placeholder="Ex: Nubank, Itaú..." style="padding:8px;font-size:13px;"></div>
                             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end;margin-bottom:8px;">
@@ -14777,6 +14850,14 @@
                         <label style="font-size:12.5px;color:var(--cor-texto-secundario);font-weight:500;text-align:center;margin-bottom:4px;">Como salvar esta alteração?</label>
                         <button class="btn-acao" style="background-color:var(--cor-texto-principal);" onclick="executarEdicao('unica')"><i class="ph ph-target"></i> Só este mês</button>
                         <button class="btn-acao" style="background-color:var(--cor-info);" onclick="executarEdicao('todas')"><i class="ph ph-copy"></i> Este e os futuros</button>
+                    </div>
+                    <!-- Corrigir a numeração de um parcelado já lançado
+                         (renumerarSerieParcelas em appliquei-aba-controle-financeiro.js). -->
+                    <div id="grupoCorrigirParcelas" class="corrigir-parcelas" style="display:none;">
+                        <div class="cp-linha"><i class="ph ph-list-numbers" aria-hidden="true"></i><span>Esta é a parcela</span><input type="number" id="cpParcela" min="1" max="48" aria-label="Número desta parcela"><span>de</span><input type="number" id="cpTotal" min="2" max="48" aria-label="Total de parcelas"></div>
+                        <p class="cp-ajuda">Lançou com a numeração errada? Corrija aqui e a série inteira se ajusta: as parcelas seguintes são renomeadas, a que sobrar no fim é apagada e a que faltar é criada.</p>
+                        <div id="cpPrevia" class="cp-previa" style="display:none;"></div>
+                        <button type="button" class="btn-secundario cp-ver" onclick="corrigirParcelasPrevia()"><i class="ph ph-arrows-clockwise"></i> Corrigir a série</button>
                     </div>
                     <button class="btn-secundario" id="btnCancelarEdicao" onclick="cancelarEdicaoControle()" style="display:none;width:100%;margin-top:10px;border-color:var(--cor-erro);color:var(--cor-erro);"><i class="ph ph-x"></i> Cancelar edição</button>
                 </div>
@@ -16779,11 +16860,11 @@
     <script src="/web/appliquei-desempenho.js?v=fase4"></script>
     <script src="/web/appliquei-ir.js?v=fase4"></script>
     <script src="/web/appliquei-insights.js?v=insights-1"></script>
-    <script src="/web/appliquei-aba-controle-financeiro.js?v=faturas-1"></script>
-    <script src="/web/appliquei-faturas.js?v=importar-fatura-1"></script>
+    <script src="/web/appliquei-aba-controle-financeiro.js?v=parcela-atual-2"></script>
+    <script src="/web/appliquei-faturas.js?v=importar-fatura-2"></script>
     <script src="/web/appliquei-categorias-palavras.js?v=importar-fatura-1"></script>
-    <script src="/web/appliquei-importar-fatura.js?v=importar-fatura-1"></script>
-    <script src="/web/appliquei-importar-fatura-ui.js?v=importar-fatura-1"></script>
+    <script src="/web/appliquei-importar-fatura.js?v=importar-fatura-2"></script>
+    <script src="/web/appliquei-importar-fatura-ui.js?v=importar-fatura-2"></script>
     <script src="/web/appliquei-insights-ui.js?v=inicio-mob"></script>
     <script src="/web/appliquei-relatorio-mensal.js?v=detalhe-categorias"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>

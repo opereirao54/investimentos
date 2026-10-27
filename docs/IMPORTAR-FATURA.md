@@ -66,6 +66,56 @@ Duas consequências importantes:
 6. Mensagem final: "32 compras importadas, 4 já estavam lançadas, 2 ignoradas"
    e um botão **Desfazer importação**.
 
+## A tela, depois da revisão de UX (27/10/2026)
+
+O fluxo acima continua; a revisão de usabilidade mudou como ele aparece:
+
+1. **Decisões primeiro.** Tudo o que precisa de uma resposta (compra parecida,
+   conflito de parcela, compra em outra fatura, reajuste, estorno de compra que
+   está no app) fica no topo, em "Decida antes de importar", com duas opções
+   escritas por extenso (rádio grande, alvo de 44px) e uma já escolhida.
+2. **"Parecida" tem escolha.** "É a mesma compra" (padrão) troca o valor do
+   app pelo do banco e a fatura fecha no centavo; "Compras diferentes" importa
+   esta também.
+3. **Estorno de compra que está no app.** "Apagar do app" (padrão quando nome e
+   valor batem) tira o lançamento junto; o Desfazer devolve no mesmo lugar.
+4. **Compras novas** com "Marcar/Desmarcar todas" e a categoria num seletor em
+   pílula; "Já estão no app" e "Não entram" ficam recolhidos.
+5. **Rodapé honesto:** total do banco × total do app depois de importar, o
+   porquê de cada diferença, e "E mais N parcelas nas próximas faturas, até
+   mês/ano". O botão diz o que faz ("Importar 11 compras" / "Aplicar os
+   ajustes") e fica desligado quando nada muda.
+6. **Tela de concluído** com o total (igual ao do banco ou não), o que entrou,
+   o que foi ajustado e o que ficou sem categoria.
+7. **Desfazer na própria fatura:** "Importada do arquivo em dd/mm · Desfazer"
+   fica na tela da fatura até alguém marcar algo como pago (aí o caixa já
+   mexeu e o Desfazer some).
+8. **Atalhos:** "Tem o arquivo da fatura? Importar de uma vez" no lançamento de
+   cartão; "Cadastrar cartão" quando não há nenhum; seletor de cartão some
+   quando só existe um; instruções completas só na primeira vez.
+9. **Compartilhar no Android:** no anexo do e-mail do Nubank, "Compartilhar →
+   Appliquei" abre a revisão direto (`share_target` no
+   `manifest.webmanifest` + `web/sw-compartilhar.js`). O service worker tem
+   escopo `/web/`, não guarda cache de nada do app e só trata esse POST — o
+   resto passa direto para a rede. Exige o app instalado (PWA) no Android; no
+   iPhone continua o botão de escolher arquivo.
+
+## Parcelado que começou antes (relato de 27/10/2026)
+
+"Comprei em 10x, lancei como 1/10, mas a compra já estava na 2/10, e não
+tinha como corrigir as próximas faturas." Duas correções em
+`web/appliquei-aba-controle-financeiro.js`:
+
+- **No lançamento:** com Nº de parcelas > 1 aparece **Parcela atual**. Com
+  "2", entram só 2/10…10/10 (9 lançamentos), a 2/10 na fatura escolhida; o
+  valor de cada parcela continua total ÷ 10.
+- **Na edição de uma parcela:** "Esta é a parcela [2] de [10] → Corrigir a
+  série" (`renumerarSerieParcelas`). Mostra antes o que vai mudar: renomeia a
+  série inteira, apaga a que sobra no fim, cria a que falta (se o total
+  aumentou). Vencimentos e valores não mudam. Se a correção apagaria uma
+  parcela já paga, recusa e pede para desfazer o pagamento antes. Testes em
+  `test/parcelas-corrigir.test.js`.
+
 ## A pergunta 3, com um exemplo
 
 Você comprou uma TV em **10x de R$ 300** em agosto e **nunca lançou no app**.
@@ -268,7 +318,7 @@ exata como o Nubank escreve o título do estorno ainda não foi vista.
 ## Como está testado
 
 Ninguém tem cartão em todos os bancos para testar com arquivo de verdade. A
-garantia vem de quatro camadas, que rodam no CI a cada PR (as três últimas
+garantia vem de cinco camadas, que rodam no CI a cada PR (dialetos, robustez e caça
 também vão fundo, toda semana, em `.github/workflows/cacar-importacao.yml`):
 
 | Camada                        | Arquivo                                                                                             | O que prova                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
@@ -277,6 +327,7 @@ também vão fundo, toda semana, em `.github/workflows/cacar-importacao.yml`):
 | Faturas sintéticas × dialetos | `test/importar-fatura-dialetos.test.js` + `test/_faturas-sinteticas.js`                             | O gerador inventa a vida de um cartão (compras, parcelas que avançam, IOF, juros, anuidade, estorno, crédito antigo, pagamento, saldo em atraso) e escreve cada fatura em **12 formatos** de arquivo. Para cada uma: lê igual à verdade, linha a linha (D1–D3); o app fica com as mesmas compras, o mesmo total e o número certo de parcelas (D4); a diferença de totais é explicada e fecha no centavo (D5); competência certa (D6); reimportar — no mesmo formato ou noutro — não cria nada (D7, D8) |
 | Arquivo estragado             | `test/importar-fatura-robustez.test.js`                                                             | Faturas válidas cortadas, com linhas apagadas, duplicadas, bytes trocados, sem cabeçalho, com lixo: nunca quebra, recusa com mensagem ou lê o que dá, e nunca cria lançamento com valor ou data inválidos (R1–R4)                                                                                                                                                                                                                                                                                      |
 | Caça de furos                 | `test/simulacao-importacao.test.js` + `test/_sequencias-importacao.js` + `npm run cacar:importacao` | Sequências aleatórias de uso real por meses: lançar pelo Telegram (com valor arredondado e outro nome), importar meses fora de ordem, reimportar noutro formato, desfazer, pagar. Depois de cada ação: nenhuma compra duplicada ou faltando, total igual ao do banco, desfazer volta ao estado anterior, invariantes INV-08/20/27 (IMP01–IMP07)                                                                                                                                                        |
+| Tela e compartilhar           | `test/importar-fatura-tela.test.js`                                                                 | As escolhas da revisão (mesma × diferente, apagar estornada e desfazer na mesma ordem), o Desfazer na tela da fatura, o rodapé com as parcelas futuras, o botão desligado quando nada muda, e o service worker do compartilhar (guarda o arquivo, abre o app, não toca no resto)                                                                                                                                                                                                                       |
 
 **Os 12 formatos** cobrem o que os bancos fazem: OFX SGML (Nubank), OFX XML,
 OFX numa linha só, OFX com vírgula decimal e `NAME` no lugar de `MEMO`; CSV
