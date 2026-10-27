@@ -58,9 +58,9 @@ function criarMundo(semente) {
     origem: {}, // id do lançamento → compraId
     seq: 0,
     log: [],
-    // Dia de vencimento do cartão no app. Metade dos mundos começa com um dia
-    // diferente do banco; importar com "dia do banco" (o padrão da tela)
-    // passa o cartão para o dia do banco.
+    // Dia de vencimento do cartão no app. Metade dos mundos tem um dia
+    // diferente do banco; a importação nunca muda o cartão: a fatura entra no
+    // mês do arquivo, no dia do cartão (como a tela faz).
     diaCartao: semente % 2 === 0 ? 1 + ((semente * 31) % 28) : null,
   };
 }
@@ -98,8 +98,8 @@ function somarMeses(ymd, n) {
 /** Planeja e confirma como a tela faz, aceitando as sugestões. */
 function importar(m, k, dialeto) {
   const verdade = S.linhasDaFatura(m.hist, k);
-  const v = venc(m, k);
-  const { conteudo, arquivo } = dialeto.montar(verdade, v);
+  const { conteudo, arquivo } = dialeto.montar(verdade, venc(m, k));
+  const v = noDiaDoCartao(m, venc(m, k));
   const lido = F.lerArquivo(new Uint8Array(conteudo), arquivo);
   const plano = F.planejar({
     arquivo: lido,
@@ -109,7 +109,7 @@ function importar(m, k, dialeto) {
     categorias: CATEGORIAS,
     insights: Insights,
     palavras: Palavras,
-    faturasImportadas: m.registros.map((r) => venc(m, r.k)),
+    faturasImportadas: m.registros.map((r) => noDiaDoCartao(m, venc(m, r.k))),
   });
   // IMP07: a diferença mostrada é explicada.
   const res = F.resumo(plano);
@@ -202,7 +202,6 @@ const ACOES = {
     const d = m.g.um(S.DIALETOS);
     const { r } = importar(m, k, d);
     m.registros.push({ id: r.registro.id, k });
-    m.diaCartao = null; // a tela guarda o dia do banco no cartão
     return `fatura ${k} via ${d.nome}: ${r.novos.length} criados`;
   },
 

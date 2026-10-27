@@ -52,12 +52,13 @@ Duas consequências importantes:
 
 ## O fluxo proposto
 
-1. Na tela **Faturas** do cartão: botão **"Importar fatura do arquivo"** (o subtítulo diz de qual cartão).
+1. Na tela **Faturas** do cartão: botão **"Importar fatura do arquivo"** (importa para aquele cartão).
 2. O usuário escolhe o arquivo (CSV ou OFX que o Nubank manda por e-mail).
 3. **Tudo é lido no próprio aparelho.** O arquivo não vai para o servidor nem
    para IA nenhuma. Nenhum endpoint novo (o teto de 12 continua).
 4. **Tela de revisão** (nada é gravado antes dela):
-   - cabeçalho: cartão, vencimento da fatura (editável), total do arquivo;
+   - cabeçalho: cartão e vencimento, só para ler (vêm da fatura — ver F1),
+     total do arquivo;
    - uma linha por item, com data, descrição limpa, valor, parcela, categoria
      sugerida (editável) e status: **nova** / **já lançada** / **não é compra**;
    - rodapé: "Total do banco R$ X · No app depois de importar R$ Y". Se não
@@ -91,14 +92,20 @@ O fluxo acima continua; a revisão de usabilidade mudou como ele aparece:
    fica na tela da fatura até alguém marcar algo como pago (aí o caixa já
    mexeu e o Desfazer some).
 8. **Atalhos:** "Tem o arquivo da fatura? Importar de uma vez" no lançamento de
-   cartão; "Cadastrar cartão" quando não há nenhum; seletor de cartão some
-   quando só existe um; instruções completas só na primeira vez.
-9. **Compartilhar no Android:** no anexo do e-mail do Nubank, "Compartilhar →
-   Appliquei" abre a revisão direto (`share_target` no
-   `manifest.webmanifest` + `web/sw-compartilhar.js`). O service worker tem
-   escopo `/web/`, não guarda cache de nada do app e só trata esse POST — o
-   resto passa direto para a rede. Exige o app instalado (PWA) no Android; no
-   iPhone continua o botão de escolher arquivo.
+   cartão; "Cadastrar cartão" quando não há nenhum; instruções completas só
+   na primeira vez.
+9. **Cartão e vencimento não se trocam na revisão** (pedido do fundador,
+   27/10): o cartão é o da tela de onde se abriu a importação, e o
+   vencimento é o mês da fatura no dia do cartão no app. Campo só quando não
+   há como saber: seletor de cartão quando a fatura chega pelo Compartilhar
+   (ou pelo atalho sem cartão escolhido) e há mais de um cartão; data quando
+   o arquivo não traz data nenhuma e o cartão não tem dia.
+10. **Compartilhar no Android:** no anexo do e-mail do Nubank, "Compartilhar →
+    Appliquei" abre a revisão direto (`share_target` no
+    `manifest.webmanifest` + `web/sw-compartilhar.js`). O service worker tem
+    escopo `/web/`, não guarda cache de nada do app e só trata esse POST — o
+    resto passa direto para a rede. Exige o app instalado (PWA) no Android; no
+    iPhone continua o botão de escolher arquivo.
 
 ## Parcelado que começou antes (relato de 27/10/2026)
 
@@ -221,14 +228,14 @@ exata como o Nubank escreve o título do estorno ainda não foi vista.
 
 ### Fatura e cartão
 
-| #   | Risco                                                                  | Mitigação                                                                                                                                   |
-| --- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| F1  | Vencimento errado → compras na fatura e no mês errados (INV-08)        | O vencimento vem do nome do arquivo ou do cadastro do cartão + datas das compras; **sempre mostrado e editável** na revisão antes de gravar |
-| F2  | O app recalcular a fatura pelo dia de fechamento e discordar do Nubank | NÃO recalcula: na importação, todas as linhas vão para o vencimento escolhido. Quem decide a fatura é o banco                               |
-| F3  | Vencimento num fim de semana (o Nubank pode ter mudado o dia)          | Usa o dia que o usuário confirmou; se diferir do cadastro, pergunta se quer atualizar o cartão                                              |
-| F4  | Compra feita no dia do fechamento cai na fatura seguinte               | Coberto por F2: o arquivo já diz em qual fatura ela está                                                                                    |
-| F5  | Cartão apagado depois da importação                                    | Mesma regra que já vale para cartão com lançamentos (INV-17)                                                                                |
-| F6  | Fatura aberta (ainda não fechada)                                      | O Nubank só exporta fechada; se aparecer, avisa que pode mudar até fechar                                                                   |
+| #   | Risco                                                                  | Mitigação                                                                                                                                                                     |
+| --- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1  | Vencimento errado → compras na fatura e no mês errados (INV-08)        | O mês vem do nome do arquivo (ou das datas das compras); o dia, do cartão no app — a importação nunca muda o cartão e cada cartão tem uma fatura por mês. Mostrado na revisão |
+| F2  | O app recalcular a fatura pelo dia de fechamento e discordar do Nubank | NÃO recalcula: na importação, todas as linhas vão para o vencimento escolhido. Quem decide a fatura é o banco                                                                 |
+| F3  | Vencimento num fim de semana (o Nubank pode ter mudado o dia)          | A fatura entra no dia do cartão no app, no mesmo mês; o cadastro do cartão só muda pela tela do cartão                                                                        |
+| F4  | Compra feita no dia do fechamento cai na fatura seguinte               | Coberto por F2: o arquivo já diz em qual fatura ela está                                                                                                                      |
+| F5  | Cartão apagado depois da importação                                    | Mesma regra que já vale para cartão com lançamentos (INV-17)                                                                                                                  |
+| F6  | Fatura aberta (ainda não fechada)                                      | O Nubank só exporta fechada; se aparecer, avisa que pode mudar até fechar                                                                                                     |
 
 ### Duplicidade (o maior risco)
 
@@ -360,10 +367,9 @@ o saldo em atraso, cada correção da caça) — e o teste falhou em todas.
 13. com o cartão vencendo noutro dia no app (dia 10 no app, dia 5 no banco),
     a importação não via o que já estava lançado no mês, podia duplicar e
     abria uma segunda fatura no mesmo mês. Agora um cartão tem uma fatura por
-    mês: a revisão pergunta "Dia 5, como no banco" (padrão: o cartão passa a
-    vencer dia 5 e os lançamentos em aberto vão para esse dia, no mesmo mês)
-    ou "Manter dia 10" (a fatura entra no dia 10). O Desfazer volta também o
-    dia do cartão. Invariante nova da caça: IMP08.
+    mês: o que está no app é procurado pelo mês, e a fatura importada entra
+    no dia do cartão no app (o cartão nunca muda). Invariante nova da caça:
+    IMP08.
 
 Última rodada funda: 20.000 sequências de 30 ações (600 mil ações), todas
 limpas.

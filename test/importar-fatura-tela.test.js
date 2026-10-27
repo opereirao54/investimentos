@@ -200,50 +200,68 @@ function faturasPorMes(win) {
 test('cartão vence dia 10 no app e o banco diz dia 5: enxerga o que já está em novembro (não duplica)', () => {
   const win = appDia10();
   const p = revisar(win, CSV_DIA5);
+  assert.equal(p.vencimento, '2026-11-10', 'mês da fatura, dia do cartão no app');
   assert.equal(item(p, 'Paes e Doces').status, 'ja_lancada');
   assert.equal(item(p, 'TV Loja').status, 'ja_lancada');
   assert.deepEqual(item(p, 'TV Loja').criar || [], [], 'as parcelas 2 e 3 já estão no app');
   assert.equal(item(p, 'Livraria').status, 'nova');
-  assert.match(win._impHtmlRevisao(), /Dia 5, como no banco/);
 });
 
-test('"dia 5, como no banco": uma fatura por mês, o cartão passa a vencer dia 5, e o Desfazer volta tudo', () => {
+test('a importação nunca muda o cartão: entra no dia dele, uma fatura por mês, e o Desfazer volta tudo', () => {
   const win = appDia10();
   const antes = JSON.stringify(win.transacoes);
   revisar(win, CSV_DIA5);
-  assert.equal(win.impfatUi.escolhaDia, 'banco');
   win.impfatUiConfirmar();
   assert.equal(win.transacoes.length, 8, 'só a Livraria entrou');
-  assert.deepEqual(faturasPorMes(win), {
-    '2026-10': ['2026-10-10'], // paga: não mexe
-    '2026-11': ['2026-11-05'],
-    '2026-12': ['2026-12-05'],
-    '2027-01': ['2027-01-05'],
-  });
-  assert.ok(
-    win.transacoes.every((t) => t.mes === Number(t.dataVencimento.slice(5, 7)) - 1),
-    'competência (INV-08) intacta'
-  );
-  assert.equal(win.cartoes[0].diaVencimento, 5);
-  win.impfatUiDesfazer();
-  assert.equal(JSON.stringify(win.transacoes), antes);
-  assert.equal(win.cartoes[0].diaVencimento, 10, 'o dia do cartão volta também');
-});
-
-test('"manter dia 10": a fatura importada entra no dia 10, nada muda de dia', () => {
-  const win = appDia10();
-  revisar(win, CSV_DIA5);
-  win.impfatUiEscolhaDia('app');
-  assert.equal(win.impfatUi.vencimento, '2026-11-10');
-  assert.equal(win.impfatUi.plano.realinhar.length, 0);
-  win.impfatUiConfirmar();
   assert.deepEqual(faturasPorMes(win), {
     '2026-10': ['2026-10-10'],
     '2026-11': ['2026-11-10'],
     '2026-12': ['2026-12-10'],
     '2027-01': ['2027-01-10'],
   });
-  assert.equal(win.cartoes[0].diaVencimento, 10);
+  assert.equal(win.cartoes[0].diaVencimento, 10, 'o cartão não muda');
+  win.impfatUiDesfazer();
+  assert.equal(JSON.stringify(win.transacoes), antes);
+});
+
+test('sem opção de mudar vencimento e cartão: vêm da fatura e da tela de onde se abriu', () => {
+  const win = appDia10();
+  win.cartoes.push({ id: 'card_mp', nome: 'MP', diaVencimento: 15, contaPagadoraId: 'c_nu' });
+  // Aberta pela fatura do Nubank: nem seletor de cartão, nem campo de data.
+  win.abrirImportarFatura(CARTAO);
+  win.impfatUiProcessarBytes(
+    new TextEncoder().encode('date,title,amount\n' + CSV_DIA5),
+    'Nubank_' + VENC + '.csv'
+  );
+  let html = win._impHtmlRevisao();
+  assert.doesNotMatch(html, /<select onchange="impfatUiMudarCartao/);
+  assert.doesNotMatch(html, /type="date"/);
+  assert.doesNotMatch(html, /como no banco|Manter dia/);
+  assert.match(html, /Nubank · vence 10\/11/);
+  // Compartilhada do Android (sem cartão) com dois cartões: aí precisa escolher.
+  win.abrirImportarFatura(null);
+  win.impfatUiProcessarBytes(
+    new TextEncoder().encode('date,title,amount\n' + CSV_DIA5),
+    'Nubank_' + VENC + '.csv'
+  );
+  html = win._impHtmlRevisao();
+  assert.match(html, /impfatUiMudarCartao/);
+  win.impfatUiMudarCartao('card_mp');
+  assert.equal(win.impfatUi.vencimento, '2026-11-15', 'no dia do cartão escolhido');
+});
+
+test('arquivo sem data nenhuma e cartão sem dia: aí, e só aí, pede o vencimento', () => {
+  const win = app();
+  delete win.cartoes[0].diaVencimento;
+  win.abrirImportarFatura(CARTAO);
+  win.impfatUiProcessarBytes(
+    new TextEncoder().encode('date,title,amount\n2026-10-20,Livraria,40.00\n'),
+    'fatura.csv'
+  );
+  assert.match(win._impHtmlRevisao(), /type="date"/);
+  win.impfatUiMudarVencimento('2026-11-05');
+  assert.equal(win.impfatUi.plano.vencimento, '2026-11-05');
+  assert.equal(win.cartoes[0].diaVencimento, undefined, 'o cartão não aprende o dia sozinho');
 });
 
 // ── Service worker do "Compartilhar" ───────────────────────────────────────

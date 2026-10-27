@@ -41,11 +41,10 @@ var impfatUi = {
   erro: '',
   registro: null,
   resultado: null,
-  salvarDiaCartao: false,
-  // Vencimento que o banco informa (nome do arquivo) e o que fazer quando o
-  // cartão no app vence noutro dia: 'banco' (padrão) ou 'app'.
-  vencimentoBanco: '',
-  escolhaDia: 'banco',
+  // A tela foi aberta a partir de um cartão (Faturas): ele não se troca.
+  cartaoFixo: false,
+  // Vencimento digitado — só quando a fatura não traz data nenhuma.
+  vencimentoInformado: '',
   desfazerPendente: null,
 };
 
@@ -122,6 +121,8 @@ function _impCartao(id) {
 
 function abrirImportarFatura(cartaoId) {
   impfatUi.passo = 'inicio';
+  impfatUi.cartaoFixo = !!cartaoId;
+  impfatUi.vencimentoInformado = '';
   impfatUi.cartaoId = cartaoId || (_impCartoes()[0] || {}).id || null;
   impfatUi.arquivo = null;
   impfatUi.arquivoNome = '';
@@ -181,13 +182,7 @@ function impfatUiProcessarBytes(bytes, nome) {
     var arq = AppliqueiImportarFatura.lerArquivo(bytes, nome);
     impfatUi.arquivo = arq;
     impfatUi.arquivoNome = nome || 'fatura';
-    var cartao = _impCartao(impfatUi.cartaoId);
-    impfatUi.vencimento =
-      arq.vencimentoArquivo ||
-      AppliqueiImportarFatura.adivinharVencimento(arq.linhas, cartao && cartao.diaVencimento) ||
-      '';
-    impfatUi.vencimentoBanco = impfatUi.vencimento;
-    impfatUi.escolhaDia = 'banco';
+    impfatUi.vencimentoInformado = '';
     impfatUi.passo = 'revisao';
     impfatUiReplanejar();
   } catch (e) {
@@ -198,8 +193,34 @@ function impfatUiProcessarBytes(bytes, nome) {
   }
 }
 
+/**
+ * O vencimento vem da fatura (nome do arquivo) e o dia, do cartão no app: a
+ * importação nunca muda o cartão, e cada cartão tem uma fatura por mês (com
+ * o cartão vencendo dia 10 no app e o banco dizendo dia 5, abria-se uma
+ * segunda fatura no mesmo mês). Sem data no nome, deduz pelas compras; sem
+ * isso, a pessoa informa (único caso com campo de data).
+ */
+function _impVencimentoDaFatura() {
+  var cartao = _impCartao(impfatUi.cartaoId);
+  var dia = cartao && +cartao.diaVencimento;
+  var v = _impVencimentoDoArquivo() || impfatUi.vencimentoInformado || '';
+  return v && dia ? AppliqueiImportarFatura.diaNoMes(v, dia) : v;
+}
+
+function _impVencimentoDoArquivo() {
+  var arq = impfatUi.arquivo;
+  if (!arq) return '';
+  var cartao = _impCartao(impfatUi.cartaoId);
+  return (
+    arq.vencimentoArquivo ||
+    AppliqueiImportarFatura.adivinharVencimento(arq.linhas, cartao && cartao.diaVencimento) ||
+    ''
+  );
+}
+
 function impfatUiReplanejar() {
   impfatUi.plano = null;
+  impfatUi.vencimento = _impVencimentoDaFatura();
   if (impfatUi.arquivo && impfatUi.vencimento && impfatUi.cartaoId) {
     impfatUi.plano = AppliqueiImportarFatura.planejar({
       arquivo: impfatUi.arquivo,
@@ -217,121 +238,18 @@ function impfatUiReplanejar() {
           return r.vencimento;
         }),
     });
-    // F3: cartão sem dia de vencimento aprende o do arquivo. Com outro dia,
-    // é a decisão "dia do banco × dia do app" (_impConflitoDia).
-    var cartao = _impCartao(impfatUi.cartaoId);
-    var dia = +impfatUi.vencimento.slice(8, 10);
-    var conflito = _impConflitoDia();
-    impfatUi.salvarDiaCartao = conflito
-      ? impfatUi.escolhaDia === 'banco'
-      : !!cartao && !cartao.diaVencimento && !!dia;
   }
   renderizarImportarFatura();
 }
 
+/** Só quando a fatura não traz data nenhuma (campo aparece só nesse caso). */
 function impfatUiMudarVencimento(v) {
-  impfatUi.vencimento = AppliqueiImportarFatura.data(v) || '';
-  // Data digitada pela pessoa vale como a do banco.
-  impfatUi.vencimentoBanco = impfatUi.vencimento;
-  impfatUi.escolhaDia = 'banco';
+  impfatUi.vencimentoInformado = AppliqueiImportarFatura.data(v) || '';
   impfatUiReplanejar();
-}
-
-/**
- * O cartão no app vence noutro dia que o banco? Um cartão tem uma fatura por
- * mês: sem decidir, a importação abria uma segunda fatura no mesmo mês.
- */
-function _impConflitoDia() {
-  var cartao = _impCartao(impfatUi.cartaoId);
-  var vb = impfatUi.vencimentoBanco;
-  if (!cartao || !cartao.diaVencimento || !vb) return null;
-  var diaBanco = +vb.slice(8, 10);
-  var diaApp = +cartao.diaVencimento;
-  if (!diaBanco || diaBanco === diaApp) return null;
-  return {
-    cartao: cartao,
-    diaBanco: diaBanco,
-    diaApp: diaApp,
-    vencApp: AppliqueiImportarFatura.diaNoMes(vb, diaApp),
-  };
-}
-
-function impfatUiEscolhaDia(escolha) {
-  var c = _impConflitoDia();
-  if (!c) return;
-  impfatUi.escolhaDia = escolha === 'app' ? 'app' : 'banco';
-  impfatUi.vencimento = impfatUi.escolhaDia === 'app' ? c.vencApp : impfatUi.vencimentoBanco;
-  impfatUiReplanejar();
-}
-
-function _impHtmlDecisaoDia() {
-  var c = _impConflitoDia();
-  if (!c) return '';
-  var nome = _impEsc(c.cartao.nome || 'cartão');
-  var qtd = (impfatUi.plano && impfatUi.plano.realinhar && impfatUi.plano.realinhar.length) || 0;
-  var opcoes = [
-    {
-      v: 'banco',
-      titulo: 'Dia ' + c.diaBanco + ', como no banco',
-      sub:
-        'O ' +
-        nome +
-        ' passa a vencer dia ' +
-        c.diaBanco +
-        (qtd && impfatUi.escolhaDia === 'banco'
-          ? ' e ' + qtd + ' lançamento(s) em aberto vão para esse dia'
-          : '') +
-        '.',
-    },
-    {
-      v: 'app',
-      titulo: 'Manter dia ' + c.diaApp,
-      sub: 'Esta fatura entra com vencimento ' + AppliqueiImportarFatura.rotuloDia(c.vencApp) + '.',
-    },
-  ];
-  return (
-    '<fieldset class="imp-item imp-decisao imp-decisao-dia">' +
-    '<legend class="imp-item-linha"><span class="imp-item-txt"><strong>Dia do vencimento</strong></span></legend>' +
-    '<p class="imp-contexto">No app, o ' +
-    nome +
-    ' vence dia ' +
-    c.diaApp +
-    '; o banco diz dia ' +
-    c.diaBanco +
-    '. Um cartão tem uma fatura por mês: escolha o dia.</p>' +
-    '<div class="imp-opcoes">' +
-    opcoes
-      .map(function (o) {
-        var on = impfatUi.escolhaDia === o.v;
-        return (
-          '<label class="imp-opcao' +
-          (on ? ' on' : '') +
-          '" for="impdia' +
-          o.v +
-          '"><input type="radio" name="impdia" id="impdia' +
-          o.v +
-          '" value="' +
-          o.v +
-          '"' +
-          (on ? ' checked' : '') +
-          ' onchange="impfatUiEscolhaDia(\'' +
-          o.v +
-          '\')"><span><strong>' +
-          o.titulo +
-          '</strong><small>' +
-          o.sub +
-          '</small></span></label>'
-        );
-      })
-      .join('') +
-    '</div></fieldset>'
-  );
 }
 
 function impfatUiMudarCartao(id) {
   impfatUi.cartaoId = id;
-  impfatUi.escolhaDia = 'banco';
-  impfatUi.vencimento = impfatUi.vencimentoBanco || impfatUi.vencimento;
   impfatUiReplanejar();
 }
 
@@ -404,15 +322,6 @@ function impfatUiConfirmar() {
   });
   if (typeof salvarTransacoes === 'function' && !salvarTransacoes({ flush: true })) return;
 
-  // O dia do cartão muda junto com os lançamentos; o Desfazer volta os dois.
-  var cartao = _impCartao(plano.cartaoId);
-  var dia = +plano.vencimento.slice(8, 10);
-  if (impfatUi.salvarDiaCartao && cartao && dia && typeof salvarCartoes === 'function') {
-    r.registro.diaCartao = { antes: cartao.diaVencimento || null, depois: dia };
-    cartao.diaVencimento = dia;
-    salvarCartoes();
-  }
-
   var regs = impfatLerRegistros();
   regs.push(r.registro);
   impfatGravarRegistros(regs);
@@ -448,12 +357,6 @@ function _impDesfazerRegistro(reg) {
     transacoes.push(t);
   });
   if (typeof salvarTransacoes === 'function') salvarTransacoes({ flush: true });
-  var cartao = reg.diaCartao && _impCartao(reg.cartaoId);
-  if (cartao && +cartao.diaVencimento === +reg.diaCartao.depois) {
-    if (reg.diaCartao.antes) cartao.diaVencimento = reg.diaCartao.antes;
-    else delete cartao.diaVencimento;
-    if (typeof salvarCartoes === 'function') salvarCartoes();
-  }
   impfatGravarRegistros(
     impfatLerRegistros().filter(function (x) {
       return x && x.id !== reg.id;
@@ -928,6 +831,50 @@ function _impHtmlSoLeitura(it) {
   );
 }
 
+/**
+ * Cartão e vencimento vêm da fatura: aberta pela tela de um cartão, é aquele
+ * cartão; o vencimento é o mês do arquivo no dia do cartão no app. Campo só
+ * quando não há como saber: cartão (compartilhado do Android ou atalho do
+ * lançamento, com mais de um cartão) e data (arquivo sem data nenhuma).
+ */
+function _impHtmlCartaoEVencimento(cartoes) {
+  var escolheCartao = !impfatUi.cartaoFixo && cartoes.length > 1;
+  var informaData = !_impVencimentoDoArquivo();
+  var cartao = _impCartao(impfatUi.cartaoId);
+  var campos =
+    (escolheCartao
+      ? '<label>Cartão no app<select onchange="impfatUiMudarCartao(this.value)">' +
+        _impOpcoesCartao() +
+        '</select></label>'
+      : '') +
+    (informaData
+      ? '<label>Vencimento da fatura<input type="date" value="' +
+        _impEsc(impfatUi.vencimentoInformado) +
+        '" onchange="impfatUiMudarVencimento(this.value)"></label>'
+      : '');
+  var resumo =
+    (!escolheCartao && cartao ? _impEsc(cartao.nome || 'Cartão') : '') +
+    (!informaData && impfatUi.vencimento
+      ? (!escolheCartao && cartao ? ' · ' : '') +
+        'vence ' +
+        AppliqueiImportarFatura.rotuloDia(impfatUi.vencimento)
+      : '');
+  return (
+    (resumo
+      ? '<div class="imp-fatura-de"><i class="ph ph-credit-card" aria-hidden="true"></i> ' +
+        resumo +
+        '</div>'
+      : '') +
+    (campos
+      ? '<div class="imp-campos' +
+        (escolheCartao && informaData ? '' : ' um') +
+        '">' +
+        campos +
+        '</div>'
+      : '')
+  );
+}
+
 function _impHtmlRevisao() {
   var p = impfatUi.plano;
   var cartoes = _impCartoes();
@@ -936,26 +883,13 @@ function _impHtmlRevisao() {
     '<div class="imp-arquivo"><i class="ph ph-file-text" aria-hidden="true"></i> ' +
     _impEsc(impfatUi.arquivoNome) +
     ' <button type="button" class="imp-trocar" onclick="impfatUiEscolherArquivo()">Trocar</button></div>' +
-    '<div class="imp-campos' +
-    (cartoes.length > 1 ? '' : ' um') +
-    '">' +
-    // Um cartão só: não há o que escolher, o seletor só ocuparia espaço.
-    (cartoes.length > 1
-      ? '<label>Cartão no app<select onchange="impfatUiMudarCartao(this.value)">' +
-        _impOpcoesCartao() +
-        '</select></label>'
-      : '') +
-    '<label>Vencimento da fatura<input type="date" value="' +
-    _impEsc(impfatUi.vencimento) +
-    '" onchange="impfatUiMudarVencimento(this.value)"></label>' +
-    '</div>';
+    _impHtmlCartaoEVencimento(cartoes);
   if (!p) {
     return (
       cab +
       '<div class="imp-erro" role="alert">Informe o vencimento desta fatura (está no app do banco, no topo da fatura).</div></div>'
     );
   }
-  cab += _impHtmlDecisaoDia();
   var ja = AppliqueiImportarFatura.jaImportada(impfatLerRegistros(), p.cartaoId, p.vencimento);
   if (ja) {
     cab +=
