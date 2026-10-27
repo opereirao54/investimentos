@@ -4,6 +4,12 @@ Fonte única do que já foi decidido. Ler antes de produzir qualquer peça e
 lembrar o fundador do que estiver pendente. Atualizar quando um combinado
 mudar (com a data).
 
+> **Datas sempre no horário de Brasília.** Antes de dizer "hoje" ou "amanhã",
+> rodar `TZ=America/Sao_Paulo date '+%A %d/%m %H:%M'` e conferir o dia da
+> semana e a data no `CALENDARIO.md`. O relógio do servidor é UTC e vira o
+> dia 3 horas antes do Brasil (erro de 26/10: o fundador ainda estava na
+> segunda e o pacote mandado foi o de quarta).
+
 ## Série até o lançamento (aprovada em 25/10/2026)
 
 - **Lançamento:** sábado, **02/01/2027**. Calendário em `CALENDARIO.md` (PDF
