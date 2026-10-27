@@ -442,6 +442,43 @@ test('(U6/D2) assinatura fixa com preço novo: atualiza esta e as próximas não
   assert.equal(F.resumo(p).appDepois, 44.9);
 });
 
+test('recorrência no cartão que o banco ainda não cobrou: fica no app, nesta e nas próximas', () => {
+  // Pergunta do fundador: "as recorrências cadastradas no cartão que ainda
+  // não debitaram vão continuar programadas ou a importação sobrepõe?"
+  const g = 'academia_g';
+  const tx = [
+    compra('Academia', 99.9, { id: 'ac_nov', cartaoFixoMensal: true, groupId: g }),
+    compra('Academia', 99.9, {
+      id: 'ac_dez',
+      cartaoFixoMensal: true,
+      groupId: g,
+      dataVencimento: '2026-12-05',
+      mes: 11,
+    }),
+    // Cobrada com outro nome, mesmo valor: casa, não duplica.
+    compra('Streaming', 55.9, { id: 'st_nov', cartaoFixoMensal: true, groupId: 'st_g' }),
+  ];
+  const csv = 'date,title,amount\n2026-10-10,Padaria,10\n2026-10-12,Spotify Br,55.90\n';
+  const p = plano(tx, F.lerArquivo(csv, 'Nubank_2026-11-05.csv'));
+  assert.equal(item(p, 'Spotify').status, 'ja_lancada');
+  const r = aplicar(p, tx);
+  assert.deepEqual(
+    r.novos.map((t) => t.descricao),
+    ['Padaria'],
+    'só a compra nova entra'
+  );
+  assert.equal(r.alteracoes.length, 0, 'nenhuma recorrência alterada');
+  assert.equal((r.removidos || []).length, 0, 'nenhuma recorrência apagada');
+  // A diferença de total é explicada: está no app e ainda não veio no arquivo.
+  const res = F.resumo(p);
+  assert.deepEqual(
+    p.soNoApp.map((x) => x.id),
+    ['ac_nov']
+  );
+  const m = res.porque.find((x) => x.chave === 'so_no_app');
+  assert.deepEqual([m.qtd, m.valor], [1, 99.9]);
+});
+
 test('(D1/D4/INV-08) parcelas criadas: da atual até a última, no mês certo', () => {
   const r = aplicar(plano([]), []);
   const lav = r.novos.filter((t) => t.descricao.indexOf('Otica Visao') === 0);
@@ -504,6 +541,30 @@ test('(C1/C4) categoria: encargo, histórico do usuário antes das palavras, só
     palavras: Palavras,
   });
   assert.equal(item(p, 'Posto').categoriaDespesa, null);
+});
+
+test('categoria: escolhida uma vez vale para a mesma loja na revisão e na próxima fatura', () => {
+  const csv =
+    'date,title,amount\n2026-10-02,Asa*Fulano de Tal Silva,12\n2026-10-03,Asa*Fulano de Tal Silva,15\n' +
+    '2026-10-04,Auto Pecas Centro,45.30\n2026-10-05,Esportes Total,80\n2026-10-06,Beltrano Pereira,9\n';
+  const p = plano([], F.lerArquivo(csv, 'Nubank_2026-11-05.csv'));
+  // Palavras novas do dicionário.
+  assert.equal(item(p, 'Auto Pecas').categoriaDespesa, 'transporte');
+  assert.equal(item(p, 'Esportes').categoriaDespesa, 'lazer');
+  // Pessoa sem pista nenhuma: em branco, nunca um chute.
+  const fulanos = p.itens.filter((x) => x.titulo.indexOf('Fulano') !== -1);
+  assert.ok(fulanos.every((x) => x.categoriaDespesa == null));
+  // Escolheu numa linha: a outra da mesma pessoa vai junto; a de outra pessoa, não.
+  fulanos[0].categoriaDespesa = 'alimentacao';
+  fulanos[0].origemCategoria = 'usuario';
+  assert.equal(F.propagarCategoria(p, fulanos[0].ref), 1);
+  assert.equal(fulanos[1].categoriaDespesa, 'alimentacao');
+  assert.equal(item(p, 'Beltrano').categoriaDespesa, null);
+  // Na fatura seguinte, o histórico (o que a importação gravou) já sugere.
+  const gravadas = aplicar(p, []).novos;
+  const csv2 = 'date,title,amount\n2026-11-02,Asa*Fulano de Tal Silva,20\n';
+  const p2 = plano(gravadas, F.lerArquivo(csv2, 'Nubank_2026-12-05.csv'), '2026-12-05');
+  assert.equal(p2.itens[0].categoriaDespesa, 'alimentacao');
 });
 
 test('(G4) desfazer: tira só o que a importação criou e não foi pago', () => {

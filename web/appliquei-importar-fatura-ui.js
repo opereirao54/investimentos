@@ -265,7 +265,10 @@ function impfatUiCategoria(ref, v) {
   if (!it) return;
   it.categoriaDespesa = v || null;
   it.origemCategoria = v ? 'usuario' : null;
-  _impRenderRodape();
+  // A mesma loja noutras linhas desta fatura vai junto (escolher uma vez só).
+  var outras = v ? AppliqueiImportarFatura.propagarCategoria(impfatUi.plano, ref) : 0;
+  if (outras) renderizarImportarFatura();
+  else _impRenderRodape();
 }
 
 function impfatUiSalvarDia(v) {

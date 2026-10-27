@@ -1453,6 +1453,34 @@ function impfatJaImportada(registros, cartaoId, vencimento) {
   );
 }
 
+/**
+ * A categoria escolhida numa linha vale para a mesma loja nas outras linhas
+ * da revisão (ex.: três compras na "Esportes Total"). Não mexe no que a
+ * pessoa já escolheu à mão. Devolve quantas linhas mudaram.
+ */
+function impfatPropagarCategoria(plano, ref) {
+  var itens = (plano && plano.itens) || [];
+  var base = itens.find(function (x) {
+    return x.ref === ref;
+  });
+  if (!base || !base.categoriaDespesa) return 0;
+  var n = 0;
+  itens.forEach(function (x) {
+    if (
+      x === base ||
+      x.tipo !== 'compra' ||
+      x.origemCategoria === 'usuario' ||
+      x.categoriaDespesa === base.categoriaDespesa ||
+      impfatSimilaridade(x.descricao, base.descricao) < 1
+    )
+      return;
+    x.categoriaDespesa = base.categoriaDespesa;
+    x.origemCategoria = 'mesma_loja';
+    n++;
+  });
+  return n;
+}
+
 var AppliqueiImportarFatura = {
   LIMITES: IMPFAT_LIMITES,
   MENSAGENS: IMPFAT_MENSAGENS,
@@ -1468,6 +1496,7 @@ var AppliqueiImportarFatura = {
   similaridade: impfatSimilaridade,
   planejar: impfatPlanejar,
   resumo: impfatResumo,
+  propagarCategoria: impfatPropagarCategoria,
   entra: impfatEntra,
   aplicar: impfatAplicar,
   aplicarAlteracoes: impfatAplicarAlteracoes,

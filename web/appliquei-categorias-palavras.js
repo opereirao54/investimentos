@@ -94,6 +94,8 @@ var CATP_PALAVRAS = {
     'oficina',
     'mecanico',
     'pneu',
+    'auto pecas',
+    'autopecas',
     'carro',
     'moto',
     'passagem',
@@ -182,6 +184,7 @@ var CATP_PALAVRAS = {
     'apple',
     'icloud',
     'chatgpt',
+    'esporte*',
   ],
   cuidados_pessoais: [
     'cabelo',
