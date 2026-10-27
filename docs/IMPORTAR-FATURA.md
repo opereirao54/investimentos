@@ -52,7 +52,7 @@ Duas consequências importantes:
 
 ## O fluxo proposto
 
-1. Na tela **Faturas** do cartão: botão **"Importar fatura do Nubank"**.
+1. Na tela **Faturas** do cartão: botão **"Importar fatura do arquivo"** (o subtítulo diz de qual cartão).
 2. O usuário escolhe o arquivo (CSV ou OFX que o Nubank manda por e-mail).
 3. **Tudo é lido no próprio aparelho.** O arquivo não vai para o servidor nem
    para IA nenhuma. Nenhum endpoint novo (o teto de 12 continua).
@@ -60,7 +60,7 @@ Duas consequências importantes:
    - cabeçalho: cartão, vencimento da fatura (editável), total do arquivo;
    - uma linha por item, com data, descrição limpa, valor, parcela, categoria
      sugerida (editável) e status: **nova** / **já lançada** / **não é compra**;
-   - rodapé: "Total do Nubank R$ X · No app depois de importar R$ Y". Se não
+   - rodapé: "Total do banco R$ X · No app depois de importar R$ Y". Se não
      bater, diz quanto e por quê.
 5. **Confirmar** grava tudo de uma vez, num único salvamento.
 6. Mensagem final: "32 compras importadas, 4 já estavam lançadas, 2 ignoradas"

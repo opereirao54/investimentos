@@ -5,8 +5,8 @@
  * em docs/IMPORTAR-FATURA.md — o código entre parênteses (A1, P3, D3...) é o
  * da tabela de lá.
  *
- * O arquivo de teste é uma fatura REAL do Nubank (OFX, vencimento 05/11/2026),
- * com nomes de pessoas e o número da conta trocados.
+ * O arquivo de teste é uma fatura INVENTADA no formato exato do OFX do Nubank
+ * (vencimento 05/11/2026): compras, valores e conta são fictícios.
  */
 
 const { test } = require('node:test');

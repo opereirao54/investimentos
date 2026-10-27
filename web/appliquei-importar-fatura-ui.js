@@ -540,6 +540,10 @@ function _impEhDecisao(it) {
 function renderizarImportarFatura() {
   var corpo = document.getElementById('impfatCorpo');
   if (!corpo) return;
+  // O título não é de um banco: o subtítulo diz de qual cartão é a fatura.
+  var sub = document.getElementById('impfatSub');
+  var cartao = _impCartao(impfatUi.cartaoId);
+  if (sub) sub.textContent = cartao ? 'Faturas · ' + cartao.nome : 'Faturas';
   if (impfatUi.passo === 'feito') corpo.innerHTML = _impHtmlFeito();
   else if (impfatUi.passo === 'revisao') corpo.innerHTML = _impHtmlRevisao();
   else corpo.innerHTML = _impHtmlInicio();
@@ -549,7 +553,7 @@ function renderizarImportarFatura() {
 function _impHtmlComoPegar() {
   return (
     '<ol class="imp-como">' +
-    '<li><i class="ph ph-credit-card" aria-hidden="true"></i><span><strong>No app do Nubank:</strong> cartão → <em>Resumo de faturas</em> → escolha a fatura fechada → <em>Enviar por e-mail</em> (OFX ou CSV).</span></li>' +
+    '<li><i class="ph ph-credit-card" aria-hidden="true"></i><span><strong>No app do banco:</strong> abra a fatura fechada e peça o arquivo em OFX ou CSV. No Nubank: cartão → <em>Resumo de faturas</em> → fatura fechada → <em>Enviar por e-mail</em>.</span></li>' +
     '<li><i class="ph ph-envelope-simple" aria-hidden="true"></i><span><strong>No e-mail:</strong> toque no anexo. No Android, escolha <em>Compartilhar → Appliquei</em> e pronto. No iPhone, <em>Salvar em Arquivos</em>.</span></li>' +
     '<li><i class="ph ph-file-arrow-up" aria-hidden="true"></i><span>Volte aqui e escolha o arquivo.</span></li>' +
     '</ol>'
@@ -562,7 +566,7 @@ function _impHtmlInicio() {
     '<div class="imp-passos">' +
     (jaUsou
       ? ''
-      : '<p class="imp-intro">Traga as compras da fatura fechada do Nubank de uma vez. Você revisa tudo antes de entrar.</p>' +
+      : '<p class="imp-intro">Traga as compras da fatura fechada de uma vez, pelo arquivo OFX ou CSV que o banco envia. Você revisa tudo antes de entrar.</p>' +
         _impHtmlComoPegar()) +
     (impfatUi.erro
       ? '<div class="imp-erro" role="alert"><i class="ph-fill ph-warning-circle" aria-hidden="true"></i> ' +
@@ -571,7 +575,7 @@ function _impHtmlInicio() {
       : '') +
     '<button type="button" class="btn-acao imp-escolher" onclick="impfatUiEscolherArquivo()"><i class="ph ph-file-arrow-up" aria-hidden="true"></i> Escolher o arquivo da fatura</button>' +
     (jaUsou
-      ? '<details class="imp-como-recolhido"><summary>Como pegar o arquivo no Nubank?</summary>' +
+      ? '<details class="imp-como-recolhido"><summary>Como pegar o arquivo da fatura?</summary>' +
         _impHtmlComoPegar() +
         '</details>'
       : '') +
@@ -834,7 +838,7 @@ function _impHtmlRevisao() {
   if (!p) {
     return (
       cab +
-      '<div class="imp-erro" role="alert">Informe o vencimento desta fatura (está no app do Nubank, no topo da fatura).</div></div>'
+      '<div class="imp-erro" role="alert">Informe o vencimento desta fatura (está no app do banco, no topo da fatura).</div></div>'
     );
   }
   var cartao = _impCartao(p.cartaoId);
@@ -859,7 +863,7 @@ function _impHtmlRevisao() {
   }
   if (p.banco !== 'nubank') {
     cab +=
-      '<div class="imp-aviso-topo"><i class="ph-fill ph-warning" aria-hidden="true"></i> Este arquivo não parece do Nubank. Confira a revisão com atenção.</div>';
+      '<div class="imp-aviso-topo"><i class="ph-fill ph-warning" aria-hidden="true"></i> Este arquivo não é do Nubank, o único banco já conferido com arquivo de verdade. Confira a revisão com atenção.</div>';
   }
   cab += '</div>';
 
@@ -955,8 +959,8 @@ function _impHtmlFeito() {
     _impMoeda(r.totalApp) +
     '</b><span>' +
     (bate
-      ? '<i class="ph-bold ph-check" aria-hidden="true"></i> igual à do Nubank'
-      : 'Nubank: ' + _impMoeda(r.totalBanco)) +
+      ? '<i class="ph-bold ph-check" aria-hidden="true"></i> igual à do banco'
+      : 'Banco: ' + _impMoeda(r.totalBanco)) +
     '</span></div>' +
     (itens.length ? '<ul class="imp-feito-lista">' + itens.join('') + '</ul>' : '') +
     (r.semCategoria
@@ -1013,7 +1017,7 @@ function _impRenderRodape() {
     : 'Aplicar os ajustes';
   rod.innerHTML =
     '<div class="imp-totais">' +
-    '<div><span>Total do Nubank</span><strong class="valor-mascarado">' +
+    '<div><span>Total do banco</span><strong class="valor-mascarado">' +
     _impMoeda(res.totalBanco) +
     '</strong></div>' +
     '<div><span>No app, depois de importar</span><strong class="valor-mascarado' +

@@ -458,7 +458,7 @@ function renderizarFaturas() {
     html +=
       '<button type="button" class="btn-secundario fat-importar" onclick="abrirImportarFatura(\'' +
       _fatEsc(cartaoId) +
-      '\')"><i class="ph ph-upload-simple" aria-hidden="true"></i> Importar fatura do Nubank</button>';
+      '\')"><i class="ph ph-upload-simple" aria-hidden="true"></i> Importar fatura do arquivo</button>';
   }
 
   if (!c) {
