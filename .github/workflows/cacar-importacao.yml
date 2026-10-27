@@ -4,7 +4,7 @@ name: Caça de furos na importação de fatura
 # (test/simulacao-importacao.test.js). Este workflow vai mais fundo, de
 # madrugada: 20000 sequências de 30 passos (~600 mil ações) — Telegram com
 # valor arredondado, importar meses fora de ordem em 12 formatos de arquivo,
-# reimportar, desfazer, pagar — validando IMP01–IMP07 entre cada passo.
+# reimportar, desfazer, pagar — validando IMP01–IMP08 entre cada passo.
 #
 # Quando achar algo, abre uma issue com a semente exata para reproduzir.
 

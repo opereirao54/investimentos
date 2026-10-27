@@ -160,6 +160,92 @@ test('instruções completas só na primeira vez; depois, recolhidas', () => {
   assert.match(win._impHtmlInicio(), /imp-como-recolhido/);
 });
 
+// ── Cartão que vence noutro dia no app (relato: duas faturas de novembro) ──
+
+function appDia10() {
+  const win = app();
+  win.cartoes[0].diaVencimento = 10;
+  const base = { dataVencimento: '2026-11-10' };
+  win.transacoes.push(
+    tx('out', 'mercado', 50, { dataVencimento: '2026-10-10', mes: 9, pago: true }),
+    tx('pd', 'pão doce', 20.02, base),
+    tx('tv1', 'TV (1/3)', 100, Object.assign({ groupId: 'tv' }, base)),
+    tx('tv2', 'TV (2/3)', 100, { groupId: 'tv', dataVencimento: '2026-12-10', mes: 11 }),
+    tx('tv3', 'TV (3/3)', 100, { groupId: 'tv', dataVencimento: '2027-01-10', mes: 0, ano: 2027 }),
+    tx('ac1', 'Academia', 99.9, Object.assign({ cartaoFixoMensal: true, groupId: 'ac' }, base)),
+    tx('ac2', 'Academia', 99.9, {
+      cartaoFixoMensal: true,
+      groupId: 'ac',
+      dataVencimento: '2026-12-10',
+      mes: 11,
+    })
+  );
+  return win;
+}
+
+const CSV_DIA5 =
+  '2026-10-25,Paes e Doces Pirituba,20.02\n2026-10-02,TV Loja - Parcela 1/3,100.00\n2026-10-20,Livraria,40.00\n';
+
+function faturasPorMes(win) {
+  const m = {};
+  win.transacoes
+    .filter((t) => t.cartaoId === CARTAO)
+    .forEach((t) => {
+      const k = t.dataVencimento.slice(0, 7);
+      (m[k] = m[k] || new Set()).add(t.dataVencimento);
+    });
+  return Object.fromEntries(Object.entries(m).map(([k, v]) => [k, [...v].sort()]));
+}
+
+test('cartão vence dia 10 no app e o banco diz dia 5: enxerga o que já está em novembro (não duplica)', () => {
+  const win = appDia10();
+  const p = revisar(win, CSV_DIA5);
+  assert.equal(item(p, 'Paes e Doces').status, 'ja_lancada');
+  assert.equal(item(p, 'TV Loja').status, 'ja_lancada');
+  assert.deepEqual(item(p, 'TV Loja').criar || [], [], 'as parcelas 2 e 3 já estão no app');
+  assert.equal(item(p, 'Livraria').status, 'nova');
+  assert.match(win._impHtmlRevisao(), /Dia 5, como no banco/);
+});
+
+test('"dia 5, como no banco": uma fatura por mês, o cartão passa a vencer dia 5, e o Desfazer volta tudo', () => {
+  const win = appDia10();
+  const antes = JSON.stringify(win.transacoes);
+  revisar(win, CSV_DIA5);
+  assert.equal(win.impfatUi.escolhaDia, 'banco');
+  win.impfatUiConfirmar();
+  assert.equal(win.transacoes.length, 8, 'só a Livraria entrou');
+  assert.deepEqual(faturasPorMes(win), {
+    '2026-10': ['2026-10-10'], // paga: não mexe
+    '2026-11': ['2026-11-05'],
+    '2026-12': ['2026-12-05'],
+    '2027-01': ['2027-01-05'],
+  });
+  assert.ok(
+    win.transacoes.every((t) => t.mes === Number(t.dataVencimento.slice(5, 7)) - 1),
+    'competência (INV-08) intacta'
+  );
+  assert.equal(win.cartoes[0].diaVencimento, 5);
+  win.impfatUiDesfazer();
+  assert.equal(JSON.stringify(win.transacoes), antes);
+  assert.equal(win.cartoes[0].diaVencimento, 10, 'o dia do cartão volta também');
+});
+
+test('"manter dia 10": a fatura importada entra no dia 10, nada muda de dia', () => {
+  const win = appDia10();
+  revisar(win, CSV_DIA5);
+  win.impfatUiEscolhaDia('app');
+  assert.equal(win.impfatUi.vencimento, '2026-11-10');
+  assert.equal(win.impfatUi.plano.realinhar.length, 0);
+  win.impfatUiConfirmar();
+  assert.deepEqual(faturasPorMes(win), {
+    '2026-10': ['2026-10-10'],
+    '2026-11': ['2026-11-10'],
+    '2026-12': ['2026-12-10'],
+    '2027-01': ['2027-01-10'],
+  });
+  assert.equal(win.cartoes[0].diaVencimento, 10);
+});
+
 // ── Service worker do "Compartilhar" ───────────────────────────────────────
 
 function carregarSw() {

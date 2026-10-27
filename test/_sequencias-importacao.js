@@ -27,6 +27,9 @@
  *          fatura — inclusive importando os meses fora de ordem;
  *   IMP06  reimportar não cria nada;
  *   IMP07  a diferença de totais que a tela mostra é explicada e fecha;
+ *   IMP08  uma fatura por mês: em metade dos mundos o cartão vence noutro dia
+ *          no app (relato: dia 10 no app, dia 5 no banco) e a importação
+ *          não pode abrir uma segunda fatura no mesmo mês;
  *   e nenhuma ação lança exceção.
  *
  * Uma falha devolve a semente e a sequência exata. Uso:
@@ -55,7 +58,20 @@ function criarMundo(semente) {
     origem: {}, // id do lançamento → compraId
     seq: 0,
     log: [],
+    // Dia de vencimento do cartão no app. Metade dos mundos começa com um dia
+    // diferente do banco; importar com "dia do banco" (o padrão da tela)
+    // passa o cartão para o dia do banco.
+    diaCartao: semente % 2 === 0 ? 1 + ((semente * 31) % 28) : null,
   };
+}
+
+/** O vencimento como o app lançaria: mês do banco, dia do cartão no app. */
+function noDiaDoCartao(m, ymd) {
+  return m.diaCartao ? F.diaNoMes(ymd, m.diaCartao) : ymd;
+}
+
+function mesmoMes(a, b) {
+  return String(a).slice(0, 7) === String(b).slice(0, 7);
 }
 
 function venc(m, k) {
@@ -136,7 +152,7 @@ const ACOES = {
         valor = Math.round(valor);
       }
       const id = 'tg' + m.semente + '_' + m.seq++;
-      const v = venc(m, c.ciclo);
+      const v = noDiaDoCartao(m, venc(m, c.ciclo));
       const [a, mes] = v.split('-').map(Number);
       m.transacoes.push({
         id,
@@ -156,7 +172,7 @@ const ACOES = {
     } else {
       const grupo = 'tg' + m.semente + '_' + m.seq++;
       for (let i = 0; i < c.m; i++) {
-        const v = somarMeses(venc(m, c.ciclo), i);
+        const v = somarMeses(noDiaDoCartao(m, venc(m, c.ciclo)), i);
         const [a, mes] = v.split('-').map(Number);
         const id = grupo + '_' + i;
         m.transacoes.push({
@@ -186,6 +202,7 @@ const ACOES = {
     const d = m.g.um(S.DIALETOS);
     const { r } = importar(m, k, d);
     m.registros.push({ id: r.registro.id, k });
+    m.diaCartao = null; // a tela guarda o dia do banco no cartão
     return `fatura ${k} via ${d.nome}: ${r.novos.length} criados`;
   },
 
@@ -217,7 +234,7 @@ const ACOES = {
     if (!imp.length) return 'nada importado ainda';
     const k = m.g.um(imp);
     m.transacoes.forEach((t) => {
-      if (t.cartaoId === CARTAO && t.dataVencimento === venc(m, k)) t.pago = true;
+      if (t.cartaoId === CARTAO && mesmoMes(t.dataVencimento, venc(m, k))) t.pago = true;
     });
     return `fatura ${k} paga`;
   },
@@ -257,7 +274,16 @@ function verificar(m) {
   const imp = importadas(m);
   for (let k = 0; k < m.hist.vencimentos.length; k++) {
     const vk = venc(m, k);
-    const naFatura = m.transacoes.filter((t) => t.cartaoId === CARTAO && t.dataVencimento === vk);
+    const naFatura = m.transacoes.filter(
+      (t) => t.cartaoId === CARTAO && mesmoMes(t.dataVencimento, vk)
+    );
+
+    // IMP08: uma fatura por mês (um único vencimento no mês).
+    const dias = new Set(naFatura.map((t) => t.dataVencimento));
+    if (dias.size > 1)
+      problemas.push(
+        `IMP08 fatura ${k}: ${dias.size} vencimentos no mesmo mês (${[...dias].join(', ')})`
+      );
 
     // IMP05: a importação não cria a mesma compra duas vezes na mesma fatura.
     const porCompra = {};

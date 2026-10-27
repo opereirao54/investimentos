@@ -30,7 +30,11 @@
 //     maquininha): o "pet 109" estornado casava com outra compra no pet shop;
 // 12. com duas compras no açougue (R$ 31,14 e uma estornada de R$ 31,48), o
 //     aviso mandava apagar o "açougue 31" da legítima; e o "livraria 124"
-//     estornado casava só pelo valor com uma compra de R$ 124,00 em outra loja.
+//     estornado casava só pelo valor com uma compra de R$ 124,00 em outra loja;
+// 13. (relato do fundador: duas faturas de novembro) com o cartão vencendo
+//     noutro dia no app, a importação não via o que já estava no mês e abria
+//     uma segunda fatura; e, corrigido isso, um mês anterior ainda em aberto
+//     ficava no dia antigo e ganhava uma segunda fatura no lançamento seguinte.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -38,7 +42,7 @@ const F = require('../web/appliquei-importar-fatura.js');
 const { rodarSequenciaImportacao } = require('./_sequencias-importacao.js');
 
 // Sementes que já acharam defeito: rodam sempre.
-const ACHADAS = [1, 10, 13, 16, 716, 2213, 3175, 5133, 5739, 7588, 7770, 11762, 13791];
+const ACHADAS = [1, 8, 10, 13, 16, 716, 2213, 3175, 5133, 5739, 7588, 7770, 11762, 13791];
 const SEMENTES_CI = Number(process.env.SEMENTES_IMPORTACAO) || 300;
 
 test('caça: sementes que já acharam defeito', () => {

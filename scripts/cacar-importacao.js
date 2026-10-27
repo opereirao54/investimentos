@@ -6,7 +6,7 @@
  *
  * Roda muitas sequências aleatórias de uso real (Telegram com valor
  * arredondado, importar meses fora de ordem, em 12 formatos de arquivo,
- * reimportar, desfazer, pagar) e valida IMP01–IMP07 depois de cada ação.
+ * reimportar, desfazer, pagar) e valida IMP01–IMP08 depois de cada ação.
  * O CI roda sementes fixas (test/simulacao-importacao.test.js); aqui dá para
  * subir à vontade.
  *

@@ -326,7 +326,7 @@ também vão fundo, toda semana, em `.github/workflows/cacar-importacao.yml`):
 | Casos escritos                | `test/importar-fatura.test.js`                                                                      | Cada risco desta análise (A1–A9, P1–P7, R1–R4, D1–D4, C1–C4, G4) com um teste legível; o fluxo inteiro na sandbox do app; o formato do lançamento igual ao manual                                                                                                                                                                                                                                                                                                                                      |
 | Faturas sintéticas × dialetos | `test/importar-fatura-dialetos.test.js` + `test/_faturas-sinteticas.js`                             | O gerador inventa a vida de um cartão (compras, parcelas que avançam, IOF, juros, anuidade, estorno, crédito antigo, pagamento, saldo em atraso) e escreve cada fatura em **12 formatos** de arquivo. Para cada uma: lê igual à verdade, linha a linha (D1–D3); o app fica com as mesmas compras, o mesmo total e o número certo de parcelas (D4); a diferença de totais é explicada e fecha no centavo (D5); competência certa (D6); reimportar — no mesmo formato ou noutro — não cria nada (D7, D8) |
 | Arquivo estragado             | `test/importar-fatura-robustez.test.js`                                                             | Faturas válidas cortadas, com linhas apagadas, duplicadas, bytes trocados, sem cabeçalho, com lixo: nunca quebra, recusa com mensagem ou lê o que dá, e nunca cria lançamento com valor ou data inválidos (R1–R4)                                                                                                                                                                                                                                                                                      |
-| Caça de furos                 | `test/simulacao-importacao.test.js` + `test/_sequencias-importacao.js` + `npm run cacar:importacao` | Sequências aleatórias de uso real por meses: lançar pelo Telegram (com valor arredondado e outro nome), importar meses fora de ordem, reimportar noutro formato, desfazer, pagar. Depois de cada ação: nenhuma compra duplicada ou faltando, total igual ao do banco, desfazer volta ao estado anterior, invariantes INV-08/20/27 (IMP01–IMP07)                                                                                                                                                        |
+| Caça de furos                 | `test/simulacao-importacao.test.js` + `test/_sequencias-importacao.js` + `npm run cacar:importacao` | Sequências aleatórias de uso real por meses: lançar pelo Telegram (com valor arredondado e outro nome), importar meses fora de ordem, reimportar noutro formato, desfazer, pagar. Depois de cada ação: nenhuma compra duplicada ou faltando, total igual ao do banco, desfazer volta ao estado anterior, uma fatura por mês mesmo com o cartão vencendo noutro dia no app, invariantes INV-08/20/27 (IMP01–IMP08)                                                                                      |
 | Tela e compartilhar           | `test/importar-fatura-tela.test.js`                                                                 | As escolhas da revisão (mesma × diferente, apagar estornada e desfazer na mesma ordem), o Desfazer na tela da fatura, o rodapé com as parcelas futuras, o botão desligado quando nada muda, e o service worker do compartilhar (guarda o arquivo, abre o app, não toca no resto)                                                                                                                                                                                                                       |
 
 **Os 12 formatos** cobrem o que os bancos fazem: OFX SGML (Nubank), OFX XML,
@@ -356,7 +356,14 @@ o saldo em atraso, cada correção da caça) — e o teste falhou em todas.
 11. "pet" não casava com o nome grudado da maquininha (`MP*PETSHOPAMIGOFIEL`);
 12. com duas compras parecidas na mesma loja, uma estornada, o aviso mandava
     apagar o lançamento da compra legítima — agora o par mais parecido e de
-    valor mais perto decide.
+    valor mais perto decide;
+13. com o cartão vencendo noutro dia no app (dia 10 no app, dia 5 no banco),
+    a importação não via o que já estava lançado no mês, podia duplicar e
+    abria uma segunda fatura no mesmo mês. Agora um cartão tem uma fatura por
+    mês: a revisão pergunta "Dia 5, como no banco" (padrão: o cartão passa a
+    vencer dia 5 e os lançamentos em aberto vão para esse dia, no mesmo mês)
+    ou "Manter dia 10" (a fatura entra no dia 10). O Desfazer volta também o
+    dia do cartão. Invariante nova da caça: IMP08.
 
 Última rodada funda: 20.000 sequências de 30 ações (600 mil ações), todas
 limpas.

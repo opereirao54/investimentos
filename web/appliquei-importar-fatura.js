@@ -703,8 +703,17 @@ function impfatPlanejar(opts) {
       }
     });
 
+  // Um cartão tem UMA fatura por mês. O app pode estar com outro dia de
+  // vencimento (relato: o cartão vencia dia 10 no app e o Nubank diz dia 5):
+  // comparar pelo dia exato não via o que já estava lançado em novembro,
+  // duplicava as compras e abria uma segunda fatura de novembro.
+  var mesVenc = venc.slice(0, 7);
   var daFatura = transacoes.filter(function (t) {
-    return t.categoria === 'cartao_credito' && t.cartaoId === cartaoId && t.dataVencimento === venc;
+    return (
+      t.categoria === 'cartao_credito' &&
+      t.cartaoId === cartaoId &&
+      String(t.dataVencimento || '').slice(0, 7) === mesVenc
+    );
   });
   var usados = {};
   function livre(t) {
@@ -957,7 +966,11 @@ function impfatPlanejar(opts) {
       !/\(\d+\/\d+\)\s*$/.test(String(t.descricao || '')) &&
       // Fatura vizinha que JÁ foi importada foi conferida com o banco: o que
       // está lá é dela. Mover de lá fazia uma compra sumir (caça de furos).
-      (o.faturasImportadas || []).indexOf(t.dataVencimento) === -1
+      (o.faturasImportadas || [])
+        .map(function (v) {
+          return String(v).slice(0, 7);
+        })
+        .indexOf(String(t.dataVencimento).slice(0, 7)) === -1
     );
   });
   pendentes().forEach(function (it) {
@@ -1066,7 +1079,7 @@ function impfatPlanejar(opts) {
           !futurasUsadas[t.id] &&
           t.categoria === 'cartao_credito' &&
           t.cartaoId === cartaoId &&
-          t.dataVencimento === vk &&
+          String(t.dataVencimento || '').slice(0, 7) === vk.slice(0, 7) &&
           mm &&
           +mm[1] === k &&
           +mm[2] === p.m &&
@@ -1091,6 +1104,28 @@ function impfatPlanejar(opts) {
     return { id: t.id, descricao: t.descricao, valor: Number(t.valor) || 0 };
   });
 
+  // Lançamentos em aberto deste cartão com outro dia de vencimento vão para o
+  // dia desta fatura, no mesmo mês (a competência não muda — INV-08). Sem
+  // isso, as parcelas importadas caem no dia 5 e as do app no dia 10, e cada
+  // mês fica com duas faturas. Vale também para meses anteriores ainda em
+  // aberto: o cartão passa a vencer neste dia, e o que for lançado lá depois
+  // cai nele (achado pela caça de furos, IMP08). Pago não se mexe.
+  var diaVenc = +venc.slice(8, 10);
+  var realinhar = transacoes
+    .filter(function (t) {
+      var d = String(t.dataVencimento || '');
+      return (
+        t.categoria === 'cartao_credito' &&
+        t.cartaoId === cartaoId &&
+        !t.pago &&
+        /^\d{4}-\d{2}-\d{2}$/.test(d) &&
+        d !== impfatDiaNoMes(d, diaVenc)
+      );
+    })
+    .map(function (t) {
+      return { id: t.id, de: t.dataVencimento, para: impfatDiaNoMes(t.dataVencimento, diaVenc) };
+    });
+
   return {
     vencimento: venc,
     cartaoId: cartaoId,
@@ -1099,12 +1134,21 @@ function impfatPlanejar(opts) {
     totalBanco: o.arquivo.totalBanco,
     itens: itens,
     soNoApp: soNoApp,
+    realinhar: realinhar,
     appAntes: impfatArred(
       daFatura.reduce(function (s, t) {
         return s + (Number(t.valor) || 0);
       }, 0)
     ),
   };
+}
+
+/** 'AAAA-MM-DD' com o dia trocado, sem passar do fim do mês (dia 31 em fevereiro → 28/29). */
+function impfatDiaNoMes(ymd, dia) {
+  var p = String(ymd).split('-').map(Number);
+  var fim = new Date(p[0], p[1], 0).getDate();
+  var d = Math.min(Math.max(1, dia | 0), fim);
+  return p[0] + '-' + String(p[1]).padStart(2, '0') + '-' + String(d).padStart(2, '0');
 }
 
 function impfatMoeda(v) {
@@ -1230,6 +1274,7 @@ function impfatResumo(plano) {
     // Parcelas que entram nas PRÓXIMAS faturas (a tela diz antes de importar).
     parcelasFuturas: lancamentosCriados - qtdNovas,
     ateVencimento: ateVencimento,
+    realinhados: (plano.realinhar || []).length,
     qtdJaLancadas: plano.itens.filter(function (it) {
       return it.status === 'ja_lancada';
     }).length,
@@ -1336,6 +1381,16 @@ function impfatAplicar(plano, ctx) {
         }
       });
     }
+  });
+
+  // Uma fatura por mês: o que estava noutro dia vai para o dia desta fatura.
+  (plano.realinhar || []).forEach(function (x) {
+    if (!porId[x.id]) return;
+    alteracoes.push({
+      id: x.id,
+      antes: { dataVencimento: x.de },
+      depois: { dataVencimento: x.para },
+    });
   });
 
   removidos.sort(function (a, b) {
@@ -1497,6 +1552,7 @@ var AppliqueiImportarFatura = {
   planejar: impfatPlanejar,
   resumo: impfatResumo,
   propagarCategoria: impfatPropagarCategoria,
+  diaNoMes: impfatDiaNoMes,
   entra: impfatEntra,
   aplicar: impfatAplicar,
   aplicarAlteracoes: impfatAplicarAlteracoes,
