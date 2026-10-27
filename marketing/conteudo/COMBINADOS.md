@@ -11,11 +11,16 @@ mudar (com a data).
 - **Ritmo:** **3 Reels por semana** (seg, qua, sex) de 26/10 a 26/12 e **todo
   dia** de 27/12 a 02/01 (os 7 vídeos de produto prontos). 34 Reels: 12
   prontos e 22 novos.
-- **Stories todo dia.** O story de contagem é um **vídeo curto de suspense, o
-  "relógio"** (6–8 s, sem narração, só som): o número de ontem vira o de
-  hoje, "Algo novo em 2027.", espaço para o adesivo de contagem regressiva
-  "Lançamento Appliquei" (02/01/2027, 00:00). **Aos sábados**, o relógio
-  traz a **pista da semana** no lugar da frase (`CALENDARIO.md`). Gerar com
+- **Stories todo dia.** A **contagem regressiva** (o vídeo de suspense
+  "relógio", 6–8 s, sem narração: o número anterior vira o do dia, "Algo novo
+  em 2027.", espaço para o adesivo "Lançamento Appliquei", 02/01/2027, 00:00)
+  sai **só nos marcos de 10 em 10 dias** e **todo dia na última semana**
+  (fundador, 27/10): faltam **58 (qui 05/11), 48 (dom 15/11), 38 (qua 25/11),
+  28 (sáb 05/12), 18 (ter 15/12)** e de **7 a 1 (26/12 a 01/01)**, com "É
+  hoje" em 02/01. No relógio de marco, o número anterior é o do marco
+  passado (68 → 58, 58 → 48…). Nos outros dias, os stories são só os de
+  interação (enquete, caixa, quiz) e o repost do Reel. As **pistas de sábado**
+  saem como story de imagem (`capa.js`). Gerar o relógio com
   `marketing/ferramentas/shorts/relogio.js`.
 - **Selo "Faltam X dias"** em todo Reel (`contagem.js`) e linha "⏳ Faltam X
   dias…" na legenda.

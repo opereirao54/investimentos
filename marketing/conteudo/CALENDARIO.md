@@ -14,8 +14,10 @@ PDF simples para compartilhar: `plano-instagram.pdf` (fonte
   lançamento** (27/12 a 02/01). São 34 Reels: 12 já prontos e 22 novos.
 - **Contagem regressiva em todo Reel:** selo "Faltam X dias" no canto e fecho
   com a pista ("Em 47 dias, …").
-- **Stories todo dia**, com o adesivo de contagem regressiva do Instagram
-  apontando para 02/01 ("ative o lembrete") desde 26/10.
+- **Stories todo dia.** A contagem regressiva em story (vídeo "relógio", com
+  o adesivo de contagem para 02/01) sai **de 10 em 10 dias**, faltando 58
+  (05/11), 48 (15/11), 38 (25/11), 28 (05/12) e 18 (15/12), e **todo dia de
+  26/12 a 02/01** (faltam 7 a 0).
 - **Até 26/12 o app não aparece.** As pistas falam do que a pessoa vai
   sentir, não de telas. Na última semana, os 7 vídeos de produto revelam o
   app função por função.
@@ -83,13 +85,16 @@ Os vídeos prontos de alcance são publicados na versão `appliquei-<tema>-com-c
 
 ## Stories, todo dia (5 a 10 minutos)
 
+Nos dias de contagem (58, 48, 38, 28, 18 e de 7 a 0), o primeiro story do
+dia é o vídeo "relógio" com o adesivo de contagem regressiva.
+
 | Dia           | Story                                                                     |
 | ------------- | ------------------------------------------------------------------------- |
 | Seg, qua, sex | Repost do Reel do dia + enquete sobre o tema                              |
 | Ter           | Caixa de perguntas: "Qual conta você quer que a gente faça?" (vira pauta) |
 | Qui           | Quiz de 1 pergunta (ex.: "R$ 100 por mês em 10 anos viram quanto?")       |
 | **Sáb**       | **Pista da semana** (abaixo)                                              |
-| Dom           | Resumo da semana + "Faltam X dias"                                        |
+| Dom           | Resumo da semana                                                          |
 
 ### As 9 pistas de sábado
 

@@ -19,11 +19,11 @@ Horários: story 8h30 e 12h30, Reel às 19h nas três redes (Instagram, TikTok,
 YouTube Shorts), repost no story 19h30. O Reel leva um bloco de texto por rede
 (regras em `../COMBINADOS.md`). Ajuste depois de 3 semanas pelas estatísticas do perfil.
 
-O story de contagem da manhã é o vídeo "relógio" (`relogio.js <dias>`; aos
-sábados com a pista: `relogio.js <dias> saida.mp4 "pista"`). O adesivo de
-contagem regressiva é criado uma vez (seg 26/10) com o nome
-"Lançamento Appliquei", data 02/01/2027, 00:00, e reaproveitado nos dias
-seguintes (Adesivos › Contagem regressiva › escolher o que já existe).
+A contagem regressiva em story (vídeo "relógio", `relogio.js <dias>`) sai só
+nos marcos: faltam 58 (05/11), 48 (15/11), 38 (25/11), 28 (05/12), 18 (15/12)
+e todo dia de 7 a 0 (26/12 a 02/01). Nos outros dias, sem story de contagem.
+O adesivo "Lançamento Appliquei" (02/01/2027, 00:00) já foi criado em 26/10:
+nos dias de contagem, é só escolher o que já existe.
 
 ---
 
@@ -80,10 +80,6 @@ Hashtags: `#cartaodecredito #dicasdefinancas`
 ---
 
 ## QUARTA 28/10 · Faltam 66 dias
-
-**1) 8h30 · STORY** · `stories/28-10-contagem.png`
-Adesivo: Contagem regressiva › escolher "Lançamento Appliquei".
-Hashtags: `#educacaofinanceira #appliquei #em2027`
 
 **2) 12h30 · STORY** · `stories/28-10-enquete.png`
 Adesivo: Enquete › "Parcelado" / "À vista".
