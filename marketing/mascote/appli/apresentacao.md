@@ -37,3 +37,23 @@ saem de uma IA de vídeo que anima o personagem a partir da imagem e do áudio.
 
 Pela API do Gemini daqui, imagem e vídeo (Veo) não têm cota grátis (limite 0
 em 28/10/2026); com o faturamento ativado, dá para gerar por aqui.
+
+## Gerado de graça no Hugging Face (28/10/2026)
+
+O Appli falando e gesticulando sai do **Wan 2.2** (Space gratuito
+`zerogpu-aoti/wan2-2-fp8da-aoti-faster`, GPU ZeroGPU), a partir de
+`ia/appli-480.png`. Pelo proxy da nuvem, o `gradio_client` falha ("session not
+found"): `ia/space.py` faz upload, fila e download numa conexão só.
+
+- `ia/cena0.mp4` + `previa-ola.mp4`: **pronto**, acena com a boca mexendo
+  ("Oi! Eu sou o Appli. A moedinha do Appliquei.", com a voz Charon).
+- `ia/cenas.sh`: gera as outras 5 cenas, cada uma a partir do último quadro
+  da anterior (dá de ombros e aponta · punho erguido · "não" com o dedo ·
+  aponta confiante · joinha e pulinho), nos tempos das frases da voz Charon.
+  Retoma de onde parou.
+- **Limite:** a conta gratuita tem poucas gerações de GPU por dia; ao bater
+  ("ZeroGPU runs limit"), esperar até 24 h e rodar `cenas.sh` de novo. A boca
+  mexe enquanto ele fala, mas não é sincronia labial exata (isso exigiria
+  FantasyTalking, que pede mais GPU do que a conta gratuita permite).
+- Depois das 6 cenas: juntar, subir para 1080×1920 a 30 fps, pôr a voz Charon,
+  legenda na tela, marca no fim e selo "Faltam X dias".
