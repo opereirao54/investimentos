@@ -232,7 +232,8 @@ var FATURA_MES_CURTO = [
 
 // Estado da tela: cartão e ciclo (pela data de vencimento, que é estável
 // entre renders — o índice muda quando nasce um ciclo novo).
-var faturasEstado = { cartaoId: null, vencimento: null };
+// itemAberto: o lançamento da lista com as ações (Editar / Excluir) à vista.
+var faturasEstado = { cartaoId: null, vencimento: null, itemAberto: null };
 
 /** Cartões que a tela oferece: os ativos e os arquivados que ainda têm
  *  fatura (a história de um cartão encerrado continua consultável). */
@@ -264,6 +265,35 @@ function abrirFaturas(cartaoId, vencimento) {
   document.body.classList.add('faturas-aberta');
 }
 
+/**
+ * Tocar num lançamento da fatura mostra Editar e Excluir logo abaixo dele.
+ * Relato: um amigo do fundador quis excluir uma compra pela fatura e não
+ * achou como — o lápis levava ao formulário, que não tinha "Excluir".
+ */
+function faturasAbrirItem(id) {
+  faturasEstado.itemAberto = faturasEstado.itemAberto === id ? null : id;
+  renderizarFaturas();
+}
+
+function faturasEditarItem(id) {
+  faturasEstado.itemAberto = null;
+  fecharFaturas();
+  if (typeof prepararEdicao === 'function') prepararEdicao(id);
+}
+
+/** A confirmação é a do extrato (deletarTransacao): parcela e fixo perguntam
+ *  "só este mês" ou "este e os futuros". A janela abre por cima da fatura. */
+function faturasExcluirItem(id) {
+  if (typeof deletarTransacao === 'function') deletarTransacao(id);
+}
+
+/** Depois de excluir/editar algo noutro lugar: a fatura aberta se atualiza. */
+function faturasAtualizarSeAberta() {
+  const modal = document.getElementById('telaFaturas');
+  if (!modal || modal.style.display === 'none' || !modal.style.display) return;
+  renderizarFaturas();
+}
+
 function fecharFaturas() {
   const modal = document.getElementById('telaFaturas');
   if (modal) modal.style.display = 'none';
@@ -271,12 +301,14 @@ function fecharFaturas() {
 }
 
 function faturasEscolherCartao(id) {
+  faturasEstado.itemAberto = null;
   faturasEstado.cartaoId = id;
   faturasEstado.vencimento = null;
   renderizarFaturas();
 }
 
 function faturasIrPara(ymd) {
+  faturasEstado.itemAberto = null;
   faturasEstado.vencimento = ymd;
   renderizarFaturas();
 }
@@ -588,23 +620,35 @@ function renderizarFaturas() {
             : t.cartaoFixoMensal
               ? 'Fixo mensal'
               : 'Cartão';
+        const aberto = faturasEstado.itemAberto === t.id;
         html +=
-          '<div class="fat-item' +
+          '<div class="fat-item-bloco' +
+          (aberto ? ' aberto' : '') +
+          '"><button type="button" class="fat-item' +
           (t.pago ? ' pago' : '') +
+          '" aria-expanded="' +
+          (aberto ? 'true' : 'false') +
+          '" onclick="faturasAbrirItem(this.dataset.id)" data-id="' +
+          _fatEsc(t.id) +
           '"><span class="fat-item-dia">' +
           dia +
-          '</span><div class="fat-item-corpo"><span class="fat-item-desc">' +
+          '</span><span class="fat-item-corpo"><span class="fat-item-desc">' +
           _fatEsc(t.descricao) +
           '</span><span class="fat-item-cat">' +
           _fatEsc(cat) +
           (t.pago ? ' · pago' : '') +
-          '</span></div><span class="fat-item-valor valor-mascarado">' +
+          '</span></span><span class="fat-item-valor valor-mascarado">' +
           formatarMoeda(t.valor) +
-          '</span><button type="button" class="fat-item-editar" onclick="fecharFaturas(); prepararEdicao(\'' +
-          _fatEsc(t.id) +
-          '\')" aria-label="Editar ' +
-          _fatEsc(t.descricao) +
-          '"><i class="ph ph-pencil-simple" aria-hidden="true"></i></button></div>';
+          '</span><i class="ph ph-dots-three-vertical fat-item-mais" aria-hidden="true"></i></button>' +
+          (aberto
+            ? '<div class="fat-item-acoes"><button type="button" class="btn-secundario" data-id="' +
+              _fatEsc(t.id) +
+              '" onclick="faturasEditarItem(this.dataset.id)"><i class="ph ph-pencil-simple" aria-hidden="true"></i> Editar</button>' +
+              '<button type="button" class="btn-secundario fat-item-excluir" data-id="' +
+              _fatEsc(t.id) +
+              '" onclick="faturasExcluirItem(this.dataset.id)"><i class="ph ph-trash" aria-hidden="true"></i> Excluir</button></div>'
+            : '') +
+          '</div>';
       });
     html += '</div>';
   }

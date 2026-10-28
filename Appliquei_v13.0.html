@@ -3291,19 +3291,25 @@
             border: 1px solid var(--cor-borda-primaria); background: transparent; color: var(--cor-txt-primaria);
         }
         .fat-itens { display: flex; flex-direction: column; }
-        .fat-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--cor-borda); }
-        .fat-item:first-child { border-top: none; }
+        .fat-item-bloco { border-top: 1px solid var(--cor-borda); }
+        .fat-item-bloco:first-child { border-top: none; }
+        /* A linha inteira é o botão que mostra Editar / Excluir. */
+        .fat-item {
+            display: flex; align-items: center; gap: 10px; padding: 10px 0; width: 100%; min-height: 52px;
+            background: none; border: none; text-align: left; font: inherit; color: inherit; cursor: pointer;
+        }
+        .fat-item-bloco.aberto .fat-item { padding-bottom: 6px; }
+        .fat-item-mais { flex: 0 0 auto; font-size: 18px; color: var(--cor-texto-mutado); }
+        .fat-item-acoes { display: flex; gap: 8px; padding: 0 0 12px 50px; }
+        .fat-item-acoes > button { flex: 1; justify-content: center; min-height: 44px; display: inline-flex; align-items: center; gap: 6px; }
+        .fat-item-acoes .fat-item-excluir, .lanc-excluir { color: var(--cor-erro); border-color: var(--cor-borda-erro); }
+        .lanc-excluir { width: 100%; margin-top: 10px; justify-content: center; align-items: center; gap: 6px; }
         .fat-item-dia { flex: 0 0 40px; font-size: 12px; color: var(--cor-texto-mutado); font-family: 'DM Mono', monospace; }
         .fat-item-corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
         .fat-item-desc { font-size: 14px; font-weight: 600; color: var(--cor-texto-principal); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .fat-item-cat { font-size: 12px; color: var(--cor-texto-mutado); }
         .fat-item.pago .fat-item-desc { color: var(--cor-texto-secundario); }
         .fat-item-valor { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 600; color: var(--cor-texto-principal); white-space: nowrap; }
-        .fat-item-editar {
-            width: 36px; height: 36px; flex: 0 0 36px; border: none; background: none; cursor: pointer; border-radius: 50%;
-            color: var(--cor-texto-mutado); font-size: 16px; display: inline-flex; align-items: center; justify-content: center;
-        }
-        .fat-item-editar:hover { background: var(--cor-superficie); color: var(--cor-info); }
         .fat-itens-vazio { font-size: 13px; color: var(--cor-texto-mutado); padding: 8px 0; }
         .fat-vazio {
             display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 32px 16px;
@@ -14959,7 +14965,10 @@
                         <div id="cpPrevia" class="cp-previa" style="display:none;"></div>
                         <button type="button" class="btn-secundario cp-ver" onclick="corrigirParcelasPrevia()"><i class="ph ph-arrows-clockwise"></i> Corrigir a série</button>
                     </div>
-                    <button class="btn-secundario" id="btnCancelarEdicao" onclick="cancelarEdicaoControle()" style="display:none;width:100%;margin-top:10px;border-color:var(--cor-erro);color:var(--cor-erro);"><i class="ph ph-x"></i> Cancelar edição</button>
+                    <!-- Excluir na própria edição (relato: quem chegava pelo lápis da fatura não
+                         achava como excluir). Mesma confirmação do extrato. -->
+                    <button type="button" class="btn-secundario lanc-excluir" id="btnExcluirEdicao" onclick="excluirLancamentoEmEdicao()" style="display:none;"><i class="ph ph-trash" aria-hidden="true"></i> Excluir lançamento</button>
+                    <button class="btn-secundario" id="btnCancelarEdicao" onclick="cancelarEdicaoControle()" style="display:none;width:100%;margin-top:10px;"><i class="ph ph-x"></i> Cancelar edição</button>
                 </div>
             </div>
 
@@ -16960,8 +16969,8 @@
     <script src="/web/appliquei-desempenho.js?v=fase4"></script>
     <script src="/web/appliquei-ir.js?v=fase4"></script>
     <script src="/web/appliquei-insights.js?v=insights-1"></script>
-    <script src="/web/appliquei-aba-controle-financeiro.js?v=form-lancamento-1"></script>
-    <script src="/web/appliquei-faturas.js?v=importar-fatura-6"></script>
+    <script src="/web/appliquei-aba-controle-financeiro.js?v=fatura-excluir-1"></script>
+    <script src="/web/appliquei-faturas.js?v=fatura-excluir-1"></script>
     <script src="/web/appliquei-categorias-palavras.js?v=importar-fatura-6"></script>
     <script src="/web/appliquei-importar-fatura.js?v=importar-fatura-6"></script>
     <script src="/web/appliquei-importar-fatura-ui.js?v=importar-fatura-6"></script>
