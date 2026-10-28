@@ -310,6 +310,7 @@ function abrirPainelLancamento() {
   if (!painel) return;
   painel.classList.add('aberto');
   document.body.classList.add('painel-lancamento-aberto');
+  if (typeof lancUiSincronizar === 'function') lancUiSincronizar();
   setTimeout(() => {
     // No celular a folha abre pelo valor (appliquei-mobile.js reordena os
     // campos), e o foco vai junto: já sobe o teclado numérico.
@@ -574,35 +575,15 @@ function toggleValoresOcultos() {
 })();
 
 // === CHIPS DE TIPO DE LANÇAMENTO ===
+// O segmento ligado é desenhado por lancUiSincronizar (appliquei-lancamento-ui.js)
+// a partir da categoria — assim ele também acompanha a edição de um lançamento.
 function selecionarChipTipo(tipo) {
-  const chips = {
-    entrada: document.getElementById('chipEntrada'),
-    saida: document.getElementById('chipSaida'),
-    cartao: document.getElementById('chipCartao'),
-  };
-  const estilosBase =
-    "flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid var(--cor-borda);background:var(--cor-superficie);color:var(--cor-texto-secundario);font-size:11.5px;font-weight:600;cursor:pointer;transition:.15s;font-family:'Figtree',sans-serif;display:flex;align-items:center;justify-content:center;gap:4px;";
-  Object.values(chips).forEach((c) => (c.style.cssText = estilosBase));
   const sel = document.getElementById('categoriaTransacao');
-  if (tipo === 'entrada') {
-    chips.entrada.style.cssText =
-      estilosBase +
-      'background:var(--cor-bg-primaria);color:var(--cor-txt-primaria);border-color:var(--cor-borda-primaria);';
-    sel.value = 'receita';
-    verificarRegraCartao();
-  } else if (tipo === 'saida') {
-    chips.saida.style.cssText =
-      estilosBase +
-      'background:var(--cor-bg-erro);color:var(--cor-txt-erro);border-color:var(--cor-borda-erro);';
-    sel.value = 'despesa_variavel';
-    verificarRegraCartao();
-  } else if (tipo === 'cartao') {
-    chips.cartao.style.cssText =
-      estilosBase +
-      'background:var(--cor-bg-amber);color:var(--cor-txt-amber);border-color:var(--cor-borda-amber);';
-    sel.value = 'cartao_credito';
-    verificarRegraCartao();
-  }
+  const cat = { entrada: 'receita', saida: 'despesa_variavel', cartao: 'cartao_credito' }[tipo];
+  if (!sel || !cat) return;
+  // Já em Saída, tocar de novo não desfaz "Fixa".
+  if (!(tipo === 'saida' && sel.value === 'despesa_fixa')) sel.value = cat;
+  verificarRegraCartao();
 }
 
 // O extrato virou uma lista só, ordenada por valor. As abas do topo escondiam

@@ -105,6 +105,7 @@ module.exports = [
       'web/appliquei-categorias-palavras.js',
       'web/appliquei-importar-fatura.js',
       'web/appliquei-importar-fatura-ui.js',
+      'web/appliquei-lancamento-ui.js',
       'web/appliquei-relatorio-mensal.js',
       'web/appliquei-applicash.js',
       'web/appliquei-duvidas.js',

@@ -710,6 +710,7 @@ function verificarRegraCartao() {
   // O tipo decide se há categoria de despesa a sugerir: escolher o chip
   // depois de digitar a descrição também mostra (ou esconde) a sugestão.
   if (typeof insightsSugestaoAoDigitar === 'function') insightsSugestaoAoDigitar();
+  if (typeof lancUiSincronizar === 'function') lancUiSincronizar();
 }
 
 function atualizarSelectCartoesForm() {
@@ -978,17 +979,26 @@ function salvarDiasCartaoInline() {
 // a ser paga (o caso mais comum de quem começa a usar o app no meio de um
 // parcelado) entra direto na parcela certa — sem lançar 1/10 e depois ter de
 // renumerar a série na mão.
+// Fica recolhida atrás de "Já começou a pagar esta compra?": quem compra hoje
+// começa na 1 e não precisa da pergunta.
 function atualizarParcelaInicialUI() {
   const grupo = document.getElementById('grupoParcelaInicial');
   const inp = document.getElementById('parcelaInicial');
   if (!grupo || !inp) return;
+  const link = document.getElementById('lancParcelaInicialAbrir');
+  const de = document.getElementById('lancParcelaDe');
   const parcelas = parseInt((document.getElementById('qtdParcelas') || {}).value, 10) || 1;
   if (parcelas > 1) {
-    grupo.style.display = '';
     inp.max = String(parcelas);
     if ((parseInt(inp.value, 10) || 1) > parcelas) inp.value = parcelas;
+    const aberta = grupo.dataset.aberto === '1' || (parseInt(inp.value, 10) || 1) > 1;
+    grupo.style.display = aberta ? '' : 'none';
+    if (link) link.style.display = aberta ? 'none' : '';
+    if (de) de.textContent = 'de ' + parcelas;
   } else {
     grupo.style.display = 'none';
+    grupo.dataset.aberto = '';
+    if (link) link.style.display = 'none';
     inp.value = 1;
   }
 }
@@ -1049,11 +1059,11 @@ function atualizarResumoFatura() {
       '</strong> a <strong>' +
       FATURA_MESES[ultimo.getMonth()] +
       '</strong>.' +
-      (inicial > 1
-        ? ' As parcelas 1' +
-          (inicial > 2 ? ' a ' + (inicial - 1) : '') +
-          ' ficaram em faturas passadas.'
-        : '');
+      (inicial > 2
+        ? ' As parcelas 1 a ' + (inicial - 1) + ' ficaram em faturas passadas.'
+        : inicial === 2
+          ? ' A parcela 1 ficou numa fatura passada.'
+          : '');
     box.style.display = 'block';
     return;
   }
@@ -1648,8 +1658,9 @@ function cancelarEdicaoControle() {
   document.getElementById('btnSalvarControle').style.backgroundColor = 'var(--cor-primaria)';
   document.getElementById('btnCancelarEdicao').style.display = 'none';
   document.getElementById('tituloPainelControle').innerHTML =
-    '<i class="ph ph-plus-circle" style="color: var(--cor-primaria);"></i> Registrar Operação';
+    '<i class="ph ph-plus-circle" style="color: var(--cor-primaria);"></i> Novo lançamento';
   verificarRegraCartao();
+  if (typeof lancUiReiniciar === 'function') lancUiReiniciar();
 }
 
 function tentarSalvarTransacao() {
@@ -1688,6 +1699,9 @@ function tentarSalvarTransacao() {
           : 'Informe o banco/instituição de onde a despesa será debitada.',
         'erro'
       );
+      // Com as contas em botões o campo de texto está escondido: quem mostra
+      // onde escolher é a camada do formulário.
+      if (typeof lancUiPedirConta === 'function' && lancUiPedirConta()) return;
       bancoEl?.focus();
       return;
     }
@@ -2360,6 +2374,7 @@ function executarInsercao() {
   const grupoCatDesp = document.getElementById('grupoCategoriaDespesa');
   if (grupoCatDesp) grupoCatDesp.style.display = 'none';
   selecionarTipoCartao('parcelado');
+  if (typeof lancUiReiniciar === 'function') lancUiReiniciar();
   mostrarToast(
     mensagemLancamentoSalvo(categoria, dataVencInput, mesesGerar) +
       complementoLancamentoSalvo(novos, dados),
