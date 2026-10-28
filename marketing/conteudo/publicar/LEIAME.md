@@ -108,3 +108,16 @@ Conteúdo educacional, não é recomendação de investimento. Supondo renda fix
 **4) 19h30 · STORY** · repost do Reel
 Texto por cima: `Desconto ÷ metade das parcelas. Salva essa 👆`
 Hashtags: `#educacaofinanceira #dicasdefinancas`
+
+---
+
+## QUINTA 29/10 · Faltam 65 dias · sem Reel
+
+**1) 12h30 · STORY** · `stories/29-10-quiz.png`
+Adesivo: Quiz › pergunta `Quanto por mês?` › opções `0,5% ao mês`, `1% ao mês`,
+`Quase 2% ao mês` (certa), `5% ao mês`.
+Hashtags: `#financaspessoais #dicasdefinancas`
+
+**2) 19h30 · STORY** · repost do Reel de quarta
+Texto por cima: `A resposta do quiz tá aqui 👆`
+Hashtags: `#educacaofinanceira #parceladoouavista`
