@@ -98,4 +98,6 @@ mudar (com a data).
   pendência CVM antes de usar.
 - **Adiados pelo fundador:** Jornada em vídeos longos; postagem automática
   pela API do Instagram.
+- **Mascote Pingo** (`marketing/mascote/`, criado em 28/10): o fundador
+  ainda decide se aprova e quando estreia (sugestão: semana do lançamento).
 - **Os 12 vídeos prontos** ganham o selo "Faltam X dias" na véspera de cada um.
