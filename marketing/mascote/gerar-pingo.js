@@ -1,11 +1,12 @@
-// Pingo, o mascote do Appliquei: o "$" que fica no pingo do "i" da logo,
-// virado gotinha verde. Desenhado em SVG puro (escala sem perder nitidez).
+// Pingo, o mascote do Appliquei: o próprio "$" da logo (o que fica no pingo do
+// "i") virado personagem. O corpo é o mesmo desenho do cifrão de
+// appliquei-wordmark.svg, só um pouco mais encorpado para o rosto caber na
+// faixa do meio. SVG puro (escala sem perder nitidez).
 //
 //   node marketing/mascote/gerar-pingo.js
 //
 // Gera em marketing/mascote/pingo/: um SVG por pose (pingo-<pose>.svg) e a
-// folha de apresentação (folha.png, 1600×1200) com as poses, o Pingo ao lado
-// da marca e em tamanho de ícone.
+// folha de apresentação (folha.png, 1600×1200).
 
 const fs = require('fs');
 const path = require('path');
@@ -13,81 +14,76 @@ const path = require('path');
 const MK = path.join(__dirname, '..');
 const PASTA = path.join(__dirname, 'pingo');
 fs.mkdirSync(PASTA, { recursive: true });
+for (const f of fs.readdirSync(PASTA)) if (f.endsWith('.svg')) fs.rmSync(path.join(PASTA, f));
 
+const WM_SVG = fs.readFileSync(path.join(MK, '..', 'appliquei-wordmark.svg'), 'utf8');
+const CIFRAO = WM_SVG.match(/<path fill="#10b981" d="([^"]+)"/)[1];
 const COR = {
   claro: '#6ee7b7',
-  sinal: '#34d399',
-  primaria: '#059669',
+  marca: '#10b981',
   escuro: '#047857',
   tinta: '#052e1f',
   ambar: '#fbbf24',
 };
 
-// corpo: uma gota com a ponta para cima (o "pingo"), 200×240
-const CORPO =
-  'M100 18 C 92 34, 38 96, 38 152 C 38 190, 66 216, 100 216 C 134 216, 162 190, 162 152 C 162 96, 108 34, 100 18 Z';
-
+// Coordenadas no espaço do cifrão da logo (x 970–1011, y 292–353).
 function olhos(tipo) {
   const o = (x, dx, dy) =>
-    `<ellipse cx="${x}" cy="138" rx="13" ry="16" fill="#fff"/>` +
-    `<circle cx="${x + dx}" cy="${140 + dy}" r="7.5" fill="${COR.tinta}"/>` +
-    `<circle cx="${x + dx + 2.5}" cy="${137 + dy}" r="2.4" fill="#fff"/>`;
-  if (tipo === 'fechados')
-    return `<path d="M66 140 Q78 128 90 140 M110 140 Q122 128 134 140" stroke="${COR.tinta}" stroke-width="5" stroke-linecap="round" fill="none"/>`;
-  if (tipo === 'piscando')
-    return (
-      o(78, 1, 0) +
-      `<path d="M110 140 Q122 132 134 140" stroke="${COR.tinta}" stroke-width="5" stroke-linecap="round" fill="none"/>`
-    );
-  if (tipo === 'cima') return o(78, 3, -6) + o(122, 3, -6);
-  if (tipo === 'lado') return o(78, 4, 0) + o(122, 4, 0);
-  return o(78, 1, 1) + o(122, 1, 1);
+    `<ellipse cx="${x}" cy="318.5" rx="4.3" ry="4.9" fill="#fff" stroke="${COR.tinta}" stroke-width=".8"/>` +
+    `<circle cx="${x + dx}" cy="${319.2 + dy}" r="2.3" fill="${COR.tinta}"/>` +
+    `<circle cx="${x + dx + 0.8}" cy="${318.2 + dy}" r=".75" fill="#fff"/>`;
+  const arco = (x) =>
+    `<path d="M${x - 3.6} 319.5 Q${x} 314.5 ${x + 3.6} 319.5" stroke="${COR.tinta}" stroke-width="1.5" stroke-linecap="round" fill="none"/>`;
+  if (tipo === 'fechados') return arco(985) + arco(995.5);
+  if (tipo === 'piscando') return o(985, 0.6, 0.4) + arco(995.5);
+  if (tipo === 'cima') return o(985, 1, -1.8) + o(995.5, 1, -1.8);
+  return o(985, 0.6, 0.4) + o(995.5, 0.6, 0.4);
 }
 
 function boca(tipo) {
-  const s = `stroke="${COR.tinta}" stroke-width="4.5" stroke-linecap="round" fill="none"`;
+  const s = `stroke="${COR.tinta}" stroke-width="1.5" stroke-linecap="round" fill="none"`;
   if (tipo === 'aberta')
-    return `<path d="M86 164 Q100 186 114 164 Z" fill="${COR.tinta}"/><path d="M93 174 Q100 180 107 174" fill="#f87171"/>`;
-  if (tipo === 'o') return `<ellipse cx="100" cy="171" rx="6" ry="7" fill="${COR.tinta}"/>`;
-  if (tipo === 'reta') return `<path d="M92 170 Q100 172 108 168" ${s}/>`;
-  return `<path d="M87 164 Q100 177 113 164" ${s}/>`;
+    return `<path d="M986.5 326 Q990.5 332.5 994.5 326 Z" fill="${COR.tinta}"/><path d="M988.6 329.4 Q990.5 331 992.4 329.4" fill="#f87171"/>`;
+  if (tipo === 'o') return `<ellipse cx="990.5" cy="327.8" rx="1.8" ry="2.1" fill="${COR.tinta}"/>`;
+  if (tipo === 'reta') return `<path d="M987.5 327.5 Q990.5 328 993.5 326.6" ${s}/>`;
+  return `<path d="M986.8 326.2 Q990.5 330.6 994.2 326.2" ${s}/>`;
 }
 
 const sobrancelhas = {
-  alerta: `<path d="M64 116 L88 122 M136 116 L112 122" stroke="${COR.tinta}" stroke-width="4.5" stroke-linecap="round"/>`,
-  pensando: `<path d="M66 118 Q78 112 90 118 M110 114 Q122 108 134 114" stroke="${COR.tinta}" stroke-width="4" stroke-linecap="round" fill="none"/>`,
+  alerta: `<path d="M980.5 311.6 L987.8 313.6 M1000 311.6 L992.7 313.6" stroke="${COR.tinta}" stroke-width="1.4" stroke-linecap="round"/>`,
+  pensando: `<path d="M981.5 312.4 Q985 310.6 988.5 312.4 M992 311.2 Q995.5 309.4 999 311.2" stroke="${COR.tinta}" stroke-width="1.3" stroke-linecap="round" fill="none"/>`,
 };
 
-// braço: do ombro (x, 160) até a mão (hx, hy), com a mão redonda
-function braco(x, hx, hy, cx, cy) {
+// braço: do ombro até a mão, com a mão redonda
+function braco(x, y, hx, hy, cx, cy) {
   return (
-    `<path d="M${x} 162 Q${cx} ${cy} ${hx} ${hy}" stroke="${COR.primaria}" stroke-width="10" stroke-linecap="round" fill="none"/>` +
-    `<circle cx="${hx}" cy="${hy}" r="9" fill="${COR.sinal}" stroke="${COR.primaria}" stroke-width="3"/>`
+    `<path d="M${x} ${y} Q${cx} ${cy} ${hx} ${hy}" stroke="${COR.escuro}" stroke-width="2.8" stroke-linecap="round" fill="none"/>` +
+    `<circle cx="${hx}" cy="${hy}" r="2.7" fill="${COR.marca}" stroke="${COR.escuro}" stroke-width="1"/>`
   );
 }
+const ESQ = [969, 321];
+const DIR = [1013.5, 331];
 const BRACOS = {
-  baixo: braco(42, 24, 190, 30, 176) + braco(158, 176, 190, 170, 176),
-  acena: braco(42, 24, 190, 30, 176) + braco(158, 190, 104, 186, 140),
-  queixo: braco(42, 24, 190, 30, 176) + braco(156, 128, 178, 166, 196),
-  cima: braco(42, 14, 96, 18, 130) + braco(158, 186, 96, 182, 130),
-  aponta: braco(42, 24, 190, 30, 176) + braco(158, 200, 150, 182, 152),
+  baixo: braco(...ESQ, 961, 334, 962, 326) + braco(...DIR, 1020, 343, 1019, 335),
+  acena: braco(...ESQ, 961, 334, 962, 326) + braco(...DIR, 1023, 312, 1024, 326),
+  queixo: braco(...ESQ, 961, 334, 962, 326) + braco(...DIR, 998, 329, 1012, 342),
+  cima: braco(...ESQ, 958, 304, 958, 316) + braco(...DIR, 1024, 312, 1026, 324),
+  aponta: braco(...ESQ, 961, 334, 962, 326) + braco(...DIR, 1027, 329, 1020, 333),
 };
 
 function pingo(p) {
   const id = 'g' + Math.random().toString(36).slice(2, 7);
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 230 250">
-<defs><linearGradient id="${id}" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="${COR.claro}"/><stop offset=".45" stop-color="${COR.sinal}"/><stop offset="1" stop-color="${COR.primaria}"/></linearGradient></defs>
-<ellipse cx="100" cy="228" rx="52" ry="7" fill="#000" opacity=".22"/>
-<ellipse cx="80" cy="216" rx="15" ry="8" fill="${COR.escuro}"/><ellipse cx="120" cy="216" rx="15" ry="8" fill="${COR.escuro}"/>
-${p.bracosAtras || ''}
-<path d="${CORPO}" fill="url(#${id})" stroke="${COR.escuro}" stroke-width="3"/>
-<path d="M72 92 C 62 108, 56 124, 58 138" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".45" fill="none"/>
-<circle cx="84" cy="62" r="5" fill="#fff" opacity=".5"/>
-<ellipse cx="62" cy="160" rx="10" ry="6" fill="${COR.ambar}" opacity=".35"/><ellipse cx="138" cy="160" rx="10" ry="6" fill="${COR.ambar}" opacity=".35"/>
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="950 282 82 86">
+<defs><linearGradient id="${id}" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="${COR.claro}"/><stop offset=".4" stop-color="${COR.marca}"/><stop offset="1" stop-color="#059669"/></linearGradient></defs>
+<ellipse cx="991" cy="361" rx="15" ry="2.2" fill="#000" opacity=".22"/>
+<ellipse cx="986.5" cy="358" rx="4.6" ry="2.4" fill="${COR.escuro}"/><ellipse cx="996" cy="358" rx="4.6" ry="2.4" fill="${COR.escuro}"/>
+<path d="${CIFRAO}" fill="${COR.escuro}" stroke="${COR.escuro}" stroke-width="8.6" stroke-linejoin="round"/>
+<path d="${CIFRAO}" fill="url(#${id})" stroke="url(#${id})" stroke-width="6" stroke-linejoin="round"/>
+<path d="M975 304 Q977 298 984 296" stroke="#fff" stroke-width="1.8" stroke-linecap="round" opacity=".5" fill="none"/>
+<ellipse cx="979.6" cy="324.6" rx="2.4" ry="1.4" fill="${COR.ambar}" opacity=".45"/><ellipse cx="1001.4" cy="324.6" rx="2.4" ry="1.4" fill="${COR.ambar}" opacity=".45"/>
 ${sobrancelhas[p.sobrancelha] || ''}
 ${olhos(p.olhos)}
 ${boca(p.boca)}
-<text x="100" y="205" text-anchor="middle" font-family="Figtree, sans-serif" font-weight="900" font-size="26" fill="${COR.tinta}" opacity=".55">$</text>
 ${BRACOS[p.bracos]}
 ${p.extra || ''}
 </svg>`;
@@ -95,6 +91,8 @@ ${p.extra || ''}
 
 const brilho = (x, y, s) =>
   `<path d="M${x} ${y - s} L${x + s * 0.3} ${y - s * 0.3} L${x + s} ${y} L${x + s * 0.3} ${y + s * 0.3} L${x} ${y + s} L${x - s * 0.3} ${y + s * 0.3} L${x - s} ${y} L${x - s * 0.3} ${y - s * 0.3} Z" fill="${COR.ambar}"/>`;
+const sinal = (t, x, y) =>
+  `<text x="${x}" y="${y}" font-family="Figtree, sans-serif" font-weight="900" font-size="15" fill="${COR.ambar}">${t}</text>`;
 
 const POSES = {
   feliz: {
@@ -125,7 +123,7 @@ const POSES = {
     boca: 'reta',
     bracos: 'queixo',
     sobrancelha: 'pensando',
-    extra: `<text x="168" y="70" font-family="Figtree, sans-serif" font-weight="900" font-size="52" fill="${COR.ambar}">?</text>`,
+    extra: sinal('?', 1013, 302),
   },
   alerta: {
     nome: 'Alerta',
@@ -134,7 +132,7 @@ const POSES = {
     boca: 'o',
     bracos: 'baixo',
     sobrancelha: 'alerta',
-    extra: `<text x="164" y="72" font-family="Figtree, sans-serif" font-weight="900" font-size="58" fill="${COR.ambar}">!</text>`,
+    extra: sinal('!', 1015, 302),
   },
   comemorando: {
     nome: 'Comemorando',
@@ -142,7 +140,8 @@ const POSES = {
     olhos: 'fechados',
     boca: 'aberta',
     bracos: 'cima',
-    extra: brilho(30, 60, 12) + brilho(176, 50, 10) + brilho(190, 110, 7) + brilho(14, 130, 6),
+    extra:
+      brilho(962, 292, 3.4) + brilho(1021, 294, 2.8) + brilho(1027, 340, 2) + brilho(955, 340, 1.8),
   },
 };
 
@@ -150,7 +149,9 @@ for (const [k, p] of Object.entries(POSES))
   fs.writeFileSync(path.join(PASTA, `pingo-${k}.svg`), pingo(p));
 
 const FONTES = fs.readFileSync(path.join(MK, '.fontes.css'), 'utf8');
-const WM = fs.readFileSync(path.join(MK, '..', 'appliquei-wordmark.svg')).toString('base64');
+const WM = Buffer.from(WM_SVG).toString('base64');
+// a marca sem o "$", para o Pingo ocupar o lugar dele
+const WM_SEM = Buffer.from(WM_SVG.replace(/<path fill="#10b981"[^>]+>/, '')).toString('base64');
 const b64 = (s) => 'data:image/svg+xml;base64,' + Buffer.from(s).toString('base64');
 
 const html = `<!doctype html><html><head><meta charset="utf-8"><style>${FONTES}
@@ -164,39 +165,39 @@ background:radial-gradient(50% 45% at 20% 25%,rgba(16,185,129,.22),transparent 7
 .top img{width:250px}
 .poses{position:absolute;left:50px;right:50px;top:300px;display:grid;grid-template-columns:repeat(6,1fr);gap:18px}
 .pose{text-align:center;padding:22px 8px 20px;border-radius:30px;background:rgba(240,250,244,.05);border:2px solid rgba(240,250,244,.12)}
-.pose img{width:190px;height:206px}
+.pose img{width:200px;height:210px}
 .pose b{display:block;margin-top:10px;font-size:30px;font-weight:900}
 .pose small{display:block;margin-top:4px;font-family:'DM Mono',monospace;font-size:18px;color:#9fb3aa}
 .base{position:absolute;left:50px;right:50px;top:690px;display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:18px}
 .caixa{border-radius:30px;background:rgba(240,250,244,.05);border:2px solid rgba(240,250,244,.12);padding:30px;height:450px;position:relative}
 .caixa .rot{font-family:'DM Mono',monospace;font-size:20px;letter-spacing:.14em;text-transform:uppercase;color:#34d399}
-.assin{display:flex;align-items:center;gap:26px;margin-top:70px;justify-content:center}
-.assin img.p{width:190px}
-.assin img.w{width:380px}
-.assin+p{margin-top:40px;text-align:center;font-size:26px;color:#c8d6cf}
+.logo-vivo{position:relative;width:560px;height:200px;margin:110px auto 0}
+.logo-vivo img.w{position:absolute;left:0;top:30px;width:560px}
+.logo-vivo img.p{position:absolute;left:462px;top:-30px;width:140px}
+.caixa p{margin-top:30px;text-align:center;font-size:24px;color:#c8d6cf}
 .icones{display:flex;align-items:flex-end;justify-content:center;gap:34px;margin-top:70px}
 .icones div{display:flex;align-items:center;justify-content:center;border-radius:28%;background:#0f1f18;border:2px solid rgba(52,211,153,.4)}
-.icones img{width:72%}
+.icones img{width:86%}
 .cena{margin-top:22px;height:340px;border-radius:24px;background:#fff;position:relative;overflow:hidden}
 .cena .bal{position:absolute;right:16px;top:18px;width:190px;padding:14px 16px;border-radius:20px;background:#0f1f18;color:#f0faf4;font-size:22px;font-weight:800;line-height:1.25}
 .cena .bal em{font-style:normal;color:#fbbf24}
 .cena .bal:after{content:'';position:absolute;left:-22px;bottom:30px;border:12px solid transparent;border-right-color:#0f1f18}
-.cena img{position:absolute;left:0;bottom:4px;width:140px}
+.cena img{position:absolute;left:0;bottom:4px;width:170px}
 </style></head><body>
-<div class="top"><div><h1>Este é o <em>Pingo.</em></h1><p>O "$" que mora no pingo do "i" de Appliquei virou gente. Calmo, direto, faz a conta com você. Nunca promete ganho.</p></div><img src="data:image/svg+xml;base64,${WM}"></div>
-<div class="poses">${Object.entries(POSES)
+<div class="top"><div><h1>Este é o <em>Pingo.</em></h1><p>O "$" que mora no pingo do "i" de Appliquei ganhou rosto. Calmo, direto, faz a conta com você. Nunca promete ganho.</p></div><img src="data:image/svg+xml;base64,${WM}"></div>
+<div class="poses">${Object.values(POSES)
   .map(
-    ([k, p]) =>
+    (p) =>
       `<div class="pose"><img src="${b64(pingo(p))}"><b>${p.nome}</b><small>${p.uso}</small></div>`
   )
   .join('')}</div>
 <div class="base">
-  <div class="caixa"><div class="rot">Com a marca</div>
-    <div class="assin"><img class="p" src="${b64(pingo(POSES.acenando))}"><img class="w" src="data:image/svg+xml;base64,${WM}"></div>
-    <p>Assinatura no fim dos vídeos e no perfil</p></div>
+  <div class="caixa"><div class="rot">Saindo da logo</div>
+    <div class="logo-vivo"><img class="w" src="data:image/svg+xml;base64,${WM_SEM}"><img class="p" src="${b64(pingo(POSES.acenando))}"></div>
+    <p>Na abertura e no fim dos vídeos, o "$" pula da logo</p></div>
   <div class="caixa"><div class="rot">Em tamanho pequeno</div>
     <div class="icones"><div style="width:180px;height:180px"><img src="${b64(pingo(POSES.feliz))}"></div><div style="width:110px;height:110px"><img src="${b64(pingo(POSES.feliz))}"></div><div style="width:64px;height:64px"><img src="${b64(pingo(POSES.feliz))}"></div></div>
-    <p style="margin-top:44px;text-align:center;font-size:24px;color:#c8d6cf">Ícone, adesivo, notificação</p></div>
+    <p style="margin-top:44px">Ícone, adesivo, notificação</p></div>
   <div class="caixa"><div class="rot">Num Reel</div>
     <div class="cena"><div class="bal">Ajuste o orçamento <em>antes do preço.</em></div><img src="${b64(pingo(POSES.apontando))}"></div></div>
 </div>
