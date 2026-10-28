@@ -40,6 +40,6 @@ marketing/mascote/animacao/video.html`.
 
 O fundador não gostou do Pingo em nenhum estilo. `node
 marketing/mascote/ilustrados.js` gera a **Capivara** (moletom verde e
-caderninho) e o **Caramelo** (bandana verde e moeda) em ilustração plana:
+caderninho) o **Caramelo** (bandana verde e moeda) e o **João-de-barro** (capacete de obra verde, tijolinho e a casinha de barro) em ilustração plana:
 `ilustrados/folha.png`. Para ilustração 3D de qualidade, usar os prompts de
 `prompts-ideias.md` num gerador de imagem.

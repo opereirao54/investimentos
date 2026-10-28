@@ -1,6 +1,7 @@
 // Ideias de mascote em ilustração plana (flat), desenhadas à mão em SVG:
 // a Capivara (calma, sábia, de moletom verde e caderninho) e o Caramelo
-// (vira-lata caramelo, leal, de bandana verde e moeda).
+// (vira-lata caramelo, leal, de bandana verde e moeda) e o João-de-barro
+// (constrói aos poucos: capacete de obra verde, tijolinho e a casinha de barro).
 //
 //   node marketing/mascote/ilustrados.js
 //
@@ -109,7 +110,52 @@ const caramelo = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 420">
 <ellipse cx="146" cy="170" rx="13" ry="8" fill="#f87171" opacity=".3"/><ellipse cx="254" cy="170" rx="13" ry="8" fill="#f87171" opacity=".3"/>
 </svg>`;
 
+const joao = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 0 400 420">
+<defs>
+  <radialGradient id="jbPena" cx=".4" cy=".3" r=".85"><stop offset="0" stop-color="#d4823f"/><stop offset="1" stop-color="#a8561f"/></radialGradient>
+  <radialGradient id="jbBarro" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="#c98a52"/><stop offset="1" stop-color="#94592b"/></radialGradient>
+  <linearGradient id="jbCap" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="${V.verdeEsc}"/></linearGradient>
+</defs>
+<ellipse cx="210" cy="398" rx="170" ry="13" fill="#000" opacity=".25"/>
+<!-- a casinha de barro -->
+<path d="M236 392 C 222 300, 256 214, 318 214 C 380 214, 400 300, 386 392 Z" fill="url(#jbBarro)"/>
+<path d="M250 330 Q300 316 376 330 M244 290 Q300 274 382 292 M256 254 Q310 240 370 256 M240 366 Q310 354 384 368" stroke="#7c4620" stroke-width="3" fill="none" opacity=".45" stroke-linecap="round"/>
+<path d="M300 392 C 300 356, 312 336, 330 336 C 348 336, 358 356, 358 392 Z" fill="#3b2212"/>
+<path d="M290 226 Q312 216 336 222" stroke="#e2b07d" stroke-width="6" fill="none" stroke-linecap="round" opacity=".6"/>
+<!-- rabo -->
+<path d="M206 300 L268 330 Q276 342 262 344 L200 322 Z" fill="#b0581d"/>
+<!-- pernas -->
+<path d="M150 336 L144 388 M176 336 L180 388" stroke="#7a6a5a" stroke-width="7" stroke-linecap="round"/>
+<path d="M128 390 H152 M140 390 L146 382 M168 390 H194 M180 390 L186 382" stroke="#7a6a5a" stroke-width="6" stroke-linecap="round"/>
+<!-- corpo -->
+<ellipse cx="166" cy="276" rx="74" ry="72" fill="url(#jbPena)"/>
+<path d="M108 262 C 110 314, 140 344, 176 344 C 196 344, 214 334, 222 318 C 190 330, 140 312, 108 262 Z" fill="#f1d9b5"/>
+<ellipse cx="146" cy="292" rx="42" ry="40" fill="#f1d9b5"/>
+<!-- asa segurando um tijolinho -->
+<path d="M196 236 C 236 246, 246 300, 222 330 C 206 318, 190 290, 196 236 Z" fill="#8f4716"/>
+<path d="M206 262 Q224 270 228 290 M204 282 Q220 290 222 306" stroke="#6e3510" stroke-width="3" fill="none" stroke-linecap="round" opacity=".6"/>
+<g transform="rotate(-12 236 312)"><rect x="216" y="298" width="44" height="26" rx="5" fill="#c2703a" stroke="#7c4620" stroke-width="3"/><path d="M216 311 H260 M238 298 V311" stroke="#7c4620" stroke-width="2.5" opacity=".7"/></g>
+<!-- cabeça -->
+<circle cx="150" cy="170" r="62" fill="url(#jbPena)"/>
+<path d="M100 192 C 108 222, 140 236, 168 230 C 150 222, 118 214, 100 192 Z" fill="#fbf3e6"/>
+<!-- sobrancelha clara do joão-de-barro -->
+<path d="M100 150 Q130 132 170 146" stroke="#f1d9b5" stroke-width="9" fill="none" stroke-linecap="round"/>
+<!-- olho -->
+<circle cx="132" cy="170" r="17" fill="#fff"/><circle cx="128" cy="172" r="12" fill="${V.tinta}"/>
+<circle cx="132" cy="167" r="4.5" fill="#fff"/><circle cx="124" cy="177" r="2" fill="#fff"/>
+<!-- bico -->
+<path d="M96 184 C 70 186, 52 196, 44 206 C 62 202, 82 200, 100 198 Z" fill="#6b5a4a"/>
+<path d="M96 192 C 78 194, 60 200, 46 205" stroke="#4a3d31" stroke-width="2" fill="none"/>
+<ellipse cx="160" cy="200" rx="13" ry="8" fill="#f87171" opacity=".3"/>
+<!-- capacete de obra verde -->
+<path d="M96 130 C 98 92, 126 74, 156 74 C 190 74, 214 96, 214 130 Z" fill="url(#jbCap)"/>
+<path d="M150 76 C 146 90, 146 116, 150 130 M128 82 C 120 98, 118 116, 120 130" stroke="${V.verdeEsc}" stroke-width="5" fill="none" stroke-linecap="round" opacity=".7"/>
+<rect x="84" y="126" width="142" height="14" rx="7" fill="${V.verdeEsc}"/>
+<path d="M118 90 Q132 80 148 80" stroke="#a7f3d0" stroke-width="6" fill="none" stroke-linecap="round" opacity=".7"/>
+</svg>`;
+
 fs.writeFileSync(path.join(PASTA, 'capivara.svg'), capivara);
+fs.writeFileSync(path.join(PASTA, 'joao-de-barro.svg'), joao);
 fs.writeFileSync(path.join(PASTA, 'caramelo.svg'), caramelo);
 
 const FONTES = fs.readFileSync(path.join(MK, '.fontes.css'), 'utf8');
@@ -117,15 +163,17 @@ const b64 = (s) => 'data:image/svg+xml;base64,' + Buffer.from(s).toString('base6
 const html = `<!doctype html><html><head><meta charset="utf-8"><style>${FONTES}
 *{margin:0;padding:0;box-sizing:border-box}
 body{width:1600px;height:1000px;overflow:hidden;font-family:'Figtree',sans-serif;color:#f0faf4;
-background:radial-gradient(50% 50% at 25% 50%,rgba(16,185,129,.18),transparent 70%),radial-gradient(50% 50% at 75% 50%,rgba(16,185,129,.18),transparent 70%),linear-gradient(150deg,#0b1410,#0f1f18 50%,#112720)}
-.g{display:flex;justify-content:center;gap:60px;padding-top:70px}
+background:radial-gradient(60% 50% at 50% 45%,rgba(16,185,129,.2),transparent 70%),linear-gradient(150deg,#0b1410,#0f1f18 50%,#112720)}
+.g{display:flex;justify-content:center;gap:20px;padding-top:150px}
 .g div{text-align:center}
-.g img{width:640px;height:672px}
+.g img{width:500px;height:525px}
 .g b{display:block;font-size:56px;font-weight:900;letter-spacing:-.03em}
-.g small{display:block;margin-top:8px;font-size:28px;color:#c8d6cf}
+.g div{width:510px}
+.g small{display:block;margin-top:8px;font-size:26px;color:#c8d6cf}
 </style></head><body><div class="g">
 <div><img src="${b64(capivara)}"><b>Capivara</b><small>calma, sábia, faz a conta sem pressa</small></div>
 <div><img src="${b64(caramelo)}"><b>Caramelo</b><small>o amigo leal que entende de dinheiro</small></div>
+<div><img src="${b64(joao)}"><b>João-de-barro</b><small>constrói aos poucos, tijolo por tijolo</small></div>
 </div></body></html>`;
 
 (async () => {
@@ -137,5 +185,5 @@ background:radial-gradient(50% 50% at 25% 50%,rgba(16,185,129,.18),transparent 7
   await p.evaluate(() => document.fonts.ready);
   await p.screenshot({ path: path.join(PASTA, 'folha.png') });
   await b.close();
-  console.log('gerado: ilustrados/capivara.svg, caramelo.svg e folha.png');
+  console.log('gerado: ilustrados/capivara.svg, caramelo.svg, joao-de-barro.svg e folha.png');
 })();
