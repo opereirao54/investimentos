@@ -111,27 +111,27 @@ Hashtags: `#educacaofinanceira #dicasdefinancas`
 
 ---
 
-## QUINTA 29/10 · Faltam 65 dias · sem Reel
+## QUINTA 29/10 · Faltam 65 dias · Reel do assunto da semana
 
-**1) 12h30 · STORY** · `stories/29-10-quiz.png`
+Reel antecipado para quinta a pedido do fundador (28/10): o assunto do dólar
+está quente agora. Sexta 30/10 fica sem Reel (a semana segue com 3: seg, qua
+e qui).
+
+**1) 8h30 · STORY** · `stories/29-10-enquete.png`
+Adesivo: Enquete › "Já tô sentindo" / "Ainda não".
+Hashtags: `#dolar #financaspessoais`
+
+**2) 12h30 · STORY** · `stories/29-10-quiz.png`
 Adesivo: Quiz › pergunta `Quanto por mês?` › opções `0,5% ao mês`, `1% ao mês`,
 `Quase 2% ao mês` (certa), `5% ao mês`.
 Hashtags: `#financaspessoais #dicasdefinancas`
 
-**2) 19h30 · STORY** · repost do Reel de quarta
+**3) 13h · STORY** · repost do Reel de quarta
 Texto por cima: `A resposta do quiz tá aqui 👆`
 Hashtags: `#educacaofinanceira #parceladoouavista`
 
----
-
-## SEXTA 30/10 · Faltam 64 dias
-
-**1) 12h30 · STORY** · `stories/30-10-enquete.png`
-Adesivo: Enquete › "Já tô sentindo" / "Ainda não".
-Hashtags: `#dolar #financaspessoais`
-
-**2) 19h · REEL** · `03-30-10-dolar-paozinho.mp4`
-Capa: Editar capa › Adicionar da galeria › `03-30-10-dolar-paozinho-capa.png`.
+**4) 19h · REEL** · `03-29-10-dolar-paozinho.mp4`
+Capa: Editar capa › Adicionar da galeria › `03-29-10-dolar-paozinho-capa.png`.
 Legenda (Instagram):
 
 ```
@@ -143,13 +143,13 @@ Mais da metade do trigo usado no Brasil vem de fora e é pago em dólar: pão e 
 
 Manda pra quem acha que dólar não é com ele. 🔁
 
-⏳ Faltam 64 dias para o que estamos preparando pra 2027. Ativa o lembrete nos stories.
+⏳ Faltam 65 dias para o que estamos preparando pra 2027. Ativa o lembrete nos stories.
 
 Conteúdo educacional e apartidário. Dólar comercial no fechamento: R$ 4,99 (23/10) e R$ 5,40 (26/10). Até 28/10, sem reajuste confirmado de pão ou combustível. Personagens fictícios.
 
 #educacaofinanceira #dolar #financaspessoais #dinheiro #economia
 ```
 
-**3) 19h30 · STORY** · repost do Reel
+**5) 19h30 · STORY** · repost do Reel
 Texto por cima: `Dólar não é coisa de rico. Chega no pão 👆`
 Hashtags: `#dolar #educacaofinanceira`

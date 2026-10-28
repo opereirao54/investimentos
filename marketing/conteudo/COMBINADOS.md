@@ -80,7 +80,7 @@ mudar (com a data).
   recriadas no visual da marca** (texto, veículo e data como publicados, sem
   print, logo ou foto do veículo), **sem rosto de político nem nome de
   partido**: o Instagram não recomenda conteúdo político a quem não segue a
-  conta. Primeiro: "O dólar disparou. E o seu pãozinho?" (30/10).
+  conta. Primeiro: "O dólar disparou. E o seu pãozinho?" (qui 29/10, antecipado da sexta).
 - **Capa** com a frase do gancho em todo vídeo (`capa.js`), na capa e no
   primeiro quadro (`appliquei-<tema>-com-capa.mp4`).
 - **Números conferidos com fonte** antes de gravar; aviso educacional e
