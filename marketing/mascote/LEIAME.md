@@ -26,3 +26,12 @@ como o "rosto" do app.
 `pingo/estilos/`: **1 Minimalista** (o "$" da logo quase sem mudança, só o
 rosto), **2 Fofo** (olhão, luvas brancas e tênis) e **3 Descolado** (boné pra
 trás, óculos escuros e joinha). Aguardando a escolha do fundador.
+
+## Animação dos 3 estilos (28/10)
+
+`animacao/pingo-3-estilos.mp4` (22 s, 1080×1920, sem som): cada estilo cai,
+pisca, acena e pula; no fim, os três juntos. O corpo foi **redesenhado com
+traço limpo** nas proporções do "$" da logo (o contorno da logo é escaneado e
+ficava torto ao engrossar; o fundador achou que o "S" destoava). Gerar de
+novo: `node marketing/ferramentas/shorts/render.js <pasta>
+marketing/mascote/animacao/video.html`.
