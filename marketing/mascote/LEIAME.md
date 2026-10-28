@@ -19,3 +19,10 @@ recusada pelo fundador por não lembrar dinheiro ("parecia o Zé Gotinha").
 **Quando usar (sugestão, aguardando o fundador):** fora da série atual, que
 já tem visual estabelecido. Estreia na semana do lançamento (26/12 a 02/01)
 como o "rosto" do app.
+
+## 3 estilos (28/10)
+
+`node marketing/mascote/sugestoes.js` gera `pingo/sugestoes.png` e os SVGs em
+`pingo/estilos/`: **1 Minimalista** (o "$" da logo quase sem mudança, só o
+rosto), **2 Fofo** (olhão, luvas brancas e tênis) e **3 Descolado** (boné pra
+trás, óculos escuros e joinha). Aguardando a escolha do fundador.
