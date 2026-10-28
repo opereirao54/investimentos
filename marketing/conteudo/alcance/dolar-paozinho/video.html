@@ -1,0 +1,348 @@
+<!doctype html>
+<!--
+  Vídeo EDUCATIVO de alcance (≈55 s, 1080×1920) — "O dólar disparou. E o seu
+  pãozinho?" Formato "conta na tela", com abertura de manchetes reais
+  (recriadas no visual da marca, texto e fonte como publicados). Apartidário:
+  só fala do câmbio e do bolso, sem nomes nem partidos. Mateus é o mau exemplo
+  ("eu nem tenho dólar"); Caio, o bom. O app NÃO aparece; a marca só assina.
+
+  Os números (conferidos em 28/10/2026): dólar comercial fechou a R$ 4,99 na
+  sexta 23/10 e a R$ 5,40 na segunda 26/10 (+8,2%, maior alta diária desde
+  1999). Fone de US$ 200: R$ 998 → R$ 1.080 (sem IOF de 3,5%). O cartão usa a
+  cotação do dia da compra (Circular BCB 3.918, desde 03/2020). O Brasil
+  importa ~60% do trigo que consome (Conab: 7,1 mi t em 2026/27; produção
+  cobre ~36–55% conforme a fonte). Até 28/10, sem reajuste confirmado de pão
+  ou combustível: o vídeo diz "costumam" e "pressão".
+  Mesma mecânica dos outros vídeos: render(t) desenha o segundo t.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root {
+    --campo1: #0b1410; --campo2: #0f1f18; --campo3: #112720;
+    --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa;
+    --sinal: #34d399; --primaria: #059669; --ambar: #fbbf24; --vermelho: #f87171; --azul: #60a5fa;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--campo1); }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: linear-gradient(150deg, var(--campo1) 0%, var(--campo2) 50%, var(--campo3) 100%); }
+  .halo { position: absolute; inset: -20%;
+    background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.22), transparent 70%),
+                radial-gradient(40% 35% at 10% 90%, rgba(5,150,105,.18), transparent 70%); }
+  .malha { position: absolute; inset: 0; }
+  .cena { position: absolute; inset: 0; opacity: 0; }
+  .tit { font-weight: 900; letter-spacing: -.035em; line-height: 1.05; color: var(--tinta); }
+  .tit em { font-style: normal; color: var(--sinal); }
+  .tit em.a { color: var(--ambar); }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 200px; z-index: 20; }
+  .serie { position: absolute; right: 150px; top: 60px; padding: 10px 20px; border-radius: 99px; border: 2px solid rgba(52,211,153,.45); background: rgba(52,211,153,.12);
+    font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .12em; text-transform: uppercase; color: var(--sinal); z-index: 20; }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); z-index: 30; }
+  .el { opacity: 0; }
+  .chip { position: absolute; left: 0; right: 0; text-align: center; }
+  .chip span { display: inline-block; padding: 14px 32px; border-radius: 20px; border: 3px solid rgba(240,250,244,.4); font-size: 40px; font-weight: 800; color: var(--deck); }
+  .chip.am span { border-color: var(--ambar); color: var(--ambar); }
+  .chip.mini span { font-size: 30px; padding: 10px 24px; border-width: 2px; color: var(--mudo); }
+
+  /* 1. Manchetes */
+  .pilha { position: absolute; left: 70px; right: 70px; top: 235px; }
+  .card { position: relative; background: #f4f4f0; border-radius: 22px; overflow: hidden; box-shadow: 10px 12px 0 rgba(0,0,0,.55); margin-bottom: 34px; }
+  .card .bar { background: #b91c1c; color: #fff; font-weight: 900; font-size: 30px; letter-spacing: .04em; padding: 14px 34px; text-transform: uppercase; }
+  .card .corpo { padding: 24px 34px 22px; }
+  .card b { display: block; color: #111; font-size: 50px; font-weight: 900; line-height: 1.12; letter-spacing: -.015em; }
+  .card small { display: block; margin-top: 12px; color: #666; font-size: 26px; }
+  .fala { position: absolute; left: 0; right: 0; top: 1060px; text-align: center; }
+  .fala .fq { display: inline-block; padding: 12px 28px; border-radius: 99px; background: rgba(96,165,250,.16); border: 3px solid var(--azul); font-size: 34px; font-weight: 800; color: #dbeafe; }
+  .fala .frase { margin-top: 26px; font-size: 80px; font-weight: 900; letter-spacing: -.02em; text-transform: uppercase; }
+  .faixa { position: absolute; left: 0; right: 0; top: 1400px; text-align: center; }
+  .faixa span { display: inline-block; background: #facc15; color: #111; font-size: 88px; font-weight: 900; padding: 8px 44px; text-transform: uppercase; letter-spacing: -.01em; }
+
+  /* 2. Trigo */
+  .medidor { position: absolute; left: 90px; right: 90px; top: 330px; }
+  .medidor .r { display: flex; justify-content: space-between; align-items: baseline; font-size: 40px; font-weight: 800; margin-bottom: 18px; }
+  .medidor .r span { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 44px; color: var(--ambar); }
+  .medidor .tr { position: relative; height: 92px; border-radius: 46px; background: rgba(240,250,244,.08); overflow: hidden; }
+  .medidor .tr i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 46px; background: linear-gradient(90deg, #d97706, var(--ambar)); }
+  .medidor .tr em { position: absolute; left: 34px; top: 0; bottom: 0; display: flex; align-items: center; font-style: normal; font-size: 36px; font-weight: 900; color: #3b2503; opacity: 0; }
+  .usd { position: absolute; right: 90px; top: 590px; padding: 12px 26px; border-radius: 18px; background: rgba(251,191,36,.14); border: 3px solid var(--ambar); font-family: 'DM Mono', monospace; font-size: 40px; color: var(--ambar); }
+  .cadeia { position: absolute; left: 70px; right: 70px; display: flex; align-items: center; justify-content: center; gap: 22px; }
+  .elo { width: 270px; padding: 28px 18px; border-radius: 30px; text-align: center; background: rgba(240,250,244,.06); border: 3px solid rgba(240,250,244,.25); }
+  .elo .ic { font-size: 84px; line-height: 1; }
+  .elo b { display: block; margin-top: 12px; font-size: 36px; font-weight: 900; }
+  .elo small { display: block; margin-top: 4px; font-family: 'DM Mono', monospace; font-size: 30px; color: var(--vermelho); }
+  .seta-c { font-family: 'DM Mono', monospace; font-size: 60px; color: var(--mudo); }
+
+  /* 3. Petróleo */
+  .aviso-p { position: absolute; left: 90px; right: 90px; top: 1450px; text-align: center; font-size: 30px; color: var(--mudo); }
+
+  /* 4. Cartão */
+  .regra-c { position: absolute; left: 90px; right: 90px; top: 300px; padding: 30px 36px; border-radius: 30px; background: rgba(52,211,153,.1); border: 3px solid rgba(52,211,153,.5); text-align: center; font-size: 42px; font-weight: 900; }
+  .regra-c em { font-style: normal; color: var(--sinal); }
+  .recibo { position: absolute; left: 90px; right: 90px; padding: 30px 40px; border-radius: 30px; background: #fff; color: #12241c; box-shadow: 0 30px 70px rgba(0,0,0,.45); }
+  .recibo .cab { display: flex; justify-content: space-between; font-family: 'DM Mono', monospace; font-size: 28px; letter-spacing: .08em; text-transform: uppercase; color: #51655b; padding-bottom: 14px; border-bottom: 3px dashed #c9d5cf; }
+  .recibo .ln { display: flex; justify-content: space-between; align-items: baseline; margin-top: 16px; font-size: 38px; font-weight: 800; }
+  .recibo .ln span { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 40px; }
+  .recibo .tot { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; padding-top: 14px; border-top: 2px solid #e7eeea; font-size: 44px; font-weight: 900; }
+  .recibo .tot span { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 64px; letter-spacing: -.03em; }
+  .recibo.seg { border: 5px solid var(--azul); }
+  .recibo.seg .tot span { color: #b91c1c; }
+  .recibo.sex .tot span { color: #047857; }
+  .tag-m { position: absolute; right: 30px; top: -28px; padding: 8px 20px; border-radius: 99px; background: var(--azul); color: #082f49; font-size: 28px; font-weight: 900; }
+  .dif { position: absolute; left: 0; right: 0; top: 1370px; text-align: center; font-family: 'DM Mono', monospace; font-size: 64px; color: var(--vermelho); }
+
+  /* 5. Caio */
+  .quem { position: absolute; left: 90px; right: 90px; display: flex; align-items: center; gap: 30px; padding: 36px 40px; border-radius: 40px; }
+  .quem .av { flex: none; width: 130px; height: 130px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 68px; font-weight: 900; color: #052e1f; }
+  .quem b { display: block; font-size: 46px; font-weight: 900; }
+  .quem small { display: block; margin-top: 6px; font-size: 34px; color: var(--deck); }
+  .q-caio { background: rgba(52,211,153,.12); border: 3px solid rgba(52,211,153,.55); }
+  .q-caio .av { background: var(--sinal); }
+  .feito { position: absolute; left: 90px; right: 90px; display: flex; align-items: center; gap: 28px; padding: 30px 36px; border-radius: 30px; background: rgba(240,250,244,.06); border: 3px solid rgba(240,250,244,.2); font-size: 42px; font-weight: 800; line-height: 1.2; }
+  .feito .ok { flex: none; width: 78px; height: 78px; border-radius: 50%; background: var(--sinal); color: #052e1f; display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: 900; }
+  .feito em { font-style: normal; color: var(--sinal); }
+
+  /* 6. Regra */
+  .linha-t { position: absolute; left: 90px; right: 90px; top: 340px; }
+  .marco { display: flex; gap: 30px; align-items: center; padding: 26px 0; border-bottom: 2px dashed rgba(240,250,244,.18); }
+  .marco .q { flex: none; width: 250px; font-family: 'DM Mono', monospace; font-size: 40px; color: var(--ambar); }
+  .marco b { font-size: 42px; font-weight: 800; }
+  .marco b small { display: block; font-size: 30px; font-weight: 700; color: var(--mudo); margin-top: 4px; }
+  .regra { position: absolute; left: 70px; right: 70px; top: 1060px; padding: 44px 44px; border-radius: 44px; background: rgba(240,250,244,.06); border: 3px solid rgba(52,211,153,.5); box-shadow: 0 0 80px rgba(52,211,153,.15); text-align: center; }
+  .regra .rot { font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .14em; text-transform: uppercase; color: var(--sinal); }
+  .regra b { display: block; margin-top: 18px; font-size: 62px; font-weight: 900; letter-spacing: -.02em; line-height: 1.1; }
+  .regra b em { font-style: normal; color: var(--ambar); }
+
+  /* 7. Fecho */
+  .manda { position: absolute; left: 0; right: 0; top: 470px; text-align: center; }
+  .manda .ic { width: 170px; height: 170px; margin: 0 auto; border-radius: 44px; background: var(--sinal); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 70px rgba(52,211,153,.4); }
+  .manda .ic svg { width: 96px; height: 96px; margin-left: -8px; }
+  .manda b { display: block; margin-top: 34px; font-size: 64px; font-weight: 900; letter-spacing: -.03em; line-height: 1.1; }
+  .assina { position: absolute; left: 0; right: 0; top: 1000px; text-align: center; }
+  .assina img { width: 440px; }
+  .assina p { margin-top: 26px; font-size: 44px; font-weight: 800; color: var(--deck); }
+  .assina p em { font-style: normal; color: var(--sinal); }
+  .aviso { position: absolute; left: 80px; right: 80px; top: 1340px; padding: 22px 26px; border-radius: 22px; background: rgba(11,20,16,.9); border: 2px solid rgba(240,250,244,.35);
+    text-align: center; font-size: 26px; line-height: 1.4; color: var(--tinta); }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <div class="halo"></div>
+  <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+  <div class="serie" id="serie">Conta de padaria</div>
+
+  <!-- 1. GANCHO: as manchetes da semana -->
+  <div class="cena" id="c1">
+    <div class="pilha">
+      <div class="card" id="m1"><div class="bar">Economia · 26/10/2026</div><div class="corpo"><b>Dólar dá o maior salto em 27 anos: veja o que pode ficar mais caro no seu bolso</b><small>Fonte: Portal Tempo Novo</small></div></div>
+      <div class="card el" id="m2"><div class="bar">Combustíveis · 27/10/2026</div><div class="corpo"><b>Gasolina pode ficar mais cara após disparada do dólar</b><small>Fonte: NC News</small></div></div>
+    </div>
+    <div class="fala">
+      <div class="fq el" id="fq">Mateus</div>
+      <div class="frase el" id="ff">"Eu nem tenho dólar."</div>
+    </div>
+    <div class="faixa el" id="fx"><span>E o seu pãozinho?</span></div>
+  </div>
+
+  <!-- 2. O TRIGO -->
+  <div class="cena" id="c2">
+    <div class="medidor el" id="md">
+      <div class="r">Trigo usado no Brasil <span id="mdN">mais da metade</span></div>
+      <div class="tr"><i id="mdB"></i><em id="mdE">vem de fora</em></div>
+    </div>
+    <div class="usd el" id="us">pago em US$</div>
+    <div class="cadeia" style="top:860px;">
+      <div class="elo el" id="k1"><div class="ic">💵</div><b>Dólar</b><small>sobe</small></div>
+      <div class="seta-c el" id="s1">→</div>
+      <div class="elo el" id="k2"><div class="ic">🌾</div><b>Farinha</b><small>encarece</small></div>
+    </div>
+    <div class="cadeia" style="top:1210px;">
+      <div class="seta-c el" id="s2">↳</div>
+      <div class="elo el" id="k3" style="width:420px;"><div class="ic">🥖 🍝</div><b>Pão e macarrão</b><small>costumam subir</small></div>
+    </div>
+    <div class="chip am el" id="sd" style="top:1560px;"><span>semanas depois</span></div>
+  </div>
+
+  <!-- 3. O PETRÓLEO -->
+  <div class="cena" id="c3">
+    <div class="tit el" id="pt" style="position:absolute;left:70px;right:70px;top:300px;text-align:center;font-size:76px;">O petróleo também<br>é cotado em <em class="a">dólar</em></div>
+    <div class="cadeia" style="top:620px;">
+      <div class="elo el" id="p1"><div class="ic">🛢️</div><b>Petróleo</b><small>em US$</small></div>
+      <div class="seta-c el" id="ps1">→</div>
+      <div class="elo el" id="p2"><div class="ic">⛽</div><b>Gasolina e diesel</b><small>pressão pra subir</small></div>
+    </div>
+    <div class="cadeia" style="top:1000px;">
+      <div class="elo el" id="p3"><div class="ic">🚚</div><b>Diesel</b><small style="color:var(--deck)">leva o frete</small></div>
+      <div class="seta-c el" id="ps2">→</div>
+      <div class="elo el" id="p4"><div class="ic">🛒</div><b>Mercado</b><small style="color:var(--deck)">quase tudo</small></div>
+    </div>
+    <div class="aviso-p el" id="pa">Até 28/10, nenhum reajuste nos postos foi confirmado.</div>
+  </div>
+
+  <!-- 4. O CARTÃO -->
+  <div class="cena" id="c4">
+    <div class="regra-c el" id="rc">No cartão, vale o <em>dólar do dia da compra</em></div>
+    <div class="recibo seg el" id="r1" style="top:560px;">
+      <div class="tag-m">Mateus comprou</div>
+      <div class="cab"><span>Segunda 26/10</span><span>Fone</span></div>
+      <div class="ln">US$ 200 × <span>R$ 5,40</span></div>
+      <div class="tot">Total <span id="r1t">R$ 1.080</span></div>
+    </div>
+    <div class="recibo sex el" id="r2" style="top:990px;">
+      <div class="cab"><span>Sexta 23/10</span><span>Mesmo fone</span></div>
+      <div class="ln">US$ 200 × <span>R$ 4,99</span></div>
+      <div class="tot">Total <span>R$ 998</span></div>
+    </div>
+    <div class="dif el" id="df">+ R$ 82 em 3 dias</div>
+    <div class="chip mini el" id="io" style="top:1500px;"><span>fora o IOF de 3,5%</span></div>
+  </div>
+
+  <!-- 5. O CAIO -->
+  <div class="cena" id="c5">
+    <div class="quem q-caio el" id="qc" style="top:340px;"><div class="av">C</div><div><b>Caio</b><small>não tenta adivinhar o dólar</small></div></div>
+    <div class="feito el" id="h1" style="top:680px;"><div class="ok">✓</div><div>Adiou a <em>compra importada</em></div></div>
+    <div class="feito el" id="h2" style="top:880px;"><div class="ok">✓</div><div>Separou um pouco mais pro <em>mercado</em> no orçamento do mês que vem</div></div>
+  </div>
+
+  <!-- 6. A REGRA -->
+  <div class="cena" id="c6">
+    <div class="linha-t">
+      <div class="marco el" id="t1"><div class="q">Na hora</div><b>Compras de fora<small>cartão, sites, celular</small></b></div>
+      <div class="marco el" id="t2"><div class="q">Semanas</div><b>Pão, macarrão<small>e o que usa trigo</small></b></div>
+      <div class="marco el" id="t3"><div class="q">Depois</div><b>Combustível e frete<small>se vier o reajuste</small></b></div>
+    </div>
+    <div class="regra el" id="rg"><div class="rot">Regra de bolso</div><b>Ajuste o orçamento<br><em>antes do preço.</em></b></div>
+  </div>
+
+  <!-- 7. FECHO -->
+  <div class="cena" id="c7">
+    <div class="manda el" id="mn"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 11.5 21 3l-8.5 18-2.2-7.3z" fill="#052e1f"/></svg></div><b>Manda pra quem acha que<br>dólar não é com ele</b></div>
+    <div class="assina el" id="as"><img src="wordmark.svg" alt="Appliquei"><p>Mais contas assim: <em>siga o Appliquei</em></p></div>
+    <div class="aviso el" id="av">Conteúdo educacional e apartidário. Dólar comercial no fechamento: R$ 4,99 (23/10) e R$ 5,40 (26/10). Sem IOF. Até 28/10, sem reajuste confirmado de pão ou combustível. Personagens fictícios.</div>
+  </div>
+
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  function $(id) { return document.getElementById(id); }
+  (function () {
+    const L = 1080, A = 1920, m = [];
+    for (let x = 60; x < L; x += 60) m.push(`<line x1="${x}" y1="0" x2="${x}" y2="${A}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 60; y < A; y += 60) m.push(`<line x1="0" y1="${y}" x2="${L}" y2="${y}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    $('malha').innerHTML = m.join('');
+  })();
+
+  // Cenas seguem narracao.json (início de cada frase − 0,15 s).
+  const DUR = 54.6;
+  const CENAS = [['c1', 0, 7.55], ['c2', 7.55, 17.15], ['c3', 17.15, 25.27], ['c4', 25.27, 36.37], ['c5', 36.37, 42.75], ['c6', 42.75, 48.9], ['c7', 48.9, 54.8]];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  function surge(el, lt, a, dur, dy) {
+    const p = easeBack(prog(lt, a, a + (dur || 0.4)));
+    el.style.opacity = clamp(p, 0, 1);
+    el.style.transform = `translateY(${(1 - p) * (dy == null ? 40 : dy)}px) scale(${0.85 + 0.15 * p})`;
+  }
+  // manchete que cai inclinada
+  function cai(el, lt, a, rot) {
+    const p = a <= 0 ? 1 : easeBack(prog(lt, a, a + 0.4));
+    el.style.opacity = clamp(p, 0, 1);
+    el.style.transform = `translateY(${(1 - p) * -80}px) rotate(${rot}deg) scale(${1.08 - 0.08 * p})`;
+  }
+
+  function render(t) {
+    for (const [id, a, b] of CENAS) {
+      const el = $(id);
+      const dentro = t >= a - 0.01 && t < b;
+      const fadeIn = id === 'c1' ? 1 : easeOut(prog(t, a, a + 0.25));
+      const fadeOut = 1 - prog(t, b - 0.2, b);
+      el.style.opacity = dentro ? Math.min(fadeIn, fadeOut) : 0;
+      el.style.display = dentro ? 'block' : 'none';
+      if (dentro) cenaExtra(id, t - a);
+    }
+    $('serie').style.opacity = t < 48.9 ? 1 : 1 - prog(t, 48.9, 49.2);
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+
+  // Tempos locais = fala + 0,15 s (pausas medidas na leitura).
+  function cenaExtra(id, lt) {
+    if (id === 'c1') {
+      // "O dólar teve a maior alta em vinte e sete anos" 0,15–2,85 · "E o Mateus disse:" 3,25–4,05
+      // "eu nem tenho dólar" 4,35–5,25 · "Mas o pãozinho dele tem" 5,85–7,05
+      cai($('m1'), lt, 0, -1.4);
+      cai($('m2'), lt, 1.3, 1.1);
+      surge($('fq'), lt, 3.2, 0.35, 20);
+      surge($('ff'), lt, 4.3, 0.35, 20);
+      surge($('fx'), lt, 5.8, 0.4, 30);
+    }
+    if (id === 'c2') {
+      // "Mais da metade do trigo usado no Brasil vem de fora" 0,15–2,95 · "e é pago em dólar" 3,25–4,05
+      // "Quando ele sobe" 4,5–5,2 · "a farinha encarece" 5,4–6,25 · "O pão e o macarrão costumam sentir semanas depois" 6,65–9,2
+      surge($('md'), lt, 0.1, 0.4, 30);
+      $('mdB').style.width = 60 * easeOut(prog(lt, 0.6, 2.4)) + '%';
+      $('mdE').style.opacity = prog(lt, 2.3, 2.6);
+      surge($('us'), lt, 3.2, 0.35, 20);
+      surge($('k1'), lt, 4.5, 0.35, 30);
+      surge($('s1'), lt, 5.2, 0.3, 0);
+      surge($('k2'), lt, 5.4, 0.35, 30);
+      surge($('s2'), lt, 6.5, 0.3, 0);
+      surge($('k3'), lt, 6.65, 0.4, 30);
+      surge($('sd'), lt, 8.2, 0.35, 10);
+    }
+    if (id === 'c3') {
+      // "O petróleo também é cotado em dólar" 0,15–1,9 · "Com ele alto" 2,3–2,9
+      // "cresce a pressão pra gasolina e o diesel subirem" 3,1–5,3 · "E é o diesel que leva quase tudo até o mercado" 5,6–7,75
+      surge($('pt'), lt, 0.1, 0.4, 30);
+      surge($('p1'), lt, 0.9, 0.35, 30);
+      surge($('ps1'), lt, 2.4, 0.3, 0);
+      surge($('p2'), lt, 3.1, 0.4, 30);
+      surge($('pa'), lt, 4.2, 0.35, 10);
+      surge($('p3'), lt, 5.6, 0.35, 30);
+      surge($('ps2'), lt, 6.3, 0.3, 0);
+      surge($('p4'), lt, 6.6, 0.35, 30);
+    }
+    if (id === 'c4') {
+      // "Nas compras de fora, o efeito é na hora" 0,15–2,1 · "o cartão usa o dólar do dia da compra" 2,45–4,3
+      // "O fone de duzentos dólares que o Mateus comprou na segunda" 4,75–7,2 · "saiu por mil e oitenta reais" 7,4–8,8
+      // "Na sexta, saía por menos de mil" 9,05–10,65
+      surge($('rc'), lt, 2.4, 0.4, 20);
+      surge($('r1'), lt, 4.7, 0.4, 40);
+      $('r1t').style.opacity = prog(lt, 7.35, 7.6);
+      surge($('r2'), lt, 9.0, 0.4, 40);
+      surge($('df'), lt, 9.9, 0.35, 10);
+      surge($('io'), lt, 10.3, 0.35, 10);
+    }
+    if (id === 'c5') {
+      // "O Caio não tenta adivinhar o dólar" 0,15–1,85 · "Ele adiou a compra importada" 2,1–3,6
+      // "e separou um pouco mais pro mercado no orçamento do mês que vem" 3,6–6,05
+      surge($('qc'), lt, 0.1, 0.4, 40);
+      surge($('h1'), lt, 2.1, 0.4, 30);
+      surge($('h2'), lt, 3.6, 0.4, 30);
+    }
+    if (id === 'c6') {
+      // "Regra de bolso:" 0,15–1,0 · "o dólar sobe hoje e chega no mercado em semanas" 1,35–3,85 · "Ajuste o orçamento antes do preço" 4,05–5,8
+      surge($('t1'), lt, 1.35, 0.35, 20);
+      surge($('t2'), lt, 2.6, 0.35, 20);
+      surge($('t3'), lt, 3.3, 0.35, 20);
+      surge($('rg'), lt, 4.0, 0.45, 30);
+    }
+    if (id === 'c7') {
+      // "Manda pra quem acha que dólar não é com ele" 0,15–2,2 · "E segue o Appliquei pra mais contas assim" 2,5–4,3
+      surge($('mn'), lt, 0.1, 0.4, 40);
+      $('mn').querySelector('.ic').style.transform = `scale(${1 + 0.06 * Math.sin(lt * 7) * prog(lt, 0.5, 1)})`;
+      surge($('as'), lt, 2.4, 0.45, 40);
+      surge($('av'), lt, 3.1, 0.4, 10);
+      $('logoFixo').style.opacity = 1 - prog(lt, 2.1, 2.4);
+    } else $('logoFixo').style.opacity = 1;
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>

@@ -121,3 +121,35 @@ Hashtags: `#financaspessoais #dicasdefinancas`
 **2) 19h30 · STORY** · repost do Reel de quarta
 Texto por cima: `A resposta do quiz tá aqui 👆`
 Hashtags: `#educacaofinanceira #parceladoouavista`
+
+---
+
+## SEXTA 30/10 · Faltam 64 dias
+
+**1) 12h30 · STORY** · `stories/30-10-enquete.png`
+Adesivo: Enquete › "Já tô sentindo" / "Ainda não".
+Hashtags: `#dolar #financaspessoais`
+
+**2) 19h · REEL** · `03-30-10-dolar-paozinho.mp4`
+Capa: Editar capa › Adicionar da galeria › `03-30-10-dolar-paozinho-capa.png`.
+Legenda (Instagram):
+
+```
+O dólar teve a maior alta em 27 anos. "Eu nem tenho dólar", disse o Mateus. Mas o pãozinho dele tem. 🥖
+
+Mais da metade do trigo usado no Brasil vem de fora e é pago em dólar: pão e macarrão costumam sentir semanas depois. O petróleo também é cotado em dólar, e é o diesel que leva quase tudo até o mercado. Nas compras de fora, é na hora: o cartão usa o dólar do dia da compra.
+
+📌 Regra de bolso: o dólar sobe hoje e chega no mercado em semanas. Ajuste o orçamento antes do preço.
+
+Manda pra quem acha que dólar não é com ele. 🔁
+
+⏳ Faltam 64 dias para o que estamos preparando pra 2027. Ativa o lembrete nos stories.
+
+Conteúdo educacional e apartidário. Dólar comercial no fechamento: R$ 4,99 (23/10) e R$ 5,40 (26/10). Até 28/10, sem reajuste confirmado de pão ou combustível. Personagens fictícios.
+
+#educacaofinanceira #dolar #financaspessoais #dinheiro #economia
+```
+
+**3) 19h30 · STORY** · repost do Reel
+Texto por cima: `Dólar não é coisa de rico. Chega no pão 👆`
+Hashtags: `#dolar #educacaofinanceira`

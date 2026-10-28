@@ -74,6 +74,13 @@ mudar (com a data).
   Ideias rejeitadas: repetir o tema "pagar antes com desconto", queda de 50%
   (não é do dia a dia), cheque especial, horas de trabalho, álcool ou
   gasolina.
+- **Assunto da semana (fundador, 28/10):** quando houver notícia em alta,
+  o Reel pode trocar de tema para pegá-la, desde que seja **popular** (pão,
+  mercado, cartão) e **apartidário**. Abertura com **manchetes reais
+  recriadas no visual da marca** (texto, veículo e data como publicados, sem
+  print, logo ou foto do veículo), **sem rosto de político nem nome de
+  partido**: o Instagram não recomenda conteúdo político a quem não segue a
+  conta. Primeiro: "O dólar disparou. E o seu pãozinho?" (30/10).
 - **Capa** com a frase do gancho em todo vídeo (`capa.js`), na capa e no
   primeiro quadro (`appliquei-<tema>-com-capa.mp4`).
 - **Números conferidos com fonte** antes de gravar; aviso educacional e
