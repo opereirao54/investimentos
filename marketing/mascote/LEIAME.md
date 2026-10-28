@@ -35,3 +35,11 @@ traço limpo** nas proporções do "$" da logo (o contorno da logo é escaneado 
 ficava torto ao engrossar; o fundador achou que o "S" destoava). Gerar de
 novo: `node marketing/ferramentas/shorts/render.js <pasta>
 marketing/mascote/animacao/video.html`.
+
+## Ilustrados (28/10)
+
+O fundador não gostou do Pingo em nenhum estilo. `node
+marketing/mascote/ilustrados.js` gera a **Capivara** (moletom verde e
+caderninho) e o **Caramelo** (bandana verde e moeda) em ilustração plana:
+`ilustrados/folha.png`. Para ilustração 3D de qualidade, usar os prompts de
+`prompts-ideias.md` num gerador de imagem.

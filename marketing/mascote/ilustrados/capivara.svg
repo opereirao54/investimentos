@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 420">
+<defs>
+  <radialGradient id="cpPelo" cx=".4" cy=".3" r=".8"><stop offset="0" stop-color="#b98252"/><stop offset="1" stop-color="#8a5a32"/></radialGradient>
+  <linearGradient id="cpMol" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#047857"/></linearGradient>
+</defs>
+<ellipse cx="200" cy="398" rx="130" ry="13" fill="#000" opacity=".25"/>
+<!-- pés -->
+<ellipse cx="148" cy="388" rx="34" ry="16" fill="#6b4425"/><ellipse cx="252" cy="388" rx="34" ry="16" fill="#6b4425"/>
+<path d="M126 392 v-6 M140 395 v-7 M154 395 v-7 M230 392 v-6 M244 395 v-7 M258 395 v-7" stroke="#4a2e17" stroke-width="3" stroke-linecap="round"/>
+<!-- corpo de moletom -->
+<path d="M92 300 C 92 220, 140 196, 200 196 C 260 196, 308 220, 308 300 C 308 360, 270 392, 200 392 C 130 392, 92 360, 92 300 Z" fill="url(#cpMol)"/>
+<path d="M150 206 Q200 236 250 206" stroke="#047857" stroke-width="6" fill="none" stroke-linecap="round"/>
+<path d="M186 222 v40 M214 222 v40" stroke="#ecfdf5" stroke-width="4" stroke-linecap="round"/>
+<circle cx="186" cy="265" r="5" fill="#ecfdf5"/><circle cx="214" cy="265" r="5" fill="#ecfdf5"/>
+<path d="M140 320 H260 Q262 352 240 356 H160 Q138 352 140 320 Z" fill="#047857" opacity=".55"/>
+<!-- caderninho e lápis -->
+<g transform="rotate(-8 200 300)">
+  <rect x="150" y="262" width="100" height="74" rx="8" fill="#fff"/>
+  <rect x="150" y="262" width="12" height="74" rx="4" fill="#10b981"/>
+  <path d="M172 282 H236 M172 298 H236 M172 314 H220" stroke="#cbd5e1" stroke-width="4" stroke-linecap="round"/>
+  <path d="M172 314 l8 8 l16 -18" stroke="#10b981" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<!-- patinhas segurando -->
+<ellipse cx="146" cy="318" rx="20" ry="16" fill="#8a5a32"/><ellipse cx="256" cy="304" rx="20" ry="16" fill="#8a5a32"/>
+<g transform="rotate(35 268 280)"><rect x="262" y="236" width="10" height="58" rx="3" fill="#fbbf24"/><path d="M262 294 L267 306 L272 294 Z" fill="#f5d0a9"/><rect x="262" y="236" width="10" height="9" rx="2" fill="#f87171"/></g>
+<!-- capuz atrás da cabeça -->
+<path d="M108 170 C 100 110, 150 78, 200 78 C 250 78, 300 110, 292 170 C 286 206, 250 214, 200 214 C 150 214, 114 206, 108 170 Z" fill="#047857"/>
+<!-- cabeça (focinho de capivara, largo e quadradão) -->
+<rect x="116" y="56" width="168" height="172" rx="64" fill="url(#cpPelo)"/>
+<path d="M128 150 C 128 128, 156 122, 200 122 C 244 122, 272 128, 272 150 L272 186 C 272 214, 246 226, 200 226 C 154 226, 128 214, 128 186 Z" fill="#a06d40"/>
+<!-- orelhinhas -->
+<ellipse cx="142" cy="62" rx="14" ry="12" fill="#7a4b28"/><ellipse cx="258" cy="62" rx="14" ry="12" fill="#7a4b28"/>
+<ellipse cx="142" cy="64" rx="7" ry="6" fill="#5c3519"/><ellipse cx="258" cy="64" rx="7" ry="6" fill="#5c3519"/>
+<!-- olhos tranquilos, meio fechados -->
+<ellipse cx="160" cy="112" rx="13" ry="10" fill="#1f140c"/><ellipse cx="240" cy="112" rx="13" ry="10" fill="#1f140c"/>
+<path d="M144 108 Q160 98 176 108 L176 102 Q160 92 144 102 Z" fill="#8a5a32"/><path d="M224 108 Q240 98 256 108 L256 102 Q240 92 224 102 Z" fill="#8a5a32"/>
+<path d="M145 109 Q160 101 175 109 M225 109 Q240 101 255 109" stroke="#5c3519" stroke-width="3" fill="none" stroke-linecap="round"/>
+<circle cx="165" cy="114" r="3" fill="#fff"/><circle cx="245" cy="114" r="3" fill="#fff"/>
+<!-- focinho -->
+<rect x="170" y="146" width="60" height="30" rx="13" fill="#4a2c17"/>
+<path d="M186 154 L183 166 M214 154 L217 166" stroke="#140b05" stroke-width="5" stroke-linecap="round"/>
+<path d="M176 150 Q186 147 196 149" stroke="#7a4b28" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/>
+<path d="M200 184 v12 M182 200 Q200 212 218 200" stroke="#3d2414" stroke-width="4" fill="none" stroke-linecap="round"/>
+<ellipse cx="140" cy="172" rx="14" ry="8" fill="#e8a27a" opacity=".45"/><ellipse cx="260" cy="172" rx="14" ry="8" fill="#e8a27a" opacity=".45"/>
+<!-- brilho do pelo -->
+<path d="M140 92 Q156 74 182 70" stroke="#d4a373" stroke-width="6" fill="none" stroke-linecap="round" opacity=".6"/>
+</svg>
