@@ -98,6 +98,9 @@ mudar (com a data).
   pendência CVM antes de usar.
 - **Adiados pelo fundador:** Jornada em vídeos longos; postagem automática
   pela API do Instagram.
-- **Mascote Pingo** (`marketing/mascote/`, criado em 28/10): o fundador
-  ainda decide se aprova e quando estreia (sugestão: semana do lançamento).
+- **Mascote: Appli** (28/10): moeda verde com "$" no peito, luvas e tênis,
+  imagem gerada pelo fundador (`marketing/mascote/appli/`). Animação de
+  apresentação pronta. Falta decidir quando estreia (sugestão: semana do
+  lançamento) e gerar as outras poses no mesmo gerador. O Pingo e os
+  ilustrados foram descartados.
 - **Os 12 vídeos prontos** ganham o selo "Faltam X dias" na véspera de cada um.

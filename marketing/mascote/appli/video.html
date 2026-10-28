@@ -1,0 +1,138 @@
+<!doctype html>
+<!--
+  "Conheça o Appli" (12 s, 1080×1920): o mascote ganha vida a partir da imagem
+  do fundador. Camadas de preparar.py (corpo e pernas, recortados com rembg):
+  cai e amassa ao pousar, respira, pisca (pálpebra desenhada por cima dos
+  olhos), dança, pula girando como moeda, faz joinha e assina com a marca.
+
+    cp marketing/mascote/appli/{corpo,pernas}.png <pasta>/
+    node marketing/ferramentas/shorts/render.js <pasta> marketing/mascote/appli/video.html
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: #0b1410; }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: #f0faf4; }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: radial-gradient(55% 35% at 50% 52%, rgba(16,185,129,.28), transparent 70%), linear-gradient(160deg, #0b1410, #0d1d16 50%, #0f2a20); }
+  .chao { position: absolute; left: 0; right: 0; top: 1470px; height: 450px; background: linear-gradient(180deg, rgba(16,185,129,.07), transparent); }
+  .tit { position: absolute; left: 0; right: 0; top: 150px; text-align: center; }
+  .tit small { display: block; font-family: 'DM Mono', monospace; font-size: 34px; letter-spacing: .3em; text-transform: uppercase; color: #34d399; }
+  .tit b { display: block; margin-top: 6px; font-size: 170px; font-weight: 900; letter-spacing: -.05em; line-height: 1; }
+  .sombra { position: absolute; left: 290px; top: 1430px; width: 500px; height: 70px; border-radius: 50%; background: radial-gradient(closest-side, rgba(0,0,0,.6), transparent); }
+  #heroi { position: absolute; left: 80px; top: 330px; width: 920px; height: 1160px; transform-origin: 460px 1120px; }
+  #heroi img, #heroi svg, #cima { position: absolute; left: 0; top: 0; width: 920px; height: 1160px; }
+  #cima { transform-origin: 460px 796px; }
+  .frase { position: absolute; left: 60px; right: 60px; top: 1560px; text-align: center; font-size: 66px; font-weight: 900; letter-spacing: -.03em; line-height: 1.1; }
+  .frase em { font-style: normal; color: #34d399; }
+  .marca { position: absolute; left: 0; right: 0; top: 1720px; text-align: center; }
+  .marca img { width: 360px; }
+  .brilho { position: absolute; width: 60px; height: 60px; }
+</style>
+</head>
+<body>
+<div class="palco">
+  <div class="chao"></div>
+  <div class="tit" id="tit"><small>Conheça o</small><b>Appli</b></div>
+  <div class="sombra" id="sombra"></div>
+  <div id="heroi">
+    <img src="pernas.png" alt="">
+    <div id="cima">
+      <img src="corpo.png" alt="">
+      <svg viewBox="0 0 920 1160">
+        <defs>
+          <clipPath id="olhoE"><ellipse cx="390" cy="362" rx="92" ry="108" transform="rotate(-6 390 362)"/></clipPath>
+          <clipPath id="olhoD"><ellipse cx="632" cy="376" rx="78" ry="102" transform="rotate(4 632 376)"/></clipPath>
+          <linearGradient id="palp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c7a4d"/><stop offset="1" stop-color="#0f5c38"/></linearGradient>
+        </defs>
+        <g clip-path="url(#olhoE)"><rect id="sE" x="280" width="230" fill="url(#palp)"/><rect id="iE" x="280" width="230" fill="url(#palp)"/></g>
+        <path id="lE" fill="none" stroke="#06331f" stroke-width="9" stroke-linecap="round"/>
+        <g clip-path="url(#olhoD)"><rect id="sD" x="540" width="200" fill="url(#palp)"/><rect id="iD" x="540" width="200" fill="url(#palp)"/></g>
+        <path id="lD" fill="none" stroke="#06331f" stroke-width="9" stroke-linecap="round"/>
+      </svg>
+    </div>
+  </div>
+  <svg class="brilho" id="b1" viewBox="-10 -10 20 20"><path d="M0 -10 L2.5 -2.5 L10 0 L2.5 2.5 L0 10 L-2.5 2.5 L-10 0 L-2.5 -2.5 Z" fill="#fbbf24"/></svg>
+  <svg class="brilho" id="b2" viewBox="-10 -10 20 20"><path d="M0 -10 L2.5 -2.5 L10 0 L2.5 2.5 L0 10 L-2.5 2.5 L-10 0 L-2.5 -2.5 Z" fill="#6ee7b7"/></svg>
+  <svg class="brilho" id="b3" viewBox="-10 -10 20 20"><path d="M0 -10 L2.5 -2.5 L10 0 L2.5 2.5 L0 10 L-2.5 2.5 L-10 0 L-2.5 -2.5 Z" fill="#fbbf24"/></svg>
+  <div class="frase" id="frase">Seu dinheiro precisa de <em>direção.</em></div>
+  <div class="marca" id="marca"><img src="wordmark.svg" alt="Appliquei"></div>
+</div>
+<script>
+  const DUR = 12;
+  const $ = (id) => document.getElementById(id);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  const bump = (t, a, b) => { const p = prog(t, a, b); return p > 0 && p < 1 ? Math.sin(p * Math.PI) : 0; };
+  // piscada: fecha e abre em 0,22 s
+  const piscada = (t, ...ts) => Math.max(0, ...ts.map((a) => 1 - Math.abs(t - a) / 0.11));
+
+  function render(t) {
+    let y = 0, sx = 1, sy = 1, rot = 0, giro = 1, cimaRot = 0;
+    // cai e amassa ao pousar
+    if (t < 0.6) { const p = t / 0.6; y = -1500 * (1 - p * p); sy = 1.06; sx = 0.95; }
+    const k1 = bump(t, 0.6, 0.95); sy -= 0.14 * k1; sx += 0.1 * k1;
+    // respira
+    if (t > 0.95) sy *= 1 + 0.012 * Math.sin(t * 4.2);
+    // dança: o corpo balança sobre as pernas
+    const danca = prog(t, 2.3, 2.6) * (1 - prog(t, 4.3, 4.6));
+    cimaRot = 6 * Math.sin((t - 2.3) * 2 * Math.PI * 1.1) * danca;
+    y -= 22 * Math.abs(Math.sin((t - 2.3) * Math.PI * 2.2)) * danca;
+    // pulo girando como moeda
+    const prep = bump(t, 4.6, 4.95); sy -= 0.12 * prep; sx += 0.08 * prep;
+    const pulo = prog(t, 4.95, 5.85);
+    if (pulo > 0 && pulo < 1) { y -= 420 * Math.sin(pulo * Math.PI); giro = Math.cos(pulo * Math.PI * 2); sy *= 1.04; }
+    const k2 = bump(t, 5.85, 6.15); sy -= 0.13 * k2; sx += 0.09 * k2;
+    // joinha: dois "pulsos"
+    const pulso = bump(t, 6.5, 6.8) + bump(t, 7.1, 7.4);
+    sx += 0.035 * pulso; sy += 0.035 * pulso; rot = -3 * pulso;
+    // dois pulinhos
+    y -= 90 * (bump(t, 8.6, 9.0) + bump(t, 9.1, 9.5));
+    rot += 4 * bump(t, 8.6, 9.0) - 4 * bump(t, 9.1, 9.5);
+
+    $("heroi").style.transform = `translateY(${y}px) rotate(${rot}deg) scale(${0.88 * sx * giro}, ${0.88 * sy})`;
+    $('cima').style.transform = `rotate(${cimaRot}deg)`;
+    const alto = clamp(-y / 900, 0, 1);
+    $('sombra').style.transform = `scale(${1 - 0.6 * alto}, ${1 - 0.5 * alto})`;
+    $('sombra').style.opacity = 0.9 - 0.6 * alto;
+
+    // piscadas
+    const p = piscada(t, 1.5, 3.4, 7.8, 10.6);
+    // pálpebra de cima desce e a de baixo sobe até se encontrarem um pouco abaixo do meio
+    for (const [k, cx, cy, rx, ry] of [['E', 390, 362, 92, 108], ['D', 632, 376, 78, 102]]) {
+      const topo = cy - ry - 12, base = cy + ry + 12, meio = cy + 0.2 * ry;
+      const yS = topo + p * (meio - topo), yI = base - p * (base - meio);
+      $('s' + k).setAttribute('y', topo); $('s' + k).setAttribute('height', Math.max(0, yS - topo));
+      $('i' + k).setAttribute('y', yI); $('i' + k).setAttribute('height', Math.max(0, base - yI));
+      const w = rx * Math.sqrt(Math.max(0, 1 - Math.pow((yS - cy) / ry, 2))) * 0.92;
+      $('l' + k).setAttribute('d', `M${cx - w} ${yS} Q${cx} ${yS + 14 * p} ${cx + w} ${yS}`);
+      $('l' + k).style.opacity = p > 0.05 ? 1 : 0;
+    }
+
+    // textos
+    const ti = easeBack(prog(t, 0.8, 1.2));
+    $('tit').style.opacity = clamp(ti, 0, 1) * (1 - prog(t, 11.6, 12));
+    $('tit').style.transform = `scale(${0.8 + 0.2 * ti})`;
+    const fr = easeOut(prog(t, 6.4, 6.8));
+    $('frase').style.opacity = fr; $('frase').style.transform = `translateY(${(1 - fr) * 30}px)`;
+    const mc = easeOut(prog(t, 9.8, 10.3));
+    $('marca').style.opacity = mc; $('marca').style.transform = `translateY(${(1 - mc) * 30}px)`;
+
+    // brilhos perto do joinha
+    [['b1', 250, 520, 6.5], ['b2', 160, 640, 6.7], ['b3', 330, 430, 7.1]].forEach(([id, bx, by, a]) => {
+      const b = bump(t, a, a + 0.6);
+      const el = $(id);
+      el.style.left = bx + 'px'; el.style.top = by + 'px';
+      el.style.opacity = b; el.style.transform = `scale(${0.4 + b}) rotate(${(t - a) * 120}deg)`;
+    });
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>
