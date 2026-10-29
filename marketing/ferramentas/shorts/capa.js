@@ -8,7 +8,8 @@
 //   "rotulo": "Conta de padaria",      // opcional (selo acima da frase)
 //   "apoio": "A conta que ninguém faz", // opcional (linha menor abaixo)
 //   "tamanho": 112                       // opcional (px da frase; diminua se quebrar mal)
-//   "news": true                         // opcional: selo vermelho da série Appliquei News
+//   "news": true                         // opcional: capa da série Appliquei News (faixa
+//                                           vermelha de telejornal no topo, como a vinheta)
 // }
 // <em> pinta de âmbar (o número que choca); <em class="v"> pinta de verde-sinal.
 // Tudo fica dentro do recorte 3:4 da grade do perfil (1080×1440 no meio da
@@ -52,7 +53,14 @@ svg.malha { position: absolute; inset: 0; }
   display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
 .rotulo { padding: 12px 26px; border-radius: 99px; border: 2px solid rgba(52,211,153,.5); background: rgba(52,211,153,.12);
   font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .14em; text-transform: uppercase; color: #34d399; }
-.rotulo.news { border: none; background: #b91c1c; color: #fff; }
+.faixa-news { position: absolute; left: -40px; right: -40px; top: 300px; height: 300px; background: #b91c1c;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; transform: skewY(-4deg);
+  box-shadow: 0 24px 60px rgba(0,0,0,.35); }
+.faixa-news b { font-size: 150px; font-weight: 900; letter-spacing: -.045em; line-height: 1; color: #fff; transform: skewY(4deg); }
+.faixa-news span { margin-top: 10px; padding: 6px 34px; background: #fff; color: #b91c1c; font-family: 'DM Mono', monospace;
+  font-size: 70px; letter-spacing: .32em; text-indent: .32em; transform: skewY(4deg); }
+.miolo.news { top: 660px; height: 1020px; justify-content: flex-start; padding-top: 70px; }
+.miolo.news .frase { margin-top: 0; }
 .frase { margin-top: 56px; font-weight: 900; font-size: ${spec.tamanho || 112}px; line-height: 1.04; letter-spacing: -.04em; }
 .frase em { font-style: normal; color: #fbbf24; }
 .frase em.v { color: #34d399; }
@@ -60,8 +68,9 @@ svg.malha { position: absolute; inset: 0; }
 .marca { margin-top: 90px; width: 300px; opacity: .95; }
 </style></head><body>
 <div class="halo"></div><svg class="malha" viewBox="0 0 1080 1920">${malha.join('')}</svg>
-<div class="miolo">
-  ${spec.rotulo === '' ? '' : `<div class="rotulo${spec.news ? ' news' : ''}">${spec.rotulo || (spec.news ? 'Appliquei News' : 'Conta de padaria')}</div>`}
+${spec.news ? '<div class="faixa-news"><b>APPLIQUEI</b><span>NEWS</span></div>' : ''}
+<div class="miolo${spec.news ? ' news' : ''}">
+  ${spec.rotulo === '' || spec.news ? '' : `<div class="rotulo">${spec.rotulo || 'Conta de padaria'}</div>`}
   <div class="frase">${spec.frase}</div>
   ${spec.apoio ? `<div class="apoio">${spec.apoio}</div>` : ''}
   <img class="marca" src="data:image/svg+xml;base64,${WM}" alt="Appliquei">
