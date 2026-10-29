@@ -1,0 +1,43 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;background:transparent}
+.q{width:832px;height:1152px;position:relative;overflow:hidden;background:radial-gradient(50% 35% at 50% 45%,rgba(16,185,129,.18),transparent 70%),linear-gradient(160deg,#0b1410,#0d1d16 55%,#0f2a20)}
+svg{position:absolute;inset:0}
+</style></head><body>
+<div class="q" id="d2"><svg viewBox="0 0 832 1152">
+  <defs>
+    <pattern id="g" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#f0faf4" stroke-opacity=".04"/></pattern>
+    <radialGradient id="vid" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#1d4a37"/><stop offset=".6" stop-color="#0c2419"/><stop offset="1" stop-color="#06140e"/></radialGradient>
+    <filter id="bri"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="832" height="1152" fill="url(#g)"/>
+  <ellipse cx="416" cy="930" rx="150" ry="18" fill="#000" opacity=".45"/>
+  <circle cx="416" cy="540" r="250" fill="url(#vid)" stroke="#2f6b51" stroke-width="6"/>
+  <circle cx="416" cy="540" r="222" fill="none" stroke="#34d399" stroke-opacity=".25" stroke-width="2"/>
+  <g stroke="#34d399" stroke-linecap="round" filter="url(#bri)">
+    <g id="ticks"></g>
+    <path d="M300 505 q32 -26 64 0" fill="none" stroke-width="12"/>
+    <path d="M468 505 q32 -26 64 0" fill="none" stroke-width="12"/>
+    <path d="M370 610 q46 26 92 0" fill="none" stroke-width="9" stroke-opacity=".9"/>
+    <path d="M416 328 a212 212 0 0 1 150 62" fill="none" stroke-width="7"/>
+  </g>
+</svg></div>
+<div class="q" id="d3"><svg viewBox="0 0 832 1152">
+  <defs><filter id="bri3"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+  <g fill="none" stroke="#34d399" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" filter="url(#bri3)">
+    <circle cx="416" cy="500" r="210"/>
+    <circle cx="416" cy="500" r="182" stroke-opacity=".35" stroke-width="3" stroke-dasharray="2 14"/>
+    <path d="M340 470 h40 M452 470 h40"/>
+    <path d="M370 560 q46 30 92 0"/>
+    <path d="M436 622 q-20 -12 -38 -2 q-16 10 0 22 l36 14 q16 10 0 22 q-18 10 -40 -2 M416 606 v84" stroke-width="5"/>
+    <path d="M220 560 q-70 30 -60 120"/>
+    <path d="M612 560 q60 -10 78 -90 m-26 -40 v52 q0 18 18 18 h22 q14 0 14 -14 v-34 q0 -12 -12 -12 h-42"/>
+    <path d="M370 708 l-22 170 h-44 M462 708 l22 170 h44"/>
+  </g>
+  <line x1="120" y1="878" x2="712" y2="878" stroke="#f0faf4" stroke-opacity=".18" stroke-width="2"/>
+</svg></div>
+<script>
+  const t = document.getElementById('ticks'); let h = '';
+  for (let i = 0; i < 60; i++) { const a = i * 6 * Math.PI / 180, r1 = 236, r2 = i % 5 ? 228 : 216;
+    h += `<line x1="${416 + r1 * Math.sin(a)}" y1="${540 - r1 * Math.cos(a)}" x2="${416 + r2 * Math.sin(a)}" y2="${540 - r2 * Math.cos(a)}" stroke-width="${i % 5 ? 2 : 4}" stroke-opacity="${i % 5 ? .35 : .8}"/>`; }
+  t.innerHTML = h;
+</script></body></html>
