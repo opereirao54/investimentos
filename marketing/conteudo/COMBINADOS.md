@@ -34,10 +34,11 @@ true`), mesmo modelo do News.
     de 27/12 a 02/01 (os 7 vídeos de produto prontos). Sexta 30/10: o carro
     (Appliquei Explica), antecipado de 02/11.
   - **Série "Appliquei"** (reta final, 27/12 a 02/01, todo dia): os vídeos de
-    produto. Nome escolhido pelo fundador em 29/10. Capa com a faixa
-    inclinada e a **logo** no lugar do texto, selo "Faltam X dias" (`capa.js`
-    com `"appliquei": true` e `"aviso"`); exemplos dourado e verde em
-    `reta-final/`, cor a decidir. Vinheta da série a fazer.
+    produto. Nome do fundador (29/10). **Capa: faixa dourada metálica com a
+    logo e selo de ouro "FALTAM X DIAS"** (opção 3, escolhida pelo fundador e
+    o sócio em 29/10; `capa.js` com `"appliquei": true` e `"aviso"`; em 02/01,
+    "É HOJE"). **Vinheta do dia:** `vinheta-appliquei.sh <dias>` gera
+    `vinheta-appliquei-<dias>.mp4`; montar com `vinheta.sh appliquei-<dias>`.
   - **Até o lançamento, pouca ferramenta:** as duas séries educam; o app só
     aparece de 26/12 em diante.
 - **Sem stories (fundador, 29/10: "só reels").** Acabam a enquete, a caixa, o

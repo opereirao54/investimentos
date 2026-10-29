@@ -12,7 +12,9 @@
 //                                           vermelha de telejornal no topo, como a vinheta)
 //   "explica": true                      // opcional: a mesma capa em verde, série Appliquei Explica
 //   "appliquei": true                    // opcional: série da reta final (27/12 a 02/01): faixa
-//                                           dourada com a logo; "aviso": "Faltam 6 dias" no selo
+//                                           dourada metálica com a logo (fundador e sócio,
+//                                           29/10); "aviso": "Faltam 6 dias" (ou "É hoje")
+//                                           no selo de ouro
 //   "verde": true                        // com "appliquei": a faixa em verde em vez de dourado
 // }
 // <em> pinta de âmbar (o número que choca); <em class="v"> pinta de verde-sinal.
@@ -70,12 +72,12 @@ svg.malha { position: absolute; inset: 0; }
 .faixa-news span { margin-top: 10px; padding: 6px 34px; background: #fff; color: #b91c1c; font-family: 'DM Mono', monospace;
   font-size: 70px; letter-spacing: .32em; text-indent: .32em; transform: skewY(4deg); }
 .faixa-news.explica { background: #059669; }
-.faixa-news.ouro { background: linear-gradient(100deg, #f59e0b, #fbbf24 45%, #fde68a 60%, #f59e0b); }
+.faixa-news.ouro { background: linear-gradient(100deg, #a86b12 0%, #f6d365 18%, #fff3c4 28%, #e2a72e 42%, #b97a17 58%, #f9dc7a 74%, #fff1b8 82%, #c88a1e 100%); border-top: 3px solid #fff1b8; border-bottom: 3px solid #8a5a0c; }
 .faixa-news.ouro img { width: 640px; transform: skewY(4deg); }
 .faixa-news.lanc-verde { background: #059669; }
 .faixa-news.lanc-verde img { width: 640px; transform: skewY(4deg); }
-.aviso-lanc { padding: 14px 34px; border-radius: 99px; border: 3px solid #fbbf24; background: rgba(251,191,36,.12); font-family: 'DM Mono', monospace;
-  font-size: 40px; letter-spacing: .14em; text-transform: uppercase; color: #fbbf24; margin-bottom: 56px; }
+.aviso-lanc { padding: 14px 34px; border-radius: 99px; background: linear-gradient(100deg, #a86b12 0%, #f6d365 18%, #fff3c4 28%, #e2a72e 42%, #b97a17 58%, #f9dc7a 74%, #fff1b8 82%, #c88a1e 100%); font-family: 'DM Mono', monospace; font-weight: 500;
+  font-size: 40px; letter-spacing: .14em; text-transform: uppercase; color: #2a1a04; margin-bottom: 56px; box-shadow: 0 10px 24px rgba(0,0,0,.4); }
 .faixa-news.explica span { color: #047857; }
 .miolo.news { top: 660px; height: 1020px; justify-content: flex-start; padding-top: 70px; }
 .miolo.news .frase { margin-top: 0; }
