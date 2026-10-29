@@ -19,19 +19,20 @@ mudar (com a data).
     invisíveis, cartão, reserva, metas), no formato Mateus × Caio com a conta
     na tela. Os temas do `CALENDARIO.md` são desta série. Selo verde "Appliquei
     Explica" no topo (renomeada de "Conta de Padaria" em 29/10: soava
-    infantil).
+    infantil). Vinheta verde (`vinheta.sh explica`) e capa verde (`"explica":
+true`), mesmo modelo do News.
   - **Appliquei News** (ter e qui): a notícia econômica do momento traduzida
     para o bolso (Selic, dólar, inflação, gasolina, financiamento, eleição,
     Black Friday, 13º). Tema escolhido **na véspera**, pela notícia mais
     quente; abertura com manchetes reais recriadas no visual da marca; 30 a
     45 s. Tarja vermelha "APPLIQUEI NEWS" no topo e **vinheta de 1,6 s** na
-    abertura (`ferramentas/shorts/vinheta-news.sh`). Apartidário e sem
+    abertura (`ferramentas/shorts/vinheta.sh news`); capa com `"news": true`. Apartidário e sem
     recomendação: explicar o mecanismo ("com juros menores, a renda fixa
     rende menos e muita gente olha outros investimentos"), nunca "invista em
     X" (CVM). O Reel do dólar (qui 29/10) conta como **News #1**.
   - Começam na **segunda 02/11**: 5 Reels por semana até 26/12 e **todo dia**
-    de 27/12 a 02/01 (os 7 vídeos de produto prontos). Sexta 30/10 fica sem
-    Reel.
+    de 27/12 a 02/01 (os 7 vídeos de produto prontos). Sexta 30/10: o carro
+    (Appliquei Explica), antecipado de 02/11.
   - **Até o lançamento, pouca ferramenta:** as duas séries educam; o app só
     aparece de 26/12 em diante.
 - **Sem stories (fundador, 29/10: "só reels").** Acabam a enquete, a caixa, o

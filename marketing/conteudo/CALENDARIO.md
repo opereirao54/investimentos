@@ -48,7 +48,8 @@ PDF simples para compartilhar: `plano-instagram.pdf` (fonte
 | 1   | seg 26/10 | 68     | Mesma compra: 11 ou 38 dias pra pagar? (`alcance/melhor-dia-compra`)                                      | ✅     |           |
 | 2   | qua 28/10 | 66     | Parcelado sem juros ou à vista com desconto? (`alcance/avista-ou-parcelado`)                              | ✅     |           |
 | 3   | qui 29/10 | 65     | O dólar disparou. E o seu pãozinho? (`alcance/dolar-paozinho`; assunto da semana, antecipado)             | ✅     |           |
-| 4   | seg 02/11 | 61     | Seu carro custa R$ 2.100 por mês. Parado. (`alcance/carro-ou-aplicativo`)                                 | ✅     |           |
+| 4   | sex 30/10 | 64     | Seu carro custa R$ 2.100 por mês. Parado. (`alcance/carro-ou-aplicativo`; antecipado de 02/11)            | ✅     |           |
+| 4b  | seg 02/11 | 61     | Frete grátis acima de R$ 99: a pegadinha do carrinho (volta da reserva)                                   | 🆕     |           |
 | 5   | qua 04/11 | 59     | Ganha até R$ 5 mil? Confira seu holerite (isenção do IR desde jan/2026)                                   | 🆕     |           |
 | 6   | sex 06/11 | 57     | Garantia estendida: o seguro que paga a loja                                                              | 🆕     |           |
 | 7   | seg 09/11 | 54     | Quanto o seu delivery custa em um ano                                                                     | 🆕     |           |
@@ -80,7 +81,7 @@ PDF simples para compartilhar: `plano-instagram.pdf` (fonte
 | 33  | sex 01/01 | 1      | Teaser: "Você sabe quanto realmente tem?" (`lancamento-janeiro/`)                                         | ✅     |           |
 | 34  | sáb 02/01 | 0      | **Lançamento:** "Tudo o que o Appliquei faz", 55 s (`resumo/appliquei-tudo-55s.mp4`), **fixar no perfil** | ✅     |           |
 
-O #3 saiu na quinta 29/10 (o assunto do dólar estava quente) e a sexta 30/10 ficou sem Reel. "Frete grátis acima de R$ 99" (antes o #3) ficou de reserva: entra se algum tema cair na revisão de 16/11.
+O #3 saiu na quinta 29/10 (o assunto do dólar, News #1). O carro foi antecipado para sex 30/10 (fundador, 29/10) e o "Frete grátis acima de R$ 99" voltou da reserva para seg 02/11.
 
 Os vídeos prontos de alcance são publicados na versão `appliquei-<tema>-com-capa.mp4`.
 

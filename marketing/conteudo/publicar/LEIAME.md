@@ -107,8 +107,7 @@ Hashtags: `#educacaofinanceira #dicasdefinancas`
 ## QUINTA 29/10 · Faltam 65 dias · Appliquei News #1
 
 Reel antecipado para quinta a pedido do fundador (28/10): o assunto do dólar
-está quente agora. Sexta 30/10 fica sem Reel (a semana segue com 3: seg, qua
-e qui).
+está quente agora.
 
 Sem stories a partir de hoje (fundador, 29/10): a enquete, o quiz e os
 reposts do pacote anterior não saem.
@@ -133,4 +132,33 @@ Manda pra quem acha que dólar não é com ele. 🔁
 Conteúdo educacional e apartidário. Dólar comercial no fechamento: R$ 4,99 (23/10) e R$ 5,40 (26/10). Até 28/10, sem reajuste confirmado de pão ou combustível. Personagens fictícios.
 
 #educacaofinanceira #dolar #financaspessoais #dinheiro #economia
+```
+
+---
+
+## SEXTA 30/10 · Faltam 64 dias · Appliquei Explica
+
+Carro antecipado de seg 02/11 (fundador, 29/10). Abre com a vinheta verde da
+série e a capa com a faixa "Appliquei Explica".
+
+**19h · REEL** · `04-30-10-carro-ou-aplicativo.mp4`
+Capa: Editar capa › Adicionar da galeria › `04-30-10-carro-ou-aplicativo-capa.png`.
+Legenda (Instagram):
+
+```
+Esse carro custa R$ 2.100 por mês. Parado na garagem. 🚗
+
+O Mateus comprou um carro de R$ 80 mil porque achou que aplicativo pesava no bolso, mas só usa no fim de semana. Somando desvalorização, IPVA, seguro, manutenção e o que os R$ 80 mil deixam de render: R$ 25 mil por ano. Dá 70 corridas de R$ 30 por mês. O Mateus faz 16.
+
+📌 Regra de bolso: divida o custo do seu carro pelo preço da corrida. Se você não anda tudo isso, o carro é que pesa no bolso. (Roda todo dia? Aí pode compensar. Faz a conta com o seu e comenta.)
+
+Manda pra quem acha que aplicativo pesa no bolso. 🔁
+
+💡 Appliquei Explica: a conta do dia a dia, toda segunda, quarta e sexta.
+
+⏳ Faltam 64 dias para o que estamos preparando pra 2027. Segue pra não perder.
+
+Conteúdo educacional. Valores de exemplo para um carro de R$ 80 mil (IPVA de 4%, como em SP); seguro, desvalorização e manutenção variam por modelo e região. Supondo renda fixa perto de 1% ao mês. Personagem fictício.
+
+#educacaofinanceira #financaspessoais #carro #dinheiro #dicasdefinancas
 ```
