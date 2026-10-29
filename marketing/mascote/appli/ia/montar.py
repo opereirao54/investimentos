@@ -1,5 +1,6 @@
 """Monta o vídeo final do Appli a partir das cenas do Wan 2.2: junta as cenas,
-sobe para 1080×1920 a 30 fps, põe a voz Charon, a legenda de cada frase e um
+sobe para 1080×1920 a 30 fps (etapas em crf 10 e uma só compressão final,
+crf 16 slow, como no padrão de qualidade de COMBINADOS.md), põe a voz Charon, a legenda de cada frase e um
 fecho com a marca sobre o último quadro.
 
     python3 marketing/mascote/appli/ia/montar.py <pasta-das-cenas> <saida.mp4>
@@ -44,7 +45,7 @@ lista = os.path.join(tmp, 'lista.txt')
 open(lista, 'w').write(''.join(f"file '{os.path.abspath(c)}'\n" for c in cenas))
 corpo = os.path.join(tmp, 'corpo.mp4')
 ff('-f', 'concat', '-safe', '0', '-i', lista, '-vf',
-   'scale=1108:1920:flags=lanczos,crop=1080:1920,fps=30,setsar=1', '-c:v', 'libx264', '-crf', '16', '-pix_fmt', 'yuv420p', corpo)
+   'scale=1108:1920:flags=lanczos,crop=1080:1920,fps=30,setsar=1', '-c:v', 'libx264', '-crf', '10', '-pix_fmt', 'yuv420p', corpo)
 dur = float(subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', corpo],
                            capture_output=True, text=True).stdout)
 
@@ -81,7 +82,7 @@ fim = os.path.join(tmp, 'fim.mp4')
 ff('-loop', '1', '-t', str(FECHO), '-framerate', '30', '-i', ultimo, '-loop', '1', '-t', str(FECHO), '-framerate', '30',
    '-i', os.path.join(tmp, 'fecho.png'), '-filter_complex',
    '[1:v]format=rgba,fade=t=in:st=0:d=0.4:alpha=1[f];[0:v][f]overlay=0:0,format=yuv420p,setsar=1',
-   '-c:v', 'libx264', '-crf', '16', fim)
+   '-c:v', 'libx264', '-crf', '10', fim)
 lista2 = os.path.join(tmp, 'lista2.txt')
 open(lista2, 'w').write(f"file '{corpo}'\nfile '{fim}'\n")
 tudo = os.path.join(tmp, 'tudo.mp4')
@@ -97,5 +98,5 @@ ent += ['-i', VOZ]
 na = len(LEGENDAS) + 1
 filt.append(f'[{na}:a]apad,loudnorm=I=-15:TP=-1.5[a]')
 ff(*ent, '-filter_complex', ';'.join(filt), '-map', f'[{ult}]', '-map', '[a]', '-t', str(dur + FECHO),
-   '-c:v', 'libx264', '-crf', '18', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', saida)
+   '-c:v', 'libx264', '-crf', '16', '-preset', 'slow', '-maxrate', '12M', '-bufsize', '24M', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', saida)
 print('gerado:', saida, round(dur + FECHO, 2), 's')

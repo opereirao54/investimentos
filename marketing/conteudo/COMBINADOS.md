@@ -121,8 +121,10 @@ true`), mesmo modelo do News.
 - **Adiados pelo fundador:** Jornada em vídeos longos; postagem automática
   pela API do Instagram.
 - **Mascote: Appli** (28/10): moeda verde com "$" no peito, luvas e tênis,
-  imagem gerada pelo fundador (`marketing/mascote/appli/`). Animação de
-  apresentação pronta. Falta decidir quando estreia (sugestão: semana do
-  lançamento) e gerar as outras poses no mesmo gerador. O Pingo e os
-  ilustrados foram descartados.
+  imagem gerada pelo fundador (`marketing/mascote/appli/`). O Appli
+  **falando e se mexendo sai de graça no Hugging Face** (Wan 2.2, ZeroGPU;
+  29/10: `appli-se-apresenta-sala.mp4`, 22 s na sala de estar, voz Charon).
+  A cota grátis rende um fundo e umas 6 cenas de até 5 s por dia; nada pago
+  (o fundador quer grátis). Falta decidir quando estreia (sugestão: semana do
+  lançamento). O Pingo e os ilustrados foram descartados.
 - **Os 12 vídeos prontos** ganham o selo "Faltam X dias" na véspera de cada um.
