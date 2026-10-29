@@ -57,3 +57,20 @@ found"): `ia/space.py` faz upload, fila e download numa conexão só.
   FantasyTalking, que pede mais GPU do que a conta gratuita permite).
 - Depois das 6 cenas: juntar, subir para 1080×1920 a 30 fps, pôr a voz Charon,
   legenda na tela, marca no fim e selo "Faltam X dias".
+
+## Versão na sala de estar (29/10/2026) — pronta
+
+`appli-se-apresenta-sala.mp4` (22 s, 1080×1920, voz Charon): o Appli numa
+sala de estar ensolarada (fundo do FLUX.1-schnell, `ia/sala/fundo-sala.webp`,
+com o Appli colado em `ia/sala/partida-sala.png`) acena e aponta para si,
+anda até a câmera explicando, comemora com os punhos, balança a cabeça
+("sem planilha"), dança, faz dois joinhas e assina com a marca e "Em
+02/01/2027". Seis cenas encadeadas no Wan 2.2 (`ia/sala/cenas.sh`) e
+montagem com legenda na fonte da marca (`ia/montar.py`). Tudo de graça:
+fundo + 6 cenas couberam na cota diária da conta gratuita.
+
+    cd marketing/mascote/appli/ia/sala && bash cenas.sh
+    python3 marketing/mascote/appli/ia/montar.py marketing/mascote/appli/ia/sala marketing/mascote/appli/appli-se-apresenta-sala.mp4
+
+Outro cenário: gere outro fundo, cole o Appli no mesmo lugar, copie a pasta
+`sala/` e troque os gestos no `cenas.sh`.
