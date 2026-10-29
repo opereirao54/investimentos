@@ -71,3 +71,16 @@ Seguir `.claude/skills/marketing-saas/referencias/formatos.md` (estrutura de
   de `narrar.py` é robótico e serve só de rascunho.
 - Sem acesso ao CDN do Chart.js, os gráficos das telas capturadas saem vazios;
   prefira telas sem gráfico grande ou capture fora da nuvem.
+
+## Qualidade (29/10)
+
+- `render.js`: quadros em **PNG** (sem perda) e vídeo intermediário em
+  **crf 10** (quase sem perda). `vinheta.sh` também sai em crf 10.
+- `contagem.js` faz a **única compressão final**: crf 16, `preset slow`,
+  `tune film`, teto de 12 Mbps e um **granulado quase invisível**
+  (`noise=alls=2`) que segura o degradê do fundo quando o Instagram
+  recomprime. A capa com o selo sai da capa embutida (PNG), não de um quadro
+  comprimido.
+- `capa.js` desenha em **2x** e reduz com lanczos (letras mais nítidas).
+- No celular de quem posta: Instagram › Configurações › Uso de dados e
+  qualidade de mídia › **Carregar na qualidade mais alta**.

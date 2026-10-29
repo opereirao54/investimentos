@@ -7,6 +7,8 @@
 //   node marketing/ferramentas/shorts/contagem.js entrada.mp4 68 saida.mp4 [y]
 //
 // y (opcional): altura do selo em px, padrão 130. Precisa do ffmpeg.
+// SELO_DESDE=<s>: o selo só entra a partir desse segundo, e a capa .png sai
+// sem ele (série Appliquei: a capa e a vinheta já trazem a contagem).
 
 const fs = require('fs');
 const os = require('os');
@@ -22,6 +24,7 @@ if (!entrada || !saida || !Number.isInteger(dias) || dias < 0) {
   process.exit(1);
 }
 const Y = Number(yArg) || 130;
+const DESDE = Number(process.env.SELO_DESDE || 0);
 const MK = path.join(__dirname, '..', '..');
 const FONTES = fs.readFileSync(path.join(MK, '.fontes.css'), 'utf8');
 const texto = dias === 0 ? 'É hoje' : `Faltam <b>${dias}</b> ${dias === 1 ? 'dia' : 'dias'}`;
@@ -58,7 +61,8 @@ html, body { margin: 0; background: transparent; }
     '-i',
     png,
     '-filter_complex',
-    `[0:v][1:v]overlay=x=W-w-60:y=${Y}[v]`,
+    // granulado quase invisível: segura o degradê do fundo quando a rede recomprime
+    `[0:v:0][1:v]overlay=x=W-w-60:y=${Y}${DESDE ? `:enable='gte(t,${DESDE})'` : ''},noise=alls=2:allf=t[v]`,
     '-map',
     '[v]',
     '-map',
@@ -67,10 +71,17 @@ html, body { margin: 0; background: transparent; }
     '0:v:1?',
     '-c:v:0',
     'libx264',
+    // a única compressão final do vídeo (as etapas antes são quase sem perda)
     '-crf',
-    '18',
+    '16',
     '-preset',
-    'medium',
+    'slow',
+    '-tune',
+    'film',
+    '-maxrate',
+    '12M',
+    '-bufsize',
+    '24M',
     '-pix_fmt',
     'yuv420p',
     '-c:a',
@@ -83,20 +94,38 @@ html, body { margin: 0; background: transparent; }
     '+faststart',
     saida,
   ]);
-  fs.rmSync(png, { force: true });
-  // capa com o selo, para subir em "Editar capa" no Instagram
+  // capa com o selo, para subir em "Editar capa" no Instagram: o selo vai por
+  // cima da capa embutida (PNG, sem perda); sem capa embutida, usa o 1º quadro
   const capa = saida.replace(/\.mp4$/, '-capa.png');
-  execFileSync('ffmpeg', [
-    '-y',
-    '-loglevel',
-    'error',
-    '-i',
-    saida,
-    '-map',
-    '0:v:0',
-    '-frames:v',
-    '1',
-    capa,
-  ]);
+  try {
+    execFileSync('ffmpeg', [
+      '-y',
+      '-loglevel',
+      'error',
+      '-i',
+      entrada,
+      '-i',
+      png,
+      '-filter_complex',
+      DESDE ? '[0:v:1]null' : `[0:v:1][1:v]overlay=x=W-w-60:y=${Y}`,
+      '-frames:v',
+      '1',
+      capa,
+    ]);
+  } catch {
+    execFileSync('ffmpeg', [
+      '-y',
+      '-loglevel',
+      'error',
+      '-i',
+      saida,
+      '-map',
+      '0:v:0',
+      '-frames:v',
+      '1',
+      capa,
+    ]);
+  }
+  fs.rmSync(png, { force: true });
   console.log('gerado: ' + saida + ' e ' + capa);
 })();

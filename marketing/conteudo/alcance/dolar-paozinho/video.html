@@ -41,6 +41,7 @@
   .logo-fixo { position: absolute; left: 60px; top: 60px; width: 200px; z-index: 20; }
   .serie { position: absolute; right: 150px; top: 60px; padding: 10px 20px; border-radius: 99px; border: 2px solid rgba(52,211,153,.45); background: rgba(52,211,153,.12);
     font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .12em; text-transform: uppercase; color: var(--sinal); z-index: 20; }
+  .serie.news { border: none; background: #b91c1c; color: #fff; font-weight: 500; letter-spacing: .14em; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
   .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); z-index: 30; }
   .el { opacity: 0; }
   .chip { position: absolute; left: 0; right: 0; text-align: center; }
@@ -134,7 +135,7 @@
   <div class="halo"></div>
   <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
   <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
-  <div class="serie" id="serie">Conta de padaria</div>
+  <div class="serie news" id="serie">Appliquei News</div>
 
   <!-- 1. GANCHO: as manchetes da semana -->
   <div class="cena" id="c1">

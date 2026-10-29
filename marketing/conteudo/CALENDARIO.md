@@ -1,4 +1,4 @@
-# Calendário até o lançamento: 34 Reels, de 26/10/2026 a 02/01/2027
+# Calendário até o lançamento: duas séries de Reels, de 26/10/2026 a 02/01/2027
 
 **Objetivo:** fazer a pessoa seguir a página (educação e planejamento
 financeiro) e criar expectativa pelo lançamento de **02/01/2027**, sem mostrar
@@ -10,14 +10,13 @@ PDF simples para compartilhar: `plano-instagram.pdf` (fonte
 
 ## Regras
 
-- **3 Reels por semana** (seg, qua, sex) até 26/12 e **todo dia na semana do
-  lançamento** (27/12 a 02/01). São 34 Reels: 12 já prontos e 22 novos.
-- **Contagem regressiva em todo Reel:** selo "Faltam X dias" no canto e fecho
-  com a pista ("Em 47 dias, …").
-- **Stories todo dia.** A contagem regressiva em story (vídeo "relógio", com
-  o adesivo de contagem para 02/01) sai **de 10 em 10 dias**, faltando 58
-  (05/11), 48 (15/11), 38 (25/11), 28 (05/12) e 18 (15/12), e **todo dia de
-  26/12 a 02/01** (faltam 7 a 0).
+- **Duas séries, só Reels (fundador, 29/10):** **Appliquei Explica** (seg, qua
+  e sex; os temas da tabela abaixo) e **Appliquei News** (ter e qui; a
+  notícia econômica do momento traduzida para o bolso, tema escolhido na
+  véspera). 5 Reels por semana a partir de 02/11 e todo dia de 27/12 a 02/01.
+- **Sem stories** desde 29/10.
+- **Contagem regressiva em todo Reel:** selo "Faltam X dias" no canto e a
+  linha "⏳ Faltam X dias…" na legenda.
 - **Até 26/12 o app não aparece.** As pistas falam do que a pessoa vai
   sentir, não de telas. Na última semana, os 7 vídeos de produto revelam o
   app função por função.
@@ -40,7 +39,7 @@ PDF simples para compartilhar: `plano-instagram.pdf` (fonte
 | 3. Fazer crescer e planejar 2027 | 30/11 a 26/12 | Juros compostos, inflação, Natal, contas de janeiro, metas | "Quero começar"                |
 | 4. Lançamento                    | 27/12 a 02/01 | O app, função por função                                   | "É isso que eu precisava"      |
 
-## Os 34 Reels
+## Appliquei Explica (seg, qua e sex) e os vídeos de produto
 
 ✅ pronto · 🆕 a fazer
 
@@ -49,7 +48,8 @@ PDF simples para compartilhar: `plano-instagram.pdf` (fonte
 | 1   | seg 26/10 | 68     | Mesma compra: 11 ou 38 dias pra pagar? (`alcance/melhor-dia-compra`)                                      | ✅     |           |
 | 2   | qua 28/10 | 66     | Parcelado sem juros ou à vista com desconto? (`alcance/avista-ou-parcelado`)                              | ✅     |           |
 | 3   | qui 29/10 | 65     | O dólar disparou. E o seu pãozinho? (`alcance/dolar-paozinho`; assunto da semana, antecipado)             | ✅     |           |
-| 4   | seg 02/11 | 61     | Seu carro custa R$ 2.100 por mês. Parado. (`alcance/carro-ou-aplicativo`)                                 | ✅     |           |
+| 4   | sex 30/10 | 64     | Seu carro custa R$ 2.100 por mês. Parado. (`alcance/carro-ou-aplicativo`; antecipado de 02/11)            | ✅     |           |
+| 4b  | seg 02/11 | 61     | Frete grátis acima de R$ 99: a pegadinha do carrinho (volta da reserva)                                   | 🆕     |           |
 | 5   | qua 04/11 | 59     | Ganha até R$ 5 mil? Confira seu holerite (isenção do IR desde jan/2026)                                   | 🆕     |           |
 | 6   | sex 06/11 | 57     | Garantia estendida: o seguro que paga a loja                                                              | 🆕     |           |
 | 7   | seg 09/11 | 54     | Quanto o seu delivery custa em um ano                                                                     | 🆕     |           |
@@ -81,27 +81,37 @@ PDF simples para compartilhar: `plano-instagram.pdf` (fonte
 | 33  | sex 01/01 | 1      | Teaser: "Você sabe quanto realmente tem?" (`lancamento-janeiro/`)                                         | ✅     |           |
 | 34  | sáb 02/01 | 0      | **Lançamento:** "Tudo o que o Appliquei faz", 55 s (`resumo/appliquei-tudo-55s.mp4`), **fixar no perfil** | ✅     |           |
 
-O #3 saiu na quinta 29/10 (o assunto do dólar estava quente) e a sexta 30/10 ficou sem Reel. "Frete grátis acima de R$ 99" (antes o #3) ficou de reserva: entra se algum tema cair na revisão de 16/11.
+O #3 saiu na quinta 29/10 (o assunto do dólar, News #1). O carro foi antecipado para sex 30/10 (fundador, 29/10) e o "Frete grátis acima de R$ 99" voltou da reserva para seg 02/11.
 
 Os vídeos prontos de alcance são publicados na versão `appliquei-<tema>-com-capa.mp4`.
 
-## Stories, todo dia (5 a 10 minutos)
+## Appliquei News (ter e qui)
 
-Nos dias de contagem (58, 48, 38, 28, 18 e de 7 a 0), o primeiro story do
-dia é o vídeo "relógio" com o adesivo de contagem regressiva.
+O tema sai na véspera, pela notícia econômica mais quente, sempre com "e o
+seu bolso com isso?". Datas da agenda que já se sabe (confirmar na véspera):
 
-| Dia           | Story                                                                     |
-| ------------- | ------------------------------------------------------------------------- |
-| Seg, qua, sex | Repost do Reel do dia + enquete sobre o tema                              |
-| Ter           | Caixa de perguntas: "Qual conta você quer que a gente faça?" (vira pauta) |
-| Qui           | Quiz de 1 pergunta (ex.: "R$ 100 por mês em 10 anos viram quanto?")       |
-| **Sáb**       | **Pista da semana** (abaixo)                                              |
-| Dom           | Resumo da semana                                                          |
+| #   | Data      | Faltam | Pauta provável                                                 | Publicado |
+| --- | --------- | ------ | -------------------------------------------------------------- | --------- |
+| 1   | qui 29/10 | 65     | O dólar disparou. E o seu pãozinho? (`alcance/dolar-paozinho`) |           |
+| 2   | ter 03/11 | 60     | véspera do Copom: o que a Selic muda no seu bolso              |           |
+| 3   | qui 05/11 | 58     | a decisão do Copom (04/11): poupança, CDB, financiamento       |           |
+| 4   | ter 10/11 | 53     | inflação de outubro (IPCA, se sair nessa semana)               |           |
+| 5   | qui 12/11 | 51     | assunto da semana                                              |           |
+| 6   | ter 17/11 | 46     | assunto da semana                                              |           |
+| 7   | qui 19/11 | 44     | assunto da semana                                              |           |
+| 8   | ter 24/11 | 39     | Black Friday chegando: o que está mais caro e mais barato      |           |
+| 9   | qui 26/11 | 37     | véspera da Black Friday / 1ª parcela do 13º (até 30/11)        |           |
+| 10  | ter 01/12 | 32     | assunto da semana                                              |           |
+| 11  | qui 03/12 | 30     | assunto da semana                                              |           |
+| 12  | ter 08/12 | 25     | assunto da semana (Copom de dezembro, se for nessa semana)     |           |
+| 13  | qui 10/12 | 23     | assunto da semana                                              |           |
+| 14  | ter 15/12 | 18     | assunto da semana                                              |           |
+| 15  | qui 17/12 | 16     | 2ª parcela do 13º (até 20/12)                                  |           |
+| 16  | ter 22/12 | 11     | assunto da semana                                              |           |
+| 17  | qui 24/12 | 9      | véspera de Natal: assunto da semana                            |           |
 
-### As 9 pistas de sábado
-
-Cada pista prepara um dos vídeos de produto da última semana, sem mostrar a
-tela.
+As 9 pistas de sábado (que eram stories) viram a última frase de um Reel da
+semana, quando couber:
 
 | Sábado | Faltam | Pista                                                                  |
 | ------ | ------ | ---------------------------------------------------------------------- |
@@ -117,8 +127,8 @@ tela.
 
 ## Produção
 
-- **22 vídeos novos em 9 semanas**, 3 por semana. Toda quinta eu entrego os
-  Reels da semana seguinte (vídeo, capa e legenda) para revisão em lote.
+- **Appliquei Explica:** 22 vídeos novos em 9 semanas. **News:** 16 vídeos
+  novos, um na véspera de cada terça e quinta.
 - **Cota de voz:** 1 pedido por vídeo, às vezes 2; cabe nos 10 por dia.
 - **Revisão em 16/11** (3 semanas de dados): os temas que mais renderem
   ganham variações na fase 3.

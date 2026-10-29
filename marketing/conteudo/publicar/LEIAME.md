@@ -6,24 +6,17 @@ hashtags no Reel; texto e adesivo nos stories). Reels saem de
 `marketing/ferramentas/shorts/contagem.js`; stories, de `capa.js`.
 
 **Para quem posta:** o pacote do dia vai em um bloco de texto por postagem,
-pronto para copiar e encaminhar, sem nome de arquivo (as imagens são chamadas
-pelo que mostram, ex.: imagem "Faltam 68 dias"), com horário, passo a passo,
-legenda e hashtags. Os stories também levam hashtags (2 ou 3, escritas por
-cima da imagem, pequenas, ou com o adesivo de hashtag).
+pronto para copiar e encaminhar, sem nome de arquivo (o vídeo e a capa são
+chamados pelo que mostram), com horário, passo a passo, legenda e hashtags.
 
 **Ritmo de produção (combinado em 25/10):** um dia por vez. Cada dia se
-produz só o pacote do dia seguinte (Reel, se houver, stories, legendas e
-hashtags), no formato de blocos acima.
+produz só o Reel do dia seguinte, com legendas e hashtags das três redes.
 
-Horários: story 8h30 e 12h30, Reel às 19h nas três redes (Instagram, TikTok,
-YouTube Shorts), repost no story 19h30. O Reel leva um bloco de texto por rede
-(regras em `../COMBINADOS.md`). Ajuste depois de 3 semanas pelas estatísticas do perfil.
-
-A contagem regressiva em story (vídeo "relógio", `relogio.js <dias>`) sai só
-nos marcos: faltam 58 (05/11), 48 (15/11), 38 (25/11), 28 (05/12), 18 (15/12)
-e todo dia de 7 a 0 (26/12 a 02/01). Nos outros dias, sem story de contagem.
-O adesivo "Lançamento Appliquei" (02/01/2027, 00:00) já foi criado em 26/10:
-nos dias de contagem, é só escolher o que já existe.
+**Desde 29/10, só Reels** (fundador): sem stories. Duas séries: **Appliquei
+Explica** (seg, qua e sex) e **Appliquei News** (ter e qui, a notícia do
+momento no bolso). Reel às 19h no Instagram, TikTok e YouTube Shorts (regras
+em `../COMBINADOS.md`). Ajuste depois de 3 semanas pelas estatísticas do
+perfil. Os dias de 26 a 28/10, abaixo, ainda tinham stories.
 
 ---
 
@@ -111,26 +104,15 @@ Hashtags: `#educacaofinanceira #dicasdefinancas`
 
 ---
 
-## QUINTA 29/10 · Faltam 65 dias · Reel do assunto da semana
+## QUINTA 29/10 · Faltam 65 dias · Appliquei News #1
 
 Reel antecipado para quinta a pedido do fundador (28/10): o assunto do dólar
-está quente agora. Sexta 30/10 fica sem Reel (a semana segue com 3: seg, qua
-e qui).
+está quente agora.
 
-**1) 8h30 · STORY** · `stories/29-10-enquete.png`
-Adesivo: Enquete › "Já tô sentindo" / "Ainda não".
-Hashtags: `#dolar #financaspessoais`
+Sem stories a partir de hoje (fundador, 29/10): a enquete, o quiz e os
+reposts do pacote anterior não saem.
 
-**2) 12h30 · STORY** · `stories/29-10-quiz.png`
-Adesivo: Quiz › pergunta `Quanto por mês?` › opções `0,5% ao mês`, `1% ao mês`,
-`Quase 2% ao mês` (certa), `5% ao mês`.
-Hashtags: `#financaspessoais #dicasdefinancas`
-
-**3) 13h · STORY** · repost do Reel de quarta
-Texto por cima: `A resposta do quiz tá aqui 👆`
-Hashtags: `#educacaofinanceira #parceladoouavista`
-
-**4) 19h · REEL** · `03-29-10-dolar-paozinho.mp4`
+**19h · REEL** · `03-29-10-dolar-paozinho.mp4`
 Capa: Editar capa › Adicionar da galeria › `03-29-10-dolar-paozinho-capa.png`.
 Legenda (Instagram):
 
@@ -143,13 +125,40 @@ Mais da metade do trigo usado no Brasil vem de fora e é pago em dólar: pão e 
 
 Manda pra quem acha que dólar não é com ele. 🔁
 
-⏳ Faltam 65 dias para o que estamos preparando pra 2027. Ativa o lembrete nos stories.
+📰 Appliquei News: a notícia da semana no seu bolso, toda terça e quinta.
+
+⏳ Faltam 65 dias para o que estamos preparando pra 2027. Segue pra não perder.
 
 Conteúdo educacional e apartidário. Dólar comercial no fechamento: R$ 4,99 (23/10) e R$ 5,40 (26/10). Até 28/10, sem reajuste confirmado de pão ou combustível. Personagens fictícios.
 
 #educacaofinanceira #dolar #financaspessoais #dinheiro #economia
 ```
 
-**5) 19h30 · STORY** · repost do Reel
-Texto por cima: `Dólar não é coisa de rico. Chega no pão 👆`
-Hashtags: `#dolar #educacaofinanceira`
+---
+
+## SEXTA 30/10 · Faltam 64 dias · Appliquei Explica
+
+Carro antecipado de seg 02/11 (fundador, 29/10). Abre com a vinheta verde da
+série e a capa com a faixa "Appliquei Explica".
+
+**19h · REEL** · `04-30-10-carro-ou-aplicativo.mp4`
+Capa: Editar capa › Adicionar da galeria › `04-30-10-carro-ou-aplicativo-capa.png`.
+Legenda (Instagram):
+
+```
+Esse carro custa R$ 2.100 por mês. Parado na garagem. 🚗
+
+O Mateus comprou um carro de R$ 80 mil porque achou que aplicativo pesava no bolso, mas só usa no fim de semana. Somando desvalorização, IPVA, seguro, manutenção e o que os R$ 80 mil deixam de render: R$ 25 mil por ano. Dá 70 corridas de R$ 30 por mês. O Mateus faz 16.
+
+📌 Regra de bolso: divida o custo do seu carro pelo preço da corrida. Se você não anda tudo isso, o carro é que pesa no bolso. (Roda todo dia? Aí pode compensar. Faz a conta com o seu e comenta.)
+
+Manda pra quem acha que aplicativo pesa no bolso. 🔁
+
+💡 Appliquei Explica: a conta do dia a dia, toda segunda, quarta e sexta.
+
+⏳ Faltam 64 dias para o que estamos preparando pra 2027. Segue pra não perder.
+
+Conteúdo educacional. Valores de exemplo para um carro de R$ 80 mil (IPVA de 4%, como em SP); seguro, desvalorização e manutenção variam por modelo e região. Supondo renda fixa perto de 1% ao mês. Personagem fictício.
+
+#educacaofinanceira #financaspessoais #carro #dinheiro #dicasdefinancas
+```
