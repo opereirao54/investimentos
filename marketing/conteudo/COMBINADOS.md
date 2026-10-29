@@ -92,6 +92,13 @@ true`), mesmo modelo do News.
   print, logo ou foto do veículo), **sem rosto de político nem nome de
   partido**: o Instagram não recomenda conteúdo político a quem não segue a
   conta. Primeiro: "O dólar disparou. E o seu pãozinho?" (qui 29/10, antecipado da sexta).
+- **Padrão de qualidade (fundador, 29/10: "mantenha esse padrão"):** quadros
+  em PNG, etapas intermediárias quase sem perda (crf 10) e **uma só
+  compressão final** em `contagem.js` (crf 16, slow, teto de 12 Mbps, granulado
+  quase invisível contra faixas no degradê); capas desenhadas em 2x. Um Reel
+  de ~1 min fica com ~4,5 Mbps e ~45 MB. Não voltar para JPEG nem recomprimir
+  o vídeo em cada etapa. Quem posta: "Carregar na qualidade mais alta" ligado
+  no Instagram.
 - **Capa** com a frase do gancho em todo vídeo (`capa.js`), na capa e no
   primeiro quadro (`appliquei-<tema>-com-capa.mp4`).
 - **Números conferidos com fonte** antes de gravar; aviso educacional e
