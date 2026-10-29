@@ -102,8 +102,6 @@ true`), mesmo modelo do News.
 - **Métricas:** pedir os números de cada Reel no dia seguinte (visualizações,
   retenção, salvamentos, compartilhamentos) e anotar no calendário. Revisão
   dos temas em **16/11**.
-- **Tarifas do banco (23/11):** renderizar de novo antes de postar (o mp4
-  ainda diz "Em 66 dias"; o `video.html` já diz 40).
 - **Carteira sugerida:** trocar a cena "conta aberta" por "O próximo aporte,
   com o cálculo à vista" (o fundador deixou para depois) e resolver a
   pendência CVM antes de usar.
