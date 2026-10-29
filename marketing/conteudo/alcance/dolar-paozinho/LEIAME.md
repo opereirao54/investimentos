@@ -1,4 +1,7 @@
-# "O dólar disparou. E o seu pãozinho?" (54,7 s)
+# "O dólar disparou. E o seu pãozinho?" (54,7 s) · Appliquei News #1
+
+Tarja vermelha "Appliquei News" no topo e na capa (`capa.json` com
+`"news": true`), desde 29/10, quando virou o primeiro episódio da série.
 
 Vídeo educativo de alcance no formato "conta na tela", feito sobre o assunto
 da semana: depois da eleição, em 26/10/2026, o dólar teve a maior alta num dia

@@ -126,6 +126,8 @@ Mais da metade do trigo usado no Brasil vem de fora e é pago em dólar: pão e 
 
 Manda pra quem acha que dólar não é com ele. 🔁
 
+📰 Appliquei News: a notícia da semana no seu bolso, toda terça e quinta.
+
 ⏳ Faltam 65 dias para o que estamos preparando pra 2027. Segue pra não perder.
 
 Conteúdo educacional e apartidário. Dólar comercial no fechamento: R$ 4,99 (23/10) e R$ 5,40 (26/10). Até 28/10, sem reajuste confirmado de pão ou combustível. Personagens fictícios.

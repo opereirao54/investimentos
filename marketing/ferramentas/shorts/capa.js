@@ -8,6 +8,7 @@
 //   "rotulo": "Conta de padaria",      // opcional (selo acima da frase)
 //   "apoio": "A conta que ninguém faz", // opcional (linha menor abaixo)
 //   "tamanho": 112                       // opcional (px da frase; diminua se quebrar mal)
+//   "news": true                         // opcional: selo vermelho da série Appliquei News
 // }
 // <em> pinta de âmbar (o número que choca); <em class="v"> pinta de verde-sinal.
 // Tudo fica dentro do recorte 3:4 da grade do perfil (1080×1440 no meio da
@@ -51,6 +52,7 @@ svg.malha { position: absolute; inset: 0; }
   display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
 .rotulo { padding: 12px 26px; border-radius: 99px; border: 2px solid rgba(52,211,153,.5); background: rgba(52,211,153,.12);
   font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .14em; text-transform: uppercase; color: #34d399; }
+.rotulo.news { border: none; background: #b91c1c; color: #fff; }
 .frase { margin-top: 56px; font-weight: 900; font-size: ${spec.tamanho || 112}px; line-height: 1.04; letter-spacing: -.04em; }
 .frase em { font-style: normal; color: #fbbf24; }
 .frase em.v { color: #34d399; }
@@ -59,7 +61,7 @@ svg.malha { position: absolute; inset: 0; }
 </style></head><body>
 <div class="halo"></div><svg class="malha" viewBox="0 0 1080 1920">${malha.join('')}</svg>
 <div class="miolo">
-  ${spec.rotulo === '' ? '' : `<div class="rotulo">${spec.rotulo || 'Conta de padaria'}</div>`}
+  ${spec.rotulo === '' ? '' : `<div class="rotulo${spec.news ? ' news' : ''}">${spec.rotulo || (spec.news ? 'Appliquei News' : 'Conta de padaria')}</div>`}
   <div class="frase">${spec.frase}</div>
   ${spec.apoio ? `<div class="apoio">${spec.apoio}</div>` : ''}
   <img class="marca" src="data:image/svg+xml;base64,${WM}" alt="Appliquei">
