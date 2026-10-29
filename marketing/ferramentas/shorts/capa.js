@@ -10,6 +10,7 @@
 //   "tamanho": 112                       // opcional (px da frase; diminua se quebrar mal)
 //   "news": true                         // opcional: capa da série Appliquei News (faixa
 //                                           vermelha de telejornal no topo, como a vinheta)
+//   "explica": true                      // opcional: a mesma capa em verde, série Appliquei Explica
 // }
 // <em> pinta de âmbar (o número que choca); <em class="v"> pinta de verde-sinal.
 // Tudo fica dentro do recorte 3:4 da grade do perfil (1080×1440 no meio da
@@ -59,6 +60,8 @@ svg.malha { position: absolute; inset: 0; }
 .faixa-news b { font-size: 150px; font-weight: 900; letter-spacing: -.045em; line-height: 1; color: #fff; transform: skewY(4deg); }
 .faixa-news span { margin-top: 10px; padding: 6px 34px; background: #fff; color: #b91c1c; font-family: 'DM Mono', monospace;
   font-size: 70px; letter-spacing: .32em; text-indent: .32em; transform: skewY(4deg); }
+.faixa-news.explica { background: #059669; }
+.faixa-news.explica span { color: #047857; }
 .miolo.news { top: 660px; height: 1020px; justify-content: flex-start; padding-top: 70px; }
 .miolo.news .frase { margin-top: 0; }
 .frase { margin-top: 56px; font-weight: 900; font-size: ${spec.tamanho || 112}px; line-height: 1.04; letter-spacing: -.04em; }
@@ -69,8 +72,9 @@ svg.malha { position: absolute; inset: 0; }
 </style></head><body>
 <div class="halo"></div><svg class="malha" viewBox="0 0 1080 1920">${malha.join('')}</svg>
 ${spec.news ? '<div class="faixa-news"><b>APPLIQUEI</b><span>NEWS</span></div>' : ''}
-<div class="miolo${spec.news ? ' news' : ''}">
-  ${spec.rotulo === '' || spec.news ? '' : `<div class="rotulo">${spec.rotulo || 'Appliquei Explica'}</div>`}
+${spec.explica ? '<div class="faixa-news explica"><b>APPLIQUEI</b><span>EXPLICA</span></div>' : ''}
+<div class="miolo${spec.news || spec.explica ? ' news' : ''}">
+  ${spec.rotulo === '' || spec.news || spec.explica ? '' : `<div class="rotulo">${spec.rotulo || 'Appliquei Explica'}</div>`}
   <div class="frase">${spec.frase}</div>
   ${spec.apoio ? `<div class="apoio">${spec.apoio}</div>` : ''}
   <img class="marca" src="data:image/svg+xml;base64,${WM}" alt="Appliquei">
