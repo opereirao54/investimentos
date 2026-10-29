@@ -33,6 +33,11 @@ true`), mesmo modelo do News.
   - Começam na **segunda 02/11**: 5 Reels por semana até 26/12 e **todo dia**
     de 27/12 a 02/01 (os 7 vídeos de produto prontos). Sexta 30/10: o carro
     (Appliquei Explica), antecipado de 02/11.
+  - **Série "Appliquei"** (reta final, 27/12 a 02/01, todo dia): os vídeos de
+    produto. Nome escolhido pelo fundador em 29/10. Capa com a faixa
+    inclinada e a **logo** no lugar do texto, selo "Faltam X dias" (`capa.js`
+    com `"appliquei": true` e `"aviso"`); exemplos dourado e verde em
+    `reta-final/`, cor a decidir. Vinheta da série a fazer.
   - **Até o lançamento, pouca ferramenta:** as duas séries educam; o app só
     aparece de 26/12 em diante.
 - **Sem stories (fundador, 29/10: "só reels").** Acabam a enquete, a caixa, o

@@ -11,6 +11,9 @@
 //   "news": true                         // opcional: capa da série Appliquei News (faixa
 //                                           vermelha de telejornal no topo, como a vinheta)
 //   "explica": true                      // opcional: a mesma capa em verde, série Appliquei Explica
+//   "appliquei": true                    // opcional: série da reta final (27/12 a 02/01): faixa
+//                                           dourada com a logo; "aviso": "Faltam 6 dias" no selo
+//   "verde": true                        // com "appliquei": a faixa em verde em vez de dourado
 // }
 // <em> pinta de âmbar (o número que choca); <em class="v"> pinta de verde-sinal.
 // Tudo fica dentro do recorte 3:4 da grade do perfil (1080×1440 no meio da
@@ -33,7 +36,12 @@ if (!fs.existsSync(CSS_FONTES)) {
 }
 const spec = JSON.parse(fs.readFileSync(specArq, 'utf8'));
 const FONTES = fs.readFileSync(CSS_FONTES, 'utf8');
-const WM = fs.readFileSync(path.join(MK, '..', 'appliquei-wordmark.svg')).toString('base64');
+const WM_SVG = fs.readFileSync(path.join(MK, '..', 'appliquei-wordmark.svg'), 'utf8');
+const WM = Buffer.from(WM_SVG).toString('base64');
+// a logo com as letras escuras, para a faixa dourada (o $ continua verde)
+const WM_ESCURA = Buffer.from(WM_SVG.replace(/#f0faf4/g, '#0b1410')).toString('base64');
+// e com o $ dourado, para a faixa verde
+const WM_OURO = Buffer.from(WM_SVG.replace(/#10b981/g, '#fbbf24')).toString('base64');
 
 const malha = [];
 for (let x = 60; x < 1080; x += 60)
@@ -62,6 +70,12 @@ svg.malha { position: absolute; inset: 0; }
 .faixa-news span { margin-top: 10px; padding: 6px 34px; background: #fff; color: #b91c1c; font-family: 'DM Mono', monospace;
   font-size: 70px; letter-spacing: .32em; text-indent: .32em; transform: skewY(4deg); }
 .faixa-news.explica { background: #059669; }
+.faixa-news.ouro { background: linear-gradient(100deg, #f59e0b, #fbbf24 45%, #fde68a 60%, #f59e0b); }
+.faixa-news.ouro img { width: 640px; transform: skewY(4deg); }
+.faixa-news.lanc-verde { background: #059669; }
+.faixa-news.lanc-verde img { width: 640px; transform: skewY(4deg); }
+.aviso-lanc { padding: 14px 34px; border-radius: 99px; border: 3px solid #fbbf24; background: rgba(251,191,36,.12); font-family: 'DM Mono', monospace;
+  font-size: 40px; letter-spacing: .14em; text-transform: uppercase; color: #fbbf24; margin-bottom: 56px; }
 .faixa-news.explica span { color: #047857; }
 .miolo.news { top: 660px; height: 1020px; justify-content: flex-start; padding-top: 70px; }
 .miolo.news .frase { margin-top: 0; }
@@ -74,11 +88,13 @@ svg.malha { position: absolute; inset: 0; }
 <div class="halo"></div><svg class="malha" viewBox="0 0 1080 1920">${malha.join('')}</svg>
 ${spec.news ? '<div class="faixa-news"><b>APPLIQUEI</b><span>NEWS</span></div>' : ''}
 ${spec.explica ? '<div class="faixa-news explica"><b>APPLIQUEI</b><span>EXPLICA</span></div>' : ''}
-<div class="miolo${spec.news || spec.explica ? ' news' : ''}">
-  ${spec.rotulo === '' || spec.news || spec.explica ? '' : `<div class="rotulo">${spec.rotulo || 'Appliquei Explica'}</div>`}
+${spec.appliquei ? `<div class="faixa-news ${spec.verde ? 'lanc-verde' : 'ouro'}"><img src="data:image/svg+xml;base64,${spec.verde ? WM_OURO : WM_ESCURA}" alt="Appliquei"></div>` : ''}
+<div class="miolo${spec.news || spec.explica || spec.appliquei ? ' news' : ''}">
+  ${spec.appliquei && spec.aviso ? `<div class="aviso-lanc">${spec.aviso}</div>` : ''}
+  ${spec.rotulo === '' || spec.news || spec.explica || spec.appliquei ? '' : `<div class="rotulo">${spec.rotulo || 'Appliquei Explica'}</div>`}
   <div class="frase">${spec.frase}</div>
   ${spec.apoio ? `<div class="apoio">${spec.apoio}</div>` : ''}
-  <img class="marca" src="data:image/svg+xml;base64,${WM}" alt="Appliquei">
+  ${spec.appliquei ? '' : `<img class="marca" src="data:image/svg+xml;base64,${WM}" alt="Appliquei">`}
 </div>
 </body></html>`;
 
