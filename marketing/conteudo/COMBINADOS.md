@@ -23,7 +23,8 @@ mudar (com a data).
     para o bolso (Selic, dólar, inflação, gasolina, financiamento, eleição,
     Black Friday, 13º). Tema escolhido **na véspera**, pela notícia mais
     quente; abertura com manchetes reais recriadas no visual da marca; 30 a
-    45 s. Tarja vermelha "APPLIQUEI NEWS" no topo. Apartidário e sem
+    45 s. Tarja vermelha "APPLIQUEI NEWS" no topo e **vinheta de 1,6 s** na
+    abertura (`ferramentas/shorts/vinheta-news.sh`). Apartidário e sem
     recomendação: explicar o mecanismo ("com juros menores, a renda fixa
     rende menos e muita gente olha outros investimentos"), nunca "invista em
     X" (CVM). O Reel do dólar (qui 29/10) conta como **News #1**.
