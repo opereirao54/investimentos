@@ -5,7 +5,7 @@
 // capa.json:
 // {
 //   "frase": "Seu carro custa<br><em>R$ 2.100 por mês.</em><br>Parado.",
-//   "rotulo": "Conta de padaria",      // opcional (selo acima da frase)
+//   "rotulo": "Appliquei Explica",      // opcional (selo acima da frase)
 //   "apoio": "A conta que ninguém faz", // opcional (linha menor abaixo)
 //   "tamanho": 112                       // opcional (px da frase; diminua se quebrar mal)
 //   "news": true                         // opcional: capa da série Appliquei News (faixa
@@ -70,7 +70,7 @@ svg.malha { position: absolute; inset: 0; }
 <div class="halo"></div><svg class="malha" viewBox="0 0 1080 1920">${malha.join('')}</svg>
 ${spec.news ? '<div class="faixa-news"><b>APPLIQUEI</b><span>NEWS</span></div>' : ''}
 <div class="miolo${spec.news ? ' news' : ''}">
-  ${spec.rotulo === '' || spec.news ? '' : `<div class="rotulo">${spec.rotulo || 'Conta de padaria'}</div>`}
+  ${spec.rotulo === '' || spec.news ? '' : `<div class="rotulo">${spec.rotulo || 'Appliquei Explica'}</div>`}
   <div class="frase">${spec.frase}</div>
   ${spec.apoio ? `<div class="apoio">${spec.apoio}</div>` : ''}
   <img class="marca" src="data:image/svg+xml;base64,${WM}" alt="Appliquei">

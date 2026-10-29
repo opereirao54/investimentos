@@ -15,10 +15,11 @@ mudar (com a data).
 - **Lançamento:** sábado, **02/01/2027**. Calendário em `CALENDARIO.md` (PDF
   simples gerado dele com `node marketing/conteudo/gerar-pdf.js`).
 - **Duas séries fixas (fundador, 29/10), só Reels:**
-  - **Conta de Padaria** (seg, qua e sex): o dinheiro do dia a dia (gastos
+  - **Appliquei Explica** (seg, qua e sex): o dinheiro do dia a dia (gastos
     invisíveis, cartão, reserva, metas), no formato Mateus × Caio com a conta
-    na tela. Os temas do `CALENDARIO.md` são desta série. Selo verde "Conta de
-    padaria" no topo, como já está nos vídeos.
+    na tela. Os temas do `CALENDARIO.md` são desta série. Selo verde "Appliquei
+    Explica" no topo (renomeada de "Conta de Padaria" em 29/10: soava
+    infantil).
   - **Appliquei News** (ter e qui): a notícia econômica do momento traduzida
     para o bolso (Selic, dólar, inflação, gasolina, financiamento, eleição,
     Black Friday, 13º). Tema escolhido **na véspera**, pela notícia mais

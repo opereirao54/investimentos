@@ -12,8 +12,8 @@ chamados pelo que mostram), com horário, passo a passo, legenda e hashtags.
 **Ritmo de produção (combinado em 25/10):** um dia por vez. Cada dia se
 produz só o Reel do dia seguinte, com legendas e hashtags das três redes.
 
-**Desde 29/10, só Reels** (fundador): sem stories. Duas séries: **Conta de
-Padaria** (seg, qua e sex) e **Appliquei News** (ter e qui, a notícia do
+**Desde 29/10, só Reels** (fundador): sem stories. Duas séries: **Appliquei
+Explica** (seg, qua e sex) e **Appliquei News** (ter e qui, a notícia do
 momento no bolso). Reel às 19h no Instagram, TikTok e YouTube Shorts (regras
 em `../COMBINADOS.md`). Ajuste depois de 3 semanas pelas estatísticas do
 perfil. Os dias de 26 a 28/10, abaixo, ainda tinham stories.

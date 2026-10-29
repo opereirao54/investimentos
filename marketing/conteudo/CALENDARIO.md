@@ -10,7 +10,7 @@ PDF simples para compartilhar: `plano-instagram.pdf` (fonte
 
 ## Regras
 
-- **Duas séries, só Reels (fundador, 29/10):** **Conta de Padaria** (seg, qua
+- **Duas séries, só Reels (fundador, 29/10):** **Appliquei Explica** (seg, qua
   e sex; os temas da tabela abaixo) e **Appliquei News** (ter e qui; a
   notícia econômica do momento traduzida para o bolso, tema escolhido na
   véspera). 5 Reels por semana a partir de 02/11 e todo dia de 27/12 a 02/01.
@@ -39,7 +39,7 @@ PDF simples para compartilhar: `plano-instagram.pdf` (fonte
 | 3. Fazer crescer e planejar 2027 | 30/11 a 26/12 | Juros compostos, inflação, Natal, contas de janeiro, metas | "Quero começar"                |
 | 4. Lançamento                    | 27/12 a 02/01 | O app, função por função                                   | "É isso que eu precisava"      |
 
-## Conta de Padaria (seg, qua e sex) e os vídeos de produto
+## Appliquei Explica (seg, qua e sex) e os vídeos de produto
 
 ✅ pronto · 🆕 a fazer
 
@@ -126,7 +126,7 @@ semana, quando couber:
 
 ## Produção
 
-- **Conta de Padaria:** 22 vídeos novos em 9 semanas. **News:** 16 vídeos
+- **Appliquei Explica:** 22 vídeos novos em 9 semanas. **News:** 16 vídeos
   novos, um na véspera de cada terça e quinta.
 - **Cota de voz:** 1 pedido por vídeo, às vezes 2; cabe nos 10 por dia.
 - **Revisão em 16/11** (3 semanas de dados): os temas que mais renderem
