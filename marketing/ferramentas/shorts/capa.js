@@ -18,6 +18,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 const [, , specArq, saida] = process.argv;
 if (!specArq || !saida) {
@@ -87,11 +88,24 @@ ${spec.explica ? '<div class="faixa-news explica"><b>APPLIQUEI</b><span>EXPLICA<
     process.env.CHROMIUM_PATH ||
     (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
   const b = await chromium.launch(exe ? { executablePath: exe } : {});
-  const p = await b.newPage({ viewport: { width: 1080, height: 1920 } });
+  // desenha em 2x e reduz: letras e bordas mais nítidas
+  const p = await b.newPage({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 2 });
   await p.setContent(html);
   await p.evaluate(() => document.fonts.ready);
   await p.waitForTimeout(300);
-  await p.screenshot({ path: saida });
+  const dobro = saida.replace(/\.png$/, '') + `-2x-${process.pid}.png`;
+  await p.screenshot({ path: dobro });
   await b.close();
+  execFileSync('ffmpeg', [
+    '-y',
+    '-loglevel',
+    'error',
+    '-i',
+    dobro,
+    '-vf',
+    'scale=1080:1920:flags=lanczos',
+    saida,
+  ]);
+  fs.rmSync(dobro, { force: true });
   console.log('gerado: ' + saida);
 })();
