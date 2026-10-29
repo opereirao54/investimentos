@@ -7,6 +7,8 @@
 //   node marketing/ferramentas/shorts/contagem.js entrada.mp4 68 saida.mp4 [y]
 //
 // y (opcional): altura do selo em px, padrão 130. Precisa do ffmpeg.
+// SELO_DESDE=<s>: o selo só entra a partir desse segundo, e a capa .png sai
+// sem ele (série Appliquei: a capa e a vinheta já trazem a contagem).
 
 const fs = require('fs');
 const os = require('os');
@@ -22,6 +24,7 @@ if (!entrada || !saida || !Number.isInteger(dias) || dias < 0) {
   process.exit(1);
 }
 const Y = Number(yArg) || 130;
+const DESDE = Number(process.env.SELO_DESDE || 0);
 const MK = path.join(__dirname, '..', '..');
 const FONTES = fs.readFileSync(path.join(MK, '.fontes.css'), 'utf8');
 const texto = dias === 0 ? 'É hoje' : `Faltam <b>${dias}</b> ${dias === 1 ? 'dia' : 'dias'}`;
@@ -59,7 +62,7 @@ html, body { margin: 0; background: transparent; }
     png,
     '-filter_complex',
     // granulado quase invisível: segura o degradê do fundo quando a rede recomprime
-    `[0:v:0][1:v]overlay=x=W-w-60:y=${Y},noise=alls=2:allf=t[v]`,
+    `[0:v:0][1:v]overlay=x=W-w-60:y=${Y}${DESDE ? `:enable='gte(t,${DESDE})'` : ''},noise=alls=2:allf=t[v]`,
     '-map',
     '[v]',
     '-map',
@@ -104,7 +107,7 @@ html, body { margin: 0; background: transparent; }
       '-i',
       png,
       '-filter_complex',
-      `[0:v:1][1:v]overlay=x=W-w-60:y=${Y}`,
+      DESDE ? '[0:v:1]null' : `[0:v:1][1:v]overlay=x=W-w-60:y=${Y}`,
       '-frames:v',
       '1',
       capa,
