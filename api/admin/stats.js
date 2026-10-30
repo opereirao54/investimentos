@@ -4,6 +4,7 @@ const { isLegacyGrant } = require('../_lib/access');
 const { runReconcileSweep } = require('../_lib/reconcile');
 const { montarPainel, situacaoComercial } = require('../_lib/painel-negocio');
 const { listarUso } = require('../_lib/uso-testadores');
+const { buscarInstagram, renovarSeVelho } = require('../_lib/redes-instagram');
 
 // Endpoint admin CONSOLIDADO (cabe em 1 função Vercel — antes eram 3):
 //   GET /api/admin/stats                            → dashboard JSON (default)
@@ -11,6 +12,7 @@ const { listarUso } = require('../_lib/uso-testadores');
 //        &actionFilter=set_discount&emailFilter=... → filtros de audit
 //   GET /api/admin/stats?format=csv                 → export CSV billing
 //   GET /api/admin/stats?op=reconcile               → varredura de reconciliação
+//   GET /api/admin/stats?include=redes[&refresh=1]  → métricas do Instagram
 //
 // Autenticação: header `Authorization: Bearer <ADMIN_API_TOKEN>` ou
 // query string `?token=<ADMIN_API_TOKEN>`. O op=reconcile aceita também
@@ -779,6 +781,55 @@ async function reconcileOp(req, res) {
   return res.json({ ok: true, ...summary });
 }
 
+// ─── REDES SOCIAIS (Instagram) ─────────────────────────────────
+// Token: o renovado fica em redesSociais/instagram (coleção sem regra de
+// leitura para o app); o primeiro vem de IG_TOKEN no Vercel. Os números ficam
+// em cache por 30 min (o Instagram limita as chamadas por hora).
+const REDES_CACHE_MS = 30 * 60 * 1000;
+
+async function redesGet(req, res) {
+  const ref = db().collection('redesSociais').doc('instagram');
+  const snap = await ref.get();
+  const doc = snap.exists ? snap.data() : {};
+  const agora = Date.now();
+  if (
+    req.query.refresh !== '1' &&
+    doc.cache &&
+    doc.cacheEmMs &&
+    agora - doc.cacheEmMs < REDES_CACHE_MS
+  ) {
+    return res.json(Object.assign({ doCache: true }, doc.cache));
+  }
+  let token = doc.token || process.env.IG_TOKEN || null;
+  if (!token) return res.json({ configurado: false });
+  const salvar = {};
+  try {
+    const r = await renovarSeVelho({ token, obtidoEmMs: doc.tokenObtidoEmMs || 0, agoraMs: agora });
+    if (r.renovado) {
+      token = r.token;
+      salvar.token = r.token;
+      salvar.tokenObtidoEmMs = agora;
+    }
+  } catch (e) {
+    // token recém-gerado (menos de 24 h) não renova; segue com o atual
+    salvar.ultimoErroRenovacao = String(e.message || e).slice(0, 200);
+  }
+  try {
+    const dados = await buscarInstagram({ token, agoraMs: agora });
+    salvar.cache = dados;
+    salvar.cacheEmMs = agora;
+    await ref.set(salvar, { merge: true });
+    return res.json(dados);
+  } catch (e) {
+    if (Object.keys(salvar).length) await ref.set(salvar, { merge: true });
+    return res.status(502).json({
+      configurado: true,
+      error: 'instagram',
+      detail: String(e.message || e).slice(0, 300),
+    });
+  }
+}
+
 module.exports = handler({
   method: 'GET',
   // Admin token estático, validado em authCheck (não Firebase auth).
@@ -794,6 +845,7 @@ module.exports = handler({
     if (req.query.include === 'feedback') return await feedbackList(req, res);
     if (req.query.include === 'feedback_anexo') return await feedbackAnexoGet(req, res);
     if (req.query.include === 'carteira') return await carteiraGet(req, res);
+    if (req.query.include === 'redes') return await redesGet(req, res);
     return await dashboard(req, res);
   },
 });
