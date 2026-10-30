@@ -479,11 +479,18 @@ const asaasState = {
 };
 
 const mockAsaas = {
+  // O mock faz o papel do sandbox; asaasState.ambiente troca para simular a
+  // virada para produção.
+  ambiente: () => asaasState.ambiente || 'sandbox',
   PLAN_VALUE: 15.0,
   call: async () => {
     throw new Error('asaas.call not implemented in mock');
   },
+  // Como o wrapper real: acha pelo externalReference (uid) antes de criar.
   createCustomer: async ({ name, email, uid }) => {
+    for (const c of asaasState.customers.values()) {
+      if (uid && c.externalReference === uid) return c;
+    }
     const id = 'cus_' + asaasState.seq++;
     asaasState.customers.set(id, { id, name, email, externalReference: uid });
     return { id, name, email };
@@ -634,6 +641,9 @@ function setup(opts = {}) {
   };
   require.cache[require.resolve(path.join(ROOT, 'api/_lib/asaas'))] = { exports: mockAsaas };
   process.env.ASAAS_WEBHOOK_TOKEN = opts.webhookToken || 'test_webhook_token';
+  // Os testes de billing exercitam o Applicash inteiro; em produção ele só
+  // liga com a variável (ver applicashAtivo em api/_lib/codes.js).
+  if (opts.applicash !== false) process.env.APPLICASH_ENABLED = 'true';
   const me = require(path.join(ROOT, 'api/billing/me'));
   return {
     init: require(path.join(ROOT, 'api/billing/init')),
