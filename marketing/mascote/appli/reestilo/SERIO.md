@@ -46,3 +46,9 @@ Como gerar: colar o prompt no mesmo gerador usado para a imagem original
 (no app do Gemini ou do ChatGPT, de graça) ou no FLUX.1-schnell do Hugging
 Face quando a cota grátis voltar. A escolhida vira a nova `referencia.png`
 e passa pelo `preparar.py` (recorte) e pelo `ia/` (animação).
+
+## Geradas (30/10/2026, FLUX.1-schnell)
+
+`serio-opcoes.png` compara as 4 (`serio-1-executivo.webp` … `serio-4-androide.webp`).
+Observação: no executivo, a moeda saiu dourada em vez de verde; na próxima
+geração, reforçar "green coin".
