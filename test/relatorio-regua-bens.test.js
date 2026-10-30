@@ -179,7 +179,10 @@ test('régua: as três faixas cobrem 0-100 sem buraco nem sobreposição', () =>
   }
 });
 
-test('60 pontos (3 de 5 critérios) é VERDE, não amarelo', () => {
+// Applicash fora do ar (window.APPLICASH_ATIVO não é true): o termômetro tem
+// 4 critérios. Antes eram 5, e o critério do Applicash contava vermelho para
+// todo mundo enquanto o programa não existe.
+test('75 pontos (3 de 4 critérios) é VERDE, não amarelo', () => {
   const s = carregar();
   const t = s.rmCalcularTermometro(
     repComCriterios({
@@ -190,12 +193,14 @@ test('60 pontos (3 de 5 critérios) é VERDE, não amarelo', () => {
       applicashOk: false,
     })
   );
-  assert.equal(t.score, 60);
+  assert.equal(t.criterios.length, 4);
+  assert.ok(!t.criterios.some((c) => /Applicash/.test(c.label)));
+  assert.equal(t.score, 75);
   assert.equal(t.statusGeral, 'verde');
   assert.equal(t.faixa.rotulo, 'Saudável');
 });
 
-test('20 pontos (1 de 5 critérios) é VERMELHO', () => {
+test('25 pontos (1 de 4 critérios) é VERMELHO', () => {
   const s = carregar();
   const t = s.rmCalcularTermometro(
     repComCriterios({
@@ -206,8 +211,25 @@ test('20 pontos (1 de 5 critérios) é VERMELHO', () => {
       applicashOk: false,
     })
   );
-  assert.equal(t.score, 20);
+  assert.equal(t.score, 25);
   assert.equal(t.statusGeral, 'vermelho');
+});
+
+test('Applicash religado (APPLICASH_ATIVO = true): volta o 5º critério', () => {
+  const s = carregar();
+  s.APPLICASH_ATIVO = true;
+  const t = s.rmCalcularTermometro(
+    repComCriterios({
+      despesasOk: true,
+      investimentosOk: true,
+      sonhosOk: true,
+      jornadaOk: false,
+      applicashOk: false,
+    })
+  );
+  assert.equal(t.criterios.length, 5);
+  assert.equal(t.score, 60);
+  assert.equal(t.statusGeral, 'verde');
 });
 
 // ---- barra de cores ----------------------------------------------------

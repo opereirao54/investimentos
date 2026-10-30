@@ -57,7 +57,9 @@ function abrirModalExcluirConta() {
     '<span style="display:block;background:var(--cor-bg-erro);border:1px solid var(--cor-borda-erro);color:var(--cor-txt-erro);border-radius:9px;padding:10px 12px;font-size:12.5px;line-height:1.55;margin-bottom:14px;">' +
     '<i class="ph-fill ph-warning" style="vertical-align:-2px;"></i> <strong>Não dá para desfazer.</strong> ' +
     'A assinatura é cancelada e os dias que ainda faltam do período pago são perdidos. ' +
-    'O saldo do Applicash e o desconto de indicação também. ' +
+    (window.APPLICASH_ATIVO === true
+      ? 'O saldo do Applicash e o desconto de indicação também. '
+      : '') +
     'Guardamos apenas o registro dos pagamentos, pelo prazo que a lei fiscal exige.' +
     '</span>' +
     '<span style="display:block;background:var(--cor-bg-info);border:1px solid var(--cor-borda-info);color:var(--cor-txt-info);border-radius:9px;padding:10px 12px;font-size:12.5px;line-height:1.55;margin-bottom:14px;">' +

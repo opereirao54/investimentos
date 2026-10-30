@@ -62,7 +62,7 @@ module.exports = handler({
   // info + endereço) com defaults caso parciais. Validação detalhada fica
   // inline por enquanto — onda posterior pode tightnen com Zod refinements.
   handle: async ({ req, res, user, body }) => {
-    const cpfCnpj = cleanDigits(body.cpfCnpj);
+    let cpfCnpj = cleanDigits(body.cpfCnpj);
     const customerName = (body.name || '').trim();
     const rawCard = body.creditCard && typeof body.creditCard === 'object' ? body.creditCard : null;
     const rawHolder =
@@ -143,6 +143,68 @@ module.exports = handler({
       // (trava pega, assinatura criada, trava solta) via subscriptionId
       // vazio e criava a SEGUNDA assinatura. Achado pela caça de pagamentos.
       const billing = claim.billing || snap.data();
+
+      // Troca de ambiente do Asaas (sandbox → produção). O customerId gravado
+      // pode ser do outro ambiente — lá ele não existe, e a assinatura e as
+      // cobranças que vieram com ele também não. Conta marcada com o outro
+      // ambiente, ou sem marca já em produção (criada antes da marca), passa
+      // por aqui: createCustomer acha pelo uid ou cria no ambiente de agora.
+      // Mesmo id → só marca. Id novo → troca e esquece a assinatura velha,
+      // para o fluxo abaixo criar a de verdade. A janela já paga (paidUntil),
+      // o trial e a cortesia não são tocados: ninguém perde dias.
+      const ambienteAsaas = asaas.ambiente();
+      const conferirCliente = billing.asaasAmbiente
+        ? billing.asaasAmbiente !== ambienteAsaas
+        : ambienteAsaas === 'producao';
+      if (conferirCliente) {
+        let cliente;
+        try {
+          cliente = await asaas.createCustomer({
+            email: billing.email || user.email,
+            name: billing.customerName || user.name || billing.email || user.email,
+            uid: user.uid,
+          });
+        } catch (e) {
+          console.error('[subscribe] customer re-resolve failed', e && e.message);
+          await releaseLock();
+          return res.status(502).json({
+            error: 'customer_resolve_failed',
+            detail: 'Não foi possível preparar a cobrança. Tente de novo em instantes.',
+          });
+        }
+        const patch = {
+          asaasAmbiente: ambienteAsaas,
+          updatedAt: fieldValue().serverTimestamp(),
+        };
+        if (cliente && cliente.id && cliente.id !== billing.customerId) {
+          console.warn('[subscribe] customerId de outro ambiente trocado', {
+            uid: user.uid,
+            de: billing.customerId,
+            para: cliente.id,
+            ambiente: ambienteAsaas,
+          });
+          patch.customerId = cliente.id;
+          patch.asaasClienteAnterior = billing.customerId || null;
+          patch.subscriptionId = fieldValue().delete();
+          patch.subscriptionStatus = fieldValue().delete();
+          patch.lastPaymentStatus = fieldValue().delete();
+          patch.lastPaymentId = fieldValue().delete();
+          patch.lastOneShotPaymentId = fieldValue().delete();
+          patch.nextDueDate = fieldValue().delete();
+          billing.customerId = cliente.id;
+          delete billing.subscriptionId;
+          delete billing.subscriptionStatus;
+          delete billing.lastPaymentStatus;
+          delete billing.lastPaymentId;
+          delete billing.lastOneShotPaymentId;
+          delete billing.nextDueDate;
+          // O CPF ficou no customer antigo: força o envio para o novo.
+          if (billing.cpfCnpj && !cpfCnpj) cpfCnpj = billing.cpfCnpj;
+          delete billing.cpfCnpj;
+        }
+        billing.asaasAmbiente = ambienteAsaas;
+        await ref.set(patch, { merge: true });
+      }
 
       if (!billing.cpfCnpj && !cpfCnpj) {
         await releaseLock();

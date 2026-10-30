@@ -21,6 +21,18 @@
             } catch (e) {}
         })();
     </script>
+    <script>
+        // Applicash (indicações) fora do ar até o fundador decidir o novo
+        // formato. Tudo que é dele na tela leva [data-applicash] e some com a
+        // classe abaixo; os textos montados em JS leem window.APPLICASH_ATIVO.
+        // O servidor tem interruptor próprio (APPLICASH_ENABLED na Vercel):
+        // para religar, true aqui E a variável lá.
+        // Só liga com true explícito: sem esta linha (sandbox do relatório em
+        // PDF, testes), o código trata como desligado.
+        window.APPLICASH_ATIVO = false;
+        if (window.APPLICASH_ATIVO !== true) document.documentElement.classList.add('sem-applicash');
+    </script>
+    <style>.sem-applicash [data-applicash] { display: none !important; }</style>
     <link rel="icon" type="image/png" href="appliquei-favicon.png">
     <!-- "Adicionar à tela de início": manifest cobre Android/Chrome; o iOS
          ignora o manifest e só olha apple-touch-icon + as metas apple-*.
@@ -13192,7 +13204,7 @@
                     <label for="authSenha">Senha</label>
                     <input type="password" id="authSenha" autocomplete="current-password" placeholder="Mínimo 6 caracteres">
                 </div>
-                <div class="auth-field" id="authCupomWrap" style="display:none;">
+                <div class="auth-field" id="authCupomWrap" data-applicash style="display:none;">
                     <label for="authCupom">Cupom de indicação <span style="color:var(--cor-texto-mutado,#94a39c);font-weight:400;">(opcional)</span></label>
                     <input type="text" id="authCupom" autocomplete="off" placeholder="APP-XXXXXX" maxlength="12" style="text-transform:uppercase;">
                     <p style="font-size:11.5px;color:var(--cor-texto-mutado);margin-top:4px;">Tem o cupom de um amigo? Ganhe 10% de desconto recorrente.</p>
@@ -13251,7 +13263,7 @@
                 <p class="auth-verify-msg">Ainda não existe conta na Appliquei para</p>
                 <p class="auth-verify-email"><strong id="authGoogleEmail"></strong></p>
                 <div id="authGoogleErr" class="auth-err" role="alert"></div>
-                <div class="auth-field">
+                <div class="auth-field" data-applicash>
                     <label for="authGoogleCupom">Cupom de indicação <span style="color:var(--cor-texto-mutado,#94a39c);font-weight:400;">(opcional)</span></label>
                     <input type="text" id="authGoogleCupom" autocomplete="off" placeholder="APP-XXXXXX" maxlength="12" style="text-transform:uppercase;">
                     <p style="font-size:11.5px;color:var(--cor-texto-mutado);margin-top:4px;">Tem o cupom de um amigo? Ganhe 10% de desconto todo mês.</p>
@@ -13863,7 +13875,7 @@
                 <button class="menu-btn" onclick="mudarAba(event,'aulas')" data-tooltip="Jornada Financeira"><i class="ph ph-graduation-cap"></i><span class="menu-btn-label">Jornada Financeira</span></button>
                 <button class="menu-btn" onclick="mudarAba(event,'noticias', carregarNoticias)" data-tooltip="Info Mercado"><i class="ph ph-newspaper"></i><span class="menu-btn-label">Info Mercado</span></button>
             </div>
-            <div class="nav-group">
+            <div class="nav-group" data-applicash>
                 <span class="nav-group-label">Applicash $</span>
                 <button class="menu-btn" onclick="mudarAba(event,'applicash')" data-tooltip="Applicash $"><i class="ph ph-currency-dollar"></i><span class="menu-btn-label">Applicash $</span></button>
             </div>
@@ -16437,7 +16449,7 @@
             </div>
         </section>
 
-        <section id="applicash" class="section" data-fase="carregando">
+        <section id="applicash" class="section" data-applicash data-fase="carregando">
             <div class="page-header">
                 <div class="page-header-left">
                     <h1>Applicash $</h1>
@@ -16680,7 +16692,7 @@
                             <option value="patrimonio">Patrimônio & investimentos</option>
                             <option value="controle">Controle financeiro</option>
                             <option value="ferramentas">Ferramentas & simulações</option>
-                            <option value="applicash">Applicash $</option>
+                            <option value="applicash" data-applicash>Applicash $</option>
                             <option value="dados">Dados & segurança</option>
                         </select>
                     </div>
@@ -16720,7 +16732,7 @@
                             <option value="meus_sonhos">Meus sonhos</option>
                             <option value="aulas">Jornada Financeira</option>
                             <option value="noticias">Info Mercado</option>
-                            <option value="applicash">Applicash $</option>
+                            <option value="applicash" data-applicash>Applicash $</option>
                             <option value="conta">Conta, assinatura e pagamento</option>
                             <option value="duvidas_sugestoes">Dúvidas & Sugestões</option>
                             <option value="outro">🌟 Outro / algo que ainda não existe</option>
@@ -16867,7 +16879,7 @@
                     <div class="div-chart-title"><i class="ph-fill ph-file-text"></i> Termos de Uso</div>
                     <div class="priv-politica" style="margin-bottom:0;">
                         <p class="priv-status" id="termosStatusAceite"></p>
-                        <p>As regras de uso do app: assinatura, cancelamento e arrependimento, Applicash, programa de testadores e responsabilidades.</p>
+                        <p>As regras de uso do app: assinatura, cancelamento e arrependimento, programa de testadores e responsabilidades.</p>
                         <button type="button" class="btn-secundario" onclick="abrirModalTermos()"><i class="ph ph-file-text"></i> Ler os Termos de Uso</button>
                     </div>
                 </div>
@@ -16906,7 +16918,7 @@
             <div class="mob-tiles">
                 <button type="button" class="mob-tile" onclick="mobIrPara('aulas')"><span class="mob-tile-ic verde"><i class="ph ph-graduation-cap"></i></span><b>Jornada financeira</b><small>Módulos práticos</small></button>
                 <button type="button" class="mob-tile" onclick="mobIrPara('noticias')"><span class="mob-tile-ic cinza"><i class="ph ph-newspaper"></i></span><b>Info Mercado</b><small>Radar do dia</small></button>
-                <button type="button" class="mob-tile" onclick="mobIrPara('applicash')"><span class="mob-tile-ic verde"><i class="ph ph-currency-dollar"></i></span><b>Applicash</b><small>Indique e ganhe</small></button>
+                <button type="button" class="mob-tile" data-applicash onclick="mobIrPara('applicash')"><span class="mob-tile-ic verde"><i class="ph ph-currency-dollar"></i></span><b>Applicash</b><small>Indique e ganhe</small></button>
                 <button type="button" class="mob-tile" onclick="mobIrPara('duvidas_sugestoes')"><span class="mob-tile-ic azul"><i class="ph ph-question"></i></span><b>Dúvidas &amp; sugestões</b><small>Ajuda e ideias</small></button>
             </div>
 

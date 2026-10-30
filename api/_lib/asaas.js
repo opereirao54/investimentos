@@ -1,27 +1,68 @@
 const DEFAULT_URL = 'https://api.asaas.com/v3';
+const SANDBOX_URL = 'https://api-sandbox.asaas.com/v3';
+
+// As chaves novas do Asaas dizem o ambiente no prefixo: `$aact_prod_...`
+// (produção) e `$aact_hmlg_...` (sandbox). Chave antiga, sem a marca, devolve
+// null e vale o que ASAAS_API_URL disser.
+function ambienteDaChave(k) {
+  if (/^\$?aact_prod_/i.test(k)) return 'producao';
+  if (/^\$?aact_hmlg_/i.test(k)) return 'sandbox';
+  return null;
+}
+
+function limpar(v) {
+  return String(v)
+    .trim()
+    .replace(/^[\s"'`<\[]+|[\s"'`>\]]+$/g, '');
+}
 
 function baseUrl() {
-  let u = process.env.ASAAS_API_URL || DEFAULT_URL;
-  u = String(u)
-    .trim()
-    .replace(/^[\s"'`<\[]+|[\s"'`>\]]+$/g, '')
-    .replace(/\/$/, '');
+  const bruta = process.env.ASAAS_API_URL;
+  let u;
+  if (bruta && limpar(bruta)) {
+    u = limpar(bruta).replace(/\/$/, '');
+  } else {
+    // Sem URL: a própria chave escolhe o ambiente. Antes caía sempre em
+    // produção, e uma chave de sandbox respondia 401 sem dizer por quê.
+    const k = process.env.ASAAS_API_KEY ? limpar(process.env.ASAAS_API_KEY) : '';
+    u = ambienteDaChave(k) === 'sandbox' ? SANDBOX_URL : DEFAULT_URL;
+  }
   if (!/^https?:\/\//i.test(u)) {
     throw new Error(
       'ASAAS_API_URL inválida (recebida: "' +
         u +
-        '"). Use https://api.asaas.com/v3 ou https://sandbox.asaas.com/api/v3.'
+        '"). Use ' +
+        DEFAULT_URL +
+        ' (produção) ou ' +
+        SANDBOX_URL +
+        ' (sandbox).'
     );
   }
   return u;
 }
 
+/** 'producao' ou 'sandbox' — o ambiente para onde as chamadas vão. */
+function ambiente() {
+  return /sandbox/i.test(baseUrl()) ? 'sandbox' : 'producao';
+}
+
 function apiKey() {
   const k = process.env.ASAAS_API_KEY;
   if (!k) throw new Error('ASAAS_API_KEY não definida.');
-  return String(k)
-    .trim()
-    .replace(/^[\s"'`<\[]+|[\s"'`>\]]+$/g, '');
+  const chave = limpar(k);
+  // Chave de um ambiente com a URL do outro: o Asaas só responde 401. Falha
+  // aqui, com o nome do erro, antes de mandar a chave para o lugar errado.
+  const daChave = ambienteDaChave(chave);
+  if (daChave && daChave !== ambiente()) {
+    throw new Error(
+      'ASAAS_API_KEY é de ' +
+        daChave +
+        ', mas ASAAS_API_URL aponta para ' +
+        ambiente() +
+        '. Use a chave e a URL do mesmo ambiente.'
+    );
+  }
+  return chave;
 }
 
 async function call(method, path, body) {
@@ -189,6 +230,8 @@ async function getPaymentLink(paymentId) {
 
 module.exports = {
   call,
+  ambiente,
+  ambienteDaChave,
   createCustomer,
   findCustomerByExternalReference,
   updateCustomer,
