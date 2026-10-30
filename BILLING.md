@@ -144,15 +144,59 @@ testa um gateway que não existe. Ver `.claude/skills/pagamentos/SKILL.md`.
 
 ## Variáveis de ambiente
 
-| Nome                              | Onde                                                                              |
-| --------------------------------- | --------------------------------------------------------------------------------- |
-| `ASAAS_API_KEY`                   | painel Asaas → Integrações → API                                                  |
-| `ASAAS_API_URL`                   | `https://api.asaas.com/v3` (prod) ou `https://sandbox.asaas.com/api/v3` (sandbox) |
-| `ASAAS_WEBHOOK_TOKEN`             | token livre que define ao criar o webhook                                         |
-| `FIREBASE_SERVICE_ACCOUNT_BASE64` | `base64 -w0 service-account.json`                                                 |
-| `FIREBASE_PROJECT_ID`             | `appliquei-prod`                                                                  |
+| Nome                              | Onde                                                                                                                                                                |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ASAAS_API_KEY`                   | painel Asaas → Integrações → API                                                                                                                                    |
+| `ASAAS_API_URL`                   | opcional: `https://api.asaas.com/v3` (prod) ou `https://api-sandbox.asaas.com/v3` (sandbox). Vazia, a chave escolhe (`$aact_prod_` → prod, `$aact_hmlg_` → sandbox) |
+| `APPLICASH_ENABLED`               | `true` liga o Applicash no servidor. Vazia = desligado (o `/init` ignora cupom). Par na tela: `window.APPLICASH_ATIVO` no `<head>` do app                           |
+| `ASAAS_WEBHOOK_TOKEN`             | token livre que define ao criar o webhook                                                                                                                           |
+| `FIREBASE_SERVICE_ACCOUNT_BASE64` | `base64 -w0 service-account.json`                                                                                                                                   |
+| `FIREBASE_PROJECT_ID`             | `appliquei-prod`                                                                                                                                                    |
 
 Local: `.env.local` na raiz (Vercel CLI lê automaticamente). Produção: `vercel env add ...` ou painel Vercel → Settings → Environment Variables.
+
+## Virada do sandbox para a produção
+
+O código já está pronto; a virada é configuração. Em ordem:
+
+1. **Conta Asaas de produção aprovada** (documentos da empresa enviados e conta
+   bancária para saque cadastrada). Sem aprovação, o Asaas recusa cobranças.
+2. **Chave de produção**: Asaas (conta de produção, não a do sandbox) →
+   Integrações → API → gerar chave. Ela começa com `$aact_prod_`.
+3. **Vercel → Settings → Environment Variables**: troque os valores do
+   sandbox pelos de produção, na mesma estrutura de hoje (um projeto, um
+   ambiente só — decisão de 26/10/2026, sem homologação separada):
+   - `ASAAS_API_KEY` = a chave `$aact_prod_...`
+   - `ASAAS_API_URL` = `https://api.asaas.com/v3` (ou apague: a chave decide)
+   - `ASAAS_WEBHOOK_TOKEN` = um token novo, longo e aleatório
+
+   Sem homologação, **todo deploy cobra de verdade** — inclusive o link de
+   _Preview_ de um PR, se as variáveis estiverem marcadas para Preview também.
+   Teste de pagamento passa a ser com cartão real e estorno pelo painel.
+
+   Chave e URL de ambientes diferentes não chegam ao Asaas: `api/_lib/asaas.js`
+   falha antes, com a mensagem "ASAAS_API_KEY é de ..., mas ASAAS_API_URL
+   aponta para ...".
+
+4. **Webhook na conta de produção** (a do sandbox não vale lá): ver a seção
+   abaixo, com a URL do domínio de produção e o token do passo 3.
+5. **Redeploy** de produção (variável nova só vale em deploy novo).
+6. **Teste com dinheiro de verdade**: assine com o seu cartão, confira o
+   acesso, o webhook `200` no painel do Asaas e a fatura no "Minha assinatura";
+   depois estorne pelo painel e confira que o acesso cai.
+
+**Contas criadas no sandbox.** O `customerId` delas é do sandbox e não existe
+na produção. Não precisa migrar à mão: o `/subscribe` confere
+`billing.asaasAmbiente` e, se a conta é de outro ambiente (ou não tem marca e
+já estamos em produção), acha ou cria o cliente na produção pelo uid, troca o
+`customerId` e esquece a assinatura do sandbox. A janela já paga
+(`paidUntil`), o trial e a cortesia ficam como estavam — ninguém perde dia.
+Teste: `test/producao-asaas.test.js`.
+
+Ponto de atenção: uma conta com assinatura **ACTIVE no sandbox** continua com
+acesso até assinar de novo em produção (o gate vê `ACTIVE` + pagamento
+confirmado). Se houver alguma além das suas, cancele pelo admin ("Cancelar
+assinatura no Asaas") ou dê cortesia antes de divulgar.
 
 ## Configurar webhook Asaas
 
