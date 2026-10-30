@@ -86,6 +86,7 @@ function criarMundoPagamentos(opts = {}) {
   asaasState.deletedUids.clear();
   asaasState.seq = 1;
   cpfSeq = 0;
+  asaasState.ambiente = opts.ambiente || 'sandbox';
 
   asaasState.projectFutureInvoices = opts.faturasProjetadas != null ? opts.faturasProjetadas : 6;
   asaasState.cardCapturesImmediately =

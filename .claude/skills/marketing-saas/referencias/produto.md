@@ -3,7 +3,7 @@
 Ficha de fatos para o marketing. **Tudo aqui tem de bater com o app e com a
 landing.** Quando o produto mudar, atualize esta ficha no mesmo PR.
 
-Última revisão: 17/10/2026.
+Última revisão: 26/10/2026.
 
 ## Em uma frase
 
@@ -14,15 +14,15 @@ Frase de bolso (peças curtas): **"Seu dinheiro inteiro, numa tela só."**
 
 ## Oferta vigente
 
-| Item                  | Hoje                                                    | Onde conferir                                                                   |
-| --------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Plano                 | **Pro, R$ 15/mês**                                      | `landing.html` (seção Planos), `BILLING.md`, `api/_lib/asaas.js` (`PLAN_VALUE`) |
-| Teste grátis          | **7 dias, sem cartão, sem cobrança automática no fim**  | `landing.html` (hero e Planos)                                                  |
-| Pagamento             | PIX, boleto ou cartão recorrente (Asaas)                | `landing.html`                                                                  |
-| Cancelamento          | Quando quiser, sem multa                                | `landing.html`                                                                  |
-| Pro + IA              | **Em construção** — só "avise-me quando lançar"         | `landing.html`                                                                  |
-| Applicash (indicação) | **Em reformulação — não usar em peças** até nova versão | decisão do fundador, 16/10/2026                                                 |
-| Testadores (beta)     | Grupo de teste; benefício ainda em definição            | `docs/PENDENCIAS-LANCAMENTO.md`                                                 |
+| Item                  | Hoje                                                          | Onde conferir                                                                   |
+| --------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Plano                 | **Pro, R$ 15/mês**                                            | `landing.html` (seção Planos), `BILLING.md`, `api/_lib/asaas.js` (`PLAN_VALUE`) |
+| Teste grátis          | **7 dias, sem cartão, sem cobrança automática no fim**        | `landing.html` (hero e Planos)                                                  |
+| Pagamento             | PIX, boleto ou cartão recorrente (Asaas)                      | `landing.html`                                                                  |
+| Cancelamento          | Quando quiser, sem multa                                      | `landing.html`                                                                  |
+| Pro + IA              | **Fora da grade** — não existe; não citar nem como "em breve" | decisão do fundador, 26/10/2026 (saiu da landing e do app)                      |
+| Applicash (indicação) | **Desligado no app** — não usar em peças até nova versão      | decisão do fundador, 16 e 26/10/2026 (`APPLICASH_ENABLED`, `APPLICASH_ATIVO`)   |
+| Testadores (beta)     | Grupo de teste; benefício ainda em definição                  | `docs/PENDENCIAS-LANCAMENTO.md`                                                 |
 
 Para o grupo de teste, **não** use "7 dias grátis": o convite é "use no dia a
 dia e me conte o que achou".
@@ -41,7 +41,7 @@ dia e me conte o que achou".
 | Previsão de proventos   | Quanto os seus ativos devem pagar nos próximos 12 meses, mês a mês. **Estimativa, não garantia**           | `web/appliquei-aba-dividendos.js` (`projecaoProventos12m`) |
 | Sonhos e metas          | Prazo e parcela calculados a partir da sua sobra real                                                      | `web/appliquei-sonhos.js`                                  |
 | Simule sua liberdade    | Quanto juntar para viver de renda; comparação com o INSS                                                   | `web/appliquei-aba-simulador.js`                           |
-| Relatório mensal        | Termômetro com cinco critérios, exporta em PDF                                                             | `web/appliquei-relatorio-mensal.js`                        |
+| Relatório mensal        | Termômetro com quatro critérios, exporta em PDF                                                            | `web/appliquei-relatorio-mensal.js`                        |
 | Jornada Financeira      | Oito módulos de estudo liberados em ordem                                                                  | `web/appliquei-jornada*.js`                                |
 | Info Mercado            | Indicadores e notícias                                                                                     | `web/appliquei-aba-info-mercado.js`                        |
 | Celular                 | Funciona como app e instala na tela de início                                                              | `web/appliquei-mobile.js`                                  |

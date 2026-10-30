@@ -429,7 +429,7 @@ const PRIVACIDADE_VERSAO = '2026-10-11';
 // Versão vigente dos Termos de Uso — a mesma de TERMOS_VERSAO em
 // web/appliquei-termos.js (um teste confere). Os Termos são aceitos junto com
 // a política, no mesmo POST, mas cada um tem o seu documento de prova.
-const TERMOS_VERSAO = '2026-10-11';
+const TERMOS_VERSAO = '2026-10-26';
 const PRIVACIDADE_ORIGENS = new Set(['cadastro', 'app']);
 
 function refAceite(uid, id) {

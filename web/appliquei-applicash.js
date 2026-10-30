@@ -72,6 +72,8 @@ function apcFaturaCents(indicados) {
 // em api/user.js). A trava de sessão evita que um F5 conte de novo.
 (function capturarRefDaUrl() {
   try {
+    // Applicash fora do ar: link ?ref= velho não guarda cupom nem conta clique.
+    if (window.APPLICASH_ATIVO !== true) return;
     var p = new URLSearchParams(window.location.search);
     var raw = p.get('ref') || p.get('cupom') || p.get('coupon') || '';
     if (!raw) return;

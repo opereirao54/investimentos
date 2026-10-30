@@ -59,4 +59,26 @@ async function ensureReserved(db, code, uid, timestamp) {
   });
 }
 
-module.exports = { randomCode, normalize, isValid, reserveUniqueCode, lookupOwner, ensureReserved };
+// Interruptor do Applicash (programa de indicações). Fora do ar até o
+// fundador decidir o novo formato: só liga com APPLICASH_ENABLED=true na
+// Vercel. Desligado, o /init ignora cupom — ninguém novo ganha o desconto de
+// indicado nem vira indicador. Vínculos que já existiam seguem valendo (o
+// desconto e os créditos já prometidos não somem). A tela tem o seu par:
+// window.APPLICASH_ATIVO no <head> do app.
+function applicashAtivo() {
+  return (
+    String(process.env.APPLICASH_ENABLED || '')
+      .trim()
+      .toLowerCase() === 'true'
+  );
+}
+
+module.exports = {
+  randomCode,
+  normalize,
+  isValid,
+  reserveUniqueCode,
+  lookupOwner,
+  ensureReserved,
+  applicashAtivo,
+};
