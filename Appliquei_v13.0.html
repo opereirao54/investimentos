@@ -2981,9 +2981,100 @@
         .alert-danger { border-color: var(--cor-borda-erro); background: var(--cor-bg-erro); color: var(--cor-txt-erro); }
         .alert-contextual i { font-size: 17px; flex-shrink: 0; }
 
-        /* Parcelado: Nº parcelas + parcela atual lado a lado; corrigir a série. */
-        .parcelas-linha { display: flex; gap: 10px; }
-        .parcelas-linha > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        /* === NOVO LANÇAMENTO — layout de 27/10 (web/appliquei-lancamento-ui.js) ===
+           Os campos de sempre continuam no DOM e são o que o salvamento lê; os
+           botões abaixo só os preenchem. */
+        .lanc-topo-acoes { display: flex; align-items: center; gap: 8px; }
+        .lanc-importar {
+            display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px;
+            border: none; border-radius: 999px; background: var(--cor-bg-primaria); color: var(--cor-txt-primaria);
+            font: 700 12.5px 'Figtree', sans-serif; cursor: pointer;
+        }
+        .lanc-importar[hidden] { display: none; }
+        .lanc-seg { display: flex; gap: 4px; padding: 4px; border-radius: 13px; background: var(--cor-superficie); }
+        .lanc-seg > button {
+            flex: 1 1 0; min-width: 0; min-height: 42px; border: none; border-radius: 10px; background: transparent;
+            color: var(--cor-texto-secundario); font: 700 13.5px 'Figtree', sans-serif; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 6px; transition: background .15s ease, color .15s ease;
+        }
+        .lanc-seg > button.on { background: var(--cor-branco); color: var(--cor-texto-principal); box-shadow: 0 1px 3px rgba(15,23,42,0.10); }
+        .lanc-tipo { margin-bottom: 14px; }
+        .lanc-tipo #chipEntrada.on { color: var(--cor-txt-primaria); }
+        .lanc-tipo #chipSaida.on { color: var(--cor-txt-erro); }
+        .lanc-tipo #chipCartao.on { color: var(--cor-txt-amber); }
+        .lanc-seg-peq { flex: 0 0 auto; width: 176px; }
+        .lanc-seg-peq > button { min-height: 36px; font-size: 13px; }
+        /* Valor: o primeiro campo, grande e sem caixa — só um traço embaixo. */
+        #painelNovoLancamento .lanc-valor .input-brl-wrap::before { font-size: 17px; font-weight: 700; }
+        #painelNovoLancamento .lanc-valor input#valorTransacao {
+            border: none; border-bottom: 2px solid var(--cor-borda); border-radius: 0; background-color: transparent;
+            box-shadow: none; padding-top: 4px; padding-bottom: 6px;
+            font-family: 'DM Mono', monospace; font-size: 34px !important; font-weight: 500; letter-spacing: -0.5px; min-height: 56px;
+        }
+        #painelNovoLancamento .lanc-valor input#valorTransacao:focus { border-bottom-color: var(--cor-primaria); box-shadow: none; background-color: transparent; }
+        .lanc-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+        .lanc-chips[hidden] { display: none; }
+        /* Salvar sem conta: os botões pedem atenção (o campo de texto está escondido). */
+        .lanc-chips.lanc-falta .lanc-chip { border-color: var(--cor-erro); }
+        .lanc-chip {
+            min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--cor-borda);
+            background: var(--cor-branco); color: var(--cor-texto-secundario);
+            font: 600 13.5px 'Figtree', sans-serif; cursor: pointer; white-space: nowrap; max-width: 100%;
+            overflow: hidden; text-overflow: ellipsis;
+        }
+        .lanc-chip.on { border-color: var(--cor-primaria); background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); }
+        .lanc-chip.mais { border-style: dashed; color: var(--cor-texto-mutado); }
+        .lanc-chip.mais.on { border-style: solid; }
+        .lanc-oculto { display: none !important; }
+        /* "Todas": a lista completa só aparece quando pedida. */
+        #painelNovoLancamento select.lanc-lista { display: none; }
+        #painelNovoLancamento select.lanc-lista.aberta { display: block; }
+        .lanc-bloco {
+            background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 14px;
+            padding: 14px 14px 2px; margin-bottom: 12px;
+        }
+        .lanc-bloco[hidden] { display: none; }
+        #gridCategoriaVencimento { display: block; }
+        .lanc-bloco .recorrente-toggle { background: transparent; border: none; border-top: 1px solid var(--cor-borda); border-radius: 0; padding: 12px 0; margin: 0; }
+        .lanc-bloco .recorrente-toggle label { font-size: 13.5px; font-weight: 600; color: var(--cor-texto-principal); cursor: pointer; flex: 1; }
+        .lanc-bloco .recorrente-toggle input { width: 20px !important; height: 20px !important; }
+        .lanc-linha { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; }
+        .lanc-linha[hidden] { display: none; }
+        .lanc-bloco .lanc-linha { border-top: 1px solid var(--cor-borda); padding: 6px 0; }
+        .lanc-rot, #painelNovoLancamento .lanc-linha > label {
+            font-size: 13.5px; font-weight: 600; color: var(--cor-texto-principal); margin: 0;
+            text-transform: none; letter-spacing: 0;
+        }
+        .lanc-parcelas { background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 14px; padding: 4px 14px; margin: 10px 0; }
+        .lanc-step { display: flex; align-items: center; gap: 6px; }
+        .lanc-step > button {
+            width: 40px; height: 40px; border-radius: 10px; border: 1.5px solid var(--cor-borda); background: var(--cor-branco);
+            color: var(--cor-texto-secundario); font: 800 18px 'Figtree', sans-serif; cursor: pointer;
+        }
+        #painelNovoLancamento .lanc-step input[type="number"] { width: 56px; text-align: center; padding: 8px 4px; font-size: 16px; font-weight: 700; }
+        .lanc-de { font-size: 13.5px; color: var(--cor-texto-secundario); white-space: nowrap; }
+        .lanc-dica { display: block; font-size: 12px; color: var(--cor-texto-mutado); line-height: 1.45; padding: 0 0 10px; }
+        .lanc-link {
+            background: none; border: none; padding: 8px 0; min-height: 40px; color: var(--cor-primaria);
+            font: 700 13.5px 'Figtree', sans-serif; cursor: pointer; text-align: left; align-self: flex-start;
+        }
+        .lanc-link[hidden] { display: none; }
+        .lanc-parcelas .lanc-link { padding: 4px 0 10px; }
+        /* Fatura: os dois cartões ficam lado a lado também no celular. */
+        #painelNovoLancamento .fatura-opcoes { grid-template-columns: 1fr 1fr; }
+        #painelNovoLancamento .fatura-op-total { display: none !important; }
+        /* Salvar sempre à vista, com o resumo do que vai ser salvo. */
+        .lanc-pe {
+            position: sticky; bottom: 0; z-index: 2; margin: 6px -4px 0; padding: 10px 4px 4px;
+            background: var(--cor-branco); display: flex; flex-direction: column; gap: 8px;
+            box-shadow: 0 -10px 14px -6px var(--cor-branco);
+        }
+        .lanc-resumo { margin: 0; text-align: center; font-size: 13px; line-height: 1.4; color: var(--cor-texto-secundario); }
+        .lanc-resumo[hidden] { display: none; }
+        .lanc-resumo b { color: var(--cor-texto-principal); }
+        .lanc-pe #btnSalvarControle { margin: 0; min-height: 50px; }
+        #painelNovoLancamento.modo-sonho #lancTipoGasto,
+        #painelNovoLancamento.modo-sonho #lancImportarTopo { display: none !important; }
         .corrigir-parcelas {
             margin-top: 12px; padding: 14px; border: 1px solid var(--cor-borda); border-radius: var(--radius-sm);
             background: var(--cor-superficie); display: flex; flex-direction: column; gap: 8px;
@@ -3021,10 +3112,6 @@
         .fat-importada.pendente { flex-direction: column; align-items: stretch; background: var(--cor-bg-amber); border-color: var(--cor-borda-amber); color: var(--cor-txt-amber); }
         .fat-importada-botoes { display: flex; gap: 8px; }
         .fat-importada-botoes > * { flex: 1; justify-content: center; min-height: 40px; }
-        .link-importar-fatura {
-            display: inline-flex; align-items: center; gap: 6px; background: none; border: none; padding: 6px 0 2px;
-            color: var(--cor-primaria); font-weight: 700; font-size: 12.5px; cursor: pointer; font-family: inherit;
-        }
         .imp-passos { display: flex; flex-direction: column; gap: 14px; }
         .imp-intro { margin: 0; font-size: 14px; color: var(--cor-texto-principal); }
         .imp-como { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; font-size: 13.5px; color: var(--cor-texto-secundario); line-height: 1.5; }
@@ -11540,26 +11627,9 @@
             /* Valor primeiro: é o que a pessoa tem na cabeça quando abre o
                formulário. O resto segue na ordem de antes. */
             #painelNovoLancamento { max-height: 92vh !important; padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important; }
-            #painelNovoLancamento > * { order: 2; }
-            #painelNovoLancamento > .painel-novo-lancamento-grab,
-            #painelNovoLancamento > div:has(> #tituloPainelControle),
-            #painelNovoLancamento > #chipsLancamento,
-            #painelNovoLancamento > #avisoEdicaoSonho { order: 0; }
-            #painelNovoLancamento > .grid-2-iguais:has(#valorTransacao) { order: 1; }
-            #painelNovoLancamento #valorTransacao {
-                font-family: 'DM Mono', monospace; font-size: 26px !important; font-weight: 500;
-                min-height: 56px;
-            }
-            #chipsLancamento { gap: 8px !important; }
-            #chipsLancamento > button {
-                min-height: 46px; font-size: 14px !important; border-radius: 12px !important;
-                gap: 6px !important; flex: 1 1 0 !important; min-width: 0;
-            }
-            /* Salvar sempre à vista, preso ao pé da folha enquanto ela rola. */
-            #painelNovoLancamento #btnSalvarControle {
-                position: sticky; bottom: 0; z-index: 2; min-height: 52px;
-                box-shadow: 0 -10px 18px 4px var(--cor-branco);
-            }
+            /* A ordem (valor logo depois do tipo) já está no HTML; o Salvar
+               fica preso ao pé pela .lanc-pe. */
+            #chipsLancamento > button { min-height: 46px; font-size: 14px; }
         }
 
         /* ============================================================ */
@@ -14712,14 +14782,18 @@
                     <div class="painel-novo-lancamento-grab" aria-hidden="true"></div>
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;">
                         <h3 style="font-size:14px;font-weight:700;margin:0;font-family:'Figtree',sans-serif;" id="tituloPainelControle"><i class="ph ph-plus-circle" style="color:var(--cor-primaria);font-size:16px;" id="iconePainelControle"></i> Novo lançamento</h3>
-                        <button type="button" class="painel-mobile-close" onclick="fecharPainelLancamento()" aria-label="Fechar"><i class="ph ph-x"></i></button>
+                        <div class="lanc-topo-acoes">
+                            <!-- Atalho: quem tem a fatura do banco não lança uma a uma (só no modo Cartão). -->
+                            <button type="button" class="lanc-importar" id="lancImportarTopo" hidden onclick="abrirImportarFaturaDoLancamento()"><i class="ph ph-upload-simple" aria-hidden="true"></i> Importar fatura</button>
+                            <button type="button" class="painel-mobile-close" onclick="fecharPainelLancamento()" aria-label="Fechar"><i class="ph ph-x"></i></button>
+                        </div>
                     </div>
                     <input type="hidden" id="editTransacaoId" value="">
 
-                    <div style="display:flex;gap:6px;margin-bottom:14px;" id="chipsLancamento">
-                        <button onclick="selecionarChipTipo('entrada')" id="chipEntrada" style="flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid var(--cor-borda);background:var(--cor-superficie);color:var(--cor-texto-secundario);font-size:11.5px;font-weight:600;cursor:pointer;transition:.15s;font-family:'Figtree',sans-serif;display:flex;align-items:center;justify-content:center;gap:4px;"><i class="ph ph-arrow-down-left" style="font-size:13px;"></i> Entrada</button>
-                        <button onclick="selecionarChipTipo('saida')" id="chipSaida" style="flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid var(--cor-borda);background:var(--cor-superficie);color:var(--cor-texto-secundario);font-size:11.5px;font-weight:600;cursor:pointer;transition:.15s;font-family:'Figtree',sans-serif;display:flex;align-items:center;justify-content:center;gap:4px;"><i class="ph ph-arrow-up-right" style="font-size:13px;"></i> Saída</button>
-                        <button onclick="selecionarChipTipo('cartao')" id="chipCartao" style="flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid var(--cor-borda);background:var(--cor-superficie);color:var(--cor-texto-secundario);font-size:11.5px;font-weight:600;cursor:pointer;transition:.15s;font-family:'Figtree',sans-serif;display:flex;align-items:center;justify-content:center;gap:4px;"><i class="ph ph-credit-card" style="font-size:13px;"></i> Cartão</button>
+                    <div class="lanc-seg lanc-tipo" role="group" aria-label="Tipo de lançamento" id="chipsLancamento">
+                        <button type="button" onclick="selecionarChipTipo('entrada')" id="chipEntrada"><i class="ph ph-arrow-down-left" aria-hidden="true"></i> Entrada</button>
+                        <button type="button" onclick="selecionarChipTipo('saida')" id="chipSaida"><i class="ph ph-arrow-up-right" aria-hidden="true"></i> Saída</button>
+                        <button type="button" onclick="selecionarChipTipo('cartao')" id="chipCartao"><i class="ph ph-credit-card" aria-hidden="true"></i> Cartão</button>
                     </div>
 
                     <!-- Editando um compromisso de sonho, o formulário encolhe:
@@ -14734,66 +14808,19 @@
                         </div>
                     </div>
 
+                    <div class="form-group lanc-valor" id="grupoValorControle">
+                        <label id="lblValorOpControle" for="valorTransacao">Valor (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="valorTransacao" placeholder="0,00" oninput="aplicarMascaraBRL(this); atualizarResumoFatura()"></span>
+                    </div>
                     <div class="form-group" id="grupoDescricaoControle">
                         <label>Descrição</label>
                         <input type="text" id="descTransacao" list="listaDescricoes" placeholder="Ex: Salário / Conta de Luz" oninput="insightsSugestaoAoDigitar()">
                         <div id="sugestaoCategoria"></div>
                     </div>
-                    <div class="grid-2-iguais" style="gap:12px;" id="gridCategoriaVencimento">
-                        <div class="form-group" id="grupoCategoriaControle">
-                            <label>Categoria</label>
-                            <select id="categoriaTransacao" onchange="verificarRegraCartao()">
-                                <option value="" disabled selected>Selecione...</option>
-                                <optgroup label="ENTRADAS">
-                                    <option value="receita">Receita</option>
-                                </optgroup>
-                                <optgroup label="SAÍDAS">
-                                    <option value="despesa_fixa">Despesa fixa</option>
-                                    <option value="despesa_variavel">Despesa variável</option>
-                                    <option value="cartao_credito">Cartão de crédito</option>
-                                </optgroup>
-                            </select>
-                        </div>
-                        <!-- Em cartão este campo SAI e dá lugar ao seletor de
-                             fatura, dentro do bloco do cartão: ali a pergunta é
-                             "em qual fatura entra", não "que dia vence" — e a
-                             resposta depende do cartão e do tipo, que ficam lá.
-                             O input continua existindo e continua sendo o que o
-                             salvamento lê; o seletor é quem o preenche. -->
-                        <div class="form-group" id="grupoVencimentoControle">
-                            <label for="dataVencimento" id="lblVencimentoControle">Vencimento</label>
-                            <input type="date" id="dataVencimento" onchange="if (typeof atualizarSugestoesBancoTransacao === 'function') atualizarSugestoesBancoTransacao()">
-                        </div>
-                    </div>
-                    <div class="grid-2-iguais" style="gap:12px;align-items:end;">
-                        <div class="form-group"><label id="lblValorOpControle">Valor (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="valorTransacao" placeholder="0,00" oninput="aplicarMascaraBRL(this); atualizarResumoFatura()"></span></div>
-                        <div class="form-group" id="grupoParcelas" style="display:none;">
-                            <!-- "Parcela atual": compra que já começou a ser paga entra
-                                 na parcela certa (relato: lançou 1/10, era 2/10). -->
-                            <div class="parcelas-linha">
-                                <div><label for="qtdParcelas">Nº Parcelas</label><input type="number" id="qtdParcelas" value="1" min="1" max="48" oninput="atualizarParcelaInicialUI(); atualizarResumoFatura()"></div>
-                                <div id="grupoParcelaInicial" style="display:none;"><label for="parcelaInicial" title="Se a compra já começou a ser paga, em qual parcela ela está nesta fatura">Parcela atual</label><input type="number" id="parcelaInicial" value="1" min="1" oninput="atualizarResumoFatura()"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group" id="grupoBancoReceita" style="display:none;">
-                        <label id="lblBancoTransacao">Banco / instituição que recebe <span style="color:var(--cor-erro);">*</span></label>
-                        <input type="text" id="bancoTransacao" list="listaBancosTransacao" placeholder="Ex: Nubank, Itaú, Bradesco..." oninput="avisarContaNovaTransacao()" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
-                        <datalist id="listaBancosTransacao"></datalist>
-                        <!-- O asterisco lê-se como "escolha uma conta que você
-                             já cadastrou" — e foi essa leitura que travou o
-                             primeiro uso. O campo é texto livre: quem escreve
-                             um nome novo ganha a conta na hora. -->
-                        <!-- Com contas já cadastradas, o texto avisa quando o
-                             nome digitado NÃO é nenhuma delas: salvar criaria
-                             uma segunda conta (avisarContaNovaTransacao). -->
-                        <small id="dicaBancoTransacao" style="display:block;font-size:11px;color:var(--cor-texto-mutado);margin-top:5px;line-height:1.45;"><i class="ph ph-info" style="color:var(--cor-info);vertical-align:-1px;"></i> Não precisa ter cadastrado a conta antes — digite o nome e nós criamos para você.</small>
-                    </div>
 
                     <div class="form-group" id="grupoCategoriaDespesa" style="display:none;">
-                        <label>Categoria da despesa</label>
-                        <select id="categoriaDespesa" onchange="onChangeCategoriaDespesa()"></select>
+                        <label>Categoria</label>
+                        <div class="lanc-chips" id="lancCatChips"></div>
+                        <select id="categoriaDespesa" class="lanc-lista" aria-label="Todas as categorias" onchange="onChangeCategoriaDespesa()"></select>
                         <div id="grupoCategoriaDespesaNova" style="display:none;margin-top:8px;">
                             <div style="display:flex;gap:8px;align-items:center;">
                                 <button type="button" id="categoriaDespesaNovaEmojiBtn" onclick="toggleEmojiPickerCategoria()" title="Escolher emoji" style="flex:0 0 auto;width:44px;height:42px;display:flex;align-items:center;justify-content:center;font-size:20px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);cursor:pointer;line-height:1;">🏷️</button>
@@ -14807,10 +14834,9 @@
                     <div id="grupoCartaoSelect" style="display:none;margin-bottom:14px;">
                         <div class="form-group" style="margin-bottom:8px;">
                             <label>Cartão</label>
-                            <select id="selectCartao" onchange="onChangeSelectCartao()"></select>
+                            <div class="lanc-chips" id="lancCartaoChips"></div>
+                            <select id="selectCartao" class="lanc-oculto" aria-hidden="true" tabindex="-1" onchange="onChangeSelectCartao()"></select>
                         </div>
-                        <!-- Atalho: quem tem a fatura do banco não precisa lançar uma a uma. -->
-                        <button type="button" class="link-importar-fatura" onclick="abrirImportarFaturaDoLancamento()"><i class="ph ph-file-arrow-up" aria-hidden="true"></i> Tem o arquivo da fatura? Importar de uma vez</button>
                         <div id="formNovoCartaoInline" style="display:none;background:var(--cor-superficie);border:1px dashed var(--cor-borda);border-radius:9px;padding:12px;margin-bottom:8px;">
                             <div class="form-group" style="margin-bottom:8px;"><label style="font-size:11px;">Nome do cartão</label><input type="text" id="inlineCartaoNome" placeholder="Ex: Nubank, Itaú..." style="padding:8px;font-size:13px;"></div>
                             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end;margin-bottom:8px;">
@@ -14828,6 +14854,23 @@
                             <button type="button" id="btnTipoFixo" onclick="selecionarTipoCartao('fixo')" style="flex:1;padding:7px;border:none;background:transparent;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--cor-texto-secundario);font-family:'Figtree',sans-serif;"><i class="ph ph-repeat"></i> Fixo mensal</button>
                         </div>
                         <input type="hidden" id="tipoCartaoSelecionado" value="parcelado">
+                        <!-- Parcelas com − / +. "Já começou a pagar?" fica recolhido: quem compra
+                             hoje começa na 1 e não precisa da pergunta; quem já está pagando
+                             responde com as palavras da fatura do banco ("Parcela 2/10"). -->
+                        <div class="lanc-parcelas" id="grupoParcelas" style="display:none;">
+                            <div class="lanc-linha">
+                                <label for="qtdParcelas">Parcelas</label>
+                                <div class="lanc-step"><button type="button" aria-label="Menos uma parcela" onclick="lancUiPasso('qtdParcelas', -1)">−</button><input type="number" id="qtdParcelas" value="1" min="1" max="48" inputmode="numeric" oninput="atualizarParcelaInicialUI(); atualizarResumoFatura()"><button type="button" aria-label="Mais uma parcela" onclick="lancUiPasso('qtdParcelas', 1)">+</button></div>
+                            </div>
+                            <button type="button" class="lanc-link" id="lancParcelaInicialAbrir" style="display:none;" onclick="lancUiAbrirParcelaInicial()">Já começou a pagar esta compra?</button>
+                            <div id="grupoParcelaInicial" style="display:none;">
+                                <div class="lanc-linha">
+                                    <label for="parcelaInicial">Nesta fatura vem a parcela</label>
+                                    <div class="lanc-step"><button type="button" aria-label="Parcela anterior" onclick="lancUiPasso('parcelaInicial', -1)">−</button><input type="number" id="parcelaInicial" value="1" min="1" inputmode="numeric" oninput="atualizarResumoFatura()"><button type="button" aria-label="Próxima parcela" onclick="lancUiPasso('parcelaInicial', 1)">+</button><span class="lanc-de" id="lancParcelaDe"></span></div>
+                                </div>
+                                <small class="lanc-dica">Como aparece na fatura do banco: "Parcela 2/10". As anteriores ficam de fora.</small>
+                            </div>
+                        </div>
 
                         <!-- SELETOR DE FATURA.
                              Vem por último no bloco porque depende do cartão
@@ -14846,18 +14889,74 @@
                         </div>
                     </div>
 
+                    <div class="lanc-bloco" id="lancBloco">
+                        <div class="grid-2-iguais" style="gap:12px;" id="gridCategoriaVencimento">
+                            <div class="form-group lanc-oculto" id="grupoCategoriaControle">
+                                <label>Categoria</label>
+                                <select id="categoriaTransacao" onchange="verificarRegraCartao()">
+                                    <option value="" disabled selected>Selecione...</option>
+                                    <optgroup label="ENTRADAS">
+                                        <option value="receita">Receita</option>
+                                    </optgroup>
+                                    <optgroup label="SAÍDAS">
+                                        <option value="despesa_fixa">Despesa fixa</option>
+                                        <option value="despesa_variavel">Despesa variável</option>
+                                        <option value="cartao_credito">Cartão de crédito</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <!-- Em cartão este campo SAI e dá lugar ao seletor de
+                                 fatura, dentro do bloco do cartão: ali a pergunta é
+                                 "em qual fatura entra", não "que dia vence" — e a
+                                 resposta depende do cartão e do tipo, que ficam lá.
+                                 O input continua existindo e continua sendo o que o
+                                 salvamento lê; o seletor é quem o preenche. -->
+                            <div class="form-group" id="grupoVencimentoControle">
+                                <label for="dataVencimento" id="lblVencimentoControle">Vencimento</label>
+                                <input type="date" id="dataVencimento" onchange="if (typeof atualizarSugestoesBancoTransacao === 'function') atualizarSugestoesBancoTransacao()">
+                            </div>
+                        </div>
+                        <div class="form-group" id="grupoBancoReceita" style="display:none;">
+                            <label id="lblBancoTransacao">Banco / instituição que recebe <span style="color:var(--cor-erro);">*</span></label>
+                        <div class="lanc-chips" id="lancContaChips"></div>
+                            <input type="text" id="bancoTransacao" list="listaBancosTransacao" placeholder="Ex: Nubank, Itaú, Bradesco..." oninput="avisarContaNovaTransacao()" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
+                            <datalist id="listaBancosTransacao"></datalist>
+                            <!-- O asterisco lê-se como "escolha uma conta que você
+                                 já cadastrou" — e foi essa leitura que travou o
+                                 primeiro uso. O campo é texto livre: quem escreve
+                                 um nome novo ganha a conta na hora. -->
+                            <!-- Com contas já cadastradas, o texto avisa quando o
+                                 nome digitado NÃO é nenhuma delas: salvar criaria
+                                 uma segunda conta (avisarContaNovaTransacao). -->
+                            <small id="dicaBancoTransacao" style="display:block;font-size:11px;color:var(--cor-texto-mutado);margin-top:5px;line-height:1.45;"><i class="ph ph-info" style="color:var(--cor-info);vertical-align:-1px;"></i> Não precisa ter cadastrado a conta antes — digite o nome e nós criamos para você.</small>
+                        </div>
+                            <!-- Variável × Fixa: é a categoria de antes (despesa_variavel / despesa_fixa),
+                                 agora em dois botões. Fixa liga "Repetir todo mês" (verificarRegraCartao). -->
+                            <div class="lanc-linha" id="lancTipoGasto" hidden>
+                                <span class="lanc-rot" id="lancTipoGastoRot">Tipo de gasto</span>
+                                <div class="lanc-seg lanc-seg-peq" role="group" aria-labelledby="lancTipoGastoRot">
+                                    <button type="button" data-cat="despesa_variavel" onclick="lancUiTipoGasto('despesa_variavel')">Variável</button>
+                                    <button type="button" data-cat="despesa_fixa" onclick="lancUiTipoGasto('despesa_fixa')">Fixa</button>
+                                </div>
+                            </div>
+                        <div class="recorrente-toggle" id="grupoFixa">
+                            <i class="ph ph-repeat"></i>
+                            <label for="transacaoFixa">Repetir todo mês</label>
+                            <input type="checkbox" id="transacaoFixa" style="margin-left:auto;width:16px;height:16px;cursor:pointer;accent-color:var(--cor-info);">
+                        </div>
+                    </div>
+
+                    <button type="button" class="lanc-link" id="lancObsAbrir" onclick="lancUiAbrirObs()">+ Adicionar observação</button>
                     <div class="form-group" id="grupoObs">
                         <label>Observação <span style="font-size:11px;color:var(--cor-texto-mutado);font-weight:400;">(opcional)</span></label>
                         <textarea id="obsTransacao" placeholder="Ex: lembrete sobre este lançamento" maxlength="500" rows="2" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;resize:vertical;"></textarea>
                     </div>
 
-                    <div class="recorrente-toggle" id="grupoFixa">
-                        <i class="ph ph-repeat"></i>
-                        <span>Repetir todo mês automaticamente</span>
-                        <input type="checkbox" id="transacaoFixa" style="margin-left:auto;width:16px;height:16px;cursor:pointer;accent-color:var(--cor-info);">
+                    <!-- Salvar sempre à vista, com o que vai ser salvo dito numa linha. -->
+                    <div class="lanc-pe" id="lancPe">
+                        <p class="lanc-resumo" id="lancResumo" aria-live="polite" hidden></p>
+                        <button class="btn-acao" id="btnSalvarControle" onclick="tentarSalvarTransacao()"><i class="ph ph-check-circle"></i> Salvar lançamento</button>
                     </div>
-
-                    <button class="btn-acao" id="btnSalvarControle" onclick="tentarSalvarTransacao()"><i class="ph ph-check-circle"></i> Salvar lançamento</button>
 
                     <div id="opcoesEdicaoRecorrente" style="display:none;flex-direction:column;gap:8px;margin-top:12px;padding:14px;background:var(--cor-superficie);border-radius:var(--radius-sm);border:1px solid var(--cor-borda);">
                         <label style="font-size:12.5px;color:var(--cor-texto-secundario);font-weight:500;text-align:center;margin-bottom:4px;">Como salvar esta alteração?</label>
@@ -16844,7 +16943,7 @@
          state da app — pode carregar antes ou depois de app.js. -->
     <script src="/web/appliquei-catalogo-b3.js?v=catalogo1"></script>
     <script src="/web/appliquei-yahoo-finance.js?v=catalogo1"></script>
-    <script src="/web/appliquei-app.js?v=fase5-emoji"></script>
+    <script src="/web/appliquei-app.js?v=form-lancamento-1"></script>
     <script src="/web/appliquei-combobox.js?v=combo-rolagem"></script>
     <!-- Contas / Instituições financeiras (entidade central). Carrega logo
          após app.js: usa transacoes/historicoCompras p/ o seed inicial e
@@ -16873,11 +16972,12 @@
     <script src="/web/appliquei-desempenho.js?v=fase4"></script>
     <script src="/web/appliquei-ir.js?v=fase4"></script>
     <script src="/web/appliquei-insights.js?v=insights-1"></script>
-    <script src="/web/appliquei-aba-controle-financeiro.js?v=parcela-atual-2"></script>
+    <script src="/web/appliquei-aba-controle-financeiro.js?v=form-lancamento-1"></script>
     <script src="/web/appliquei-faturas.js?v=importar-fatura-6"></script>
     <script src="/web/appliquei-categorias-palavras.js?v=importar-fatura-6"></script>
     <script src="/web/appliquei-importar-fatura.js?v=importar-fatura-6"></script>
     <script src="/web/appliquei-importar-fatura-ui.js?v=importar-fatura-6"></script>
+    <script src="/web/appliquei-lancamento-ui.js?v=form-lancamento-1"></script>
     <script src="/web/appliquei-insights-ui.js?v=inicio-mob"></script>
     <script src="/web/appliquei-relatorio-mensal.js?v=detalhe-categorias"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>

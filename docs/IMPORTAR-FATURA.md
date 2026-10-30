@@ -113,9 +113,12 @@ O fluxo acima continua; a revisão de usabilidade mudou como ele aparece:
 tinha como corrigir as próximas faturas." Duas correções em
 `web/appliquei-aba-controle-financeiro.js`:
 
-- **No lançamento:** com Nº de parcelas > 1 aparece **Parcela atual**. Com
-  "2", entram só 2/10…10/10 (9 lançamentos), a 2/10 na fatura escolhida; o
-  valor de cada parcela continua total ÷ 10.
+- **No lançamento:** com mais de uma parcela aparece o link **"Já começou a
+  pagar esta compra?"** (recolhido: quem compra hoje começa na 1 e não vê a
+  pergunta). Aberto, pergunta com as palavras da fatura do banco: "Nesta
+  fatura vem a parcela [2] de 10". Com "2", entram só 2/10…10/10 (9
+  lançamentos), a 2/10 na fatura escolhida; o valor de cada parcela continua
+  total ÷ 10, e o rodapé confirma: "9× de R$ 300,00 · parcelas 2 a 10".
 - **Na edição de uma parcela:** "Esta é a parcela [2] de [10] → Corrigir a
   série" (`renumerarSerieParcelas`). Mostra antes o que vai mudar: renomeia a
   série inteira, apaga a que sobra no fim, cria a que falta (se o total

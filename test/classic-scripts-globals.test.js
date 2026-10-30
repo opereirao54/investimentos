@@ -48,6 +48,7 @@ const CLASSIC_SCRIPTS = [
   { file: 'web/appliquei-categorias-palavras.js', indent: '' },
   { file: 'web/appliquei-importar-fatura.js', indent: '' },
   { file: 'web/appliquei-importar-fatura-ui.js', indent: '' },
+  { file: 'web/appliquei-lancamento-ui.js', indent: '' },
   { file: 'web/appliquei-relatorio-mensal.js', indent: '' },
   { file: 'web/appliquei-applicash.js', indent: '' },
   { file: 'web/appliquei-duvidas.js', indent: '' },
