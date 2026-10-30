@@ -1,0 +1,244 @@
+<!doctype html>
+<!--
+  Vídeo de APRESENTAÇÃO do perfil (≈22 s, 1080×1920) — "Prazer, eu sou o
+  Appliquei." Para fixar no topo do Instagram, TikTok e YouTube: quem chega ao
+  perfil entende em 20 s o que vai encontrar (uma conta do dia a dia por
+  vídeo, em menos de um minuto, com regra de bolso; seg, qua e sex)
+  e que há novidade em 02/01/2027. O app NÃO aparece (combinado até 26/12) e o
+  vídeo não leva o selo "Faltam X dias", porque fica fixado e o número
+  envelheceria.
+  Mesma mecânica dos outros vídeos: render(t) desenha o segundo t.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root {
+    --campo1: #0b1410; --campo2: #0f1f18; --campo3: #112720;
+    --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa;
+    --sinal: #34d399; --primaria: #059669; --ambar: #fbbf24; --vermelho: #f87171; --azul: #60a5fa;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--campo1); }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: linear-gradient(150deg, var(--campo1) 0%, var(--campo2) 50%, var(--campo3) 100%); }
+  .halo { position: absolute; inset: -20%;
+    background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.22), transparent 70%),
+                radial-gradient(40% 35% at 10% 90%, rgba(5,150,105,.18), transparent 70%); }
+  .malha { position: absolute; inset: 0; }
+  .cena { position: absolute; inset: 0; opacity: 0; }
+  .tit { font-weight: 900; letter-spacing: -.035em; line-height: 1; color: var(--tinta); }
+  .tit em { font-style: normal; color: var(--sinal); }
+  .tit em.a { color: var(--ambar); }
+  .mono { font-family: 'DM Mono', monospace; font-weight: 500; }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 200px; z-index: 20; }
+  .serie { position: absolute; right: 60px; top: 60px; padding: 10px 20px; border-radius: 99px; border: 2px solid rgba(52,211,153,.45); background: rgba(52,211,153,.12);
+    font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .12em; text-transform: uppercase; color: var(--sinal); z-index: 20; }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); z-index: 30; }
+  .el { opacity: 0; }
+
+  /* 1. Prazer */
+  .prazer { position: absolute; left: 0; right: 0; top: 560px; text-align: center; }
+  .prazer .oi { font-size: 150px; }
+  .prazer .sou { margin-top: 40px; font-size: 64px; font-weight: 800; color: var(--deck); }
+  .prazer img { display: block; width: 720px; margin: 46px auto 0; }
+
+  /* 2. As contas */
+  .chip { position: absolute; left: 90px; right: 90px; padding: 34px 40px; border-radius: 36px; display: flex; align-items: center; gap: 30px;
+    background: rgba(240,250,244,.06); border: 3px solid rgba(240,250,244,.18); font-size: 50px; font-weight: 800; letter-spacing: -.02em; }
+  .chip .ic { flex: none; width: 92px; height: 92px; border-radius: 26px; display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-size: 40px; font-weight: 500; }
+  .chip .ic svg { width: 54px; height: 54px; }
+
+  /* 3. O formato */
+  .trio { position: absolute; left: 70px; right: 70px; top: 560px; display: flex; flex-direction: column; gap: 40px; }
+  .item { display: flex; align-items: center; gap: 36px; }
+  .item .n { flex: none; width: 250px; height: 200px; border-radius: 40px; background: rgba(52,211,153,.12); border: 3px solid rgba(52,211,153,.55);
+    display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-size: 64px; font-weight: 500; color: var(--sinal); letter-spacing: -.04em; white-space: nowrap; }
+  .item p { font-size: 56px; font-weight: 900; letter-spacing: -.03em; line-height: 1.08; }
+  .item p small { display: block; margin-top: 8px; font-size: 32px; font-weight: 700; color: var(--deck); letter-spacing: 0; }
+
+  /* 4. A semana */
+  .semana { position: absolute; left: 60px; right: 60px; top: 760px; display: flex; gap: 14px; }
+  .dia { flex: 1; height: 260px; border-radius: 30px; background: rgba(240,250,244,.05); border: 2px solid rgba(240,250,244,.14);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; font-family: 'DM Mono', monospace; font-size: 30px; color: var(--mudo); letter-spacing: .08em; }
+  .dia i { width: 40px; height: 40px; border-radius: 50%; background: rgba(240,250,244,.08); }
+  .dia.on { background: rgba(52,211,153,.16); border-color: var(--sinal); color: var(--tinta); }
+  .dia.on i { background: var(--sinal); box-shadow: 0 0 30px rgba(52,211,153,.7); }
+  .hora { position: absolute; left: 0; right: 0; top: 1130px; text-align: center; font-family: 'DM Mono', monospace; font-size: 46px; color: var(--ambar); }
+
+  /* 5. Novidade */
+  .data { position: absolute; left: 0; right: 0; top: 640px; text-align: center; }
+  .data small { display: block; font-family: 'DM Mono', monospace; font-size: 34px; letter-spacing: .2em; text-transform: uppercase; color: var(--deck); }
+  .data b { display: block; margin-top: 20px; font-family: 'DM Mono', monospace; font-size: 190px; font-weight: 500; letter-spacing: -.05em; color: var(--ambar); line-height: 1; }
+  .data span { display: block; margin-top: 10px; font-family: 'DM Mono', monospace; font-size: 70px; color: var(--ambar); opacity: .7; }
+  .novo { position: absolute; left: 0; right: 0; top: 1160px; text-align: center; font-size: 86px; font-weight: 900; letter-spacing: -.03em; }
+  .novo em { font-style: normal; color: var(--sinal); }
+
+  /* 6. Fecho */
+  .segue { position: absolute; left: 0; right: 0; top: 500px; text-align: center; }
+  .segue .ic { width: 170px; height: 170px; margin: 0 auto; border-radius: 44px; background: var(--sinal); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 70px rgba(52,211,153,.4); }
+  .segue .ic svg { width: 100px; height: 100px; }
+  .segue b { display: block; margin-top: 34px; font-size: 72px; font-weight: 900; letter-spacing: -.03em; line-height: 1.08; }
+  .assina { position: absolute; left: 0; right: 0; top: 1020px; text-align: center; }
+  .assina img { width: 440px; }
+  .assina p { margin-top: 26px; font-size: 40px; font-weight: 800; color: var(--deck); }
+  .assina p em { font-style: normal; color: var(--sinal); }
+  .aviso { position: absolute; left: 80px; right: 80px; top: 1390px; padding: 22px 26px; border-radius: 22px; background: rgba(11,20,16,.9); border: 2px solid rgba(240,250,244,.35);
+    text-align: center; font-size: 27px; line-height: 1.4; color: var(--tinta); }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <div class="halo"></div>
+  <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+  <div class="serie" id="serie">Conta de padaria</div>
+
+  <!-- 1. PRAZER -->
+  <div class="cena" id="c1">
+    <div class="prazer">
+      <div class="tit oi el" id="oi">Prazer<em>,</em></div>
+      <div class="sou el" id="sou">eu sou o</div>
+      <img class="el" id="marca" src="wordmark.svg" alt="Appliquei">
+    </div>
+  </div>
+
+  <!-- 2. AS CONTAS -->
+  <div class="cena" id="c2">
+    <div class="tit" style="position:absolute;left:70px;right:70px;top:280px;text-align:center;font-size:82px;">Cada vídeo,<br><em>uma conta</em> do dia a dia</div>
+    <div class="chip el" id="k1" style="top:640px;"><span class="ic" style="background:rgba(96,165,250,.18);color:var(--azul);">10×</span>Parcelado ou à vista?</div>
+    <div class="chip el" id="k2" style="top:830px;"><span class="ic" style="background:rgba(251,191,36,.16);"><svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6 15h4"/></svg></span>O melhor dia do cartão</div>
+    <div class="chip el" id="k3" style="top:1020px;"><span class="ic" style="background:rgba(248,113,113,.16);"><svg viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2"><path d="M4 16v-4l2-5h12l2 5v4z"/><circle cx="7.5" cy="16.5" r="1.8"/><circle cx="16.5" cy="16.5" r="1.8"/><path d="M4 12h16"/></svg></span>Carro ou aplicativo?</div>
+    <div class="chip el" id="k4" style="top:1210px;"><span class="ic" style="background:rgba(52,211,153,.16);color:var(--sinal);">R$</span>O aumento que não aumentou</div>
+  </div>
+
+  <!-- 3. O FORMATO -->
+  <div class="cena" id="c3">
+    <div class="tit" style="position:absolute;left:70px;right:70px;top:300px;text-align:center;font-size:78px;">Sem enrolação</div>
+    <div class="trio">
+      <div class="item el" id="i1"><div class="n">&lt;1 min</div><p>Em menos de<br>um minuto</p></div>
+      <div class="item el" id="i2"><div class="n">a + b</div><p>A conta na tela<small>passo a passo</small></p></div>
+      <div class="item el" id="i3"><div class="n" style="color:var(--ambar);border-color:rgba(251,191,36,.6);background:rgba(251,191,36,.12);">regra</div><p>Uma regra de bolso<small>pra decidir na hora</small></p></div>
+    </div>
+  </div>
+
+  <!-- 4. A SEMANA -->
+  <div class="cena" id="c4">
+    <div class="tit" style="position:absolute;left:70px;right:70px;top:380px;text-align:center;font-size:90px;">Vídeo novo<br><em>3× por semana</em></div>
+    <div class="semana">
+      <div class="dia" id="d0"><i></i>SEG</div>
+      <div class="dia" id="d1"><i></i>TER</div>
+      <div class="dia" id="d2"><i></i>QUA</div>
+      <div class="dia" id="d3"><i></i>QUI</div>
+      <div class="dia" id="d4"><i></i>SEX</div>
+    </div>
+    <div class="hora el" id="hora">toda semana, um tema novo</div>
+  </div>
+
+  <!-- 5. NOVIDADE -->
+  <div class="cena" id="c5">
+    <div class="data el" id="data"><small>Marca na agenda</small><b>02/01</b><span>2027</span></div>
+    <div class="novo el" id="novo">Tem <em>novidade</em>.</div>
+  </div>
+
+  <!-- 6. FECHO -->
+  <div class="cena" id="c6">
+    <div class="segue el" id="sg"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#052e1f" stroke-width="2.6" stroke-linecap="round"><circle cx="10" cy="8" r="4"/><path d="M3 20c0-3.9 3.1-7 7-7s7 3.1 7 7M19 7v6M16 10h6"/></svg></div><b>Segue pra não perder<br>nenhuma conta</b></div>
+    <div class="assina el" id="as"><img src="wordmark.svg" alt="Appliquei"><p>Educação financeira <em>de bolso</em></p></div>
+    <div class="aviso el" id="av">Conteúdo educacional, não é recomendação de investimento.</div>
+  </div>
+
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  function $(id) { return document.getElementById(id); }
+  (function () {
+    const L = 1080, A = 1920, m = [];
+    for (let x = 60; x < L; x += 60) m.push(`<line x1="${x}" y1="0" x2="${x}" y2="${A}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 60; y < A; y += 60) m.push(`<line x1="0" y1="${y}" x2="${L}" y2="${y}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    $('malha').innerHTML = m.join('');
+  })();
+
+  // Cenas seguem narracao.json (início de cada frase − 0,15 s).
+  const DUR = 22;
+  const CENAS = [['c1', 0, 2.3], ['c2', 2.3, 9.3], ['c3', 9.3, 12.45], ['c4', 12.45, 14.6], ['c5', 14.6, 17.25], ['c6', 17.25, 22.2]];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  function surge(el, lt, a, dur, dy) {
+    const p = easeBack(prog(lt, a, a + (dur || 0.4)));
+    el.style.opacity = clamp(p, 0, 1);
+    el.style.transform = `translateY(${(1 - p) * (dy == null ? 40 : dy)}px) scale(${0.85 + 0.15 * p})`;
+  }
+
+  function render(t) {
+    for (const [id, a, b] of CENAS) {
+      const el = $(id);
+      const dentro = t >= a - 0.01 && t < b;
+      const fadeIn = id === 'c1' ? 1 : easeOut(prog(t, a, a + 0.25));
+      const fadeOut = 1 - prog(t, b - 0.2, b);
+      el.style.opacity = dentro ? Math.min(fadeIn, fadeOut) : 0;
+      el.style.display = dentro ? 'block' : 'none';
+      if (dentro) cenaExtra(id, t - a);
+    }
+    // c1 já mostra a marca grande: o logo do canto e o selo entram depois
+    $('serie').style.opacity = t < 17.1 ? easeOut(prog(t, 2.3, 2.6)) : 1 - prog(t, 17.1, 17.4);
+    $('logoFixo').style.opacity = t < 17.1 ? easeOut(prog(t, 2.3, 2.6)) : 1 - prog(t, 17.1, 17.4);
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+
+  function cenaExtra(id, lt) {
+    if (id === 'c1') {
+      // "Prazer," 0,2–0,8 · "eu sou o Appliquei." 0,9–2,0
+      surge($('oi'), lt, 0.0, 0.35, 30);
+      surge($('sou'), lt, 0.7, 0.35, 20);
+      surge($('marca'), lt, 1.15, 0.45, 40);
+    }
+    if (id === 'c2') {
+      // "…uma conta do dia a dia:" até ~3,0 · "parcelado ou à vista" ~3,2 · "cartão" ~4,4 · "carro" ~5,1 · "salário" ~5,8
+      const ks = [[3.0, 'k1', -1], [4.2, 'k2', 1], [4.95, 'k3', -1], [5.65, 'k4', 1]];
+      for (const [a, k, lado] of ks) {
+        const p = easeBack(prog(lt, a, a + 0.4));
+        $(k).style.opacity = clamp(p, 0, 1);
+        $(k).style.transform = `translateX(${(1 - p) * 260 * lado}px)`;
+      }
+    }
+    if (id === 'c3') {
+      // "Em menos de um minuto," 0,15–1,3 · "com uma regra de bolso pra você levar." 1,4–2,95
+      surge($('i1'), lt, 0.15, 0.4, 30);
+      surge($('i2'), lt, 0.9, 0.4, 30);
+      surge($('i3'), lt, 1.6, 0.4, 30);
+    }
+    if (id === 'c4') {
+      // "Toda segunda, quarta e sexta." 0,15–1,9
+      const liga = { d0: 0.3, d2: 0.85, d4: 1.4 };
+      for (let i = 0; i < 5; i++) {
+        const d = $('d' + i), a = liga['d' + i];
+        d.classList.toggle('on', a != null && lt >= a);
+        d.style.transform = a != null ? `scale(${1 + 0.08 * Math.sin(Math.PI * prog(lt, a, a + 0.3))})` : '';
+      }
+      surge($('hora'), lt, 1.5, 0.35, 20);
+    }
+    if (id === 'c5') {
+      // "E no dia dois de janeiro," 0,15–1,4 · "tem novidade." 1,5–2,25
+      const p = easeBack(prog(lt, 0.3, 0.75));
+      $('data').style.opacity = clamp(p, 0, 1);
+      $('data').style.transform = `scale(${1.6 - 0.6 * p})`;
+      surge($('novo'), lt, 1.45, 0.4, 30);
+    }
+    if (id === 'c6') {
+      // "Segue o Appliquei pra não perder nenhuma conta." 0,15–2,5
+      surge($('sg'), lt, 0.1, 0.4, 40);
+      $('sg').querySelector('.ic').style.transform = `scale(${1 + 0.06 * Math.sin(lt * 7) * prog(lt, 0.5, 1)})`;
+      surge($('as'), lt, 0.8, 0.45, 40);
+      surge($('av'), lt, 1.8, 0.4, 10);
+    }
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>
