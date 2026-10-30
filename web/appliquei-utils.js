@@ -468,7 +468,7 @@ function abrirModalRecomecar() {
     'Vamos apagar <strong>tudo o que você registrou</strong> — lançamentos, investimentos, contas, cartões, bens, sonhos, metas, perfil de investidor e progresso da Jornada.<br><br>' +
     '<span style="display:block;background:var(--cor-bg-erro);border:1px solid var(--cor-borda-erro);color:var(--cor-txt-erro);border-radius:9px;padding:10px 12px;font-size:12.5px;line-height:1.55;margin-bottom:14px;">' +
     '<i class="ph-fill ph-warning" style="vertical-align:-2px;"></i> <strong>Não dá para desfazer.</strong> Se você usa a Appliquei em mais de um aparelho, todos ficam vazios. ' +
-    'Sua conta, sua assinatura e o Applicash continuam ativos.' +
+    'Sua conta e sua assinatura continuam ativas.' +
     '</span>' +
     '<span style="display:block;background:var(--cor-bg-info);border:1px solid var(--cor-borda-info);color:var(--cor-txt-info);border-radius:9px;padding:10px 12px;font-size:12.5px;line-height:1.55;margin-bottom:14px;">' +
     '<i class="ph-fill ph-compass" style="vertical-align:-2px;"></i> Ao terminar, o <strong>guia de primeiros passos</strong> reaparece para levar você de volta pelo caminho — conta, receita e despesa.' +

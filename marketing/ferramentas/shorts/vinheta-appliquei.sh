@@ -14,6 +14,8 @@ import sys
 aqui, tmp, aviso = sys.argv[1:]
 logo = open(f'{aqui}/../../../appliquei-wordmark.svg').read().replace('#f0faf4', '#0b1410')
 h = open(f'{aqui}/vinheta-appliquei.html').read().replace('{{LOGO}}', logo).replace('{{AVISO}}', aviso)
+if aviso == 'É HOJE':
+    h = h.replace('Um recurso por dia até o lançamento', 'O lançamento é hoje')
 open(f'{tmp}/vinheta.html', 'w').write(h)
 PY
 node "$AQUI/render.js" "$TMP/r" "$TMP/vinheta.html" | tail -1

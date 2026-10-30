@@ -293,8 +293,6 @@ test('o texto dos Termos cobre o que o usuário precisa saber antes de aceitar',
     'sem multa',
     'art. 49',
     'valor integral',
-    'Applicash',
-    'não pode ser sacado',
     'Programa de testadores',
     '1 (um) ano depois da data de lançamento',
     '50% de desconto',
@@ -303,6 +301,9 @@ test('o texto dos Termos cobre o que o usuário precisa saber antes de aceitar',
   ]) {
     assert.ok(html.includes(trecho), 'falta nos Termos: ' + trecho);
   }
+  // Applicash fora do ar: os Termos não podem prometer um programa que o app
+  // não oferece. Religou? Volte a seção e suba TERMOS_VERSAO.
+  assert.ok(!html.includes('Applicash'), 'Termos ainda falam do Applicash');
   // Sem dados do controlador, nada de lacuna no texto.
   assert.ok(!/CNPJ\s*[,.<]/.test(html), 'CNPJ vazio não pode aparecer');
   assert.ok(!html.includes('undefined'));

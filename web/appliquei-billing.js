@@ -212,7 +212,7 @@ function injectGateStyles() {
     '.bg-sub{font-size:14px;color:#475569;line-height:1.55;margin:0 0 22px;}',
     '.bg-section{margin-bottom:22px;}',
     '.bg-section-title{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;display:flex;align-items:center;gap:6px;}',
-    '.bg-tiers{display:grid;grid-template-columns:1fr 1fr;gap:10px;}',
+    '.bg-tiers{display:grid;grid-template-columns:1fr;gap:10px;}',
     '.bg-tier{position:relative;border:1.5px solid #e5e7eb;background:#fff;border-radius:14px;padding:14px 14px 12px;}',
     '.bg-tier-current{border-color:#059669;background:linear-gradient(180deg,#f0fdf4 0%,#ecfdf5 100%);box-shadow:0 0 0 4px rgba(5,150,105,.06);}',
     '.bg-tier-soon{opacity:.85;background:#f8fafc;}',
@@ -296,19 +296,15 @@ function ensureGate() {
     '  <div class="bg-inner">',
     '    <div class="bg-eyebrow"><i class="ph-fill ph-sparkle"></i> Appliquei Pro</div>',
     '    <h2 id="billingTitle" class="bg-h1">Acesso completo à Appliquei</h2>',
-    '    <p id="billingSub" class="bg-sub">Carteira sugerida, dashboards, Applicash e tudo mais. Escolha como prefere pagar.</p>',
+    '    <p id="billingSub" class="bg-sub">Carteira sugerida, controle do mês, relatório e tudo mais. Escolha como prefere pagar.</p>',
+    // Um plano só à venda: o "Pro + IA" saiu da grade até existir de fato.
     '    <div class="bg-section">',
     '      <div class="bg-section-title">Plano</div>',
     '      <div class="bg-tiers">',
     '        <div class="bg-tier bg-tier-current">',
     '          <span class="bg-tier-pill bg-tier-pill-current"><i class="ph-fill ph-check-circle"></i> Plano atual</span>',
     '          <div class="bg-tier-title">Pro</div>',
-    '          <div class="bg-tier-sub">Todas as 10 abas da Appliquei · Applicash · suporte.</div>',
-    '        </div>',
-    '        <div class="bg-tier bg-tier-soon" aria-disabled="true">',
-    '          <span class="bg-tier-pill bg-tier-pill-soon"><i class="ph ph-wrench"></i> Em construção</span>',
-    '          <div class="bg-tier-title">Pro + IA</div>',
-    '          <div class="bg-tier-sub">Diagnóstico, sugestões e chat com IA. Em breve.</div>',
+    '          <div class="bg-tier-sub">Todas as abas da Appliquei e suporte.</div>',
     '        </div>',
     '      </div>',
     '    </div>',
@@ -332,7 +328,7 @@ function ensureGate() {
     '        </button>',
     '      </div>',
     '      <p id="billingModeHint" class="bg-hint">Renovação automática. Cancele quando quiser.</p>',
-    '      <div class="bg-parity"><i class="ph-fill ph-gift"></i> <span><strong>Applicash funciona igual nos dois:</strong> entrou com cupom de indicação? Paga 10% menos sempre. Indica alguém? Recebe 10% por cada pagamento dele — assinatura ou avulso.</span></div>',
+    '      <div class="bg-parity" data-applicash><i class="ph-fill ph-gift"></i> <span><strong>Applicash funciona igual nos dois:</strong> entrou com cupom de indicação? Paga 10% menos sempre. Indica alguém? Recebe 10% por cada pagamento dele — assinatura ou avulso.</span></div>',
     '    </div>',
     '    <div class="bg-section">',
     '      <div class="bg-section-title">Forma de pagamento</div>',
@@ -352,7 +348,7 @@ function ensureGate() {
     '        <label for="billingCpfCnpj">CPF ou CNPJ</label>',
     '        <input id="billingCpfCnpj" class="bg-input" type="text" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00">',
     '      </div>',
-    '      <div id="billingCouponSection">',
+    '      <div id="billingCouponSection" data-applicash>',
     '        <button id="billingCouponToggle" type="button" class="bg-coupon-toggle"><i class="ph ph-tag"></i> Tem cupom de desconto?</button>',
     '        <div id="billingCouponBody" class="bg-coupon-body" style="display:none;">',
     '          <div id="billingCouponInputRow" class="bg-coupon-row">',
@@ -1233,8 +1229,11 @@ function mostrarErroConvite(msg) {
 
 async function initBilling() {
   var pending = '';
+  // Applicash desligado: nenhum cupom vai para o /init (o servidor também
+  // ignora, com APPLICASH_ENABLED desligado).
   try {
-    pending = sessionStorage.getItem('appliquei_pending_referral') || '';
+    if (window.APPLICASH_ATIVO === true)
+      pending = sessionStorage.getItem('appliquei_pending_referral') || '';
   } catch (_) {}
   var convite = lerConvitePendente();
   var bodyObj = pending ? { referralCode: pending } : {};
@@ -1526,7 +1525,7 @@ function ensureMyAccountStyles() {
     '#myAccountModal .ma-cob-previstas-corpo .ma-cob-linha{padding-left:0;padding-right:0;}',
     '@media (prefers-reduced-motion:reduce){#myAccountModal .ma-cob-cta,#myAccountModal .ma-cob-previstas summary::after{transition:none;}}',
     // ---- Grade de planos ------------------------------------------------
-    '#myAccountModal .ma-planos{display:grid;grid-template-columns:1fr 1fr;gap:12px;}',
+    '#myAccountModal .ma-planos{display:grid;grid-template-columns:1fr;gap:12px;}',
     '@media (max-width:460px){#myAccountModal .ma-planos{grid-template-columns:1fr;}}',
     '#myAccountModal .ma-plano{position:relative;border:1px solid var(--ma-borda);background:var(--ma-superficie);border-radius:14px;padding:16px;}',
     '#myAccountModal .ma-plano.atual{border:1.5px solid #059669;background:linear-gradient(180deg,#f0fdf4 0%,#ecfdf5 100%);box-shadow:0 0 0 4px rgba(5,150,105,.06);}',
@@ -1990,7 +1989,7 @@ function renderHeroBlock(me) {
       '<div class="ma-hero-title">Reative quando quiser</div>' +
       '<p class="ma-hero-sub">' +
       cancelledTxt +
-      ' Pode voltar a assinar nas mesmas condições — incluindo o desconto Applicash, se existir.</p>' +
+      ' Pode voltar a assinar nas mesmas condições.</p>' +
       '<button type="button" class="ma-hero-cta" data-act="reactivate"><i class="ph-fill ph-rocket-launch"></i> Reativar assinatura · ' +
       fmtBRL(baseCents) +
       '/mês</button>' +
@@ -2104,7 +2103,7 @@ function renderHeroBlock(me) {
       '<div class="ma-hero-title">Reative quando quiser</div>' +
       '<p class="ma-hero-sub">' +
       cancelledTxt +
-      ' Pode voltar a assinar nas mesmas condições — incluindo o desconto Applicash, se existir.</p>' +
+      ' Pode voltar a assinar nas mesmas condições.</p>' +
       '<button type="button" class="ma-hero-cta" data-act="reactivate"><i class="ph-fill ph-rocket-launch"></i> Reativar assinatura · ' +
       fmtBRL(baseCents) +
       '/mês</button>' +
@@ -2183,7 +2182,9 @@ function renderPlanInfoBlock(me) {
           '</span> · Venceu '
         : 'Vence ') + (nextDate ? fmtDate(nextDate) : '—');
   } else {
-    foot = (nextDate ? fmtDate(nextDate) : '—') + (nextCents < baseCents ? ' · com Applicash' : '');
+    foot =
+      (nextDate ? fmtDate(nextDate) : '—') +
+      (nextCents < baseCents && window.APPLICASH_ATIVO === true ? ' · com Applicash' : '');
   }
   // Este card INFORMA o valor e o vencimento; não carrega botão. Antes havia um
   // "Pagar agora" aqui, outro no hero e um por linha da tabela — quatro caminhos
@@ -2273,26 +2274,20 @@ function renderPlanInfoBlock(me) {
 }
 
 function renderPlansBlock(me) {
-  // Mostra Pro (atual) vs Pro+IA (em construção) também dentro do app.
-  // Faz par com a landing — usuário descobre o roadmap sem sair do app.
-  // Era tudo estilo inline com hex de tema claro: no modo escuro os dois cards
+  // Um plano só à venda (Pro). O card "Pro + IA — em construção" saiu até o
+  // plano existir; a landing mostra o mesmo.
+  // Era tudo estilo inline com hex de tema claro: no modo escuro os cards
   // ficavam brancos no meio do painel. Agora usa classe e token.
   return (
     '<div class="ma-section">' +
-    '<div class="ma-section-title"><i class="ph ph-stack"></i> Planos disponíveis</div>' +
+    '<div class="ma-section-title"><i class="ph ph-stack"></i> Plano</div>' +
     '<div class="ma-planos">' +
     '<div class="ma-plano atual">' +
     '<span class="ma-plano-selo">Atual</span>' +
     '<div class="ma-plano-eyebrow"><i class="ph-fill ph-check-circle"></i> Pro</div>' +
     '<div class="ma-plano-titulo">Acesso completo</div>' +
-    '<p class="ma-plano-desc">Todas as 10 abas da Appliquei, Applicash e suporte por e-mail.</p>' +
+    '<p class="ma-plano-desc">Todas as abas da Appliquei e suporte.</p>' +
     '<div class="ma-plano-preco"><span class="ma-plano-valor">R$ 15</span><span class="ma-plano-ciclo">/mês</span></div>' +
-    '</div>' +
-    '<div class="ma-plano breve">' +
-    '<div class="ma-plano-eyebrow em-obra"><i class="ph ph-wrench"></i> Em construção</div>' +
-    '<div class="ma-plano-titulo">Pro + IA</div>' +
-    '<p class="ma-plano-desc">Diagnóstico, sugestões e chat com IA — em breve.</p>' +
-    '<button type="button" class="ma-btn" disabled style="cursor:not-allowed;opacity:.6;width:100%;">Avise-me no lançamento</button>' +
     '</div>' +
     '</div>' +
     '</div>'
@@ -2331,6 +2326,8 @@ function renderPaymentMethodBlock(me) {
 }
 
 function renderApplicashBlock(me) {
+  // Applicash fora do ar (ver APPLICASH_ATIVO no <head> do app).
+  if (window.APPLICASH_ATIVO !== true) return '';
   var pending = me.pendingDiscountCents || 0;
   var earned = me.totalReferralEarningsCents || 0;
   var active = me.activeReferrals || 0;
@@ -3348,7 +3345,7 @@ function confirmCancelSubscription() {
     '<p style="margin:4px 0 0;font-size:12.5px;color:#7f1d1d;line-height:1.5;opacity:.9;">O acesso fica disponível até o fim do ciclo já pago. Nenhuma cobrança futura é emitida.</p>' +
     '</div>' +
     '</div>' +
-    '<p style="margin:0 0 14px;font-size:12.5px;color:#64748b;line-height:1.5;">Pode voltar a assinar a qualquer momento mantendo o mesmo cupom Applicash, se houver.</p>' +
+    '<p style="margin:0 0 14px;font-size:12.5px;color:#64748b;line-height:1.5;">Pode voltar a assinar a qualquer momento, nas mesmas condições.</p>' +
     '<div id="cancelErr" style="display:none;font-size:12.5px;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 12px;margin-bottom:10px;"></div>' +
     '<div style="display:flex;gap:8px;">' +
     '<button id="cancelKeep" type="button" style="flex:1;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;padding:11px 14px;border-radius:11px;font-size:13.5px;font-weight:600;color:#334155;font-family:inherit;">Manter assinatura</button>' +

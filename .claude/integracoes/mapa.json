@@ -22,7 +22,8 @@
         "web/appliquei-contas.js",
         "web/appliquei-patrimonio.js",
         "web/appliquei-utils.js",
-        "web/appliquei-telegram.js"
+        "web/appliquei-telegram.js",
+        "web/appliquei-importar-fatura-ui.js"
       ],
       "consumidores": [
         "web/appliquei-patrimonio.js",
@@ -32,7 +33,8 @@
         "web/appliquei-sonhos.js",
         "web/appliquei-jornada.js",
         "web/appliquei-insights.js",
-        "web/appliquei-insights-ui.js"
+        "web/appliquei-insights-ui.js",
+        "web/appliquei-importar-fatura.js"
       ],
       "camposDeLigacao": [
         {
@@ -78,6 +80,13 @@
           "campo": "divKey",
           "formato": "{ticker}_{ano}_{mes}",
           "nota": "chave de idempotência do lançamento de dividendo; lancarDividendosNoCaixa não duplica quando roda de novo"
+        },
+        {
+          "campo": "importacao",
+          "formato": "{ id, banco, fitid? }",
+          "obrigatorio": "condicional",
+          "quando": "lançamento criado pela importação de fatura (web/appliquei-importar-fatura.js)",
+          "nota": "importacao.id liga ao registro em appliquei_importacoes_fatura (Desfazer); importacao.fitid é a chave de idempotência da linha do OFX (INV-27). dataCompra, no mesmo lançamento, é só exibição: competência e caixa seguem dataVencimento e pago."
         }
       ],
       "camposDeCompetencia": {
@@ -357,6 +366,11 @@
       "geradoEm": "web/appliquei-telegram.js",
       "onda": 3,
       "nota": "tg<chat>_<mensagem>_<n>: lançamento vindo do bot do Telegram (api/_lib/telegram-bot.js). O prefixo tg<chat>_<mensagem> é o id do item na caixa de entrada; Desfazer e troca de categoria acham as transações por ele. groupId = tg<chat>_<mensagem>_ quando há parcelas/recorrência."
+    },
+    "imp": {
+      "entidade": "transacao",
+      "geradoEm": "web/appliquei-importar-fatura.js:impfatAplicar",
+      "nota": "imp<idBase>_<n>: lançamento criado pela importação de fatura. groupId = imp<idBase>g<linha> liga as parcelas da mesma compra. Prefixo próprio porque o id manual (Date.now()+i) poderia colidir no mesmo milissegundo."
     }
   },
   "invariantes": [
@@ -509,7 +523,9 @@
       "arquivos": [
         "web/appliquei-aba-controle-financeiro.js",
         "web/appliquei-patrimonio.js",
-        "web/appliquei-telegram.js"
+        "web/appliquei-telegram.js",
+        "web/appliquei-importar-fatura.js",
+        "web/appliquei-importar-fatura-ui.js"
       ],
       "simbolos": [
         "mes",
@@ -704,7 +720,9 @@
       "arquivos": [
         "web/appliquei-app.js",
         "web/appliquei-aba-controle-financeiro.js",
-        "web/appliquei-telegram.js"
+        "web/appliquei-telegram.js",
+        "web/appliquei-importar-fatura.js",
+        "web/appliquei-importar-fatura-ui.js"
       ],
       "simbolos": ["obterCartao", "cartaoId", "cartoesAtivos"],
       "sintoma": "Lançamento aparece na fatura do cartão errado, ou com vencimento que não é o dele.",
@@ -836,6 +854,20 @@
       "prova": "test/integracao-inv26-baixa-telegram.test.js + test/telegram-alertas.test.js",
       "status": "coberta",
       "fragilidade": "Os alvos chegam do servidor: o app confere de novo se cada um é conta a pagar. A ordem pagar/despagar é a de criadoEmMs, e os dois podem chegar na mesma busca. Uma aba antiga do app aberta (JS de antes desta versão) não conhece o tipo 'pagar' e o confirma sem aplicar: o pagamento se perde e precisa ser feito de novo."
+    },
+    {
+      "id": "INV-27",
+      "titulo": "Fatura importada não duplica compra",
+      "regra": "Cada linha da fatura do banco vira no máximo UM lançamento: duas transações do mesmo cartão com o mesmo importacao.fitid são proibidas. A importação (web/appliquei-importar-fatura.js) é idempotente porque, antes de criar, casa cada linha com o que já está na fatura: pelo FITID do OFX, pela parcela (N/M) e pelo valor igual (um para um). Valor quase igual ou nome parecido vira 'parecida' e só entra se o usuário marcar. Reimportar o mesmo arquivo não cria nada.",
+      "gravidade": "critica",
+      "entidades": ["transacao", "cartao"],
+      "arquivos": ["web/appliquei-importar-fatura.js", "web/appliquei-importar-fatura-ui.js"],
+      "simbolos": ["impfatPlanejar", "impfatAplicar", "importacao", "fitid", "impfatUiConfirmar"],
+      "sintoma": "\"Importei a fatura e as compras apareceram duas vezes\" · \"lancei pelo Telegram e a importação duplicou\" · a fatura do app ficou maior que a do Nubank.",
+      "historico": "Nasceu com a importação de fatura do Nubank (27/10/2026). Achado na primeira rodada com uma fatura real: compra lançada pelo Telegram com valor arredondado ('padaria 20') contra centavos a mais no banco entrava como compra nova — virou a regra do valor quase igual.",
+      "prova": "test/integracao-inv27-importar-fatura.test.js + test/importar-fatura.test.js",
+      "status": "coberta",
+      "fragilidade": "O FITID só existe no OFX; no CSV a idempotência depende do casamento por valor e parcela. Parcela antiga (N>1) vem com a data do início do ciclo, não a da compra: dataCompra fica vazia nela de propósito."
     }
   ],
   "riscosConhecidos": [

@@ -301,7 +301,8 @@
 
   /* Plans */
   .plans { background: var(--bg); }
-  .plans-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; max-width: 880px; margin: 0 auto; align-items: stretch; }
+  /* Um plano só à venda: card centralizado, na largura de um card. */
+  .plans-grid { display: grid; grid-template-columns: 1fr; gap: 18px; max-width: 440px; margin: 0 auto; align-items: stretch; }
   @media (max-width: 720px) { .plans-grid { grid-template-columns: 1fr; } }
   .plan { position: relative; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; display: flex; flex-direction: column; }
   .plan.popular { border: 2px solid var(--emerald); box-shadow: 0 12px 36px rgba(5,150,105,.18); }
@@ -643,40 +644,6 @@
   .telas-extra-link { color: inherit; text-decoration: underline; text-decoration-color: #c9e3d8; text-underline-offset: 3px; }
   .telas-extra-link:hover { color: var(--emerald-dark); }
 
-  /* ============================================================
-     Applicash $ — o programa de indicações
-     ============================================================
-     Banda escura logo depois de Planos: separa o preço do FAQ e responde à
-     objeção do preço enquanto ela ainda está na cabeça de quem leu. */
-  .applicash { background: linear-gradient(150deg, #0b1410 0%, #10241b 55%, #123026 100%); color: #fff; padding: 58px 0; }
-  .applicash h2 { color: #fff; }
-  .applicash .section-head { margin-bottom: 28px; }
-  .applicash .section-head .eyebrow { color: #6ee7b7; }
-  .applicash .section-head p { color: #c8d6cf; }
-
-  .apc-como { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  @media (max-width: 780px) { .apc-como { grid-template-columns: 1fr; } }
-  .apc-passo { display: flex; gap: 11px; align-items: flex-start; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.13); border-radius: var(--radius-sm); padding: 14px 16px; }
-  .apc-passo i { color: #6ee7b7; font-size: 20px; flex-shrink: 0; margin-top: 1px; }
-  .apc-passo strong { display: block; color: #fff; font-size: 13.5px; font-weight: 600; }
-  .apc-passo span { display: block; color: rgba(255,255,255,.72); font-size: 12px; line-height: 1.45; margin-top: 3px; }
-
-  /* A escada de marcos é a MESMA de APPLICASH_METAS. Quatro colunas no
-     desktop, 2×2 no celular — empilhada, uma escada de quatro degraus
-     deixa de se ler como escada. */
-  .apc-metas { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0 0; padding: 0; }
-  @media (max-width: 780px) { .apc-metas { grid-template-columns: 1fr 1fr; } }
-  .apc-metas li { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.11); border-radius: var(--radius-sm); padding: 14px 16px; }
-  .apc-metas b { display: block; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 30px; line-height: 1; color: #fff; }
-  .apc-metas span { display: block; color: rgba(255,255,255,.62); font-size: 11.5px; margin-top: 4px; }
-  .apc-metas em { display: block; font-style: normal; color: #6ee7b7; font-weight: 600; font-size: 13.5px; margin-top: 8px; }
-  .apc-metas .apc-zerada { background: rgba(52,211,153,.13); border-color: rgba(52,211,153,.4); }
-  .apc-metas .apc-zerada em { color: #a7f3d0; }
-
-  .apc-pe { text-align: center; margin-top: 26px; }
-  .applicash .apc-btn { background: #fff; color: var(--emerald-dark); }
-  .applicash .apc-btn:hover { background: #ecfdf5; }
-  .apc-pe p { max-width: 660px; margin: 14px auto 0; color: rgba(255,255,255,.62); font-size: 12px; line-height: 1.55; }
 </style>
 </head>
 <body>
@@ -907,10 +874,10 @@
         </div>
       </article>
       <article class="tela">
-        <div class="tela-shot"><img src="prints/relatorio-mensal.webp" width="1200" height="900" alt="Relatório mensal da Appliquei com termômetro financeiro, régua de score e os cinco critérios avaliados no mês." loading="lazy" decoding="async"></div>
+        <div class="tela-shot"><img src="prints/relatorio-mensal.webp" width="1200" height="900" alt="Relatório mensal da Appliquei com termômetro financeiro, régua de score e os critérios avaliados no mês." loading="lazy" decoding="async"></div>
         <div class="tela-corpo">
           <h3><i class="ph-fill ph-file-text"></i> Relatório mensal</h3>
-          <p>Um termômetro com cinco critérios objetivos, e exportação em PDF.</p>
+          <p>Um termômetro com quatro critérios objetivos, e exportação em PDF.</p>
         </div>
       </article>
       <article class="tela">
@@ -925,7 +892,6 @@
     <p class="telas-extra">
       <span><i class="ph-fill ph-device-mobile"></i> Tudo funciona no celular, e dá para instalar na tela de início</span>
       <span><i class="ph-fill ph-newspaper"></i> Info Mercado com indicadores e notícias</span>
-      <span><i class="ph-fill ph-currency-dollar"></i> <a href="#applicash" class="telas-extra-link">Applicash: crédito por indicação, para custear a assinatura</a></span>
     </p>
   </div>
 </section>
@@ -933,7 +899,7 @@
 <!-- ============================================================
      SISTEMA INTELIGENTE — o motor de insights do Controle
      ============================================================
-     Não confundir com o plano "Pro + IA", que continua em construção: isto
+     Não vender isto como IA (não há plano de IA à venda): isto
      é estatística determinística sobre os lançamentos do próprio usuário
      (web/appliquei-insights.js, seis detectores, sem LLM) e já está no
      plano de hoje. A distinção é escrita na página de propósito — sem ela,
@@ -974,8 +940,8 @@
      do Telegram — por isso a legenda diz "exemplo" e o print ao lado é a
      tela real do app no instante em que os lançamentos entram.
 
-     Não falar em IA aqui: o plano Pro + IA está "em construção" logo
-     abaixo, e prometer IA nesta seção desmentiria a grade de planos. -->
+     Não falar em IA aqui: não há plano de IA à venda, e prometer IA nesta
+     seção venderia um produto que não existe. -->
 <section id="telegram" class="inteligente telegram">
   <div class="container inteligente-grid">
     <div class="inteligente-texto">
@@ -1046,13 +1012,13 @@
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Planos</span>
-      <h2>Um plano simples agora, IA chegando em breve</h2>
-      <p>Comece pelo Pro. Quando o Pro + IA for liberado, você migra com um clique.</p>
+      <h2>Um plano, tudo incluído</h2>
+      <p>Todas as funcionalidades da Appliquei por um preço só. Sem fidelidade.</p>
     </div>
 
     <div class="plans-grid">
       <div class="plan popular">
-        <span class="plan-badge">Disponível hoje</span>
+        <span class="plan-badge">7 dias grátis</span>
         <div class="plan-name">Pro</div>
         <div class="plan-tag">Todas as funcionalidades atuais da Appliquei.</div>
         <div class="plan-price"><span class="cur">R$</span><span class="val">15</span><span class="per">/mês</span></div>
@@ -1063,95 +1029,12 @@
           <li><i class="ph-fill ph-check-circle"></i> Carteira sugerida e relatório mensal</li>
           <li><i class="ph-fill ph-check-circle"></i> Simulador de liberdade e metas (Sonhos)</li>
           <li><i class="ph-fill ph-check-circle"></i> Jornada Financeira (aulas) e Info Mercado</li>
-          <li><i class="ph-fill ph-check-circle"></i> Applicash — crédito por indicações</li>
           <li><i class="ph-fill ph-check-circle"></i> PIX, boleto ou cartão recorrente (Asaas)</li>
           <li><i class="ph-fill ph-check-circle"></i> Cancele quando quiser, sem multa</li>
         </ul>
         <a href="/app?modo=cadastro" class="btn btn-primary btn-lg">Começar grátis 7 dias</a>
         <div class="plan-foot">Sem cartão para iniciar o trial.</div>
       </div>
-
-      <div class="plan disabled" aria-disabled="true">
-        <span class="plan-soon"><i class="ph ph-wrench"></i> Em construção</span>
-        <div class="plan-name">Pro + IA</div>
-        <div class="plan-tag">Tudo do Pro com uma camada de inteligência artificial.</div>
-        <div class="plan-price"><span class="cur">R$</span><span class="val">—</span><span class="per">/em breve</span></div>
-        <ul class="plan-list">
-          <li><i class="ph-fill ph-check-circle"></i> Tudo do plano Pro</li>
-          <li class="soon"><i class="ph-fill ph-clock"></i> Diagnóstico financeiro automático</li>
-          <li class="soon"><i class="ph-fill ph-clock"></i> Sugestões de aporte por meta</li>
-          <li class="soon"><i class="ph-fill ph-clock"></i> Análise de gastos e oportunidades</li>
-          <li class="soon"><i class="ph-fill ph-clock"></i> Resumo do mês escrito em linguagem clara</li>
-          <li class="soon"><i class="ph-fill ph-clock"></i> Chat para tirar dúvidas sobre suas finanças</li>
-        </ul>
-        <button class="btn btn-ghost btn-lg" disabled style="cursor:not-allowed;opacity:.65;">Avise-me quando lançar</button>
-        <div class="plan-foot">Quem está no Pro migra com um clique quando ele for liberado.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================================================
-     APPLICASH $ — o programa de indicações
-     ============================================================
-     Vinha numa linha solta no fim da grade de funcionalidades, onde
-     ninguém o lia. Encosta em Planos de propósito: é a resposta direta à
-     objeção que o preço acabou de levantar.
-
-     OS NÚMEROS NÃO SÃO DE MARKETING. A comissão (10%), o desconto de quem
-     usa o cupom (10%) e os quatro marcos vêm de APPLICASH_CONFIG e
-     APPLICASH_METAS, em web/appliquei-applicash.js — é a MESMA tabela que
-     o app mostra na aba Applicash. Mexer lá sem mexer aqui faz a página
-     prometer um desconto que a tela do assinante desmente.
-
-     E OS MARCOS SÃO O QUE O MOTOR ENTREGA, não o que soaria melhor. Cada
-     indicado ativo abate R$ 1,35/mês (10% dos R$ 13,50 que ele paga), e
-     MIN_PAYMENT_CENTS trava a fatura em R$ 5,00 — o piso do gateway. Por
-     isso a escada para em "fatura mínima" e não em "mensalidade zerada":
-     do 8º indicado em diante a cobrança já está no mínimo e o excedente
-     vira saldo para os meses seguintes. O teto está fixado em
-     test/pagamentos-applicash.test.js; para prometer R$ 0,00 é preciso
-     antes baixar o piso ou pular a cobrança quando o crédito cobre o mês.
-
-     E o crédito ABATE na própria mensalidade: no MVP não há saque em PIX
-     (ver a seção Applicash de scripts/build_plan_pdf.py). Escrever
-     "ganhe dinheiro" descreveria um produto que ainda não existe. -->
-<section id="applicash" class="applicash">
-  <div class="container">
-    <div class="section-head">
-      <span class="eyebrow">Applicash $</span>
-      <h2>Indique a Appliquei e deixe a mensalidade se pagar sozinha</h2>
-      <p>Cada pessoa que assina com o seu cupom vira crédito na sua própria mensalidade, todo mês, enquanto a assinatura dela estiver ativa. E quem entra pelo seu cupom começa com 10% de desconto.</p>
-    </div>
-
-    <div class="apc-como">
-      <div class="apc-passo">
-        <i class="ph-fill ph-ticket"></i>
-        <div><strong>O cupom nasce com a sua conta</strong>
-        <span>Um código próprio, pronto para copiar ou compartilhar como link.</span></div>
-      </div>
-      <div class="apc-passo">
-        <i class="ph-fill ph-hand-coins"></i>
-        <div><strong>10% do que o indicado paga volta para você</strong>
-        <span>Todo mês, enquanto a assinatura dele continuar ativa.</span></div>
-      </div>
-      <div class="apc-passo">
-        <i class="ph-fill ph-receipt"></i>
-        <div><strong>O crédito abate na sua cobrança</strong>
-        <span>O abatimento e a próxima cobrança estimada ficam à vista dentro do app.</span></div>
-      </div>
-    </div>
-
-    <ol class="apc-metas">
-      <li><b>1</b><span>indicação ativa</span><em>Fatura de R$ 13,65</em></li>
-      <li><b>5</b><span>indicações ativas</span><em>Fatura de R$ 8,25</em></li>
-      <li><b>8</b><span>indicações ativas</span><em>Fatura de R$ 5,00</em></li>
-      <li class="apc-zerada"><b>12+</b><span>indicações ativas</span><em>Fatura mínima + saldo acumula</em></li>
-    </ol>
-
-    <div class="apc-pe">
-      <a href="/app?modo=cadastro" class="btn btn-lg apc-btn"><i class="ph-fill ph-share-network"></i> Criar conta e pegar o meu cupom</a>
-      <p>O Applicash é crédito que abate na sua própria mensalidade — não é resgate em dinheiro. Valem as indicações com assinatura ativa; o desconto acompanha quem continua assinando.</p>
     </div>
   </div>
 </section>
@@ -1168,8 +1051,6 @@
       <details class="faq"><summary>Posso cancelar quando quiser?</summary><p>Sim. O cancelamento é imediato pelo painel "Minha assinatura". Sem multas, sem fidelidade.</p></details>
       <details class="faq"><summary>Como funciona o lançamento pelo Telegram?</summary><p>No app, em Configurações, você escolhe a conta principal e toca em "Conectar Telegram". Daí é só mandar mensagens como "mercado 52,90" ou "nubank 300 tênis 3x" para o bot da Appliquei: ele responde com o que lançou, e cada resposta tem os botões Desfazer e Categoria. Está incluído no plano, sem custo extra, e você desconecta quando quiser.</p></details>
       <details class="faq"><summary>Quais formas de pagamento?</summary><p>PIX, boleto e cartão de crédito recorrente, todos via Asaas — gateway brasileiro com cobrança em real.</p></details>
-      <details class="faq"><summary>Quando o Pro + IA fica disponível?</summary><p>Está em construção. Quem está no Pro recebe um aviso e pode migrar com um clique quando lançarmos, sem perder o histórico.</p></details>
-      <details class="faq"><summary>Como funciona o Applicash?</summary><p>É o programa de indicações. Cada pessoa que assina com o seu cupom devolve 10% do valor pago como crédito na sua própria mensalidade, todo mês, enquanto a assinatura dela estiver ativa — e quem entra pelo seu cupom começa com 10% de desconto. Com 12 indicações ativas, a mensalidade zera. O crédito abate na sua cobrança; não é resgate em dinheiro.</p></details>
       <details class="faq"><summary>Meus dados ficam seguros?</summary><p>Autenticação Firebase, armazenamento Firestore e cobrança Asaas — todos brasileiros/Google com criptografia em trânsito e em repouso.</p></details>
       <details class="faq"><summary>A carteira sugerida é uma recomendação de investimento?</summary><p>Não. A Appliquei não é consultoria nem análise de valores mobiliários e não faz recomendação individualizada. A carteira sugerida é material informativo e educacional: uma alocação calculada a partir de critérios públicos e do perfil que você declara, com o cálculo aberto para você conferir. A decisão de investir, manter ou resgatar é sua. Investimentos envolvem risco, inclusive de perda do capital, e rentabilidade passada não garante rentabilidade futura.</p></details>
     </div>
@@ -1243,7 +1124,6 @@
     <div style="display:flex;flex-wrap:wrap;gap:16px;">
       <a href="/app">Entrar</a>
       <a href="#planos">Planos</a>
-      <a href="#applicash">Applicash</a>
       <a href="#faq">Dúvidas</a>
       <a href="#termos" onclick="lpAbrirDoc('termos');return false;">Termos de Uso</a>
       <a href="#privacidade" onclick="lpAbrirDoc('privacidade');return false;">Privacidade</a>

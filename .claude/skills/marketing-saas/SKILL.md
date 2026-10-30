@@ -133,6 +133,11 @@ linha da semana.
 - `referencias/calendario-e-metricas.md` — pilares de conteúdo, cadência,
   plano de lançamento, funil do SaaS e as métricas (com as contas de CAC
   máximo a partir da margem real por cliente).
+- `referencias/analise-metricas.md` — como puxar as métricas dos Reels
+  (`npm run metricas:instagram`), o que olhar, a rotina (dia seguinte, toda
+  segunda, revisão de 16/11) e como transformar número em mudança de
+  conteúdo. Use sempre que o pedido for analisar desempenho ou decidir o
+  próximo tema com base nos números.
 
 ## O que esta skill não faz
 

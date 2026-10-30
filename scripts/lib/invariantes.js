@@ -579,6 +579,25 @@ function validarEstado(estado, opcoes) {
     idsVistos.add(id);
   }
 
+  // INV-27 — cada linha da fatura importada do banco vira no máximo um
+  // lançamento. A importação é idempotente PORQUE casa pelo FITID do OFX e
+  // pela parcela (N/M); duas transações com o mesmo FITID são a mesma compra
+  // contada duas vezes.
+  const fitidsVistos = new Map();
+  for (const t of transacoes) {
+    const fitid = t.importacao && t.importacao.fitid;
+    if (!fitid) continue;
+    const chave = (t.cartaoId || '') + '|' + fitid;
+    if (fitidsVistos.has(chave)) {
+      acusar(
+        'INV-27',
+        `A mesma linha da fatura do banco (FITID ${fitid}) virou dois lançamentos — ` +
+          `${rotulo(fitidsVistos.get(chave))} e ${rotulo(t)}.`,
+        t
+      );
+    } else fitidsVistos.set(chave, t);
+  }
+
   // INV-21 — aporte de compromisso é idempotente e não rende no futuro.
   const porCompromisso = new Map();
   for (const op of operacoes) {

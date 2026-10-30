@@ -2,7 +2,7 @@
   "id": "/app",
   "name": "Appliquei — Gestão Financeira",
   "short_name": "Appliquei",
-  "description": "Controle de patrimônio, investimentos, metas e Applicash em um só lugar.",
+  "description": "Controle do mês, patrimônio, investimentos e metas em um só lugar.",
   "lang": "pt-BR",
   "dir": "ltr",
   "start_url": "/app",
@@ -30,5 +30,26 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "share_target": {
+    "action": "/web/compartilhar-fatura",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        {
+          "name": "fatura",
+          "accept": [
+            ".ofx",
+            ".csv",
+            "application/x-ofx",
+            "application/ofx",
+            "text/csv",
+            "text/plain",
+            "application/octet-stream"
+          ]
+        }
+      ]
+    }
+  }
 }

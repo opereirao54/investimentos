@@ -618,6 +618,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
             <span class="nav-group-label">Ferramentas</span>
             <button class="menu-btn" onclick="mudarAba(event,'convites')" data-tab="convites"><i class="ph ph-ticket"></i> Convites</button>
             <button class="menu-btn" onclick="mudarAba(event,'carteira')" data-tab="carteira"><i class="ph ph-chart-pie-slice"></i> Carteira modelo</button>
+            <button class="menu-btn" onclick="mudarAba(event,'redes')" data-tab="redes"><i class="ph ph-instagram-logo"></i> Redes sociais</button>
             <button class="menu-btn" onclick="mudarAba(event,'superpower')" data-tab="superpower"><i class="ph ph-lightning"></i> Superpoderes</button>
             <button class="menu-btn" onclick="mudarAba(event,'audit')" data-tab="audit"><i class="ph ph-list-dashes"></i> Audit Log</button>
         </div>
@@ -1372,6 +1373,51 @@ Dica: você pode inserir o e-mail ou o UID do usuário alvo.</div>
 
     </section>
 
+    <!-- ═══════ REDES SOCIAIS (métricas do Instagram) ═══════ -->
+    <section id="sec-redes" class="section">
+        <div class="page-header">
+            <div>
+                <h1><i class="ph-fill ph-instagram-logo" style="color:var(--cor-primaria)"></i> Redes sociais</h1>
+                <p class="sub">Desempenho dos Reels do Instagram. Salvar e compartilhar são o que mais mostra se o conteúdo serviu.</p>
+            </div>
+            <div class="page-actions">
+                <button class="btn-sec" onclick="loadRedes(true)"><i class="ph ph-arrows-clockwise"></i> Atualizar agora</button>
+            </div>
+        </div>
+        <div id="rd-aviso" class="card" style="padding:16px 20px;margin-bottom:16px;display:none;"></div>
+        <div class="kpi-grid">
+            <div class="kpi-card purple">
+                <div class="kpi-label"><i class="ph-fill ph-users"></i> Seguidores</div>
+                <div class="kpi-value" id="rd-seguidores">—</div>
+                <div class="kpi-sub"><span id="rd-usuario"></span></div>
+            </div>
+            <div class="kpi-card blue">
+                <div class="kpi-label"><i class="ph-fill ph-eye"></i> Views (30 dias)</div>
+                <div class="kpi-value" id="rd-views">—</div>
+                <div class="kpi-sub"><span id="rd-views-sub"></span></div>
+            </div>
+            <div class="kpi-card emerald">
+                <div class="kpi-label"><i class="ph-fill ph-bookmark-simple"></i> Salvos (30 dias)</div>
+                <div class="kpi-value" id="rd-salvos">—</div>
+                <div class="kpi-sub"><span id="rd-salvos-sub"></span></div>
+            </div>
+            <div class="kpi-card amber">
+                <div class="kpi-label"><i class="ph-fill ph-share-fat"></i> Compartilhamentos (30 dias)</div>
+                <div class="kpi-value" id="rd-compart">—</div>
+                <div class="kpi-sub"><span id="rd-compart-sub"></span></div>
+            </div>
+        </div>
+        <div class="card" style="padding:20px;margin-bottom:16px;">
+            <h3 style="margin:0 0 12px;font-size:15px;">Por série</h3>
+            <div style="overflow-x:auto"><table class="tbl" id="rd-series"></table></div>
+        </div>
+        <div class="card" style="padding:20px;">
+            <h3 style="margin:0 0 4px;font-size:15px;">Reels</h3>
+            <p class="sub" id="rd-atualizado" style="margin:0 0 12px;"></p>
+            <div style="overflow-x:auto"><table class="tbl" id="rd-reels"></table></div>
+        </div>
+    </section>
+
     <!-- ═══════ CARTEIRA MODELO (Painel do consultor migrado) ═══════ -->
     <section id="sec-carteira" class="section">
         <div class="page-header">
@@ -1471,6 +1517,7 @@ Dica: você pode inserir o e-mail ou o UID do usuário alvo.</div>
     <div class="adm-mais-grupo">Ferramentas</div>
     <button type="button" class="adm-mais-item" data-tab="superpower" onclick="admIr('superpower')"><i class="ph ph-lightning"></i><span><b>Superpoderes</b><small>Ações sobre uma conta: Raio-X, PRO, suspender, excluir</small></span></button>
     <button type="button" class="adm-mais-item" data-tab="carteira" onclick="admIr('carteira')"><i class="ph ph-chart-pie-slice"></i><span><b>Carteira modelo</b><small>Alocação e ativos publicados para todos</small></span></button>
+    <button type="button" class="adm-mais-item" data-tab="redes" onclick="admIr('redes')"><i class="ph ph-instagram-logo"></i><span><b>Redes sociais</b><small>Métricas dos Reels do Instagram</small></span></button>
     <button type="button" class="adm-mais-item" data-tab="audit" onclick="admIr('audit')"><i class="ph ph-list-dashes"></i><span><b>Audit Log</b><small>Tudo o que foi feito pelo painel</small></span></button>
     <div class="adm-mais-grupo">Dados e conta</div>
     <button type="button" class="adm-mais-item" onclick="admFecharMais(); downloadCsv()"><i class="ph ph-file-csv"></i><span><b>Exportar CSV</b><small>Lista de usuários em planilha</small></span></button>

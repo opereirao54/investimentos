@@ -696,6 +696,7 @@ function verificarRegraCartao() {
     divParcelas.style.display = 'none';
     divFixa.style.display = 'flex';
     document.getElementById('qtdParcelas').value = 1;
+    atualizarParcelaInicialUI();
     lblValor.innerText = 'Valor (R$)';
     const formInlineCart = document.getElementById('formNovoCartaoInline');
     if (formInlineCart) formInlineCart.style.display = 'none';
@@ -709,6 +710,7 @@ function verificarRegraCartao() {
   // O tipo decide se há categoria de despesa a sugerir: escolher o chip
   // depois de digitar a descrição também mostra (ou esconde) a sugestão.
   if (typeof insightsSugestaoAoDigitar === 'function') insightsSugestaoAoDigitar();
+  if (typeof lancUiSincronizar === 'function') lancUiSincronizar();
 }
 
 function atualizarSelectCartoesForm() {
@@ -973,6 +975,34 @@ function salvarDiasCartaoInline() {
 
 /** A linha que explica o que vai ser criado: parcelado gera N lançamentos a
  *  partir da fatura escolhida, e sem isto ninguém adivinha até onde vão. */
+// "Parcela atual" só existe com mais de uma parcela. A compra que já começou
+// a ser paga (o caso mais comum de quem começa a usar o app no meio de um
+// parcelado) entra direto na parcela certa — sem lançar 1/10 e depois ter de
+// renumerar a série na mão.
+// Fica recolhida atrás de "Já começou a pagar esta compra?": quem compra hoje
+// começa na 1 e não precisa da pergunta.
+function atualizarParcelaInicialUI() {
+  const grupo = document.getElementById('grupoParcelaInicial');
+  const inp = document.getElementById('parcelaInicial');
+  if (!grupo || !inp) return;
+  const link = document.getElementById('lancParcelaInicialAbrir');
+  const de = document.getElementById('lancParcelaDe');
+  const parcelas = parseInt((document.getElementById('qtdParcelas') || {}).value, 10) || 1;
+  if (parcelas > 1) {
+    inp.max = String(parcelas);
+    if ((parseInt(inp.value, 10) || 1) > parcelas) inp.value = parcelas;
+    const aberta = grupo.dataset.aberto === '1' || (parseInt(inp.value, 10) || 1) > 1;
+    grupo.style.display = aberta ? '' : 'none';
+    if (link) link.style.display = aberta ? 'none' : '';
+    if (de) de.textContent = 'de ' + parcelas;
+  } else {
+    grupo.style.display = 'none';
+    grupo.dataset.aberto = '';
+    if (link) link.style.display = 'none';
+    inp.value = 1;
+  }
+}
+
 function atualizarResumoFatura() {
   const box = document.getElementById('seletorFaturaResumo');
   if (!box) return;
@@ -1000,22 +1030,40 @@ function atualizarResumoFatura() {
       typeof parseBRL === 'function'
         ? parseBRL((document.getElementById('valorTransacao') || {}).value)
         : 0;
+    const inicialBruta = parseInt((document.getElementById('parcelaInicial') || {}).value, 10) || 1;
+    const inicial = inicialBruta >= 1 && inicialBruta <= parcelas ? inicialBruta : 1;
+    const entram = parcelas - inicial + 1;
     const ultimo = new Date(
       alvo.vencimento.getFullYear(),
-      alvo.vencimento.getMonth() + parcelas - 1,
+      alvo.vencimento.getMonth() + entram - 1,
       1
     );
     const porParcela = Number.isFinite(valor) && valor > 0 ? formatarMoeda(valor / parcelas) : null;
     box.className = 'fatura-resumo';
     box.innerHTML =
       '<i class="ph ph-list-numbers"></i> ' +
-      parcelas +
-      (porParcela ? ' parcelas de <strong>' + porParcela + '</strong>' : ' parcelas') +
+      (inicial > 1
+        ? 'Parcelas <strong>' +
+          inicial +
+          ' a ' +
+          parcelas +
+          '</strong>' +
+          (porParcela ? ' de <strong>' + porParcela + '</strong>' : '') +
+          ' (' +
+          entram +
+          ' a lançar)'
+        : parcelas +
+          (porParcela ? ' parcelas de <strong>' + porParcela + '</strong>' : ' parcelas')) +
       ', de <strong>' +
       primeiro +
       '</strong> a <strong>' +
       FATURA_MESES[ultimo.getMonth()] +
-      '</strong>.';
+      '</strong>.' +
+      (inicial > 2
+        ? ' As parcelas 1 a ' + (inicial - 1) + ' ficaram em faturas passadas.'
+        : inicial === 2
+          ? ' A parcela 1 ficou numa fatura passada.'
+          : '');
     box.style.display = 'block';
     return;
   }
@@ -1349,6 +1397,7 @@ function aplicarTipoCartaoUI() {
     btnPar.style.color = 'var(--cor-texto-secundario)';
     divParcelas.style.display = 'none';
     document.getElementById('qtdParcelas').value = 1;
+    atualizarParcelaInicialUI();
     lblValor.innerText = 'Valor mensal (R$)';
   } else {
     btnPar.style.background = 'var(--cor-branco)';
@@ -1525,12 +1574,15 @@ function prepararEdicao(id) {
   if (bancoEl) bancoEl.value = trans.banco || '';
   if (categoriaDespesaUsada(trans.categoria)) popularSelectCategoriaDespesa(trans.categoriaDespesa);
 
+  prepararCorrigirParcelas(trans);
   document.getElementById('btnSalvarControle').style.display = 'flex';
   document.getElementById('opcoesEdicaoRecorrente').style.display = 'none';
   document.getElementById('btnSalvarControle').innerHTML =
     '<i class="ph-bold ph-pencil-simple"></i> Atualizar Lançamento';
   document.getElementById('btnSalvarControle').style.backgroundColor = 'var(--cor-info)';
   document.getElementById('btnCancelarEdicao').style.display = 'block';
+  const btnExcluir = document.getElementById('btnExcluirEdicao');
+  if (btnExcluir) btnExcluir.style.display = 'flex';
 
   if (transacaoEhSonho(trans)) {
     // Sai antes de verificarRegraCartao(): ela mexe em banco, parcelas e
@@ -1583,6 +1635,7 @@ function cancelarEdicaoControle() {
   // lançamento abriria sem descrição, sem categoria e sem banco — o formulário
   // ficaria encolhido para sempre.
   sairModoSonhoControle();
+  prepararCorrigirParcelas(null);
   if (typeof insightsSugestaoLimpar === 'function') insightsSugestaoLimpar();
   faturaSeletorExpandido = false;
   const elFat = document.getElementById('faturaEscolhida');
@@ -1606,9 +1659,12 @@ function cancelarEdicaoControle() {
     '<i class="ph ph-check-circle"></i> Salvar Lançamento';
   document.getElementById('btnSalvarControle').style.backgroundColor = 'var(--cor-primaria)';
   document.getElementById('btnCancelarEdicao').style.display = 'none';
+  const btnExcluir = document.getElementById('btnExcluirEdicao');
+  if (btnExcluir) btnExcluir.style.display = 'none';
   document.getElementById('tituloPainelControle').innerHTML =
-    '<i class="ph ph-plus-circle" style="color: var(--cor-primaria);"></i> Registrar Operação';
+    '<i class="ph ph-plus-circle" style="color: var(--cor-primaria);"></i> Novo lançamento';
   verificarRegraCartao();
+  if (typeof lancUiReiniciar === 'function') lancUiReiniciar();
 }
 
 function tentarSalvarTransacao() {
@@ -1647,6 +1703,9 @@ function tentarSalvarTransacao() {
           : 'Informe o banco/instituição de onde a despesa será debitada.',
         'erro'
       );
+      // Com as contas em botões o campo de texto está escondido: quem mostra
+      // onde escolher é a camada do formulário.
+      if (typeof lancUiPedirConta === 'function' && lancUiPedirConta()) return;
       bancoEl?.focus();
       return;
     }
@@ -1848,6 +1907,8 @@ function executarEdicao(modo) {
 // `dados`:
 //   descricao, valor (total), categoria       — obrigatórios
 //   fixo (bool), parcelas (n), tipoCartao ('parcelado' | 'fixo'), cartaoId
+//   parcelaInicial (n, default 1) — compra que já começou a ser paga: a
+//     fatura escolhida recebe a parcela N, e só entram N..parcelas
 //   dataVencimento ('yyyy-mm-dd' ou vazio), obs
 //   banco, contaId, categoriaDespesa
 //   mesBase, anoBase — competência quando não há vencimento (no form: mês em visão)
@@ -1878,6 +1939,11 @@ function criarLancamentos(dados) {
   const valorTotal = Number(d.valor);
   const ehFixo = !!d.fixo;
   const parcelas = parseInt(d.parcelas, 10) || 1;
+  // 1 ≤ parcelaInicial ≤ parcelas. Fora disso, recomeça do 1 — melhor que
+  // uma série com "(12/10)".
+  const parcelaInicialBruta = parseInt(d.parcelaInicial, 10) || 1;
+  const parcelaInicial =
+    parcelaInicialBruta >= 1 && parcelaInicialBruta <= parcelas ? parcelaInicialBruta : 1;
   const tipoCartao = d.tipoCartao;
   const cartaoId = categoria === 'cartao_credito' ? d.cartaoId : null;
   const cartaoFixoMensal = categoria === 'cartao_credito' && tipoCartao === 'fixo';
@@ -1897,7 +1963,7 @@ function criarLancamentos(dados) {
   const hojeStrIns = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
 
   if (categoria === 'cartao_credito' && tipoCartao === 'parcelado' && parcelas > 1) {
-    mesesGerar = parcelas;
+    mesesGerar = parcelas - parcelaInicial + 1;
     valorLancamento = valorTotal / parcelas;
   } else if (cartaoFixoMensal) {
     mesesGerar = 60;
@@ -1915,7 +1981,7 @@ function criarLancamentos(dados) {
     }
     let descFinal = d.descricao;
     if (categoria === 'cartao_credito' && tipoCartao === 'parcelado' && parcelas > 1)
-      descFinal += ` (${i + 1}/${parcelas})`;
+      descFinal += ` (${parcelaInicial + i}/${parcelas})`;
 
     let dataVencFinal = null;
     if (d.dataVencimento) {
@@ -1969,6 +2035,266 @@ function criarLancamentos(dados) {
   return lancamentos;
 }
 
+// ════════════════════════════════════════════════════════════
+// CORRIGIR A NUMERAÇÃO DE UM PARCELADO JÁ LANÇADO
+// ════════════════════════════════════════════════════════════
+//
+// Relato de uso: "lancei em 10x começando no 1/10, mas a compra já estava na
+// 2/10 — para corrigir eu teria de apagar a última e renomear todas na mão".
+// Aqui o usuário diz, num lançamento da série, qual parcela ele É de verdade
+// ("esta é a 2 de 10") e a série inteira se ajusta a partir dele:
+//   - cada lançamento da série (mesmo groupId), em ordem de vencimento, vira
+//     a parcela que lhe cabe contando a partir deste;
+//   - o que cair fora de 1..total é apagado (a sobra no fim);
+//   - o que faltar no fim é criado, mês a mês, como o lançamento manual;
+//   - vencimento, valor e o resto ficam como estão — só número e nome mudam.
+// Parcela já PAGA nunca é apagada por aqui: pagou, o caixa já foi debitado
+// (INV-17), e quem desfaz é o "Desfazer pagamento".
+
+/** Ano-mês-dia + k meses, com a mesma aritmética de criarLancamentos. */
+function _parcSomarMeses(ymd, k) {
+  const [a, m, d] = String(ymd).split('-').map(Number);
+  const dt = new Date(a, m - 1, d);
+  dt.setMonth(dt.getMonth() + k);
+  return (
+    dt.getFullYear() +
+    '-' +
+    String(dt.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(dt.getDate()).padStart(2, '0')
+  );
+}
+
+/** "TV (3/10)" → { base: 'TV', n: 3, m: 10 } (ou null). */
+function lerSufixoParcela(descricao) {
+  const m = String(descricao || '').match(/^(.*?)\s*\((\d+)\/(\d+)\)\s*$/);
+  return m ? { base: m[1], n: +m[2], m: +m[3] } : null;
+}
+
+/**
+ * Plano para renumerar a série do lançamento `id`. Puro: não grava.
+ * → { erro } ou { serie, remover: [t], renomear: [{ t, descricao }], criar: [t] }
+ */
+function renumerarSerieParcelas(lista, id, novaParcela, novoTotal, opcoes) {
+  const o = opcoes || {};
+  const alvo = (lista || []).find((t) => t.id === id);
+  const n = parseInt(novaParcela, 10);
+  const total = parseInt(novoTotal, 10);
+  if (!alvo || alvo.categoria !== 'cartao_credito' || alvo.cartaoFixoMensal) {
+    return { erro: 'nao_parcelado' };
+  }
+  if (
+    !Number.isInteger(n) ||
+    !Number.isInteger(total) ||
+    total < 2 ||
+    total > 48 ||
+    n < 1 ||
+    n > total
+  ) {
+    return { erro: 'numero_invalido' };
+  }
+  const suf = lerSufixoParcela(alvo.descricao);
+  const base = suf ? suf.base : String(alvo.descricao || '').trim();
+  const serie = alvo.groupId
+    ? lista
+        .filter(
+          (t) =>
+            t.groupId === alvo.groupId && t.categoria === 'cartao_credito' && !t.cartaoFixoMensal
+        )
+        .sort((a, b) =>
+          String(a.dataVencimento || '').localeCompare(String(b.dataVencimento || ''))
+        )
+    : [alvo];
+  const i = serie.indexOf(alvo);
+  const remover = [];
+  const renomear = [];
+  let ultimoNum = null;
+  let ultimo = null;
+  serie.forEach((t, j) => {
+    const num = n + (j - i);
+    if (num < 1 || num > total) {
+      remover.push(t);
+      return;
+    }
+    const descricao = base + ' (' + num + '/' + total + ')';
+    if (descricao !== t.descricao) renomear.push({ t, descricao });
+    ultimoNum = num;
+    ultimo = t;
+  });
+  const pagas = remover.filter((t) => t.pago);
+  if (pagas.length) return { erro: 'parcela_paga', pagas };
+  const criar = [];
+  const agora = o.agora instanceof Date ? o.agora : new Date();
+  const idBase = o.idBase != null ? String(o.idBase) : String(agora.getTime());
+  if (ultimo && ultimoNum < total) {
+    for (let k = ultimoNum + 1; k <= total; k++) {
+      const venc = ultimo.dataVencimento
+        ? _parcSomarMeses(ultimo.dataVencimento, k - ultimoNum)
+        : null;
+      const comp = venc ? competenciaDaData(venc) : null;
+      criar.push({
+        id: idBase + 'p' + k,
+        groupId: ultimo.groupId || alvo.id,
+        descricao: base + ' (' + k + '/' + total + ')',
+        valor: Number(ultimo.valor),
+        categoria: 'cartao_credito',
+        cartaoId: ultimo.cartaoId,
+        cartaoFixoMensal: undefined,
+        banco: undefined,
+        contaId: undefined,
+        categoriaDespesa: ultimo.categoriaDespesa || undefined,
+        obs: ultimo.obs || '',
+        mes: comp ? comp.mes : ultimo.mes,
+        ano: comp ? comp.ano : ultimo.ano,
+        data: agora.toISOString(),
+        dataVencimento: venc,
+        pago: false,
+      });
+    }
+  }
+  return { serie, remover, renomear, criar };
+}
+
+function _parcMesCurto(ymd) {
+  if (!ymd) return '';
+  const [a, m] = String(ymd).split('-').map(Number);
+  return String(FATURA_MESES[m - 1] || '').slice(0, 3) + '/' + String(a).slice(2);
+}
+
+/** Na edição: mostra "Esta é a parcela [N] de [M]" se o lançamento é parcela. */
+function prepararCorrigirParcelas(trans) {
+  const box = document.getElementById('grupoCorrigirParcelas');
+  if (!box) return;
+  const suf = trans ? lerSufixoParcela(trans.descricao) : null;
+  const ok = trans && trans.categoria === 'cartao_credito' && !trans.cartaoFixoMensal && suf;
+  box.style.display = ok ? '' : 'none';
+  const previa = document.getElementById('cpPrevia');
+  if (previa) {
+    previa.style.display = 'none';
+    previa.innerHTML = '';
+  }
+  _cpVerBotao(true);
+  if (!ok) return;
+  document.getElementById('cpParcela').value = suf.n;
+  document.getElementById('cpTotal').value = suf.m;
+}
+
+var corrigirParcelasPlano = null;
+
+/** Mostra o que vai mudar antes de mudar (prevenção de erro). */
+function corrigirParcelasPrevia() {
+  const id = document.getElementById('editTransacaoId').value;
+  const n = document.getElementById('cpParcela').value;
+  const total = document.getElementById('cpTotal').value;
+  const previa = document.getElementById('cpPrevia');
+  const plano = renumerarSerieParcelas(transacoes, id, n, total);
+  corrigirParcelasPlano = null;
+  previa.style.display = 'block';
+  if (plano.erro === 'numero_invalido') {
+    previa.innerHTML =
+      '<p class="cp-erro">Confira os números: a parcela vai de 1 até o total, e o total de 2 a 48.</p>';
+    return;
+  }
+  if (plano.erro === 'parcela_paga') {
+    previa.innerHTML =
+      '<p class="cp-erro">A correção apagaria parcela(s) já paga(s) (' +
+      plano.pagas
+        .map((t) => _extEscParc(t.descricao) + ' · ' + _parcMesCurto(t.dataVencimento))
+        .join(', ') +
+      '). Desfaça o pagamento delas antes.</p>';
+    return;
+  }
+  if (plano.erro) {
+    previa.innerHTML = '<p class="cp-erro">Este lançamento não é uma parcela de cartão.</p>';
+    return;
+  }
+  if (!plano.remover.length && !plano.renomear.length && !plano.criar.length) {
+    previa.innerHTML = '<p>A série já está assim. Nada a mudar.</p>';
+    return;
+  }
+  corrigirParcelasPlano = { id, plano };
+  // A prévia traz o próprio "Corrigir a série": esconde o que a abriu.
+  _cpVerBotao(false);
+  const linhas = [];
+  if (plano.renomear.length) {
+    linhas.push(
+      '<li><strong>Renomear ' +
+        plano.renomear.length +
+        '</strong>: ' +
+        _extEscParc(plano.renomear[0].t.descricao) +
+        ' → ' +
+        _extEscParc(plano.renomear[0].descricao) +
+        (plano.renomear.length > 1 ? ' e as seguintes' : '') +
+        '</li>'
+    );
+  }
+  if (plano.remover.length) {
+    linhas.push(
+      '<li><strong>Apagar ' +
+        plano.remover.length +
+        '</strong> que sobra' +
+        (plano.remover.length > 1 ? 'm' : '') +
+        ': ' +
+        plano.remover.map((t) => _parcMesCurto(t.dataVencimento)).join(', ') +
+        '</li>'
+    );
+  }
+  if (plano.criar.length) {
+    linhas.push(
+      '<li><strong>Criar ' +
+        plano.criar.length +
+        '</strong> que falta' +
+        (plano.criar.length > 1 ? 'm' : '') +
+        ': ' +
+        plano.criar.map((t) => _parcMesCurto(t.dataVencimento)).join(', ') +
+        '</li>'
+    );
+  }
+  previa.innerHTML =
+    '<ul>' +
+    linhas.join('') +
+    '</ul><p class="cp-nota">Vencimentos e valores ficam como estão.</p>' +
+    '<div class="cp-botoes"><button type="button" class="btn-secundario" onclick="prepararCorrigirParcelas(transacoes.find(function (t) { return t.id === document.getElementById(\'editTransacaoId\').value; }))">Voltar</button>' +
+    '<button type="button" class="btn-acao" onclick="corrigirParcelasAplicar()"><i class="ph-bold ph-check"></i> Corrigir a série</button></div>';
+}
+
+function _cpVerBotao(mostrar) {
+  const b = document.querySelector('#grupoCorrigirParcelas .cp-ver');
+  if (b) b.style.display = mostrar ? '' : 'none';
+}
+
+function _extEscParc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function corrigirParcelasAplicar() {
+  if (!corrigirParcelasPlano) return;
+  const { plano } = corrigirParcelasPlano;
+  const fora = new Set(plano.remover.map((t) => t.id));
+  plano.renomear.forEach((r) => {
+    r.t.descricao = r.descricao;
+  });
+  const restantes = transacoes.filter((t) => !fora.has(t.id));
+  transacoes.length = 0;
+  restantes.forEach((t) => transacoes.push(t));
+  plano.criar.forEach((t) => transacoes.push(t));
+  corrigirParcelasPlano = null;
+  if (!salvarTransacoes({ flush: true })) return;
+  cancelarEdicaoControle();
+  if (typeof atualizarTelaControle === 'function') atualizarTelaControle();
+  if (typeof mostrarToast === 'function') {
+    const partes = [];
+    if (plano.renomear.length) partes.push(plano.renomear.length + ' renomeada(s)');
+    if (plano.remover.length) partes.push(plano.remover.length + ' apagada(s)');
+    if (plano.criar.length) partes.push(plano.criar.length + ' criada(s)');
+    mostrarToast('Série corrigida: ' + partes.join(', ') + '.', 'sucesso', 5000);
+  }
+}
+
 function executarInsercao() {
   const categoria = document.getElementById('categoriaTransacao').value;
   const dados = {
@@ -1977,6 +2303,7 @@ function executarInsercao() {
     categoria: categoria,
     fixo: document.getElementById('transacaoFixa').checked,
     parcelas: parseInt(document.getElementById('qtdParcelas').value, 10) || 1,
+    parcelaInicial: parseInt((document.getElementById('parcelaInicial') || {}).value, 10) || 1,
     dataVencimento: document.getElementById('dataVencimento').value,
     obs: (document.getElementById('obsTransacao').value || '').trim(),
     tipoCartao: document.getElementById('tipoCartaoSelecionado').value, // 'parcelado' | 'fixo'
@@ -2035,6 +2362,7 @@ function executarInsercao() {
   const elFatNovo = document.getElementById('faturaEscolhida');
   if (elFatNovo) elFatNovo.value = 'aberta';
   document.getElementById('qtdParcelas').value = 1;
+  atualizarParcelaInicialUI();
   document.getElementById('dataVencimento').value = '';
   document.getElementById('categoriaTransacao').value = '';
   document.getElementById('obsTransacao').value = '';
@@ -2050,6 +2378,7 @@ function executarInsercao() {
   const grupoCatDesp = document.getElementById('grupoCategoriaDespesa');
   if (grupoCatDesp) grupoCatDesp.style.display = 'none';
   selecionarTipoCartao('parcelado');
+  if (typeof lancUiReiniciar === 'function') lancUiReiniciar();
   mostrarToast(
     mensagemLancamentoSalvo(categoria, dataVencInput, mesesGerar) +
       complementoLancamentoSalvo(novos, dados),
@@ -2887,11 +3216,26 @@ function executarDelecao(modo) {
   } else {
     transacoes = transacoes.filter((t) => t.id != itemParaDeletar.id);
   }
+  const excluidoId = itemParaDeletar.id;
   salvarTransacoes();
   mostrarToast('Lançamento excluído.', 'aviso');
   fecharModal();
+  // Excluído pelo formulário de edição: o formulário não pode continuar
+  // editando um lançamento que não existe mais.
+  const editEl = document.getElementById('editTransacaoId');
+  if (editEl && editEl.value && editEl.value == excluidoId) {
+    cancelarEdicaoControle();
+    if (typeof fecharPainelLancamento === 'function') fecharPainelLancamento();
+  }
   atualizarTelaControle();
   atualizarDatalistDescricoes();
+  if (typeof faturasAtualizarSeAberta === 'function') faturasAtualizarSeAberta();
+}
+
+/** "Excluir lançamento" no formulário de edição: a mesma confirmação do extrato. */
+function excluirLancamentoEmEdicao() {
+  const id = (document.getElementById('editTransacaoId') || {}).value;
+  if (id) deletarTransacao(id);
 }
 
 function abrirModalGrupoCartao(key) {

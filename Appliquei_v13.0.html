@@ -21,6 +21,18 @@
             } catch (e) {}
         })();
     </script>
+    <script>
+        // Applicash (indicações) fora do ar até o fundador decidir o novo
+        // formato. Tudo que é dele na tela leva [data-applicash] e some com a
+        // classe abaixo; os textos montados em JS leem window.APPLICASH_ATIVO.
+        // O servidor tem interruptor próprio (APPLICASH_ENABLED na Vercel):
+        // para religar, true aqui E a variável lá.
+        // Só liga com true explícito: sem esta linha (sandbox do relatório em
+        // PDF, testes), o código trata como desligado.
+        window.APPLICASH_ATIVO = false;
+        if (window.APPLICASH_ATIVO !== true) document.documentElement.classList.add('sem-applicash');
+    </script>
+    <style>.sem-applicash [data-applicash] { display: none !important; }</style>
     <link rel="icon" type="image/png" href="appliquei-favicon.png">
     <!-- "Adicionar à tela de início": manifest cobre Android/Chrome; o iOS
          ignora o manifest e só olha apple-touch-icon + as metas apple-*.
@@ -2969,6 +2981,236 @@
         .alert-danger { border-color: var(--cor-borda-erro); background: var(--cor-bg-erro); color: var(--cor-txt-erro); }
         .alert-contextual i { font-size: 17px; flex-shrink: 0; }
 
+        /* === NOVO LANÇAMENTO — layout de 27/10 (web/appliquei-lancamento-ui.js) ===
+           Os campos de sempre continuam no DOM e são o que o salvamento lê; os
+           botões abaixo só os preenchem. */
+        .lanc-topo-acoes { display: flex; align-items: center; gap: 8px; }
+        .lanc-importar {
+            display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px;
+            border: none; border-radius: 999px; background: var(--cor-bg-primaria); color: var(--cor-txt-primaria);
+            font: 700 12.5px 'Figtree', sans-serif; cursor: pointer;
+        }
+        .lanc-importar[hidden] { display: none; }
+        .lanc-seg { display: flex; gap: 4px; padding: 4px; border-radius: 13px; background: var(--cor-superficie); }
+        .lanc-seg > button {
+            flex: 1 1 0; min-width: 0; min-height: 42px; border: none; border-radius: 10px; background: transparent;
+            color: var(--cor-texto-secundario); font: 700 13.5px 'Figtree', sans-serif; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 6px; transition: background .15s ease, color .15s ease;
+        }
+        .lanc-seg > button.on { background: var(--cor-branco); color: var(--cor-texto-principal); box-shadow: 0 1px 3px rgba(15,23,42,0.10); }
+        .lanc-tipo { margin-bottom: 14px; }
+        .lanc-tipo #chipEntrada.on { color: var(--cor-txt-primaria); }
+        .lanc-tipo #chipSaida.on { color: var(--cor-txt-erro); }
+        .lanc-tipo #chipCartao.on { color: var(--cor-txt-amber); }
+        .lanc-seg-peq { flex: 0 0 auto; width: 176px; }
+        .lanc-seg-peq > button { min-height: 36px; font-size: 13px; }
+        /* Valor: o primeiro campo, grande e sem caixa — só um traço embaixo. */
+        #painelNovoLancamento .lanc-valor .input-brl-wrap::before { font-size: 17px; font-weight: 700; }
+        #painelNovoLancamento .lanc-valor input#valorTransacao {
+            border: none; border-bottom: 2px solid var(--cor-borda); border-radius: 0; background-color: transparent;
+            box-shadow: none; padding-top: 4px; padding-bottom: 6px;
+            font-family: 'DM Mono', monospace; font-size: 34px !important; font-weight: 500; letter-spacing: -0.5px; min-height: 56px;
+        }
+        #painelNovoLancamento .lanc-valor input#valorTransacao:focus { border-bottom-color: var(--cor-primaria); box-shadow: none; background-color: transparent; }
+        .lanc-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+        .lanc-chips[hidden] { display: none; }
+        /* Salvar sem conta: os botões pedem atenção (o campo de texto está escondido). */
+        .lanc-chips.lanc-falta .lanc-chip { border-color: var(--cor-erro); }
+        .lanc-chip {
+            min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--cor-borda);
+            background: var(--cor-branco); color: var(--cor-texto-secundario);
+            font: 600 13.5px 'Figtree', sans-serif; cursor: pointer; white-space: nowrap; max-width: 100%;
+            overflow: hidden; text-overflow: ellipsis;
+        }
+        .lanc-chip.on { border-color: var(--cor-primaria); background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); }
+        .lanc-chip.mais { border-style: dashed; color: var(--cor-texto-mutado); }
+        .lanc-chip.mais.on { border-style: solid; }
+        .lanc-oculto { display: none !important; }
+        /* "Todas": a lista completa só aparece quando pedida. */
+        #painelNovoLancamento select.lanc-lista { display: none; }
+        #painelNovoLancamento select.lanc-lista.aberta { display: block; }
+        .lanc-bloco {
+            background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 14px;
+            padding: 14px 14px 2px; margin-bottom: 12px;
+        }
+        .lanc-bloco[hidden] { display: none; }
+        #gridCategoriaVencimento { display: block; }
+        .lanc-bloco .recorrente-toggle { background: transparent; border: none; border-top: 1px solid var(--cor-borda); border-radius: 0; padding: 12px 0; margin: 0; }
+        .lanc-bloco .recorrente-toggle label { font-size: 13.5px; font-weight: 600; color: var(--cor-texto-principal); cursor: pointer; flex: 1; }
+        .lanc-bloco .recorrente-toggle input { width: 20px !important; height: 20px !important; }
+        .lanc-linha { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; }
+        .lanc-linha[hidden] { display: none; }
+        .lanc-bloco .lanc-linha { border-top: 1px solid var(--cor-borda); padding: 6px 0; }
+        .lanc-rot, #painelNovoLancamento .lanc-linha > label {
+            font-size: 13.5px; font-weight: 600; color: var(--cor-texto-principal); margin: 0;
+            text-transform: none; letter-spacing: 0;
+        }
+        .lanc-parcelas { background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 14px; padding: 4px 14px; margin: 10px 0; }
+        .lanc-step { display: flex; align-items: center; gap: 6px; }
+        .lanc-step > button {
+            width: 40px; height: 40px; border-radius: 10px; border: 1.5px solid var(--cor-borda); background: var(--cor-branco);
+            color: var(--cor-texto-secundario); font: 800 18px 'Figtree', sans-serif; cursor: pointer;
+        }
+        #painelNovoLancamento .lanc-step input[type="number"] { width: 56px; text-align: center; padding: 8px 4px; font-size: 16px; font-weight: 700; }
+        .lanc-de { font-size: 13.5px; color: var(--cor-texto-secundario); white-space: nowrap; }
+        .lanc-dica { display: block; font-size: 12px; color: var(--cor-texto-mutado); line-height: 1.45; padding: 0 0 10px; }
+        .lanc-link {
+            background: none; border: none; padding: 8px 0; min-height: 40px; color: var(--cor-primaria);
+            font: 700 13.5px 'Figtree', sans-serif; cursor: pointer; text-align: left; align-self: flex-start;
+        }
+        .lanc-link[hidden] { display: none; }
+        .lanc-parcelas .lanc-link { padding: 4px 0 10px; }
+        /* Fatura: os dois cartões ficam lado a lado também no celular. */
+        #painelNovoLancamento .fatura-opcoes { grid-template-columns: 1fr 1fr; }
+        #painelNovoLancamento .fatura-op-total { display: none !important; }
+        /* Salvar sempre à vista, com o resumo do que vai ser salvo. */
+        .lanc-pe {
+            position: sticky; bottom: 0; z-index: 2; margin: 6px -4px 0; padding: 10px 4px 4px;
+            background: var(--cor-branco); display: flex; flex-direction: column; gap: 8px;
+            box-shadow: 0 -10px 14px -6px var(--cor-branco);
+        }
+        .lanc-resumo { margin: 0; text-align: center; font-size: 13px; line-height: 1.4; color: var(--cor-texto-secundario); }
+        .lanc-resumo[hidden] { display: none; }
+        .lanc-resumo b { color: var(--cor-texto-principal); }
+        .lanc-pe #btnSalvarControle { margin: 0; min-height: 50px; }
+        #painelNovoLancamento.modo-sonho #lancTipoGasto,
+        #painelNovoLancamento.modo-sonho #lancImportarTopo { display: none !important; }
+        .corrigir-parcelas {
+            margin-top: 12px; padding: 14px; border: 1px solid var(--cor-borda); border-radius: var(--radius-sm);
+            background: var(--cor-superficie); display: flex; flex-direction: column; gap: 8px;
+        }
+        .cp-linha { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13.5px; font-weight: 600; color: var(--cor-texto-principal); }
+        .cp-linha i { font-size: 18px; color: var(--cor-cartao); }
+        #grupoCorrigirParcelas .cp-linha input { flex: 0 0 64px; width: 64px; min-height: 40px; padding: 6px 8px; border: 1.5px solid var(--cor-borda); border-radius: 8px; font-family: inherit; font-size: 14px; background: var(--cor-branco); color: var(--cor-texto-principal); }
+        .cp-ajuda, .cp-nota { margin: 0; font-size: 12px; line-height: 1.5; color: var(--cor-texto-mutado); }
+        .cp-previa ul { margin: 0 0 6px; padding-left: 18px; font-size: 13px; line-height: 1.6; color: var(--cor-texto-secundario); }
+        .cp-erro { margin: 0; font-size: 12.5px; color: var(--cor-txt-erro); }
+        .cp-botoes { display: flex; gap: 8px; margin-top: 6px; }
+        .cp-botoes > * { flex: 1; justify-content: center; }
+        .cp-ver { min-height: 42px; }
+
+        /* === IMPORTAR FATURA (web/appliquei-importar-fatura-ui.js) ===
+           Reaproveita a moldura das Faturas (.fat-overlay/.fat-folha) e fica
+           por cima dela. Alvos de toque com 44px no mínimo. */
+        #telaImportarFatura { z-index: 9996; }
+        /* O rodapé fica no pé da tela mesmo com pouco conteúdo (tela "feito" no celular). */
+        #telaImportarFatura .fat-corpo { flex: 1 1 auto; }
+        .imp-rodape {
+            border-top: 1px solid var(--cor-borda); padding: 12px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+            display: flex; flex-direction: column; gap: 10px; background: var(--cor-branco);
+        }
+        .imp-botoes { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+        .imp-botoes > button { width: auto; margin: 0; }
+        .imp-botoes .btn-acao[disabled] { opacity: .5; cursor: not-allowed; }
+        .fat-importar { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; }
+        .fat-cadastrar { margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; }
+        .fat-importada {
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 12px; border-radius: 10px;
+            background: var(--cor-bg-info); border: 1px solid var(--cor-borda-info); color: var(--cor-txt-info); font-size: 12.5px;
+        }
+        .fat-importada span { flex: 1; min-width: 0; }
+        .fat-importada.pendente { flex-direction: column; align-items: stretch; background: var(--cor-bg-amber); border-color: var(--cor-borda-amber); color: var(--cor-txt-amber); }
+        .fat-importada-botoes { display: flex; gap: 8px; }
+        .fat-importada-botoes > * { flex: 1; justify-content: center; min-height: 40px; }
+        .imp-passos { display: flex; flex-direction: column; gap: 14px; }
+        .imp-intro { margin: 0; font-size: 14px; color: var(--cor-texto-principal); }
+        .imp-como { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; font-size: 13.5px; color: var(--cor-texto-secundario); line-height: 1.5; }
+        .imp-como li { display: flex; gap: 10px; align-items: flex-start; }
+        .imp-como li i { font-size: 20px; color: var(--cor-primaria); flex: 0 0 auto; margin-top: 1px; }
+        .imp-como-recolhido summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--cor-texto-secundario); padding: 8px 0; }
+        .imp-como-recolhido .imp-como { margin-top: 6px; }
+        .imp-escolher { align-self: stretch; justify-content: center; min-height: 48px; display: inline-flex; align-items: center; gap: 8px; }
+        .imp-privado { margin: 0; font-size: 12px; color: var(--cor-texto-mutado); }
+        .imp-erro {
+            background: var(--cor-bg-erro); border: 1px solid var(--cor-borda-erro); color: var(--cor-txt-erro);
+            border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.5;
+        }
+        .imp-cab { display: flex; flex-direction: column; gap: 10px; }
+        .imp-fatura-de { font-size: 14px; font-weight: 600; color: var(--cor-texto-principal); display: flex; align-items: center; gap: 6px; }
+        .imp-fatura-de i { color: var(--cor-cartao); }
+        .imp-arquivo { font-size: 13px; color: var(--cor-texto-secundario); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; word-break: break-all; }
+        .imp-trocar, .imp-link { background: none; border: none; color: var(--cor-primaria); font-weight: 700; cursor: pointer; font-family: inherit; font-size: 13px; padding: 8px 4px; }
+        .imp-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .imp-campos.um { grid-template-columns: 1fr; }
+        @media (max-width: 480px) { .imp-campos { grid-template-columns: 1fr; } }
+        .imp-campos label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--cor-texto-mutado); }
+        .imp-campos select, .imp-campos input {
+            min-height: 44px; padding: 8px 10px; border: 1.5px solid var(--cor-borda); border-radius: 9px;
+            background: var(--cor-superficie, var(--cor-branco)); color: var(--cor-texto-principal); font-family: inherit; font-size: 14px;
+        }
+        .imp-aviso-topo {
+            background: var(--cor-bg-info); border: 1px solid var(--cor-borda-info); color: var(--cor-txt-info);
+            border-radius: 10px; padding: 9px 12px; font-size: 12.5px; line-height: 1.5;
+        }
+        .imp-grupo { display: flex; flex-direction: column; gap: 8px; }
+        .imp-grupo-topo { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .imp-grupo h3, .imp-grupo summary {
+            margin: 4px 0 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--cor-texto-mutado);
+        }
+        .imp-grupo summary { cursor: pointer; padding: 10px 0; }
+        .imp-grupo h3 span, .imp-grupo summary span { font-weight: 600; }
+        .imp-grupo[data-grupo="decisoes"] h3 { color: var(--cor-txt-amber); }
+        .imp-grupo-nota { margin: -2px 0 2px; font-size: 12px; color: var(--cor-texto-mutado); }
+        .imp-item {
+            border: 1px solid var(--cor-borda); border-radius: 12px; padding: 8px 12px; background: var(--cor-branco);
+            display: flex; flex-direction: column; gap: 6px; margin: 0; min-width: 0;
+        }
+        .imp-item.imp-decisao { border-color: var(--cor-borda-amber); background: var(--cor-bg-amber); padding: 10px 12px 12px; }
+        .imp-item.imp-nova:not(.on) { opacity: .6; }
+        .imp-item.imp-leitura { opacity: .8; }
+        .imp-item-linha { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; width: 100%; padding: 0; }
+        .imp-decisao legend.imp-item-linha { cursor: default; float: left; }
+        .imp-decisao legend + * { clear: both; }
+        .imp-leitura .imp-item-linha { cursor: default; }
+        .imp-check { width: 22px; height: 22px; flex: 0 0 22px; accent-color: var(--cor-primaria); cursor: pointer; margin: 0; }
+        .imp-item-corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .imp-item-desc { font-size: 14px; font-weight: 600; color: var(--cor-texto-principal); overflow-wrap: anywhere; }
+        .imp-item-sub { font-size: 11.5px; color: var(--cor-texto-mutado); overflow-wrap: anywhere; }
+        .imp-item-valor { font-family: 'DM Mono', monospace; font-size: 13.5px; font-weight: 600; color: var(--cor-texto-principal); white-space: nowrap; }
+        .imp-parc { font-size: 11px; font-weight: 700; color: var(--cor-cartao); margin-left: 4px; }
+        .imp-chip { font-weight: 700; }
+        .imp-nova .imp-chip { color: var(--cor-primaria); }
+        .imp-decisao .imp-chip { color: var(--cor-txt-amber); }
+        .imp-nova-pe { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-left: 32px; }
+        .imp-decisao .imp-nova-pe { padding-left: 0; }
+        .imp-cat {
+            appearance: none; -webkit-appearance: none; border: 1px solid var(--cor-borda); border-radius: 999px;
+            padding: 6px 12px; min-height: 32px; font-size: 12.5px; font-family: inherit; font-weight: 600; cursor: pointer;
+            background: var(--cor-superficie, var(--cor-branco)); color: var(--cor-texto-secundario); max-width: 100%;
+        }
+        .imp-cat.vazia { border-style: dashed; color: var(--cor-texto-mutado); font-weight: 500; }
+        .imp-motivo-curto { font-size: 11.5px; color: var(--cor-texto-mutado); }
+        .imp-motivo, .imp-contexto { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--cor-texto-secundario); }
+        .imp-opcoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        @media (max-width: 480px) { .imp-opcoes { grid-template-columns: 1fr; } }
+        .imp-opcao {
+            display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; min-height: 44px; border-radius: 10px; cursor: pointer;
+            border: 1.5px solid var(--cor-borda); background: var(--cor-branco);
+        }
+        .imp-opcao.on { border-color: var(--cor-primaria); box-shadow: 0 0 0 1px var(--cor-primaria) inset; }
+        .imp-opcao input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--cor-primaria); flex: 0 0 20px; }
+        .imp-opcao span { display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--cor-texto-principal); min-width: 0; overflow-wrap: anywhere; }
+        .imp-opcao small { font-size: 11.5px; color: var(--cor-texto-mutado); }
+        .imp-totais { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 12px; color: var(--cor-texto-mutado); }
+        .imp-totais > div { display: flex; flex-direction: column; gap: 2px; }
+        .imp-totais strong { font-family: 'DM Mono', monospace; font-size: 15px; color: var(--cor-texto-principal); }
+        .imp-totais strong.bate { color: var(--cor-primaria); }
+        .imp-totais strong.nao-bate { color: var(--cor-texto-principal); }
+        .imp-dif-porque { grid-column: 1 / -1; font-size: 12px; color: var(--cor-texto-secundario); }
+        .imp-futuras { margin: 0; font-size: 12.5px; color: var(--cor-texto-secundario); display: flex; gap: 6px; align-items: center; }
+        .imp-feito { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 24px 8px; }
+        .imp-feito > i { font-size: 44px; color: var(--cor-primaria); }
+        .imp-feito > strong { font-size: 17px; color: var(--cor-texto-principal); }
+        .imp-feito p { font-size: 13px; color: var(--cor-texto-secundario); margin: 0; max-width: 420px; }
+        .imp-feito-total { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 20px; border-radius: 12px; background: var(--cor-superficie, var(--cor-branco)); border: 1px solid var(--cor-borda); font-size: 12.5px; color: var(--cor-texto-mutado); }
+        .imp-feito-total b { font-family: 'DM Mono', monospace; font-size: 22px; color: var(--cor-texto-principal); }
+        .imp-feito-total.bate span:last-child { color: var(--cor-primaria); font-weight: 700; }
+        .imp-feito-lista { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 13.5px; color: var(--cor-texto-secundario); }
+        @media (max-width: 768px) {
+            .imp-rodape { padding: 10px 16px calc(12px + env(safe-area-inset-bottom, 0px)); }
+            .imp-botoes .btn-acao, .imp-botoes .btn-secundario { flex: 1; min-height: 46px; justify-content: center; }
+        }
+
         /* === FATURAS DO CARTÃO (web/appliquei-faturas.js) === */
         .fat-overlay {
             position: fixed; inset: 0; z-index: 9995; background: rgba(15,23,42,0.5);
@@ -3061,19 +3303,25 @@
             border: 1px solid var(--cor-borda-primaria); background: transparent; color: var(--cor-txt-primaria);
         }
         .fat-itens { display: flex; flex-direction: column; }
-        .fat-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--cor-borda); }
-        .fat-item:first-child { border-top: none; }
+        .fat-item-bloco { border-top: 1px solid var(--cor-borda); }
+        .fat-item-bloco:first-child { border-top: none; }
+        /* A linha inteira é o botão que mostra Editar / Excluir. */
+        .fat-item {
+            display: flex; align-items: center; gap: 10px; padding: 10px 0; width: 100%; min-height: 52px;
+            background: none; border: none; text-align: left; font: inherit; color: inherit; cursor: pointer;
+        }
+        .fat-item-bloco.aberto .fat-item { padding-bottom: 6px; }
+        .fat-item-mais { flex: 0 0 auto; font-size: 18px; color: var(--cor-texto-mutado); }
+        .fat-item-acoes { display: flex; gap: 8px; padding: 0 0 12px 50px; }
+        .fat-item-acoes > button { flex: 1; justify-content: center; min-height: 44px; display: inline-flex; align-items: center; gap: 6px; }
+        .fat-item-acoes .fat-item-excluir, .lanc-excluir { color: var(--cor-erro); border-color: var(--cor-borda-erro); }
+        .lanc-excluir { width: 100%; margin-top: 10px; justify-content: center; align-items: center; gap: 6px; }
         .fat-item-dia { flex: 0 0 40px; font-size: 12px; color: var(--cor-texto-mutado); font-family: 'DM Mono', monospace; }
         .fat-item-corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
         .fat-item-desc { font-size: 14px; font-weight: 600; color: var(--cor-texto-principal); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .fat-item-cat { font-size: 12px; color: var(--cor-texto-mutado); }
         .fat-item.pago .fat-item-desc { color: var(--cor-texto-secundario); }
         .fat-item-valor { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 600; color: var(--cor-texto-principal); white-space: nowrap; }
-        .fat-item-editar {
-            width: 36px; height: 36px; flex: 0 0 36px; border: none; background: none; cursor: pointer; border-radius: 50%;
-            color: var(--cor-texto-mutado); font-size: 16px; display: inline-flex; align-items: center; justify-content: center;
-        }
-        .fat-item-editar:hover { background: var(--cor-superficie); color: var(--cor-info); }
         .fat-itens-vazio { font-size: 13px; color: var(--cor-texto-mutado); padding: 8px 0; }
         .fat-vazio {
             display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 32px 16px;
@@ -11385,26 +11633,9 @@
             /* Valor primeiro: é o que a pessoa tem na cabeça quando abre o
                formulário. O resto segue na ordem de antes. */
             #painelNovoLancamento { max-height: 92vh !important; padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important; }
-            #painelNovoLancamento > * { order: 2; }
-            #painelNovoLancamento > .painel-novo-lancamento-grab,
-            #painelNovoLancamento > div:has(> #tituloPainelControle),
-            #painelNovoLancamento > #chipsLancamento,
-            #painelNovoLancamento > #avisoEdicaoSonho { order: 0; }
-            #painelNovoLancamento > .grid-2-iguais:has(#valorTransacao) { order: 1; }
-            #painelNovoLancamento #valorTransacao {
-                font-family: 'DM Mono', monospace; font-size: 26px !important; font-weight: 500;
-                min-height: 56px;
-            }
-            #chipsLancamento { gap: 8px !important; }
-            #chipsLancamento > button {
-                min-height: 46px; font-size: 14px !important; border-radius: 12px !important;
-                gap: 6px !important; flex: 1 1 0 !important; min-width: 0;
-            }
-            /* Salvar sempre à vista, preso ao pé da folha enquanto ela rola. */
-            #painelNovoLancamento #btnSalvarControle {
-                position: sticky; bottom: 0; z-index: 2; min-height: 52px;
-                box-shadow: 0 -10px 18px 4px var(--cor-branco);
-            }
+            /* A ordem (valor logo depois do tipo) já está no HTML; o Salvar
+               fica preso ao pé pela .lanc-pe. */
+            #chipsLancamento > button { min-height: 46px; font-size: 14px; }
         }
 
         /* ============================================================ */
@@ -12979,7 +13210,7 @@
                     <label for="authSenha">Senha</label>
                     <input type="password" id="authSenha" autocomplete="current-password" placeholder="Mínimo 6 caracteres">
                 </div>
-                <div class="auth-field" id="authCupomWrap" style="display:none;">
+                <div class="auth-field" id="authCupomWrap" data-applicash style="display:none;">
                     <label for="authCupom">Cupom de indicação <span style="color:var(--cor-texto-mutado,#94a39c);font-weight:400;">(opcional)</span></label>
                     <input type="text" id="authCupom" autocomplete="off" placeholder="APP-XXXXXX" maxlength="12" style="text-transform:uppercase;">
                     <p style="font-size:11.5px;color:var(--cor-texto-mutado);margin-top:4px;">Tem o cupom de um amigo? Ganhe 10% de desconto recorrente.</p>
@@ -13038,7 +13269,7 @@
                 <p class="auth-verify-msg">Ainda não existe conta na Appliquei para</p>
                 <p class="auth-verify-email"><strong id="authGoogleEmail"></strong></p>
                 <div id="authGoogleErr" class="auth-err" role="alert"></div>
-                <div class="auth-field">
+                <div class="auth-field" data-applicash>
                     <label for="authGoogleCupom">Cupom de indicação <span style="color:var(--cor-texto-mutado,#94a39c);font-weight:400;">(opcional)</span></label>
                     <input type="text" id="authGoogleCupom" autocomplete="off" placeholder="APP-XXXXXX" maxlength="12" style="text-transform:uppercase;">
                     <p style="font-size:11.5px;color:var(--cor-texto-mutado);margin-top:4px;">Tem o cupom de um amigo? Ganhe 10% de desconto todo mês.</p>
@@ -13199,6 +13430,23 @@
                 <button type="button" id="faturasBtnAtual" class="fat-btn-atual" onclick="faturasIrParaAtual()">Fatura atual</button>
             </div>
             <div id="faturasCorpo" class="fat-corpo"></div>
+        </div>
+    </div>
+
+    <!-- Importar fatura do cartão (web/appliquei-importar-fatura-ui.js). Abre por
+         cima das Faturas; nada é gravado antes do botão Importar. -->
+    <div id="telaImportarFatura" class="fat-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="impfatTitulo" onclick="if(event.target===this) fecharImportarFatura()">
+        <div class="fat-folha">
+            <div class="fat-topo">
+                <button type="button" class="fat-voltar" onclick="fecharImportarFatura()" aria-label="Fechar importação"><i class="ph ph-x" aria-hidden="true"></i></button>
+                <div class="fat-topo-txt">
+                    <span id="impfatSub">Faturas</span>
+                    <h2 id="impfatTitulo">Importar fatura</h2>
+                </div>
+            </div>
+            <div id="impfatCorpo" class="fat-corpo"></div>
+            <div id="impfatRodape" class="imp-rodape"></div>
+            <input type="file" id="impfatArquivo" accept=".ofx,.csv,.txt,application/x-ofx,text/csv" hidden onchange="impfatUiArquivoSelecionado(this)">
         </div>
     </div>
 
@@ -13633,7 +13881,7 @@
                 <button class="menu-btn" onclick="mudarAba(event,'aulas')" data-tooltip="Jornada Financeira"><i class="ph ph-graduation-cap"></i><span class="menu-btn-label">Jornada Financeira</span></button>
                 <button class="menu-btn" onclick="mudarAba(event,'noticias', carregarNoticias)" data-tooltip="Info Mercado"><i class="ph ph-newspaper"></i><span class="menu-btn-label">Info Mercado</span></button>
             </div>
-            <div class="nav-group">
+            <div class="nav-group" data-applicash>
                 <span class="nav-group-label">Applicash $</span>
                 <button class="menu-btn" onclick="mudarAba(event,'applicash')" data-tooltip="Applicash $"><i class="ph ph-currency-dollar"></i><span class="menu-btn-label">Applicash $</span></button>
             </div>
@@ -14540,14 +14788,18 @@
                     <div class="painel-novo-lancamento-grab" aria-hidden="true"></div>
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;">
                         <h3 style="font-size:14px;font-weight:700;margin:0;font-family:'Figtree',sans-serif;" id="tituloPainelControle"><i class="ph ph-plus-circle" style="color:var(--cor-primaria);font-size:16px;" id="iconePainelControle"></i> Novo lançamento</h3>
-                        <button type="button" class="painel-mobile-close" onclick="fecharPainelLancamento()" aria-label="Fechar"><i class="ph ph-x"></i></button>
+                        <div class="lanc-topo-acoes">
+                            <!-- Atalho: quem tem a fatura do banco não lança uma a uma (só no modo Cartão). -->
+                            <button type="button" class="lanc-importar" id="lancImportarTopo" hidden onclick="abrirImportarFaturaDoLancamento()"><i class="ph ph-upload-simple" aria-hidden="true"></i> Importar fatura</button>
+                            <button type="button" class="painel-mobile-close" onclick="fecharPainelLancamento()" aria-label="Fechar"><i class="ph ph-x"></i></button>
+                        </div>
                     </div>
                     <input type="hidden" id="editTransacaoId" value="">
 
-                    <div style="display:flex;gap:6px;margin-bottom:14px;" id="chipsLancamento">
-                        <button onclick="selecionarChipTipo('entrada')" id="chipEntrada" style="flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid var(--cor-borda);background:var(--cor-superficie);color:var(--cor-texto-secundario);font-size:11.5px;font-weight:600;cursor:pointer;transition:.15s;font-family:'Figtree',sans-serif;display:flex;align-items:center;justify-content:center;gap:4px;"><i class="ph ph-arrow-down-left" style="font-size:13px;"></i> Entrada</button>
-                        <button onclick="selecionarChipTipo('saida')" id="chipSaida" style="flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid var(--cor-borda);background:var(--cor-superficie);color:var(--cor-texto-secundario);font-size:11.5px;font-weight:600;cursor:pointer;transition:.15s;font-family:'Figtree',sans-serif;display:flex;align-items:center;justify-content:center;gap:4px;"><i class="ph ph-arrow-up-right" style="font-size:13px;"></i> Saída</button>
-                        <button onclick="selecionarChipTipo('cartao')" id="chipCartao" style="flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid var(--cor-borda);background:var(--cor-superficie);color:var(--cor-texto-secundario);font-size:11.5px;font-weight:600;cursor:pointer;transition:.15s;font-family:'Figtree',sans-serif;display:flex;align-items:center;justify-content:center;gap:4px;"><i class="ph ph-credit-card" style="font-size:13px;"></i> Cartão</button>
+                    <div class="lanc-seg lanc-tipo" role="group" aria-label="Tipo de lançamento" id="chipsLancamento">
+                        <button type="button" onclick="selecionarChipTipo('entrada')" id="chipEntrada"><i class="ph ph-arrow-down-left" aria-hidden="true"></i> Entrada</button>
+                        <button type="button" onclick="selecionarChipTipo('saida')" id="chipSaida"><i class="ph ph-arrow-up-right" aria-hidden="true"></i> Saída</button>
+                        <button type="button" onclick="selecionarChipTipo('cartao')" id="chipCartao"><i class="ph ph-credit-card" aria-hidden="true"></i> Cartão</button>
                     </div>
 
                     <!-- Editando um compromisso de sonho, o formulário encolhe:
@@ -14562,59 +14814,19 @@
                         </div>
                     </div>
 
+                    <div class="form-group lanc-valor" id="grupoValorControle">
+                        <label id="lblValorOpControle" for="valorTransacao">Valor (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="valorTransacao" placeholder="0,00" oninput="aplicarMascaraBRL(this); atualizarResumoFatura()"></span>
+                    </div>
                     <div class="form-group" id="grupoDescricaoControle">
                         <label>Descrição</label>
                         <input type="text" id="descTransacao" list="listaDescricoes" placeholder="Ex: Salário / Conta de Luz" oninput="insightsSugestaoAoDigitar()">
                         <div id="sugestaoCategoria"></div>
                     </div>
-                    <div class="grid-2-iguais" style="gap:12px;" id="gridCategoriaVencimento">
-                        <div class="form-group" id="grupoCategoriaControle">
-                            <label>Categoria</label>
-                            <select id="categoriaTransacao" onchange="verificarRegraCartao()">
-                                <option value="" disabled selected>Selecione...</option>
-                                <optgroup label="ENTRADAS">
-                                    <option value="receita">Receita</option>
-                                </optgroup>
-                                <optgroup label="SAÍDAS">
-                                    <option value="despesa_fixa">Despesa fixa</option>
-                                    <option value="despesa_variavel">Despesa variável</option>
-                                    <option value="cartao_credito">Cartão de crédito</option>
-                                </optgroup>
-                            </select>
-                        </div>
-                        <!-- Em cartão este campo SAI e dá lugar ao seletor de
-                             fatura, dentro do bloco do cartão: ali a pergunta é
-                             "em qual fatura entra", não "que dia vence" — e a
-                             resposta depende do cartão e do tipo, que ficam lá.
-                             O input continua existindo e continua sendo o que o
-                             salvamento lê; o seletor é quem o preenche. -->
-                        <div class="form-group" id="grupoVencimentoControle">
-                            <label for="dataVencimento" id="lblVencimentoControle">Vencimento</label>
-                            <input type="date" id="dataVencimento" onchange="if (typeof atualizarSugestoesBancoTransacao === 'function') atualizarSugestoesBancoTransacao()">
-                        </div>
-                    </div>
-                    <div class="grid-2-iguais" style="gap:12px;align-items:end;">
-                        <div class="form-group"><label id="lblValorOpControle">Valor (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="valorTransacao" placeholder="0,00" oninput="aplicarMascaraBRL(this); atualizarResumoFatura()"></span></div>
-                        <div class="form-group" id="grupoParcelas" style="display:none;"><label>Nº Parcelas</label><input type="number" id="qtdParcelas" value="1" min="1" oninput="atualizarResumoFatura()"></div>
-                    </div>
-
-                    <div class="form-group" id="grupoBancoReceita" style="display:none;">
-                        <label id="lblBancoTransacao">Banco / instituição que recebe <span style="color:var(--cor-erro);">*</span></label>
-                        <input type="text" id="bancoTransacao" list="listaBancosTransacao" placeholder="Ex: Nubank, Itaú, Bradesco..." oninput="avisarContaNovaTransacao()" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
-                        <datalist id="listaBancosTransacao"></datalist>
-                        <!-- O asterisco lê-se como "escolha uma conta que você
-                             já cadastrou" — e foi essa leitura que travou o
-                             primeiro uso. O campo é texto livre: quem escreve
-                             um nome novo ganha a conta na hora. -->
-                        <!-- Com contas já cadastradas, o texto avisa quando o
-                             nome digitado NÃO é nenhuma delas: salvar criaria
-                             uma segunda conta (avisarContaNovaTransacao). -->
-                        <small id="dicaBancoTransacao" style="display:block;font-size:11px;color:var(--cor-texto-mutado);margin-top:5px;line-height:1.45;"><i class="ph ph-info" style="color:var(--cor-info);vertical-align:-1px;"></i> Não precisa ter cadastrado a conta antes — digite o nome e nós criamos para você.</small>
-                    </div>
 
                     <div class="form-group" id="grupoCategoriaDespesa" style="display:none;">
-                        <label>Categoria da despesa</label>
-                        <select id="categoriaDespesa" onchange="onChangeCategoriaDespesa()"></select>
+                        <label>Categoria</label>
+                        <div class="lanc-chips" id="lancCatChips"></div>
+                        <select id="categoriaDespesa" class="lanc-lista" aria-label="Todas as categorias" onchange="onChangeCategoriaDespesa()"></select>
                         <div id="grupoCategoriaDespesaNova" style="display:none;margin-top:8px;">
                             <div style="display:flex;gap:8px;align-items:center;">
                                 <button type="button" id="categoriaDespesaNovaEmojiBtn" onclick="toggleEmojiPickerCategoria()" title="Escolher emoji" style="flex:0 0 auto;width:44px;height:42px;display:flex;align-items:center;justify-content:center;font-size:20px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);cursor:pointer;line-height:1;">🏷️</button>
@@ -14628,7 +14840,8 @@
                     <div id="grupoCartaoSelect" style="display:none;margin-bottom:14px;">
                         <div class="form-group" style="margin-bottom:8px;">
                             <label>Cartão</label>
-                            <select id="selectCartao" onchange="onChangeSelectCartao()"></select>
+                            <div class="lanc-chips" id="lancCartaoChips"></div>
+                            <select id="selectCartao" class="lanc-oculto" aria-hidden="true" tabindex="-1" onchange="onChangeSelectCartao()"></select>
                         </div>
                         <div id="formNovoCartaoInline" style="display:none;background:var(--cor-superficie);border:1px dashed var(--cor-borda);border-radius:9px;padding:12px;margin-bottom:8px;">
                             <div class="form-group" style="margin-bottom:8px;"><label style="font-size:11px;">Nome do cartão</label><input type="text" id="inlineCartaoNome" placeholder="Ex: Nubank, Itaú..." style="padding:8px;font-size:13px;"></div>
@@ -14647,6 +14860,23 @@
                             <button type="button" id="btnTipoFixo" onclick="selecionarTipoCartao('fixo')" style="flex:1;padding:7px;border:none;background:transparent;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--cor-texto-secundario);font-family:'Figtree',sans-serif;"><i class="ph ph-repeat"></i> Fixo mensal</button>
                         </div>
                         <input type="hidden" id="tipoCartaoSelecionado" value="parcelado">
+                        <!-- Parcelas com − / +. "Já começou a pagar?" fica recolhido: quem compra
+                             hoje começa na 1 e não precisa da pergunta; quem já está pagando
+                             responde com as palavras da fatura do banco ("Parcela 2/10"). -->
+                        <div class="lanc-parcelas" id="grupoParcelas" style="display:none;">
+                            <div class="lanc-linha">
+                                <label for="qtdParcelas">Parcelas</label>
+                                <div class="lanc-step"><button type="button" aria-label="Menos uma parcela" onclick="lancUiPasso('qtdParcelas', -1)">−</button><input type="number" id="qtdParcelas" value="1" min="1" max="48" inputmode="numeric" oninput="atualizarParcelaInicialUI(); atualizarResumoFatura()"><button type="button" aria-label="Mais uma parcela" onclick="lancUiPasso('qtdParcelas', 1)">+</button></div>
+                            </div>
+                            <button type="button" class="lanc-link" id="lancParcelaInicialAbrir" style="display:none;" onclick="lancUiAbrirParcelaInicial()">Já começou a pagar esta compra?</button>
+                            <div id="grupoParcelaInicial" style="display:none;">
+                                <div class="lanc-linha">
+                                    <label for="parcelaInicial">Nesta fatura vem a parcela</label>
+                                    <div class="lanc-step"><button type="button" aria-label="Parcela anterior" onclick="lancUiPasso('parcelaInicial', -1)">−</button><input type="number" id="parcelaInicial" value="1" min="1" inputmode="numeric" oninput="atualizarResumoFatura()"><button type="button" aria-label="Próxima parcela" onclick="lancUiPasso('parcelaInicial', 1)">+</button><span class="lanc-de" id="lancParcelaDe"></span></div>
+                                </div>
+                                <small class="lanc-dica">Como aparece na fatura do banco: "Parcela 2/10". As anteriores ficam de fora.</small>
+                            </div>
+                        </div>
 
                         <!-- SELETOR DE FATURA.
                              Vem por último no bloco porque depende do cartão
@@ -14665,25 +14895,92 @@
                         </div>
                     </div>
 
+                    <div class="lanc-bloco" id="lancBloco">
+                        <div class="grid-2-iguais" style="gap:12px;" id="gridCategoriaVencimento">
+                            <div class="form-group lanc-oculto" id="grupoCategoriaControle">
+                                <label>Categoria</label>
+                                <select id="categoriaTransacao" onchange="verificarRegraCartao()">
+                                    <option value="" disabled selected>Selecione...</option>
+                                    <optgroup label="ENTRADAS">
+                                        <option value="receita">Receita</option>
+                                    </optgroup>
+                                    <optgroup label="SAÍDAS">
+                                        <option value="despesa_fixa">Despesa fixa</option>
+                                        <option value="despesa_variavel">Despesa variável</option>
+                                        <option value="cartao_credito">Cartão de crédito</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <!-- Em cartão este campo SAI e dá lugar ao seletor de
+                                 fatura, dentro do bloco do cartão: ali a pergunta é
+                                 "em qual fatura entra", não "que dia vence" — e a
+                                 resposta depende do cartão e do tipo, que ficam lá.
+                                 O input continua existindo e continua sendo o que o
+                                 salvamento lê; o seletor é quem o preenche. -->
+                            <div class="form-group" id="grupoVencimentoControle">
+                                <label for="dataVencimento" id="lblVencimentoControle">Vencimento</label>
+                                <input type="date" id="dataVencimento" onchange="if (typeof atualizarSugestoesBancoTransacao === 'function') atualizarSugestoesBancoTransacao()">
+                            </div>
+                        </div>
+                        <div class="form-group" id="grupoBancoReceita" style="display:none;">
+                            <label id="lblBancoTransacao">Banco / instituição que recebe <span style="color:var(--cor-erro);">*</span></label>
+                        <div class="lanc-chips" id="lancContaChips"></div>
+                            <input type="text" id="bancoTransacao" list="listaBancosTransacao" placeholder="Ex: Nubank, Itaú, Bradesco..." oninput="avisarContaNovaTransacao()" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
+                            <datalist id="listaBancosTransacao"></datalist>
+                            <!-- O asterisco lê-se como "escolha uma conta que você
+                                 já cadastrou" — e foi essa leitura que travou o
+                                 primeiro uso. O campo é texto livre: quem escreve
+                                 um nome novo ganha a conta na hora. -->
+                            <!-- Com contas já cadastradas, o texto avisa quando o
+                                 nome digitado NÃO é nenhuma delas: salvar criaria
+                                 uma segunda conta (avisarContaNovaTransacao). -->
+                            <small id="dicaBancoTransacao" style="display:block;font-size:11px;color:var(--cor-texto-mutado);margin-top:5px;line-height:1.45;"><i class="ph ph-info" style="color:var(--cor-info);vertical-align:-1px;"></i> Não precisa ter cadastrado a conta antes — digite o nome e nós criamos para você.</small>
+                        </div>
+                            <!-- Variável × Fixa: é a categoria de antes (despesa_variavel / despesa_fixa),
+                                 agora em dois botões. Fixa liga "Repetir todo mês" (verificarRegraCartao). -->
+                            <div class="lanc-linha" id="lancTipoGasto" hidden>
+                                <span class="lanc-rot" id="lancTipoGastoRot">Tipo de gasto</span>
+                                <div class="lanc-seg lanc-seg-peq" role="group" aria-labelledby="lancTipoGastoRot">
+                                    <button type="button" data-cat="despesa_variavel" onclick="lancUiTipoGasto('despesa_variavel')">Variável</button>
+                                    <button type="button" data-cat="despesa_fixa" onclick="lancUiTipoGasto('despesa_fixa')">Fixa</button>
+                                </div>
+                            </div>
+                        <div class="recorrente-toggle" id="grupoFixa">
+                            <i class="ph ph-repeat"></i>
+                            <label for="transacaoFixa">Repetir todo mês</label>
+                            <input type="checkbox" id="transacaoFixa" style="margin-left:auto;width:16px;height:16px;cursor:pointer;accent-color:var(--cor-info);">
+                        </div>
+                    </div>
+
+                    <button type="button" class="lanc-link" id="lancObsAbrir" onclick="lancUiAbrirObs()">+ Adicionar observação</button>
                     <div class="form-group" id="grupoObs">
                         <label>Observação <span style="font-size:11px;color:var(--cor-texto-mutado);font-weight:400;">(opcional)</span></label>
                         <textarea id="obsTransacao" placeholder="Ex: lembrete sobre este lançamento" maxlength="500" rows="2" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;resize:vertical;"></textarea>
                     </div>
 
-                    <div class="recorrente-toggle" id="grupoFixa">
-                        <i class="ph ph-repeat"></i>
-                        <span>Repetir todo mês automaticamente</span>
-                        <input type="checkbox" id="transacaoFixa" style="margin-left:auto;width:16px;height:16px;cursor:pointer;accent-color:var(--cor-info);">
+                    <!-- Salvar sempre à vista, com o que vai ser salvo dito numa linha. -->
+                    <div class="lanc-pe" id="lancPe">
+                        <p class="lanc-resumo" id="lancResumo" aria-live="polite" hidden></p>
+                        <button class="btn-acao" id="btnSalvarControle" onclick="tentarSalvarTransacao()"><i class="ph ph-check-circle"></i> Salvar lançamento</button>
                     </div>
-
-                    <button class="btn-acao" id="btnSalvarControle" onclick="tentarSalvarTransacao()"><i class="ph ph-check-circle"></i> Salvar lançamento</button>
 
                     <div id="opcoesEdicaoRecorrente" style="display:none;flex-direction:column;gap:8px;margin-top:12px;padding:14px;background:var(--cor-superficie);border-radius:var(--radius-sm);border:1px solid var(--cor-borda);">
                         <label style="font-size:12.5px;color:var(--cor-texto-secundario);font-weight:500;text-align:center;margin-bottom:4px;">Como salvar esta alteração?</label>
                         <button class="btn-acao" style="background-color:var(--cor-texto-principal);" onclick="executarEdicao('unica')"><i class="ph ph-target"></i> Só este mês</button>
                         <button class="btn-acao" style="background-color:var(--cor-info);" onclick="executarEdicao('todas')"><i class="ph ph-copy"></i> Este e os futuros</button>
                     </div>
-                    <button class="btn-secundario" id="btnCancelarEdicao" onclick="cancelarEdicaoControle()" style="display:none;width:100%;margin-top:10px;border-color:var(--cor-erro);color:var(--cor-erro);"><i class="ph ph-x"></i> Cancelar edição</button>
+                    <!-- Corrigir a numeração de um parcelado já lançado
+                         (renumerarSerieParcelas em appliquei-aba-controle-financeiro.js). -->
+                    <div id="grupoCorrigirParcelas" class="corrigir-parcelas" style="display:none;">
+                        <div class="cp-linha"><i class="ph ph-list-numbers" aria-hidden="true"></i><span>Esta é a parcela</span><input type="number" id="cpParcela" min="1" max="48" aria-label="Número desta parcela"><span>de</span><input type="number" id="cpTotal" min="2" max="48" aria-label="Total de parcelas"></div>
+                        <p class="cp-ajuda">Lançou com a numeração errada? Corrija aqui e a série inteira se ajusta: as parcelas seguintes são renomeadas, a que sobrar no fim é apagada e a que faltar é criada.</p>
+                        <div id="cpPrevia" class="cp-previa" style="display:none;"></div>
+                        <button type="button" class="btn-secundario cp-ver" onclick="corrigirParcelasPrevia()"><i class="ph ph-arrows-clockwise"></i> Corrigir a série</button>
+                    </div>
+                    <!-- Excluir na própria edição (relato: quem chegava pelo lápis da fatura não
+                         achava como excluir). Mesma confirmação do extrato. -->
+                    <button type="button" class="btn-secundario lanc-excluir" id="btnExcluirEdicao" onclick="excluirLancamentoEmEdicao()" style="display:none;"><i class="ph ph-trash" aria-hidden="true"></i> Excluir lançamento</button>
+                    <button class="btn-secundario" id="btnCancelarEdicao" onclick="cancelarEdicaoControle()" style="display:none;width:100%;margin-top:10px;"><i class="ph ph-x"></i> Cancelar edição</button>
                 </div>
             </div>
 
@@ -16161,7 +16458,7 @@
             </div>
         </section>
 
-        <section id="applicash" class="section" data-fase="carregando">
+        <section id="applicash" class="section" data-applicash data-fase="carregando">
             <div class="page-header">
                 <div class="page-header-left">
                     <h1>Applicash $</h1>
@@ -16404,7 +16701,7 @@
                             <option value="patrimonio">Patrimônio & investimentos</option>
                             <option value="controle">Controle financeiro</option>
                             <option value="ferramentas">Ferramentas & simulações</option>
-                            <option value="applicash">Applicash $</option>
+                            <option value="applicash" data-applicash>Applicash $</option>
                             <option value="dados">Dados & segurança</option>
                         </select>
                     </div>
@@ -16444,7 +16741,7 @@
                             <option value="meus_sonhos">Meus sonhos</option>
                             <option value="aulas">Jornada Financeira</option>
                             <option value="noticias">Info Mercado</option>
-                            <option value="applicash">Applicash $</option>
+                            <option value="applicash" data-applicash>Applicash $</option>
                             <option value="conta">Conta, assinatura e pagamento</option>
                             <option value="duvidas_sugestoes">Dúvidas & Sugestões</option>
                             <option value="outro">🌟 Outro / algo que ainda não existe</option>
@@ -16591,7 +16888,7 @@
                     <div class="div-chart-title"><i class="ph-fill ph-file-text"></i> Termos de Uso</div>
                     <div class="priv-politica" style="margin-bottom:0;">
                         <p class="priv-status" id="termosStatusAceite"></p>
-                        <p>As regras de uso do app: assinatura, cancelamento e arrependimento, Applicash, programa de testadores e responsabilidades.</p>
+                        <p>As regras de uso do app: assinatura, cancelamento e arrependimento, programa de testadores e responsabilidades.</p>
                         <button type="button" class="btn-secundario" onclick="abrirModalTermos()"><i class="ph ph-file-text"></i> Ler os Termos de Uso</button>
                     </div>
                 </div>
@@ -16630,7 +16927,7 @@
             <div class="mob-tiles">
                 <button type="button" class="mob-tile" onclick="mobIrPara('aulas')"><span class="mob-tile-ic verde"><i class="ph ph-graduation-cap"></i></span><b>Jornada financeira</b><small>Módulos práticos</small></button>
                 <button type="button" class="mob-tile" onclick="mobIrPara('noticias')"><span class="mob-tile-ic cinza"><i class="ph ph-newspaper"></i></span><b>Info Mercado</b><small>Radar do dia</small></button>
-                <button type="button" class="mob-tile" onclick="mobIrPara('applicash')"><span class="mob-tile-ic verde"><i class="ph ph-currency-dollar"></i></span><b>Applicash</b><small>Indique e ganhe</small></button>
+                <button type="button" class="mob-tile" data-applicash onclick="mobIrPara('applicash')"><span class="mob-tile-ic verde"><i class="ph ph-currency-dollar"></i></span><b>Applicash</b><small>Indique e ganhe</small></button>
                 <button type="button" class="mob-tile" onclick="mobIrPara('duvidas_sugestoes')"><span class="mob-tile-ic azul"><i class="ph ph-question"></i></span><b>Dúvidas &amp; sugestões</b><small>Ajuda e ideias</small></button>
             </div>
 
@@ -16655,7 +16952,7 @@
          state da app — pode carregar antes ou depois de app.js. -->
     <script src="/web/appliquei-catalogo-b3.js?v=catalogo1"></script>
     <script src="/web/appliquei-yahoo-finance.js?v=catalogo1"></script>
-    <script src="/web/appliquei-app.js?v=fase5-emoji"></script>
+    <script src="/web/appliquei-app.js?v=form-lancamento-1"></script>
     <script src="/web/appliquei-combobox.js?v=combo-rolagem"></script>
     <!-- Contas / Instituições financeiras (entidade central). Carrega logo
          após app.js: usa transacoes/historicoCompras p/ o seed inicial e
@@ -16684,8 +16981,12 @@
     <script src="/web/appliquei-desempenho.js?v=fase4"></script>
     <script src="/web/appliquei-ir.js?v=fase4"></script>
     <script src="/web/appliquei-insights.js?v=insights-1"></script>
-    <script src="/web/appliquei-aba-controle-financeiro.js?v=faturas-1"></script>
-    <script src="/web/appliquei-faturas.js?v=faturas-1"></script>
+    <script src="/web/appliquei-aba-controle-financeiro.js?v=fatura-excluir-1"></script>
+    <script src="/web/appliquei-faturas.js?v=fatura-excluir-1"></script>
+    <script src="/web/appliquei-categorias-palavras.js?v=importar-fatura-6"></script>
+    <script src="/web/appliquei-importar-fatura.js?v=importar-fatura-6"></script>
+    <script src="/web/appliquei-importar-fatura-ui.js?v=importar-fatura-6"></script>
+    <script src="/web/appliquei-lancamento-ui.js?v=form-lancamento-1"></script>
     <script src="/web/appliquei-insights-ui.js?v=inicio-mob"></script>
     <script src="/web/appliquei-relatorio-mensal.js?v=detalhe-categorias"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>

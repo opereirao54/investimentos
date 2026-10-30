@@ -58,7 +58,12 @@ module.exports = handler({
 
     // Zod já validou body.referralCode (string opcional, formato APP-XXXXXX);
     // normalize só para padronizar (uppercase, trim — embora schema já faça).
-    const rawCode = body.referralCode ? codes.normalize(body.referralCode) || null : null;
+    // Applicash desligado (codes.applicashAtivo): o cupom é ignorado em
+    // silêncio — um link ?ref= antigo não pode travar o cadastro.
+    const rawCode =
+      codes.applicashAtivo() && body.referralCode
+        ? codes.normalize(body.referralCode) || null
+        : null;
 
     try {
       const D = db();
@@ -370,6 +375,9 @@ module.exports = handler({
           uid: user.uid,
           email: user.email || null,
           customerId: customer.id,
+          // De qual Asaas é este customerId (sandbox ou produção). O
+          // /subscribe confere antes de usar — ver subscribe.js.
+          asaasAmbiente: asaas.ambiente(),
           createdAt: (existing && existing.createdAt) || timestamp().fromMillis(now),
           trialStartsAt: timestamp().fromMillis(now),
           trialEndsAt: timestamp().fromMillis(trialEnd),
