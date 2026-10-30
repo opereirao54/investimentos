@@ -1581,6 +1581,8 @@ function prepararEdicao(id) {
     '<i class="ph-bold ph-pencil-simple"></i> Atualizar Lançamento';
   document.getElementById('btnSalvarControle').style.backgroundColor = 'var(--cor-info)';
   document.getElementById('btnCancelarEdicao').style.display = 'block';
+  const btnExcluir = document.getElementById('btnExcluirEdicao');
+  if (btnExcluir) btnExcluir.style.display = 'flex';
 
   if (transacaoEhSonho(trans)) {
     // Sai antes de verificarRegraCartao(): ela mexe em banco, parcelas e
@@ -1657,6 +1659,8 @@ function cancelarEdicaoControle() {
     '<i class="ph ph-check-circle"></i> Salvar Lançamento';
   document.getElementById('btnSalvarControle').style.backgroundColor = 'var(--cor-primaria)';
   document.getElementById('btnCancelarEdicao').style.display = 'none';
+  const btnExcluir = document.getElementById('btnExcluirEdicao');
+  if (btnExcluir) btnExcluir.style.display = 'none';
   document.getElementById('tituloPainelControle').innerHTML =
     '<i class="ph ph-plus-circle" style="color: var(--cor-primaria);"></i> Novo lançamento';
   verificarRegraCartao();
@@ -3212,11 +3216,26 @@ function executarDelecao(modo) {
   } else {
     transacoes = transacoes.filter((t) => t.id != itemParaDeletar.id);
   }
+  const excluidoId = itemParaDeletar.id;
   salvarTransacoes();
   mostrarToast('Lançamento excluído.', 'aviso');
   fecharModal();
+  // Excluído pelo formulário de edição: o formulário não pode continuar
+  // editando um lançamento que não existe mais.
+  const editEl = document.getElementById('editTransacaoId');
+  if (editEl && editEl.value && editEl.value == excluidoId) {
+    cancelarEdicaoControle();
+    if (typeof fecharPainelLancamento === 'function') fecharPainelLancamento();
+  }
   atualizarTelaControle();
   atualizarDatalistDescricoes();
+  if (typeof faturasAtualizarSeAberta === 'function') faturasAtualizarSeAberta();
+}
+
+/** "Excluir lançamento" no formulário de edição: a mesma confirmação do extrato. */
+function excluirLancamentoEmEdicao() {
+  const id = (document.getElementById('editTransacaoId') || {}).value;
+  if (id) deletarTransacao(id);
 }
 
 function abrirModalGrupoCartao(key) {
