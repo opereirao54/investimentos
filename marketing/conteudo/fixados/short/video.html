@@ -1,0 +1,184 @@
+<!doctype html>
+<!--
+  Short de apresentação (≈31 s, 1080×1920), para fixar no YouTube (que não
+  aceita foto): "Por que o Appliquei existe?", missão, visão, valores e a
+  frase do carrossel do propósito. Mesmo texto dos 3 posts fixados do
+  Instagram (../gerar-fixados.js). Sem contagem: é peça permanente do perfil.
+  Mesma mecânica dos outros vídeos: render(t) desenha o segundo t.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root { --campo1: #0b1410; --campo2: #0f1f18; --campo3: #112720; --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa;
+    --sinal: #34d399; --primaria: #059669; --ambar: #fbbf24; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--campo1); }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: linear-gradient(150deg, var(--campo1) 0%, var(--campo2) 50%, var(--campo3) 100%); }
+  .halo { position: absolute; inset: -20%;
+    background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.22), transparent 70%),
+                radial-gradient(40% 35% at 10% 90%, rgba(5,150,105,.18), transparent 70%); }
+  .malha { position: absolute; inset: 0; }
+  .cena { position: absolute; inset: 0; opacity: 0; }
+  .el { opacity: 0; }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 200px; z-index: 20; }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); z-index: 30; }
+
+  /* 1. Gancho */
+  .marca { position: absolute; left: 0; right: 0; top: 620px; text-align: center; }
+  .marca img { width: 760px; }
+  .pergunta { position: absolute; left: 70px; right: 70px; top: 1020px; text-align: center; font-size: 78px; font-weight: 900; letter-spacing: -.03em; line-height: 1.08; }
+  .pergunta em { font-style: normal; color: var(--sinal); }
+
+  /* 2–3. Missão e visão */
+  .rot { position: absolute; left: 90px; top: 470px; display: flex; align-items: center; gap: 22px; font-family: 'DM Mono', monospace; font-size: 40px; letter-spacing: .24em; text-transform: uppercase; color: var(--sinal); }
+  .rot i { width: 88px; height: 88px; border-radius: 26px; background: rgba(52,211,153,.14); border: 2px solid rgba(52,211,153,.5); display: flex; align-items: center; justify-content: center; }
+  .rot i svg { width: 50px; height: 50px; }
+  .texto { position: absolute; left: 90px; right: 90px; top: 640px; font-family: 'Syne', 'Figtree', sans-serif; font-weight: 800; font-size: 74px; letter-spacing: -.02em; line-height: 1.12; }
+  .texto span { opacity: 0; }
+  .texto em { font-style: normal; color: var(--sinal); }
+  .texto em.a { color: var(--ambar); }
+
+  /* 4. Valores */
+  .valores { position: absolute; left: 90px; right: 90px; top: 640px; }
+  .valores .v { display: flex; flex-direction: column; gap: 6px; padding: 28px 40px; margin-bottom: 22px; border-radius: 30px; background: rgba(240,250,244,.06); border: 2px solid rgba(240,250,244,.14); opacity: 0; }
+  .valores .v b { font-family: 'Syne', 'Figtree', sans-serif; font-weight: 800; font-size: 58px; color: var(--sinal); }
+  .valores .v small { font-size: 36px; font-weight: 700; color: var(--deck); }
+
+  /* 5. Fecho */
+  .frase { position: absolute; left: 80px; right: 80px; top: 430px; font-family: 'Syne', 'Figtree', sans-serif; font-weight: 800; font-size: 86px; letter-spacing: -.02em; line-height: 1.08; }
+  .frase span { opacity: 0; }
+  .frase em { font-style: normal; color: var(--sinal); }
+  .inscreva { position: absolute; left: 0; right: 0; top: 1180px; text-align: center; }
+  .inscreva span { display: inline-flex; align-items: center; gap: 20px; padding: 26px 46px; border-radius: 99px; background: #f0faf4; color: #0b1410; font-size: 50px; font-weight: 900; }
+  .inscreva span i { width: 22px; height: 22px; border-radius: 50%; background: #ef4444; }
+  .assina { position: absolute; left: 0; right: 0; top: 1400px; text-align: center; }
+  .assina img { width: 380px; }
+  .assina p { margin-top: 18px; font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .14em; color: var(--mudo); text-transform: uppercase; }
+</style>
+</head>
+<body>
+<div class="palco">
+  <div class="halo"></div>
+  <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+
+  <!-- 1. GANCHO -->
+  <div class="cena" id="c1">
+    <div class="marca el" id="mk"><img src="wordmark.svg" alt="Appliquei"></div>
+    <div class="pergunta" id="pg">Por que o Appliquei<br><em>existe?</em></div>
+  </div>
+
+  <!-- 2. MISSÃO -->
+  <div class="cena" id="c2">
+    <div class="rot el" id="r2"><i><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#34d399" stroke-width="2.2"/><circle cx="12" cy="12" r="5" fill="none" stroke="#34d399" stroke-width="2.2"/><circle cx="12" cy="12" r="1.6" fill="#34d399"/></svg></i>Missão</div>
+    <div class="texto"><span id="m1">Ajudar você a enxergar o próprio dinheiro de um <em>jeito diferente</em>,</span> <span id="m2">e transformar organização em <em class="a">conquistas.</em></span></div>
+  </div>
+
+  <!-- 3. VISÃO -->
+  <div class="cena" id="c3">
+    <div class="rot el" id="r3"><i><svg viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z" fill="none" stroke="#34d399" stroke-width="2.2"/><circle cx="12" cy="12" r="3.2" fill="#34d399"/></svg></i>Visão</div>
+    <div class="texto"><span id="v1">Ser o lugar onde o brasileiro cuida do <em>dinheiro inteiro</em>:</span> <span id="v2">do gasto de hoje ao <em class="a">patrimônio de amanhã.</em></span></div>
+  </div>
+
+  <!-- 4. VALORES -->
+  <div class="cena" id="c4">
+    <div class="rot el" id="r4"><i><svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.4-9.3C1.2 8.3 3.6 4.8 7 4.8c2.1 0 3.6 1.2 5 2.9 1.4-1.7 2.9-2.9 5-2.9 3.4 0 5.8 3.5 4.4 6.9C19.5 16.4 12 21 12 21Z" fill="#34d399"/></svg></i>Valores</div>
+    <div class="valores">
+      <div class="v" id="a1"><b>Clareza</b><small>saber pra onde vai cada real</small></div>
+      <div class="v" id="a2"><b>Constância</b><small>pequenas atitudes, todo dia</small></div>
+      <div class="v" id="a3"><b>Propósito</b><small>dinheiro a serviço dos sonhos</small></div>
+      <div class="v" id="a4"><b>Honestidade</b><small>sem promessa fácil</small></div>
+    </div>
+  </div>
+
+  <!-- 5. FECHO -->
+  <div class="cena" id="c5">
+    <div class="frase"><span id="f1">Pequenas atitudes,</span> <span id="f2">feitas com constância,</span> <span id="f3">constroem <em>grandes conquistas.</em></span></div>
+    <div class="inscreva el" id="ins"><span><i></i>Se inscreve</span></div>
+    <div class="assina el" id="as"><img src="wordmark.svg" alt="Appliquei"><p>Seu dinheiro precisa de direção</p></div>
+  </div>
+
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  function $(id) { return document.getElementById(id); }
+  (function () {
+    const m = [];
+    for (let x = 60; x < 1080; x += 60) m.push(`<line x1="${x}" y1="0" x2="${x}" y2="1920" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 60; y < 1920; y += 60) m.push(`<line x1="0" y1="${y}" x2="1080" y2="${y}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    $('malha').innerHTML = m.join('');
+  })();
+
+  // Cenas seguem narracao.json (início de cada frase − 0,15 s).
+  const DUR = 31.2;
+  const CENAS = [['c1', 0, 2.47], ['c2', 2.47, 10.58], ['c3', 10.58, 17.92], ['c4', 17.92, 23.08], ['c5', 23.08, 31.4]];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  function surge(el, lt, a, dur, dy) {
+    const p = easeBack(prog(lt, a, a + (dur || 0.4)));
+    el.style.opacity = clamp(p, 0, 1);
+    el.style.transform = `translateY(${(1 - p) * (dy == null ? 40 : dy)}px)`;
+  }
+  const acende = (el, lt, a) => { el.style.opacity = easeOut(prog(lt, a, a + 0.5)); };
+
+  function render(t) {
+    for (const [id, a, b] of CENAS) {
+      const el = $(id);
+      const dentro = t >= a - 0.01 && t < b;
+      const fadeIn = id === 'c1' ? 1 : easeOut(prog(t, a, a + 0.25));
+      const fadeOut = 1 - prog(t, b - 0.2, b);
+      el.style.opacity = dentro ? Math.min(fadeIn, fadeOut) : 0;
+      el.style.display = dentro ? 'block' : 'none';
+      if (dentro) cenaExtra(id, t - a);
+    }
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+
+  // Tempos locais = fala + 0,15 s (pausas medidas na leitura).
+  function cenaExtra(id, lt) {
+    if (id === 'c1') {
+      // "Por que o Appliquei existe?" 0,15–1,75 (a pergunta já está no 1º quadro: é a capa)
+      const p = easeOut(prog(lt, 0.2, 0.9));
+      $('mk').style.opacity = p; $('mk').style.transform = `scale(${0.9 + 0.1 * p})`;
+      $('logoFixo').style.opacity = 0;
+      return;
+    }
+    $('logoFixo').style.opacity = id === 'c5' ? 1 - prog(lt, 0, 0.3) : 1;
+    if (id === 'c2') {
+      // "Nossa missão" 0,15–0,9 · "ajudar… diferente" 1,2–4,6 · "e transformar organização em conquistas" 5,0–7,6
+      surge($('r2'), lt, 0.1, 0.4, 20);
+      acende($('m1'), lt, 1.15);
+      acende($('m2'), lt, 4.95);
+    }
+    if (id === 'c3') {
+      // "Nossa visão" 0,15–0,8 · "ser o lugar… dinheiro inteiro" 1,3–4,1 · "do gasto de hoje ao patrimônio de amanhã" 4,45–6,9
+      surge($('r3'), lt, 0.1, 0.4, 20);
+      acende($('v1'), lt, 1.25);
+      acende($('v2'), lt, 4.4);
+    }
+    if (id === 'c4') {
+      // "Nossos valores" 0,15–1,0 · "clareza" 1,35 · "constância" 2,15 · "propósito" 2,95 · "e honestidade" 3,75
+      surge($('r4'), lt, 0.1, 0.4, 20);
+      [1.3, 2.1, 2.9, 3.75].forEach((a, i) => surge($('a' + (i + 1)), lt, a, 0.35, 24));
+    }
+    if (id === 'c5') {
+      // "Pequenas atitudes" 0,15–1,3 · "feitas com constância" 1,5–2,7 · "constroem grandes conquistas" 3,0–4,55 · "Se inscreve e vem com a gente" 4,95–6,5
+      acende($('f1'), lt, 0.1);
+      acende($('f2'), lt, 1.45);
+      acende($('f3'), lt, 2.95);
+      surge($('ins'), lt, 4.85, 0.4, 30);
+      $('ins').querySelector('span').style.transform = `scale(${1 + 0.04 * Math.sin(lt * 6) * prog(lt, 5.3, 5.6)})`;
+      surge($('as'), lt, 5.6, 0.45, 30);
+    }
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>

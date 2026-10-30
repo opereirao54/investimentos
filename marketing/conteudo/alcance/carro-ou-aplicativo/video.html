@@ -141,7 +141,7 @@
   <div class="halo"></div>
   <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
   <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
-  <div class="serie" id="serie">Conta de padaria</div>
+  <div class="serie" id="serie">Appliquei Explica</div>
 
   <!-- 1. GANCHO: o preço primeiro -->
   <div class="cena" id="c1">
@@ -288,7 +288,7 @@
     if (id === 'c1') {
       // "Esse carro custa dois mil e cem reais por mês" 0,15–2,9 · "Parado na garagem" 3,25–4,35 · "Quer ver a conta?" 5,0–5,7
       surge($('pr'), lt, 0.05, 0.4, 30);
-      $('prN').textContent = 'R$ ' + real(2100 * easeOut(prog(lt, 0.9, 1.4)));
+      $('prN').textContent = 'R$ 2.100';
       surge($('gr'), lt, 3.15, 0.4, 40);
       surge($('rg'), lt, 3.3, 0.35, 10);
       surge($('qv'), lt, 4.9, 0.35, 10);

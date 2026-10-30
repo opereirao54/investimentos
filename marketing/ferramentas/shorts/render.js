@@ -1,5 +1,7 @@
 // Renderiza um vídeo de cenas HTML em MP4 (H.264, 30 fps) e, se houver
-// narracao.wav na pasta, junta o áudio.
+// narracao.wav na pasta, junta o áudio. Quadros em PNG (sem perda) e vídeo
+// intermediário quase sem perda (crf 10): a compressão de verdade é uma só, no
+// fim, em contagem.js (desde 29/10, para não somar perdas a cada etapa).
 //
 //   node marketing/ferramentas/shorts/render.js <pasta> [video.html]
 //
@@ -53,9 +55,8 @@ if (faltam.length) {
   for (let i = 0; i < n; i++) {
     await p.evaluate((t) => render(t), i / FPS);
     await p.screenshot({
-      path: path.join(quadros, String(i).padStart(5, '0') + '.jpg'),
-      type: 'jpeg',
-      quality: 92,
+      path: path.join(quadros, String(i).padStart(5, '0') + '.png'),
+      type: 'png',
     });
     if (i % 150 === 0) process.stdout.write(`quadro ${i}/${n}\n`);
   }
@@ -69,7 +70,7 @@ if (faltam.length) {
     '-framerate',
     String(FPS),
     '-i',
-    path.join(quadros, '%05d.jpg'),
+    path.join(quadros, '%05d.png'),
     '-c:v',
     'libx264',
     '-pix_fmt',
@@ -77,7 +78,7 @@ if (faltam.length) {
     '-profile:v',
     'high',
     '-crf',
-    '18',
+    '10',
     '-preset',
     'slow',
     '-movflags',

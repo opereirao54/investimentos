@@ -49,7 +49,7 @@ svg.malha { position: absolute; inset: 0; }
     <p>Seu dinheiro precisa de <em>direção.</em></p>
   </div>
   <div class="dir">
-    <span class="selo">Conta de padaria</span>
+    <span class="selo">Appliquei Explica</span>
     <b>A conta que <em>ninguém</em><br>te mostrou.</b>
     <small>Shorts toda seg · qua · sex</small>
   </div>

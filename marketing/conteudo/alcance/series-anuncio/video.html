@@ -1,0 +1,187 @@
+<!doctype html>
+<!--
+  Anúncio das duas séries (≈20 s, 1080×1920): "A partir de agora, toda semana
+  tem dois encontros marcados por aqui." A semana (seg a sex) fica no alto e
+  vai se pintando: terça e quinta de vermelho (Appliquei News), segunda,
+  quarta e sexta de verde (Appliquei Explica), com as faixas das vinhetas no
+  meio. Também serve de teste de qualidade no Instagram (degradê escuro,
+  vermelho, letras pequenas). Tempos = narracao.json + pausas medidas.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: #0b1410; }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: #f0faf4; }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: linear-gradient(150deg, #0b1410 0%, #0f1f18 50%, #112720 100%); }
+  .halo { position: absolute; inset: -20%;
+    background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.22), transparent 70%),
+                radial-gradient(40% 35% at 10% 90%, rgba(5,150,105,.18), transparent 70%); }
+  .brilho-v { position: absolute; inset: 0; background: radial-gradient(55% 30% at 50% 50%, rgba(185,28,28,.25), transparent 70%); opacity: 0; }
+  .malha { position: absolute; inset: 0; }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 200px; z-index: 20; }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, #059669, #34d399); z-index: 30; }
+
+  .tit { position: absolute; left: 70px; right: 70px; top: 230px; text-align: center; font-size: 74px; font-weight: 900; letter-spacing: -.035em; line-height: 1.05; }
+  .tit em { font-style: normal; color: #fbbf24; }
+  .semana { position: absolute; left: 70px; right: 70px; top: 470px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+  .dia { height: 150px; border-radius: 26px; border: 3px solid rgba(240,250,244,.18); background: rgba(240,250,244,.05);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+  .dia b { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 40px; letter-spacing: .08em; }
+  .dia small { font-size: 22px; font-weight: 800; letter-spacing: .06em; opacity: 0; }
+  .dia.news { background: #b91c1c; border-color: #ef4444; }
+  .dia.explica { background: #059669; border-color: #34d399; }
+
+  .faixa { position: absolute; left: -400px; top: 760px; width: 1900px; height: 420px; }
+  .faixa.news { background: #b91c1c; }
+  .faixa.explica { background: #059669; }
+  .luz { position: absolute; top: 700px; width: 120px; height: 540px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); }
+  .marca { position: absolute; left: 0; right: 0; top: 800px; text-align: center; }
+  .marca b { display: block; font-size: 172px; font-weight: 900; letter-spacing: -.045em; line-height: 1; color: #fff; text-shadow: 0 14px 40px rgba(0,0,0,.35); }
+  .marca span { display: inline-block; margin-top: 18px; padding: 10px 46px; background: #fff; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 92px; letter-spacing: .32em; text-indent: .32em; }
+  .marca.news span { color: #b91c1c; }
+  .marca.explica span { color: #059669; }
+  .sub { position: absolute; left: 80px; right: 80px; top: 1250px; text-align: center; font-size: 48px; font-weight: 800; line-height: 1.2; color: #f0faf4; }
+  .sub em { font-style: normal; }
+  .sub.news em { color: #fca5a5; }
+  .sub.explica em { color: #6ee7b7; }
+  .ticker { position: absolute; left: 0; right: 0; top: 1420px; height: 80px; background: rgba(240,250,244,.07); overflow: hidden; }
+  .ticker.news { border-top: 3px solid #b91c1c; border-bottom: 3px solid #b91c1c; }
+  .ticker.explica { border-top: 3px solid #059669; border-bottom: 3px solid #059669; }
+  .ticker div { position: absolute; top: 16px; white-space: nowrap; font-weight: 900; font-size: 38px; letter-spacing: .04em; }
+  .ticker.news i { font-style: normal; color: #ef4444; margin: 0 24px; }
+  .ticker.explica i { font-style: normal; color: #34d399; margin: 0 24px; }
+
+  .sino { position: absolute; left: 0; right: 0; top: 860px; text-align: center; }
+  .sino .ic { width: 180px; height: 180px; margin: 0 auto; border-radius: 48px; background: #fbbf24; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 70px rgba(251,191,36,.35); }
+  .sino .ic svg { width: 100px; height: 100px; }
+  .sino b { display: block; margin-top: 40px; font-size: 66px; font-weight: 900; letter-spacing: -.03em; line-height: 1.1; }
+  .sino b em { font-style: normal; color: #34d399; }
+  .assina { position: absolute; left: 0; right: 0; top: 1300px; text-align: center; }
+  .assina img { width: 400px; }
+  .el { opacity: 0; }
+</style>
+</head>
+<body>
+<div class="palco">
+  <div class="halo"></div>
+  <div class="brilho-v" id="bv"></div>
+  <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+
+  <div class="tit el" id="tit">Toda semana,<br><em>dois encontros</em> marcados</div>
+  <div class="semana" id="semana">
+    <div class="dia el" id="d0"><b>SEG</b><small id="s0">EXPLICA</small></div>
+    <div class="dia el" id="d1"><b>TER</b><small id="s1">NEWS</small></div>
+    <div class="dia el" id="d2"><b>QUA</b><small id="s2">EXPLICA</small></div>
+    <div class="dia el" id="d3"><b>QUI</b><small id="s3">NEWS</small></div>
+    <div class="dia el" id="d4"><b>SEX</b><small id="s4">EXPLICA</small></div>
+  </div>
+
+  <div class="faixa news" id="fN"></div>
+  <div class="faixa explica" id="fE"></div>
+  <div class="luz" id="luz"></div>
+  <div class="marca news el" id="mN"><b>APPLIQUEI</b><span id="mN2">NEWS</span></div>
+  <div class="marca explica el" id="mE"><b>APPLIQUEI</b><span id="mE2">EXPLICA</span></div>
+  <div class="sub news el" id="sN">A notícia da semana e <em>o que ela muda no seu bolso</em></div>
+  <div class="sub explica el" id="sE">A conta do dia a dia <em>que ninguém te mostra</em></div>
+  <div class="ticker news el" id="tN"><div id="tNt"></div></div>
+  <div class="ticker explica el" id="tE"><div id="tEt"></div></div>
+
+  <div class="sino el" id="sino">
+    <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0-6 6v3.6L4.3 15.4A1 1 0 0 0 5.2 17h13.6a1 1 0 0 0 .9-1.6L18 12.6V9a6 6 0 0 0-6-6Zm0 19a2.8 2.8 0 0 0 2.7-2.2H9.3A2.8 2.8 0 0 0 12 22Z" fill="#2a1a04"/></svg></div>
+    <b>Ativa as notificações<br>e <em>segue pra não perder</em></b>
+  </div>
+  <div class="assina el" id="as"><img src="wordmark.svg" alt="Appliquei"></div>
+
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  const $ = (id) => document.getElementById(id);
+  (function () {
+    const m = [];
+    for (let x = 60; x < 1080; x += 60) m.push(`<line x1="${x}" y1="0" x2="${x}" y2="1920" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 60; y < 1920; y += 60) m.push(`<line x1="0" y1="${y}" x2="1080" y2="${y}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    $('malha').innerHTML = m.join('');
+    const tk = (l, c) => (l.join(`<i>●</i>`) + '<i>●</i>').repeat(3);
+    $('tNt').innerHTML = tk(['DÓLAR', 'SELIC', 'INFLAÇÃO', 'GASOLINA', 'FINANCIAMENTO', '13º', 'SEU BOLSO']);
+    $('tEt').innerHTML = tk(['CARTÃO', 'RESERVA', 'METAS', 'PARCELAS', 'JUROS', 'GASTOS INVISÍVEIS', 'SEU BOLSO']);
+  })();
+
+  const DUR = 20;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeBack = (x) => { const c1 = 1.8, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  const janela = (t, a, b) => easeOut(prog(t, a, a + 0.3)) * (1 - prog(t, b - 0.25, b));
+  function surge(el, t, a, d, dy, ate) {
+    const p = easeBack(prog(t, a, a + (d || 0.4)));
+    const fim = ate ? 1 - prog(t, ate - 0.25, ate) : 1;
+    el.style.opacity = clamp(p, 0, 1) * fim;
+    el.style.transform = `translateY(${(1 - p) * (dy == null ? 40 : dy)}px) scale(${0.88 + 0.12 * p})`;
+  }
+  // faixa entra inclinada e sai varrendo para o outro lado
+  function faixa(el, t, a, b) {
+    const f = easeOut(prog(t, a, a + 0.3)), s = Math.pow(prog(t, b - 0.35, b), 3);
+    el.style.transform = `translateX(${(1 - f) * -1900 + s * 1900}px) rotate(${-8 + 3 * f}deg) scaleY(${0.3 + 0.7 * f})`;
+  }
+
+  // Tempos (narração): 0,3 "A partir de agora" · 1,54 "toda semana tem dois encontros marcados por aqui" (até 4,16)
+  // 4,74 "Terça e quinta" · 5,66 "o Appliquei News" · 6,98 "a notícia da semana" · 8,2 "e o que ela muda no seu bolso" (até 9,52)
+  // 10,12 "Segunda, quarta e sexta" · 11,9 "o Appliquei Explica" · 13,46 "a conta do dia a dia que ninguém te mostra" (até 15,6)
+  // 16,2 "Ativa as notificações" · 17,7 "e segue pra não perder" (até 18,7)
+  function render(t) {
+    // título e a semana
+    surge($('tit'), t, 0.15, 0.45, 30, 4.6);
+    for (let i = 0; i < 5; i++) {
+      const d = $('d' + i);
+      surge(d, t, 1.5 + i * 0.12, 0.35, 30);
+      const news = i === 1 || i === 3;
+      const quando = news ? 4.74 + (i === 3 ? 0.35 : 0) : 10.12 + i * 0.25;
+      const ligado = t >= quando;
+      d.classList.toggle(news ? 'news' : 'explica', ligado);
+      const p = easeBack(prog(t, quando, quando + 0.35));
+      if (ligado) d.style.transform = `scale(${0.9 + 0.1 * p + (p < 1 ? 0.06 * Math.sin(p * Math.PI) : 0)})`;
+      $('s' + i).style.opacity = easeOut(prog(t, quando + 0.1, quando + 0.4));
+    }
+    // brilho vermelho de fundo no News
+    $('bv').style.opacity = janela(t, 4.6, 9.95);
+    // bloco News
+    faixa($('fN'), t, 4.6, 9.95);
+    const mN = easeBack(prog(t, 5.6, 5.9));
+    $('mN').style.opacity = clamp(mN * 2, 0, 1) * (1 - prog(t, 9.6, 9.85));
+    $('mN').style.transform = `scale(${1.4 - 0.4 * mN})`;
+    const mN2 = easeBack(prog(t, 5.85, 6.1));
+    $('mN2').style.opacity = clamp(mN2, 0, 1); $('mN2').style.transform = `translateY(${(1 - mN2) * 60}px)`;
+    surge($('sN'), t, 6.9, 0.4, 20, 9.9);
+    surge($('tN'), t, 6.0, 0.3, 0, 9.9);
+    $('tNt').style.left = (60 - (t - 6) * 280) + 'px';
+    // bloco Explica
+    faixa($('fE'), t, 9.95, 16.05);
+    const mE = easeBack(prog(t, 11.85, 12.15));
+    $('mE').style.opacity = clamp(mE * 2, 0, 1) * (1 - prog(t, 15.7, 15.95));
+    $('mE').style.transform = `scale(${1.4 - 0.4 * mE})`;
+    const mE2 = easeBack(prog(t, 12.1, 12.35));
+    $('mE2').style.opacity = clamp(mE2, 0, 1); $('mE2').style.transform = `translateY(${(1 - mE2) * 60}px)`;
+    surge($('sE'), t, 13.4, 0.4, 20, 16.0);
+    surge($('tE'), t, 12.2, 0.3, 0, 16.0);
+    $('tEt').style.left = (60 - (t - 12.2) * 280) + 'px';
+    // reflexo passando pelas faixas
+    const l1 = prog(t, 4.9, 5.4), l2 = prog(t, 10.25, 10.75);
+    const l = l1 > 0 && l1 < 1 ? l1 : l2;
+    $('luz').style.left = (-200 + l * 1500) + 'px'; $('luz').style.opacity = l > 0 && l < 1 ? 1 : 0;
+    // fecho
+    surge($('sino'), t, 16.15, 0.45, 40);
+    $('sino').querySelector('.ic').style.transform = `rotate(${12 * Math.sin(t * 14) * prog(t, 16.4, 16.6) * (1 - prog(t, 17.4, 17.6))}deg)`;
+    surge($('as'), t, 17.7, 0.45, 30);
+    $('logoFixo').style.opacity = 1 - prog(t, 17.4, 17.7);
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>

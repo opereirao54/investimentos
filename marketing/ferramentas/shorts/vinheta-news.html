@@ -1,0 +1,85 @@
+<!doctype html>
+<!--
+  Vinheta da série Appliquei News (1,6 s, 1080×1920). Entra antes de cada
+  episódio (vinheta-news.sh). Faixa vermelha cruza a tela, "APPLIQUEI" bate,
+  "NEWS" sobe na tarja vermelha, letreiro de pautas corre embaixo e a faixa
+  limpa a tela para o episódio.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: #0b1410; }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: #f0faf4; }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: radial-gradient(60% 35% at 50% 48%, rgba(185,28,28,.28), transparent 70%), linear-gradient(150deg, #0b1410, #0f1f18 50%, #112720); }
+  .faixa { position: absolute; left: -400px; top: 760px; width: 1900px; height: 420px; background: #b91c1c; transform-origin: center; }
+  .luz { position: absolute; top: 700px; width: 120px; height: 540px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); }
+  .marca { position: absolute; left: 0; right: 0; top: 800px; text-align: center; }
+  .marca b { display: block; font-size: 172px; font-weight: 900; letter-spacing: -.045em; line-height: 1; color: #fff; text-shadow: 0 14px 40px rgba(0,0,0,.35); }
+  .marca span { display: inline-block; margin-top: 18px; padding: 10px 46px; background: #fff; color: #b91c1c; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 92px; letter-spacing: .32em; text-indent: .32em; }
+  .sub { position: absolute; left: 0; right: 0; top: 1250px; text-align: center; font-family: 'DM Mono', monospace; font-size: 38px; letter-spacing: .2em; text-transform: uppercase; color: #fca5a5; }
+  .ticker { position: absolute; left: 0; right: 0; top: 1380px; height: 86px; background: rgba(240,250,244,.08); border-top: 3px solid #b91c1c; border-bottom: 3px solid #b91c1c; overflow: hidden; }
+  .ticker div { position: absolute; top: 18px; white-space: nowrap; font-weight: 900; font-size: 42px; letter-spacing: .04em; color: #f0faf4; }
+  .ticker i { font-style: normal; color: #ef4444; margin: 0 26px; }
+  .ponto { position: absolute; left: 110px; top: 330px; display: flex; align-items: center; gap: 18px; font-family: 'DM Mono', monospace; font-size: 34px; letter-spacing: .18em; color: #fca5a5; }
+  .ponto em { width: 26px; height: 26px; border-radius: 50%; background: #ef4444; box-shadow: 0 0 22px #ef4444; }
+  .limpa { position: absolute; top: 0; left: 0; width: 2100px; height: 1920px; background: #b91c1c; }
+</style>
+</head>
+<body>
+<div class="palco">
+  <div class="ponto" id="ponto"><em id="led"></em>AO VIVO NO SEU BOLSO</div>
+  <div class="faixa" id="faixa"></div>
+  <div class="luz" id="luz"></div>
+  <div class="marca"><b id="m1">APPLIQUEI</b><span id="m2">NEWS</span></div>
+  <div class="sub" id="sub">A notícia da semana no seu bolso</div>
+  <div class="ticker" id="tk"><div id="tkt"></div></div>
+  <div class="limpa" id="limpa"></div>
+</div>
+<script>
+  const DUR = 1.6;
+  const $ = (id) => document.getElementById(id);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeIn = (x) => x * x * x;
+  const easeBack = (x) => { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  const PAUTAS = ['DÓLAR', 'SELIC', 'INFLAÇÃO', 'GASOLINA', 'FINANCIAMENTO', '13º', 'SEU BOLSO'];
+  $('tkt').innerHTML = (PAUTAS.map((p) => p).join('<i>●</i>') + '<i>●</i>').repeat(3);
+
+  function render(t) {
+    // faixa vermelha entra inclinada e assenta
+    const f = easeOut(prog(t, 0, 0.28));
+    $('faixa').style.transform = `translateX(${(1 - f) * -1900}px) rotate(${-8 + 3 * f}deg) scaleY(${0.3 + 0.7 * f})`;
+    const l = prog(t, 0.1, 0.55);
+    $('luz').style.left = (-200 + l * 1500) + 'px'; $('luz').style.opacity = l > 0 && l < 1 ? 1 : 0;
+    // APPLIQUEI bate, NEWS sobe
+    const m1 = easeBack(prog(t, 0.18, 0.42));
+    $('m1').style.opacity = clamp(m1 * 2, 0, 1);
+    $('m1').style.transform = `scale(${1.5 - 0.5 * m1})`;
+    const m2 = easeBack(prog(t, 0.34, 0.56));
+    $('m2').style.opacity = clamp(m2, 0, 1);
+    $('m2').style.transform = `translateY(${(1 - m2) * 80}px)`;
+    // tremidinha no impacto
+    const tr = prog(t, 0.36, 0.5) > 0 && prog(t, 0.36, 0.5) < 1 ? Math.sin(t * 160) * 6 * (1 - prog(t, 0.36, 0.5)) : 0;
+    document.querySelector('.marca').style.transform = `translateX(${tr}px)`;
+    // subtítulo, ticker e o "ao vivo"
+    const s = easeOut(prog(t, 0.5, 0.75));
+    $('sub').style.opacity = s; $('sub').style.transform = `translateY(${(1 - s) * 20}px)`;
+    const k = easeOut(prog(t, 0.45, 0.7));
+    $('tk').style.opacity = k;
+    $('tkt').style.left = (60 - t * 700) + 'px';
+    $('ponto').style.opacity = easeOut(prog(t, 0.3, 0.5));
+    $('led').style.opacity = 0.4 + 0.6 * (Math.sin(t * 18) > 0 ? 1 : 0);
+    // a faixa limpa a tela para o episódio
+    const w = easeIn(prog(t, 1.25, 1.6));
+    $('limpa').style.transform = `translateX(${-2350 + w * 2100}px) skewX(-12deg)`;
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>
