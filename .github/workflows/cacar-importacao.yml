@@ -1,0 +1,101 @@
+name: Caça de furos na importação de fatura
+
+# O CI roda 300 sequências fixas da importação de fatura
+# (test/simulacao-importacao.test.js). Este workflow vai mais fundo, de
+# madrugada: 20000 sequências de 30 passos (~600 mil ações) — Telegram com
+# valor arredondado, importar meses fora de ordem em 12 formatos de arquivo,
+# reimportar, desfazer, pagar — validando IMP01–IMP08 entre cada passo.
+#
+# Quando achar algo, abre uma issue com a semente exata para reproduzir.
+
+on:
+  schedule:
+    # Segundas, 05:20 UTC (02:20 em Brasília) — depois da caça de pagamentos.
+    - cron: '20 5 * * 1'
+  workflow_dispatch:
+    inputs:
+      sementes:
+        description: 'Quantas sequências rodar'
+        required: false
+        default: '20000'
+      passos:
+        description: 'Ações por sequência'
+        required: false
+        default: '30'
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  cacar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # Tudo roda em memória, sem banco e sem credencial.
+      - name: Instalar dependências
+        run: npm ci --ignore-scripts
+
+      - name: Caçar
+        id: caca
+        run: |
+          set +e
+          node scripts/cacar-importacao.js \
+            "${{ github.event.inputs.sementes || '20000' }}" \
+            "${{ github.event.inputs.passos || '30' }}" 2>&1 | tee saida.txt
+          echo "status=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Abrir issue se achou furo
+        if: steps.caca.outputs.status != '0'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('fs');
+            const saida = fs.readFileSync('saida.txt', 'utf8');
+            const corpo = saida.length > 55000 ? saida.slice(0, 55000) + '\n\n… (truncado)' : saida;
+            const titulo = `Caça da importação de fatura achou furo — ${new Date().toISOString().slice(0, 10)}`;
+
+            const abertas = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'caca-de-importacao',
+            });
+            if (abertas.data.length) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: abertas.data[0].number,
+                body: `Nova execução também falhou (${new Date().toISOString()}).\n\n<details><summary>Saída</summary>\n\n\`\`\`\n${corpo}\n\`\`\`\n\n</details>`,
+              });
+              return;
+            }
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: titulo,
+              labels: ['caca-de-importacao'],
+              body:
+                'A caça semanal da importação de fatura encontrou uma sequência que viola um invariante (compra duplicada, faltando, total que não fecha).\n\n' +
+                'A saída abaixo traz a **semente** e a **sequência exata**. Para reproduzir:\n\n' +
+                '```bash\nnode scripts/cacar-importacao.js --semente <semente> 30\n```\n\n' +
+                'Depois de corrigir, some a semente a `ACHADAS` em `test/simulacao-importacao.test.js` e escreva a trava. ' +
+                'Ver `docs/IMPORTAR-FATURA.md`.\n\n' +
+                '```\n' + corpo + '\n```',
+            });
+
+      - name: Falhar o job quando houver furo
+        if: steps.caca.outputs.status != '0'
+        run: exit 1

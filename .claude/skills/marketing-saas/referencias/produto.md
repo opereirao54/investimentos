@@ -3,7 +3,7 @@
 Ficha de fatos para o marketing. **Tudo aqui tem de bater com o app e com a
 landing.** Quando o produto mudar, atualize esta ficha no mesmo PR.
 
-Última revisão: 26/10/2026.
+Última revisão: 27/10/2026.
 
 ## Em uma frase
 
@@ -14,37 +14,38 @@ Frase de bolso (peças curtas): **"Seu dinheiro inteiro, numa tela só."**
 
 ## Oferta vigente
 
-| Item                  | Hoje                                                          | Onde conferir                                                                   |
-| --------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Plano                 | **Pro, R$ 15/mês**                                            | `landing.html` (seção Planos), `BILLING.md`, `api/_lib/asaas.js` (`PLAN_VALUE`) |
-| Teste grátis          | **7 dias, sem cartão, sem cobrança automática no fim**        | `landing.html` (hero e Planos)                                                  |
-| Pagamento             | PIX, boleto ou cartão recorrente (Asaas)                      | `landing.html`                                                                  |
-| Cancelamento          | Quando quiser, sem multa                                      | `landing.html`                                                                  |
-| Pro + IA              | **Fora da grade** — não existe; não citar nem como "em breve" | decisão do fundador, 26/10/2026 (saiu da landing e do app)                      |
-| Applicash (indicação) | **Desligado no app** — não usar em peças até nova versão      | decisão do fundador, 16 e 26/10/2026 (`APPLICASH_ENABLED`, `APPLICASH_ATIVO`)   |
-| Testadores (beta)     | Grupo de teste; benefício ainda em definição                  | `docs/PENDENCIAS-LANCAMENTO.md`                                                 |
+| Item                  | Hoje                                                    | Onde conferir                                                                   |
+| --------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Plano                 | **Pro, R$ 15/mês**                                      | `landing.html` (seção Planos), `BILLING.md`, `api/_lib/asaas.js` (`PLAN_VALUE`) |
+| Teste grátis          | **7 dias, sem cartão, sem cobrança automática no fim**  | `landing.html` (hero e Planos)                                                  |
+| Pagamento             | PIX, boleto ou cartão recorrente (Asaas)                | `landing.html`                                                                  |
+| Cancelamento          | Quando quiser, sem multa                                | `landing.html`                                                                  |
+| Pro + IA              | **Em construção** — só "avise-me quando lançar"         | `landing.html`                                                                  |
+| Applicash (indicação) | **Em reformulação — não usar em peças** até nova versão | decisão do fundador, 16/10/2026                                                 |
+| Testadores (beta)     | Grupo de teste; benefício ainda em definição            | `docs/PENDENCIAS-LANCAMENTO.md`                                                 |
 
 Para o grupo de teste, **não** use "7 dias grátis": o convite é "use no dia a
 dia e me conte o que achou".
 
 ## O que o app faz (pode divulgar)
 
-| Funcionalidade          | Como vender                                                                                                | Onde conferir                                              |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| Controle do mês         | Receitas, despesas e cartões, e quanto sobrou de verdade                                                   | aba Controle (`web/appliquei-aba-controle-financeiro.js`)  |
-| Patrimônio somado       | Contas, investimentos e bens num lugar só                                                                  | `web/appliquei-patrimonio.js`                              |
-| Aviso de caixa apertado | Avisa o dia em que o saldo fura, dias antes, com o valor                                                   | `web/appliquei-insights.js` (`insightsAperto`)             |
-| Sistema inteligente     | Gasto fora da curva, cobrança repetida, reajuste, despesa fixa não marcada. **É estatística, não IA**      | `web/appliquei-insights.js`                                |
-| Lançar pelo Telegram    | "mercado 52,90" vira despesa lançada; parcelado no cartão; receitas e fixas (inclusive salário recorrente) | `api/_lib/telegram-*.js`                                   |
-| Lembretes de contas     | Antes do vencimento e enquanto a conta estiver vencida (Telegram)                                          | `api/_lib/telegram-alertas.js`                             |
-| Carteira sugerida       | O próximo aporte com o cálculo à vista, ativo por ativo. **Sugestão informativa**                          | `web/appliquei-motor-carteira.js`                          |
-| Previsão de proventos   | Quanto os seus ativos devem pagar nos próximos 12 meses, mês a mês. **Estimativa, não garantia**           | `web/appliquei-aba-dividendos.js` (`projecaoProventos12m`) |
-| Sonhos e metas          | Prazo e parcela calculados a partir da sua sobra real                                                      | `web/appliquei-sonhos.js`                                  |
-| Simule sua liberdade    | Quanto juntar para viver de renda; comparação com o INSS                                                   | `web/appliquei-aba-simulador.js`                           |
-| Relatório mensal        | Termômetro com quatro critérios, exporta em PDF                                                            | `web/appliquei-relatorio-mensal.js`                        |
-| Jornada Financeira      | Oito módulos de estudo liberados em ordem                                                                  | `web/appliquei-jornada*.js`                                |
-| Info Mercado            | Indicadores e notícias                                                                                     | `web/appliquei-aba-info-mercado.js`                        |
-| Celular                 | Funciona como app e instala na tela de início                                                              | `web/appliquei-mobile.js`                                  |
+| Funcionalidade          | Como vender                                                                                                                                                          | Onde conferir                                              |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Controle do mês         | Receitas, despesas e cartões, e quanto sobrou de verdade                                                                                                             | aba Controle (`web/appliquei-aba-controle-financeiro.js`)  |
+| Patrimônio somado       | Contas, investimentos e bens num lugar só                                                                                                                            | `web/appliquei-patrimonio.js`                              |
+| Aviso de caixa apertado | Avisa o dia em que o saldo fura, dias antes, com o valor                                                                                                             | `web/appliquei-insights.js` (`insightsAperto`)             |
+| Sistema inteligente     | Gasto fora da curva, cobrança repetida, reajuste, despesa fixa não marcada. **É estatística, não IA**                                                                | `web/appliquei-insights.js`                                |
+| Lançar pelo Telegram    | "mercado 52,90" vira despesa lançada; parcelado no cartão; receitas e fixas (inclusive salário recorrente)                                                           | `api/_lib/telegram-*.js`                                   |
+| Lembretes de contas     | Antes do vencimento e enquanto a conta estiver vencida (Telegram)                                                                                                    | `api/_lib/telegram-alertas.js`                             |
+| Carteira sugerida       | O próximo aporte com o cálculo à vista, ativo por ativo. **Sugestão informativa**                                                                                    | `web/appliquei-motor-carteira.js`                          |
+| Previsão de proventos   | Quanto os seus ativos devem pagar nos próximos 12 meses, mês a mês. **Estimativa, não garantia**                                                                     | `web/appliquei-aba-dividendos.js` (`projecaoProventos12m`) |
+| Sonhos e metas          | Prazo e parcela calculados a partir da sua sobra real                                                                                                                | `web/appliquei-sonhos.js`                                  |
+| Simule sua liberdade    | Quanto juntar para viver de renda; comparação com o INSS                                                                                                             | `web/appliquei-aba-simulador.js`                           |
+| Relatório mensal        | Termômetro com quatro critérios, exporta em PDF                                                                                                                      | `web/appliquei-relatorio-mensal.js`                        |
+| Importar fatura         | Fatura do Nubank (OFX/CSV) vira lançamentos de uma vez, com revisão antes; não duplica o que já foi lançado; no Android, direto do e-mail (Compartilhar → Appliquei) | `web/appliquei-importar-fatura.js`                         |
+| Jornada Financeira      | Oito módulos de estudo liberados em ordem                                                                                                                            | `web/appliquei-jornada*.js`                                |
+| Info Mercado            | Indicadores e notícias                                                                                                                                               | `web/appliquei-aba-info-mercado.js`                        |
+| Celular                 | Funciona como app e instala na tela de início                                                                                                                        | `web/appliquei-mobile.js`                                  |
 
 **Não divulgar como pronto:** IA/chat/diagnóstico automático (Pro + IA),
 Open Finance/sincronização automática com banco, saque de Applicash, app em
