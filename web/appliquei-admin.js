@@ -217,6 +217,7 @@ function mudarAba(e, tab) {
   if (tab === 'audit') loadAudit();
   if (tab === 'feedback') loadFeedback();
   if (tab === 'carteira') loadCarteira();
+  if (tab === 'redes') loadRedes();
   if (tab === 'convites') loadConvites();
 }
 
@@ -2069,3 +2070,108 @@ $('execute-btn').addEventListener('click', executeSuperpower);
 
 // Auto-login
 if (sessionStorage.getItem('adminToken')) loadStats();
+
+// ─── REDES SOCIAIS (Instagram) ─────────────────────────────────
+var RD_SERIES = {
+  news: 'Appliquei News',
+  explica: 'Appliquei Explica',
+  appliquei: 'Appliquei (reta final)',
+  outros: 'Outros',
+};
+
+function rdNum(v) {
+  return v == null ? '—' : formatInt(v);
+}
+function rdPct(v) {
+  return v == null ? '—' : String(v).replace('.', ',') + '%';
+}
+function rdSeg(v) {
+  return v == null ? '—' : String(v).replace('.', ',') + ' s';
+}
+
+async function loadRedes(forcar) {
+  const token = sessionStorage.getItem('adminToken');
+  if (!token) return;
+  const aviso = $('rd-aviso');
+  aviso.style.display = 'none';
+  try {
+    const res = await fetch('/api/admin/stats?include=redes' + (forcar ? '&refresh=1' : ''), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const d = await res.json();
+    if (d.configurado === false) {
+      aviso.style.display = '';
+      aviso.innerHTML =
+        '<b>Instagram ainda não conectado.</b> Defina <code>IG_TOKEN</code> nas variáveis do Vercel ' +
+        '(token da Instagram API com login do Instagram, permissões instagram_business_basic e ' +
+        'instagram_business_manage_insights). Depois disso o token se renova sozinho.';
+      return;
+    }
+    if (!res.ok) throw new Error(d.detail || 'Falha ao ler o Instagram');
+    rdRender(d);
+  } catch (err) {
+    aviso.style.display = '';
+    aviso.textContent = 'Erro ao ler o Instagram: ' + err.message;
+  }
+}
+
+function rdRender(d) {
+  const r = d.resumo || {};
+  $('rd-seguidores').textContent = rdNum(r.seguidores);
+  $('rd-usuario').textContent = r.usuario
+    ? '@' + r.usuario + ' · ' + rdNum(r.publicacoes) + ' publicações'
+    : '';
+  $('rd-views').textContent = rdNum(r.views30d);
+  $('rd-views-sub').textContent =
+    rdNum(r.reels30d) + ' Reels · média de ' + rdNum(r.viewsMedia30d) + ' por Reel';
+  $('rd-salvos').textContent = rdNum(r.salvos30d);
+  $('rd-salvos-sub').textContent = 'média de ' + rdPct(r.taxaSalvosMedia30d) + ' do alcance';
+  $('rd-compart').textContent = rdNum(r.compartilhamentos30d);
+  $('rd-compart-sub').textContent =
+    'média de ' + rdPct(r.taxaCompartilhamentosMedia30d) + ' do alcance';
+
+  const series = (r.series || []).slice().sort((a, b) => (b.viewsMedia || 0) - (a.viewsMedia || 0));
+  $('rd-series').innerHTML =
+    '<thead><tr><th>Série</th><th style="text-align:right">Reels</th><th style="text-align:right">Views (média)</th>' +
+    '<th style="text-align:right">Salvos</th><th style="text-align:right">Compart.</th><th style="text-align:right">Tempo médio</th></tr></thead><tbody>' +
+    series
+      .map(
+        (s) =>
+          `<tr><td>${escHTML(RD_SERIES[s.serie] || s.serie)}</td><td style="text-align:right">${rdNum(s.reels)}</td>` +
+          `<td style="text-align:right">${rdNum(s.viewsMedia)}</td><td style="text-align:right">${rdPct(s.taxaSalvosMedia)}</td>` +
+          `<td style="text-align:right">${rdPct(s.taxaCompartilhamentosMedia)}</td><td style="text-align:right">${rdSeg(s.tempoMedioSeg)}</td></tr>`
+      )
+      .join('') +
+    '</tbody>';
+
+  const destaque = new Set(d.destaques || []);
+  $('rd-reels').innerHTML =
+    '<thead><tr><th>Data</th><th>Reel</th><th>Série</th><th style="text-align:right">Views</th><th style="text-align:right">Alcance</th>' +
+    '<th style="text-align:right">Curtidas</th><th style="text-align:right">Coment.</th><th style="text-align:right">Salvos</th>' +
+    '<th style="text-align:right">Compart.</th><th style="text-align:right">Tempo médio</th><th style="text-align:right">Engaj.</th></tr></thead><tbody>' +
+    (d.reels || [])
+      .map((x) => {
+        const dt = x.data
+          ? new Date(x.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+          : '—';
+        const titulo = escHTML(x.titulo || '(sem legenda)');
+        const link = x.link
+          ? `<a href="${escHTML(x.link)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">${titulo}</a>`
+          : titulo;
+        return (
+          `<tr><td>${dt}</td><td style="min-width:280px">${destaque.has(x.id) ? '⭐ ' : ''}${link}</td><td>${escHTML(RD_SERIES[x.serie] || x.serie)}</td>` +
+          `<td style="text-align:right">${rdNum(x.views)}</td><td style="text-align:right">${rdNum(x.alcance)}</td>` +
+          `<td style="text-align:right">${rdNum(x.curtidas)}</td><td style="text-align:right">${rdNum(x.comentarios)}</td>` +
+          `<td style="text-align:right">${rdNum(x.salvos)} <small>${rdPct(x.taxaSalvos)}</small></td>` +
+          `<td style="text-align:right">${rdNum(x.compartilhamentos)} <small>${rdPct(x.taxaCompartilhamentos)}</small></td>` +
+          `<td style="text-align:right">${rdSeg(x.tempoMedioSeg)}</td><td style="text-align:right">${rdPct(x.taxaEngajamento)}</td></tr>`
+        );
+      })
+      .join('') +
+    '</tbody>';
+  $('rd-atualizado').textContent =
+    (d.doCache ? 'Do cache · ' : '') +
+    'atualizado em ' +
+    new Date(d.atualizadoEm).toLocaleString('pt-BR') +
+    ' · ⭐ = os 3 com mais compartilhamentos e salvos';
+}

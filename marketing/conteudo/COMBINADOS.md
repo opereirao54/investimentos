@@ -116,6 +116,17 @@ true`), mesmo modelo do News.
 - **Números conferidos com fonte** antes de gravar; aviso educacional e
   "Personagens fictícios" no fim; nada de recomendação (CVM).
 
+## Métricas (30/10)
+
+- O fundador vê os números na aba **Redes sociais** do admin; eu analiso e
+  proponho mudanças seguindo
+  `.claude/skills/marketing-saas/referencias/analise-metricas.md`
+  (`npm run metricas:instagram`). Uma mudança por vez, registrada em
+  `marketing/metricas/LEIAME.md`; a análise propõe, o fundador decide.
+- Conexão do Instagram: o fundador cria o app na Meta e gera o token (com o
+  sócio, dono do Instagram); `IG_TOKEN` vai no Vercel e se renova sozinho.
+  TikTok e YouTube por print até ter conexão.
+
 ## Pendentes (lembrar o fundador)
 
 - **Métricas:** pedir os números de cada Reel no dia seguinte (visualizações,

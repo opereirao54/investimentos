@@ -31,7 +31,8 @@
     "ingest:cvm": "node scripts/ingest-cvm.js --dry-run",
     "regras:conferir": "node scripts/conferir-regras-firestore.js",
     "regras:publicar": "node scripts/publicar-regras-firestore.js",
-    "telegram:webhook": "node scripts/telegram-webhook.js"
+    "telegram:webhook": "node scripts/telegram-webhook.js",
+    "metricas:instagram": "node scripts/metricas-instagram.js"
   },
   "dependencies": {
     "@sentry/browser": "^10.76.2",
