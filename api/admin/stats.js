@@ -825,6 +825,16 @@ async function redesGet(req, res) {
     return res.json(dados);
   } catch (e) {
     if (Object.keys(salvar).length) await ref.set(salvar, { merge: true });
+    // falhou agora, mas há números de antes: mostra esses e avisa
+    if (doc.cache) {
+      return res.json(
+        Object.assign({}, doc.cache, {
+          doCache: true,
+          avisoAtualizacao:
+            'Não consegui atualizar agora (' + String(e.message || e).slice(0, 120) + ').',
+        })
+      );
+    }
     return res.status(502).json({
       configurado: true,
       error: 'instagram',

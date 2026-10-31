@@ -343,3 +343,32 @@ test('consolidado soma todos os Reels e calcula taxas sobre o alcance total', ()
   assert.equal(c.taxaEngajamento, 10.1);
   assert.equal(resumirConta({}, [], agora).consolidado.taxaSalvos, null);
 });
+
+test('buscarInstagram: pede os insights em paralelo (cabe no limite de 15 s da Vercel)', async () => {
+  const reels = Array.from({ length: 24 }, (_, i) => ({
+    id: 'r' + i,
+    caption: 'Reel ' + i,
+    media_product_type: 'REELS',
+    timestamp: new Date(AGORA - DIA).toISOString(),
+  }));
+  const base = fetchFalso({
+    '/me?fields': { username: 'a', followers_count: 1, media_count: 24 },
+    '/me/media': { data: reels },
+    '/insights': { data: ins({ views: 10, reach: 5 }) },
+  });
+  let emVoo = 0;
+  let pico = 0;
+  const lento = async (url, opts) => {
+    emVoo++;
+    pico = Math.max(pico, emVoo);
+    await new Promise((r) => setTimeout(r, 20));
+    emVoo--;
+    return base(url, opts);
+  };
+  const t0 = Date.now();
+  const d = await buscarInstagram({ token: 't', fetchImpl: lento, agoraMs: AGORA });
+  assert.equal(d.reels.length, 24);
+  assert.ok(pico > 1, 'pedidos simultâneos');
+  // em série seriam 24 × 3 + 4 + 2 = 78 pedidos × 20 ms ≈ 1,6 s
+  assert.ok(Date.now() - t0 < 800, 'demorou ' + (Date.now() - t0) + ' ms');
+});

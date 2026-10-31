@@ -247,8 +247,18 @@ function rankear(reels, n) {
     .map((r) => r.id);
 }
 
+// cada pedido à Meta tem no máximo 6 s: a função da Vercel morre em 15 s
+const PRAZO_PEDIDO_MS = 6000;
+
 async function getJson(fetchImpl, url) {
-  const res = await fetchImpl(url);
+  const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+  const timer = ctl ? setTimeout(() => ctl.abort(), PRAZO_PEDIDO_MS) : null;
+  let res;
+  try {
+    res = await fetchImpl(url, ctl ? { signal: ctl.signal } : undefined);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
   let corpo = null;
   try {
     corpo = await res.json();
@@ -266,27 +276,40 @@ async function getJson(fetchImpl, url) {
 
 // Um pedido com todas as métricas; se a API recusar o conjunto (basta uma
 // métrica que a conta não tenha), pede uma por uma e fica com as que vierem.
+// Pede métrica por métrica, em paralelo, e fica com as que vierem.
+async function umaPorUma(f, q, id, metricas) {
+  const partes = await Promise.all(
+    metricas.map((m) =>
+      getJson(f, q(`${id}/insights?metric=${m}`)).then(
+        (r) => r.data || [],
+        () => [] // indisponível para este Reel/conta (ou recém-postado)
+      )
+    )
+  );
+  return partes.flat();
+}
+
 async function insightsDoReel(f, q, id) {
-  let dados = [];
-  try {
-    dados = (await getJson(f, q(`${id}/insights?metric=${METRICAS_REEL.join(',')}`))).data || [];
-  } catch {
-    for (const m of METRICAS_REEL) {
-      try {
-        dados = dados.concat((await getJson(f, q(`${id}/insights?metric=${m}`))).data || []);
-      } catch {
-        // métrica indisponível para este Reel (ou recém-postado)
-      }
+  const principais = getJson(f, q(`${id}/insights?metric=${METRICAS_REEL.join(',')}`)).then(
+    (r) => r.data || [],
+    () => umaPorUma(f, q, id, METRICAS_REEL)
+  );
+  const [a, b] = await Promise.all([principais, umaPorUma(f, q, id, METRICAS_REEL_EXTRAS)]);
+  return a.concat(b);
+}
+
+// roda fn em cada item com no máximo `n` ao mesmo tempo, mantendo a ordem
+async function emLotes(itens, n, fn) {
+  const out = new Array(itens.length);
+  let prox = 0;
+  async function trabalhador() {
+    while (prox < itens.length) {
+      const i = prox++;
+      out[i] = await fn(itens[i], i);
     }
   }
-  for (const m of METRICAS_REEL_EXTRAS) {
-    try {
-      dados = dados.concat((await getJson(f, q(`${id}/insights?metric=${m}`))).data || []);
-    } catch {
-      // não disponível para Reels nesta conta/versão
-    }
-  }
-  return dados;
+  await Promise.all(Array.from({ length: Math.min(n, itens.length) }, trabalhador));
+  return out;
 }
 
 // Totais da conta nos últimos 30 dias (visitas ao perfil, cliques no link…).
@@ -294,20 +317,22 @@ async function insightsDaConta(f, q, eu, agoraMs) {
   const ate = Math.floor(agoraMs / 1000);
   const desde = ate - 29 * 24 * 3600;
   const out = {};
-  for (const m of METRICAS_CONTA) {
-    try {
-      const r = await getJson(
+  await Promise.all(
+    METRICAS_CONTA.map((m) =>
+      getJson(
         f,
         q(
           `${eu}/insights?metric=${m}&period=day&metric_type=total_value&since=${desde}&until=${ate}`
         )
-      );
-      const v = valorInsight(r.data, m);
-      if (v != null) out[m] = v;
-    } catch {
-      // conta pequena ou métrica indisponível: fica sem
-    }
-  }
+      ).then(
+        (r) => {
+          const v = valorInsight(r.data, m);
+          if (v != null) out[m] = v;
+        },
+        () => {} // conta pequena ou métrica indisponível: fica sem
+      )
+    )
+  );
   return out;
 }
 
@@ -329,12 +354,12 @@ async function buscarInstagram({ token, fetchImpl, limite, agoraMs, igUserId }) 
   const midias = (lista.data || []).filter(
     (m) => m.media_product_type === 'REELS' || m.media_type === 'VIDEO'
   );
-  const reels = [];
-  for (const m of midias) {
-    reels.push(resumirReel(m, await insightsDoReel(f, q, m.id)));
-  }
   const agora = agoraMs || Date.now();
-  const conta30d = await insightsDaConta(f, q, eu, agora);
+  // em paralelo (até 8 Reels por vez) para caber no limite de tempo da Vercel
+  const [reels, conta30d] = await Promise.all([
+    emLotes(midias, 8, async (m) => resumirReel(m, await insightsDoReel(f, q, m.id))),
+    insightsDaConta(f, q, eu, agora),
+  ]);
   return {
     configurado: true,
     atualizadoEm: new Date(agora).toISOString(),
