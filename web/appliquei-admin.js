@@ -2098,7 +2098,17 @@ async function loadRedes(forcar) {
     const res = await fetch('/api/admin/stats?include=redes' + (forcar ? '&refresh=1' : ''), {
       headers: { Authorization: `Bearer ${token}` },
     });
-    const d = await res.json();
+    const texto = await res.text();
+    let d;
+    try {
+      d = JSON.parse(texto);
+    } catch {
+      throw new Error(
+        res.status === 504 || res.status === 500
+          ? 'o servidor demorou demais para responder (HTTP ' + res.status + '). Tente de novo.'
+          : 'resposta inesperada do servidor (HTTP ' + res.status + ').'
+      );
+    }
     if (d.configurado === false) {
       aviso.style.display = '';
       aviso.innerHTML =
@@ -2109,6 +2119,10 @@ async function loadRedes(forcar) {
     }
     if (!res.ok) throw new Error(d.detail || 'Falha ao ler o Instagram');
     rdRender(d);
+    if (d.avisoAtualizacao) {
+      aviso.style.display = '';
+      aviso.textContent = d.avisoAtualizacao + ' Mostrando os últimos números salvos.';
+    }
   } catch (err) {
     aviso.style.display = '';
     aviso.textContent = 'Erro ao ler o Instagram: ' + err.message;
