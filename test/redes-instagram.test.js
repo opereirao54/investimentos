@@ -300,3 +300,46 @@ test('se a API recusa o conjunto de métricas, pede uma por uma e fica com as qu
     chamadas.some((u) => u.includes('period=day') && u.includes('metric_type=total_value'))
   );
 });
+
+test('consolidado soma todos os Reels e calcula taxas sobre o alcance total', () => {
+  const { resumirConta } = require('../api/_lib/redes-instagram');
+  const agora = Date.parse('2026-12-31T12:00:00Z');
+  const reels = [
+    {
+      data: '2026-10-29T12:00:00Z',
+      serie: 'news',
+      views: 1000,
+      alcance: 800,
+      curtidas: 50,
+      comentarios: 5,
+      salvos: 20,
+      compartilhamentos: 8,
+      seguiu: 3,
+      pctAssistido: 40,
+    },
+    {
+      data: '2026-10-01T12:00:00Z',
+      serie: 'explica',
+      views: 500,
+      alcance: 200,
+      curtidas: 10,
+      comentarios: 1,
+      salvos: 5,
+      compartilhamentos: 2,
+      seguiu: 1,
+      pctAssistido: 60,
+    },
+  ];
+  const c = resumirConta({ username: 'x' }, reels, agora).consolidado;
+  assert.equal(c.reels, 2);
+  assert.equal(c.desde, '2026-10-01T12:00:00Z');
+  assert.equal(c.views, 1500);
+  assert.equal(c.alcanceSomado, 1000);
+  assert.equal(c.salvos, 25);
+  assert.equal(c.taxaSalvos, 2.5);
+  assert.equal(c.taxaCompartilhamentos, 1);
+  assert.equal(c.seguiu, 4);
+  assert.equal(c.pctAssistidoMedio, 50);
+  assert.equal(c.taxaEngajamento, 10.1);
+  assert.equal(resumirConta({}, [], agora).consolidado.taxaSalvos, null);
+});

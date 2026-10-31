@@ -69,6 +69,13 @@ async function main() {
       '%'
     )} · seguiram pelos Reels ${fmt(r.seguiuPorReels30d)}`
   );
+  const c = r.consolidado || {};
+  console.log(
+    `Todos os ${fmt(c.reels)} Reels: ${fmt(c.views)} views · salvos ${fmt(c.taxaSalvos, '%')} · compart. ${fmt(
+      c.taxaCompartilhamentos,
+      '%'
+    )} · retenção ${fmt(c.pctAssistidoMedio, '%')} · seguiram ${fmt(c.seguiu)}`
+  );
   console.log('');
   console.log('data   série     views  alcance  salvos%  compart%  tempo  ret%  seguiu  título');
   for (const x of dados.reels || []) {

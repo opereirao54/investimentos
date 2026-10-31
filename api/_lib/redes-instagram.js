@@ -146,6 +146,44 @@ function media(lista, campo) {
   return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
 }
 
+function pct(parte, total) {
+  return total ? Math.round((parte / total) * 1000) / 10 : null;
+}
+
+// número geral de todos os Reels lidos (não só os de 30 dias)
+function consolidar(reels) {
+  const datas = reels
+    .map((r) => r.data)
+    .filter(Boolean)
+    .sort();
+  const alcance = soma(reels, 'alcance');
+  return {
+    reels: reels.length,
+    desde: datas[0] || null,
+    views: soma(reels, 'views'),
+    alcanceSomado: alcance,
+    curtidas: soma(reels, 'curtidas'),
+    comentarios: soma(reels, 'comentarios'),
+    salvos: soma(reels, 'salvos'),
+    compartilhamentos: soma(reels, 'compartilhamentos'),
+    seguiu: soma(reels, 'seguiu'),
+    visitasPerfil: soma(reels, 'visitasPerfil'),
+    viewsMedia: media(reels, 'views'),
+    tempoMedioSeg: media(reels, 'tempoMedioSeg'),
+    pctAssistidoMedio: media(reels, 'pctAssistido'),
+    // taxas sobre o total (ponderadas pelo alcance), não média de taxas
+    taxaSalvos: pct(soma(reels, 'salvos'), alcance),
+    taxaCompartilhamentos: pct(soma(reels, 'compartilhamentos'), alcance),
+    taxaEngajamento: pct(
+      soma(reels, 'curtidas') +
+        soma(reels, 'comentarios') +
+        soma(reels, 'salvos') +
+        soma(reels, 'compartilhamentos'),
+      alcance
+    ),
+  };
+}
+
 // resumo geral e por série, para os cartões do painel
 function resumirConta(conta, reels, agoraMs, conta30d) {
   const ultimos30 = reels.filter((r) => r.data && agoraMs - Date.parse(r.data) <= 30 * DIA);
@@ -186,6 +224,7 @@ function resumirConta(conta, reels, agoraMs, conta30d) {
     cliquesLink30d: (conta30d && conta30d.website_clicks) ?? null,
     contasEngajadas30d: (conta30d && conta30d.accounts_engaged) ?? null,
     alcanceConta30d: (conta30d && conta30d.reach) ?? null,
+    consolidado: consolidar(reels),
     series,
   };
 }
@@ -284,7 +323,7 @@ async function buscarInstagram({ token, fetchImpl, limite, agoraMs, igUserId }) 
   const lista = await getJson(
     f,
     q(
-      `${eu}/media?fields=id,caption,media_type,media_product_type,permalink,thumbnail_url,timestamp,like_count,comments_count&limit=${limite || 30}`
+      `${eu}/media?fields=id,caption,media_type,media_product_type,permalink,thumbnail_url,timestamp,like_count,comments_count&limit=${limite || 50}`
     )
   );
   const midias = (lista.data || []).filter(

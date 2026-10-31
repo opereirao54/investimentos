@@ -2145,6 +2145,44 @@ function rdRender(d) {
   $('rd-cliques').textContent = rdNum(r.cliquesLink30d);
   $('rd-cliques-sub').textContent = 'alcance da conta: ' + rdNum(r.alcanceConta30d);
 
+  const c = r.consolidado || {};
+  $('rd-cons-sub').textContent = c.reels
+    ? rdNum(c.reels) +
+      ' Reels' +
+      (c.desde
+        ? ' desde ' +
+          new Date(c.desde).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+        : '') +
+      ' · taxas sobre o total do alcance somado'
+    : 'Nenhum Reel encontrado ainda.';
+  const consItem = (rotulo, valor, sub) =>
+    `<div class="kpi-card"><div class="kpi-label">${rotulo}</div><div class="kpi-value">${valor}</div>` +
+    `<div class="kpi-sub">${sub}</div></div>`;
+  $('rd-consolidado').innerHTML = c.reels
+    ? [
+        consItem('Views', rdNum(c.views), 'média de ' + rdNum(c.viewsMedia) + ' por Reel'),
+        consItem('Alcance somado', rdNum(c.alcanceSomado), 'pessoas podem repetir entre Reels'),
+        consItem('Curtidas', rdNum(c.curtidas), rdNum(c.comentarios) + ' comentários'),
+        consItem('Salvos', rdNum(c.salvos), rdPct(c.taxaSalvos) + ' do alcance'),
+        consItem(
+          'Compartilhamentos',
+          rdNum(c.compartilhamentos),
+          rdPct(c.taxaCompartilhamentos) + ' do alcance'
+        ),
+        consItem(
+          'Retenção média',
+          rdPct(c.pctAssistidoMedio),
+          'tempo médio ' + rdSeg(c.tempoMedioSeg)
+        ),
+        consItem(
+          'Seguiram pelos Reels',
+          rdNum(c.seguiu),
+          rdNum(c.visitasPerfil) + ' visitas ao perfil'
+        ),
+        consItem('Engajamento', rdPct(c.taxaEngajamento), 'curtidas+coment.+salvos+compart.'),
+      ].join('')
+    : '';
+
   const series = (r.series || []).slice().sort((a, b) => (b.viewsMedia || 0) - (a.viewsMedia || 0));
   $('rd-series').innerHTML =
     '<thead><tr><th>Série</th><th style="text-align:right">Reels</th><th style="text-align:right">Views (média)</th>' +
