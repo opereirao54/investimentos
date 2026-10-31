@@ -1,0 +1,10 @@
+{
+  "_leia": "Duração de cada Reel postado, para calcular o % assistido (a API do Instagram não informa a duração). A chave é o começo da 1ª linha da legenda; o marketing atualiza ao postar.",
+  "reels": [
+    { "inicio": "Mesma geladeira, mesmo cartão", "seg": 39.3 },
+    { "inicio": "Parcelado sem juros ou à vista com desconto", "seg": 32.6 },
+    { "inicio": "O dólar teve a maior alta em 27 anos", "seg": 56.3 },
+    { "inicio": "Agora tem hora marcada por aqui", "seg": 20.1 },
+    { "inicio": "Esse carro custa R$ 2.100 por mês", "seg": 73.7 }
+  ]
+}

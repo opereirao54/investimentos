@@ -2129,17 +2129,72 @@ function rdRender(d) {
   $('rd-compart').textContent = rdNum(r.compartilhamentos30d);
   $('rd-compart-sub').textContent =
     'média de ' + rdPct(r.taxaCompartilhamentosMedia30d) + ' do alcance';
+  $('rd-retencao').textContent = rdPct(r.pctAssistidoMedio30d);
+  $('rd-retencao-sub').textContent =
+    'tempo médio ' +
+    rdSeg(r.tempoMedioSeg30d) +
+    ' · ' +
+    (r.viewsPorPessoa30d == null
+      ? '—'
+      : String(r.viewsPorPessoa30d).replace('.', ',') + ' views por pessoa');
+  $('rd-seguiu').textContent = rdNum(r.seguiuPorReels30d);
+  $('rd-seguiu-sub').textContent =
+    'nos Reels de 30 dias · ' + rdNum(r.visitasPerfilReels30d) + ' visitas ao perfil vindas deles';
+  $('rd-visitas').textContent = rdNum(r.visitasPerfil30d ?? r.visitasPerfilReels30d);
+  $('rd-visitas-sub').textContent = rdNum(r.contasEngajadas30d) + ' contas engajadas';
+  $('rd-cliques').textContent = rdNum(r.cliquesLink30d);
+  $('rd-cliques-sub').textContent = 'alcance da conta: ' + rdNum(r.alcanceConta30d);
+
+  const c = r.consolidado || {};
+  $('rd-cons-sub').textContent = c.reels
+    ? rdNum(c.reels) +
+      ' Reels' +
+      (c.desde
+        ? ' desde ' +
+          new Date(c.desde).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+        : '') +
+      ' · taxas sobre o total do alcance somado'
+    : 'Nenhum Reel encontrado ainda.';
+  const consItem = (rotulo, valor, sub) =>
+    `<div class="kpi-card"><div class="kpi-label">${rotulo}</div><div class="kpi-value">${valor}</div>` +
+    `<div class="kpi-sub">${sub}</div></div>`;
+  $('rd-consolidado').innerHTML = c.reels
+    ? [
+        consItem('Views', rdNum(c.views), 'média de ' + rdNum(c.viewsMedia) + ' por Reel'),
+        consItem('Alcance somado', rdNum(c.alcanceSomado), 'pessoas podem repetir entre Reels'),
+        consItem('Curtidas', rdNum(c.curtidas), rdNum(c.comentarios) + ' comentários'),
+        consItem('Salvos', rdNum(c.salvos), rdPct(c.taxaSalvos) + ' do alcance'),
+        consItem(
+          'Compartilhamentos',
+          rdNum(c.compartilhamentos),
+          rdPct(c.taxaCompartilhamentos) + ' do alcance'
+        ),
+        consItem(
+          'Retenção média',
+          rdPct(c.pctAssistidoMedio),
+          'tempo médio ' + rdSeg(c.tempoMedioSeg)
+        ),
+        consItem(
+          'Seguiram pelos Reels',
+          rdNum(c.seguiu),
+          rdNum(c.visitasPerfil) + ' visitas ao perfil'
+        ),
+        consItem('Engajamento', rdPct(c.taxaEngajamento), 'curtidas+coment.+salvos+compart.'),
+      ].join('')
+    : '';
 
   const series = (r.series || []).slice().sort((a, b) => (b.viewsMedia || 0) - (a.viewsMedia || 0));
   $('rd-series').innerHTML =
     '<thead><tr><th>Série</th><th style="text-align:right">Reels</th><th style="text-align:right">Views (média)</th>' +
-    '<th style="text-align:right">Salvos</th><th style="text-align:right">Compart.</th><th style="text-align:right">Tempo médio</th></tr></thead><tbody>' +
+    '<th style="text-align:right">Salvos</th><th style="text-align:right">Compart.</th><th style="text-align:right">Tempo médio</th>' +
+    '<th style="text-align:right">Retenção</th><th style="text-align:right">Seguiram</th></tr></thead><tbody>' +
     series
       .map(
         (s) =>
           `<tr><td>${escHTML(RD_SERIES[s.serie] || s.serie)}</td><td style="text-align:right">${rdNum(s.reels)}</td>` +
           `<td style="text-align:right">${rdNum(s.viewsMedia)}</td><td style="text-align:right">${rdPct(s.taxaSalvosMedia)}</td>` +
-          `<td style="text-align:right">${rdPct(s.taxaCompartilhamentosMedia)}</td><td style="text-align:right">${rdSeg(s.tempoMedioSeg)}</td></tr>`
+          `<td style="text-align:right">${rdPct(s.taxaCompartilhamentosMedia)}</td><td style="text-align:right">${rdSeg(s.tempoMedioSeg)}</td>` +
+          `<td style="text-align:right">${rdPct(s.pctAssistidoMedio)}</td><td style="text-align:right">${rdNum(s.seguiu)}</td></tr>`
       )
       .join('') +
     '</tbody>';
@@ -2148,7 +2203,8 @@ function rdRender(d) {
   $('rd-reels').innerHTML =
     '<thead><tr><th>Data</th><th>Reel</th><th>Série</th><th style="text-align:right">Views</th><th style="text-align:right">Alcance</th>' +
     '<th style="text-align:right">Curtidas</th><th style="text-align:right">Coment.</th><th style="text-align:right">Salvos</th>' +
-    '<th style="text-align:right">Compart.</th><th style="text-align:right">Tempo médio</th><th style="text-align:right">Engaj.</th></tr></thead><tbody>' +
+    '<th style="text-align:right">Compart.</th><th style="text-align:right">Tempo médio</th><th style="text-align:right">Retenção</th>' +
+    '<th style="text-align:right">Seguiram</th><th style="text-align:right">Engaj.</th></tr></thead><tbody>' +
     (d.reels || [])
       .map((x) => {
         const dt = x.data
@@ -2164,7 +2220,9 @@ function rdRender(d) {
           `<td style="text-align:right">${rdNum(x.curtidas)}</td><td style="text-align:right">${rdNum(x.comentarios)}</td>` +
           `<td style="text-align:right">${rdNum(x.salvos)} <small>${rdPct(x.taxaSalvos)}</small></td>` +
           `<td style="text-align:right">${rdNum(x.compartilhamentos)} <small>${rdPct(x.taxaCompartilhamentos)}</small></td>` +
-          `<td style="text-align:right">${rdSeg(x.tempoMedioSeg)}</td><td style="text-align:right">${rdPct(x.taxaEngajamento)}</td></tr>`
+          `<td style="text-align:right">${rdSeg(x.tempoMedioSeg)}${x.duracaoSeg ? ` <small>de ${rdSeg(x.duracaoSeg)}</small>` : ''}</td>` +
+          `<td style="text-align:right">${rdPct(x.pctAssistido)}</td><td style="text-align:right">${rdNum(x.seguiu)}</td>` +
+          `<td style="text-align:right">${rdPct(x.taxaEngajamento)}</td></tr>`
         );
       })
       .join('') +
