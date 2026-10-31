@@ -34,7 +34,11 @@ function fmt(v, suf) {
 async function main() {
   let dados;
   if (process.env.APPLIQUEI_URL && process.env.ADMIN_API_TOKEN) dados = await lerDoAdmin();
-  else if (process.env.IG_TOKEN) dados = await buscarInstagram({ token: process.env.IG_TOKEN });
+  else if (process.env.IG_TOKEN)
+    dados = await buscarInstagram({
+      token: process.env.IG_TOKEN,
+      igUserId: process.env.IG_USER_ID,
+    });
   else {
     console.error(
       'Sem acesso: defina APPLIQUEI_URL + ADMIN_API_TOKEN (preferido) ou IG_TOKEN no ambiente.'

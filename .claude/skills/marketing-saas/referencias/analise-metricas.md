@@ -16,7 +16,9 @@ npm run metricas:instagram
   imprime a tabela dos Reels.
 - Fonte preferida: o admin em produção (`APPLIQUEI_URL` + `ADMIN_API_TOKEN` no
   ambiente da sessão), que usa o `IG_TOKEN` do Vercel e o renova sozinho.
-  Alternativa: `IG_TOKEN` direto no ambiente (vence em 60 dias).
+  Alternativa: `IG_TOKEN` direto no ambiente (com `IG_USER_ID`, é o token do
+  usuário do sistema do portfólio, que não vence; sem ele, o da Instagram
+  API, de 60 dias).
 - Sem acesso configurado, o script diz o que falta; peça ao fundador os
   números da tela "Estatísticas" do Reel em vez de inventar.
 - TikTok e YouTube ainda não têm conexão: use o print que o fundador mandar.

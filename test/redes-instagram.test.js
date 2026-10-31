@@ -235,3 +235,21 @@ test('renovarSeVelho: não renova token com menos de 30 dias; renova o mais velh
   assert.equal(velho.renovado, true);
   assert.ok(f.chamadas[0].includes('grant_type=ig_refresh_token'));
 });
+
+test('buscarInstagram com IG_USER_ID (login unificado): usa a graph.facebook.com e o ID da conta', async () => {
+  const f = fetchFalso({
+    '/178414?fields': { username: 'appliquei', followers_count: 10, media_count: 1 },
+    '/178414/media': { data: [{ id: 'r9', caption: 'x', media_product_type: 'REELS' }] },
+    '/r9/insights': { data: ins({ views: 7, reach: 5 }) },
+  });
+  const d = await buscarInstagram({
+    token: 'sys',
+    fetchImpl: f,
+    igUserId: '178414',
+    agoraMs: AGORA,
+  });
+  assert.equal(d.resumo.usuario, 'appliquei');
+  assert.equal(d.reels[0].views, 7);
+  assert.ok(f.chamadas.every((u) => u.startsWith('https://graph.facebook.com/')));
+  assert.ok(!f.chamadas.some((u) => /\/v[\d.]+\/me[?/]/.test(u)));
+});

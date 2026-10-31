@@ -803,7 +803,10 @@ async function redesGet(req, res) {
   let token = doc.token || process.env.IG_TOKEN || null;
   if (!token) return res.json({ configurado: false });
   const salvar = {};
+  // com IG_USER_ID o token é de usuário do sistema (login unificado): não vence
+  const igUserId = process.env.IG_USER_ID || null;
   try {
+    if (igUserId) throw Object.assign(new Error('sem renovação'), { pular: true });
     const r = await renovarSeVelho({ token, obtidoEmMs: doc.tokenObtidoEmMs || 0, agoraMs: agora });
     if (r.renovado) {
       token = r.token;
@@ -812,10 +815,10 @@ async function redesGet(req, res) {
     }
   } catch (e) {
     // token recém-gerado (menos de 24 h) não renova; segue com o atual
-    salvar.ultimoErroRenovacao = String(e.message || e).slice(0, 200);
+    if (!e.pular) salvar.ultimoErroRenovacao = String(e.message || e).slice(0, 200);
   }
   try {
-    const dados = await buscarInstagram({ token, agoraMs: agora });
+    const dados = await buscarInstagram({ token, agoraMs: agora, igUserId });
     salvar.cache = dados;
     salvar.cacheEmMs = agora;
     await ref.set(salvar, { merge: true });

@@ -14,6 +14,10 @@
 
 const VERSAO = process.env.IG_API_VERSION || 'v23.0';
 const BASE = 'https://graph.instagram.com';
+// Token do login unificado (usuário do sistema do portfólio da Meta): fala com
+// a graph.facebook.com e precisa do ID da conta do Instagram (IG_USER_ID).
+// Não vence, então não passa por renovarSeVelho.
+const BASE_FB = 'https://graph.facebook.com';
 const DIA = 24 * 3600 * 1000;
 
 // métricas de insight de um Reel; as que a conta ainda não tiver voltam vazias
@@ -178,16 +182,18 @@ async function getJson(fetchImpl, url) {
 }
 
 // Lê a conta, os Reels mais recentes e os insights de cada um.
-async function buscarInstagram({ token, fetchImpl, limite, agoraMs }) {
+async function buscarInstagram({ token, fetchImpl, limite, agoraMs, igUserId }) {
   if (!token) return { configurado: false };
   const f = fetchImpl || fetch;
+  const base = igUserId ? BASE_FB : BASE;
+  const eu = igUserId || 'me';
   const q = (p) =>
-    `${BASE}/${VERSAO}/${p}${p.includes('?') ? '&' : '?'}access_token=${encodeURIComponent(token)}`;
-  const conta = await getJson(f, q('me?fields=user_id,username,followers_count,media_count'));
+    `${base}/${VERSAO}/${p}${p.includes('?') ? '&' : '?'}access_token=${encodeURIComponent(token)}`;
+  const conta = await getJson(f, q(`${eu}?fields=username,followers_count,media_count`));
   const lista = await getJson(
     f,
     q(
-      `me/media?fields=id,caption,media_type,media_product_type,permalink,thumbnail_url,timestamp,like_count,comments_count&limit=${limite || 30}`
+      `${eu}/media?fields=id,caption,media_type,media_product_type,permalink,thumbnail_url,timestamp,like_count,comments_count&limit=${limite || 30}`
     )
   );
   const midias = (lista.data || []).filter(
