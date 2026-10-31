@@ -29,10 +29,20 @@ npm run metricas:instagram
 | ------------------------------------------ | ----------------------------------------------------------- | --------------------- |
 | **Compartilhamentos ÷ alcance**            | o que mais leva o Reel para fora dos seguidores             | bom acima de 1%       |
 | **Salvos ÷ alcance**                       | diz se o conteúdo foi útil (educação financeira vive disso) | bom acima de 2%       |
-| **Tempo médio assistido** (e % da duração) | o gancho segurou? queda cedo = abertura fraca               | bom acima de 50%      |
+| **Retenção** (tempo médio ÷ duração)       | o gancho segurou? queda cedo = abertura fraca               | bom acima de 50%      |
+| **Seguiram pelo Reel**                     | converteu quem não seguia (o objetivo até o lançamento)     | a média da série      |
+| Views por pessoa (views ÷ alcance)         | acima de 1,1 = gente reassistindo (sinal de conteúdo denso) | —                     |
+| Visitas ao perfil e cliques no link da bio | interesse na marca além do vídeo                            | —                     |
 | **Views** e **alcance**                    | volume; varia com o algoritmo, compare com a média da série | a média dos últimos 9 |
 | Comentários                                | conversa; tema que divide gera comentário (ex.: carro)      | —                     |
 | Seguidores ganhos no período               | o objetivo da série até o lançamento                        | —                     |
+
+A retenção usa a duração registrada em `api/_lib/reels-duracoes.json`
+(início da legenda → segundos). **Ao entregar cada Reel novo, acrescente a
+duração lá** (`ffprobe` do mp4 final); sem isso o painel mostra "—" na
+retenção daquele Reel. A curva segundo a segundo e a retenção dos 3 primeiros
+segundos não vêm pela API: quando precisar, peça o print da tela
+"Estatísticas" do Reel.
 
 As referências são pontos de partida: depois de 3 semanas, troque pelas
 médias reais do perfil (mediana dos Reels da própria série).

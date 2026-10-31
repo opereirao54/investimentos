@@ -253,3 +253,50 @@ test('buscarInstagram com IG_USER_ID (login unificado): usa a graph.facebook.com
   assert.ok(f.chamadas.every((u) => u.startsWith('https://graph.facebook.com/')));
   assert.ok(!f.chamadas.some((u) => /\/v[\d.]+\/me[?/]/.test(u)));
 });
+
+test('duração pelo começo do título (sem acento, sem pontuação) e % assistido', () => {
+  const { duracaoDoTitulo } = require('../api/_lib/redes-instagram');
+  assert.equal(duracaoDoTitulo('Esse carro custa R$ 2.100 por mês. Parado na garagem. 🚗'), 73.7);
+  assert.equal(duracaoDoTitulo('PARCELADO SEM JUROS ou a vista com desconto? 🤔'), 32.6);
+  assert.equal(duracaoDoTitulo('Um título que não está no registro'), null);
+  const r = resumirReel(
+    { id: 'c', caption: 'Esse carro custa R$ 2.100 por mês. Parado.' },
+    ins({ views: 300, reach: 200, ig_reels_avg_watch_time: 36850, follows: 4, profile_visits: 9 })
+  );
+  assert.equal(r.duracaoSeg, 73.7);
+  assert.equal(r.tempoMedioSeg, 36.9);
+  assert.equal(r.pctAssistido, 50);
+  assert.equal(r.viewsPorPessoa, 1.5);
+  assert.equal(r.seguiu, 4);
+  assert.equal(r.visitasPerfil, 9);
+});
+
+test('se a API recusa o conjunto de métricas, pede uma por uma e fica com as que vierem', async () => {
+  const chamadas = [];
+  const f = async (url) => {
+    chamadas.push(url);
+    const json = (corpo, ok = true) => ({ ok, status: ok ? 200 : 400, json: async () => corpo });
+    if (url.includes('/me?fields'))
+      return json({ username: 'a', followers_count: 1, media_count: 1 });
+    if (url.includes('/me/media'))
+      return json({ data: [{ id: 'r1', caption: 'x', media_product_type: 'REELS' }] });
+    if (url.includes('/r1/insights?metric=views,'))
+      return json({ error: { message: 'métrica inválida' } }, false);
+    if (url.includes('/r1/insights?metric=views&')) return json({ data: ins({ views: 42 }) });
+    if (url.includes('/r1/insights?metric=reach&')) return json({ data: ins({ reach: 21 }) });
+    if (url.includes('/r1/insights?metric=follows&')) return json({ data: ins({ follows: 2 }) });
+    if (url.includes('/me/insights?metric=profile_views'))
+      return json({ data: [{ name: 'profile_views', total_value: { value: 77 } }] });
+    return json({ error: { message: 'indisponível' } }, false);
+  };
+  const d = await buscarInstagram({ token: 't', fetchImpl: f, agoraMs: AGORA });
+  assert.equal(d.reels[0].views, 42);
+  assert.equal(d.reels[0].alcance, 21);
+  assert.equal(d.reels[0].seguiu, 2);
+  assert.equal(d.reels[0].salvos, null);
+  assert.equal(d.resumo.visitasPerfil30d, 77);
+  assert.equal(d.resumo.cliquesLink30d, null);
+  assert.ok(
+    chamadas.some((u) => u.includes('period=day') && u.includes('metric_type=total_value'))
+  );
+});

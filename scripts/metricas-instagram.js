@@ -64,10 +64,13 @@ async function main() {
     `30 dias: ${fmt(r.views30d)} views · salvos ${fmt(r.taxaSalvosMedia30d, '%')} · compart. ${fmt(
       r.taxaCompartilhamentosMedia30d,
       '%'
-    )} · tempo médio ${fmt(r.tempoMedioSeg30d, ' s')}`
+    )} · tempo médio ${fmt(r.tempoMedioSeg30d, ' s')} · retenção ${fmt(
+      r.pctAssistidoMedio30d,
+      '%'
+    )} · seguiram pelos Reels ${fmt(r.seguiuPorReels30d)}`
   );
   console.log('');
-  console.log('data   série     views  alcance  salvos%  compart%  tempo  título');
+  console.log('data   série     views  alcance  salvos%  compart%  tempo  ret%  seguiu  título');
   for (const x of dados.reels || []) {
     console.log(
       [
@@ -78,6 +81,8 @@ async function main() {
         fmt(x.taxaSalvos).padStart(8),
         fmt(x.taxaCompartilhamentos).padStart(9),
         fmt(x.tempoMedioSeg).padStart(6),
+        fmt(x.pctAssistido).padStart(5),
+        fmt(x.seguiu).padStart(7),
         ' ' + (x.titulo || '').slice(0, 60),
       ].join(' ')
     );
