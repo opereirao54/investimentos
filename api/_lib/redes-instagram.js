@@ -47,19 +47,35 @@ const normalizar = (t) =>
     .replace(/\s+/g, ' ')
     .trim();
 
+// entrada do registro do Reel: primeiro pelo id do Instagram (quando a
+// legenda postada não começa pelo gancho), depois pelo começo do título
+function registroDoReel(id, titulo, registro) {
+  const lista = registro || DURACOES;
+  const porId = id ? lista.find((r) => r.id && r.id === String(id)) : null;
+  if (porId) return porId;
+  const t = normalizar(titulo);
+  return lista.find((r) => r.inicio && t.startsWith(normalizar(r.inicio))) || null;
+}
+
 // duração (s) pelo começo do título; null se o Reel não está no registro
 function duracaoDoTitulo(titulo, registro) {
-  const t = normalizar(titulo);
-  const d = (registro || DURACOES).find((r) => t.startsWith(normalizar(r.inicio)));
+  const d = registroDoReel(null, titulo, registro);
   return d ? d.seg : null;
 }
 
+// a série "Appliquei" (vídeos de produto) só existe na reta final; antes
+// disso todo Reel leva "Faltam X dias" na legenda e não pode cair nela
+const INICIO_SERIE_APPLIQUEI = Date.parse('2026-12-27T03:00:00Z');
+
 // série pela legenda (os combinados de 29/10: News, Explica e Appliquei)
-function serieDaLegenda(legenda) {
+function serieDaLegenda(legenda, data) {
   const s = (legenda || '').toLowerCase();
   if (s.includes('appliquei news')) return 'news';
   if (s.includes('appliquei explica')) return 'explica';
-  if (/faltam \d+ dias|é hoje|lançamento/.test(s) && s.includes('appliquei')) return 'appliquei';
+  const quando = data ? Date.parse(data) : NaN;
+  const naRetaFinal = Number.isNaN(quando) || quando >= INICIO_SERIE_APPLIQUEI;
+  if (naRetaFinal && /faltam \d+ dias|é hoje|lançamento/.test(s) && s.includes('appliquei'))
+    return 'appliquei';
   return 'outros';
 }
 
@@ -100,14 +116,16 @@ function resumirReel(media, insights) {
   const tempoMedioMs = i('ig_reels_avg_watch_time');
   const tempoMedioSeg = tempoMedioMs == null ? null : Math.round(tempoMedioMs / 100) / 10;
   const titulo = tituloDaLegenda(media.caption);
-  const duracaoSeg = duracaoDoTitulo(titulo);
+  const registro = registroDoReel(media.id, titulo);
+  const duracaoSeg = registro ? registro.seg : null;
   return {
     id: media.id,
     data: media.timestamp || null,
     link: media.permalink || null,
     capa: media.thumbnail_url || null,
     titulo,
-    serie: serieDaLegenda(media.caption),
+    // o registro corrige a série quando a legenda não traz a assinatura
+    serie: (registro && registro.serie) || serieDaLegenda(media.caption, media.timestamp),
     duracaoSeg,
     views,
     alcance,

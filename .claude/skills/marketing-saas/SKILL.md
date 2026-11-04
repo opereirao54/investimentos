@@ -135,8 +135,10 @@ linha da semana.
   máximo a partir da margem real por cliente).
 - `referencias/analise-metricas.md` — como puxar as métricas dos Reels
   (`npm run metricas:instagram`), o que olhar, a rotina (dia seguinte, toda
-  segunda, revisão de 16/11) e como transformar número em mudança de
-  conteúdo. Use sempre que o pedido for analisar desempenho ou decidir o
+  segunda, revisão de 16/11), a conferência da operação e do painel antes
+  de tirar conclusões, a linha de base do perfil e como transformar número em
+  mudança de conteúdo (um teste por vez, mais as alavancas que não são
+  conteúdo: perfil, comentários, collab, Reel de teste, impulsionar, busca). Use sempre que o pedido for analisar desempenho ou decidir o
   próximo tema com base nos números.
 
 ## O que esta skill não faz
