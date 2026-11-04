@@ -111,7 +111,9 @@ const OVERLAYS = [
  */
 const EQUIVALENTES = {
   'fn:abrirPainelLancamento':
-    'no celular o "Novo lançamento" largo sai do Controle; o "+" da barra inferior abre o menu de cadastro → Lançamento (cadastrarEm → abrirPainelLancamento)',
+    'no celular o "Novo lançamento" largo sai do Controle; o "+" da barra inferior abre o menu de cadastro → Despesa/Receita/Cartão (cadastrarEm → abrirPainelLancamento, já no tipo)',
+  'fn:novoLancamentoControle':
+    'é o "Novo lançamento" do cabeçalho do computador (abre já em Saída); no celular o mesmo vem do "+" da barra → Despesa (cadastrarEm → abrirPainelLancamento + selecionarChipTipo)',
   'fn:alternarPainelVencimentos':
     'no celular os vencimentos ficam sempre abertos, em "Próximos dias" (carrossel do Início): não há o que recolher; Baixar e Ver fatura estão em cada cartão',
   // Extrato no celular: ordem, conta/cartão e categoria moram na gaveta que o

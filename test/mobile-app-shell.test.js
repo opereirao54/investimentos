@@ -195,7 +195,11 @@ test('as ações do extrato no celular são os botões originais', () => {
       new RegExp(`\\[id\\^="acao-pagar-list-"\\] > button\\[onclick\\^="${fn}"\\]`)
     );
   }
-  assert.doesNotMatch(MOB, /deletarTransacao\(|prepararEdicao\(|prepararPagamento\(/);
+  assert.doesNotMatch(MOB, /deletarTransacao\(|prepararPagamento\(/);
+  // Editar: o toque na linha do extrato clica o próprio lápis da linha; só as
+  // Movimentações do Início (que não têm botões) chamam a edição de sempre.
+  assert.equal((MOB.match(/prepararEdicao\(/g) || []).length, 1);
+  assert.match(MOB, /querySelector\('button\[onclick\^="prepararEdicao"\]'\)/);
 });
 
 test('a faixa do Simulador lê o resultado do próprio herói', () => {

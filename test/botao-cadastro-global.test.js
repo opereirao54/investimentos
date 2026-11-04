@@ -80,11 +80,15 @@ test('some quando o formulário que ele abriria já está aberto', () => {
 
 test('o clique abre um menu com os dois destinos', () => {
   assert.match(HTML, /onclick="alternarMenuCadastro\(\)"/, 'o botão abre o menu, não o formulário');
-  assert.match(HTML, /onclick="cadastrarEm\('lancamento'\)"/);
+  // Lançamento: os quatro do dia a dia já com o tipo (um toque a menos).
+  assert.match(HTML, /onclick="cadastrarEm\('lancamento', 'saida'\)"/);
+  assert.match(HTML, /onclick="cadastrarEm\('lancamento', 'entrada'\)"/);
+  assert.match(HTML, /onclick="cadastrarEm\('lancamento', 'cartao'\)"/);
+  assert.match(HTML, /onclick="cadastrarTransferencia\(\)"/);
   assert.match(HTML, /onclick="cadastrarEm\('investimento'\)"/);
   // Cada opção diz o que é e onde vai parar — "Lançamento" sozinho não
   // distingue de "Investimento" para quem está começando.
-  assert.match(HTML, /Controle financeiro<\/span>/);
+  assert.match(HTML, /Lançar no Controle financeiro<\/span>/);
   assert.match(HTML, /Meus\s*\n?\s*investimentos<\/span>/);
 });
 
@@ -92,9 +96,10 @@ test('o menu é acessível', () => {
   assert.match(HTML, /aria-haspopup="menu"/);
   assert.match(HTML, /aria-controls="fabMenu"/);
   assert.match(HTML, /role="menu"/);
-  // Lançamento, Investimento e "Pelo Telegram" (o atalho que mais poupa
-  // trabalho no dia a dia, posto onde a pessoa já procura para lançar).
-  assert.ok((HTML.match(/role="menuitem"/g) || []).length === 3);
+  // Despesa, Receita, Cartão, Transferir, Investimento e "Pelo Telegram" (o
+  // atalho que mais poupa trabalho no dia a dia, posto onde a pessoa já
+  // procura para lançar).
+  assert.ok((HTML.match(/role="menuitem"/g) || []).length === 6);
   assert.match(HTML, /onclick="ppFabTelegram\(\)"/);
   assert.match(corpo('abrirMenuCadastro'), /setAttribute\('aria-expanded', 'true'\)/);
   assert.match(corpo('fecharMenuCadastro'), /setAttribute\('aria-expanded', 'false'\)/);
@@ -136,7 +141,7 @@ test('cada destino abre o formulário certo', () => {
 test('escolher uma opção fecha o menu', () => {
   assert.match(
     corpo('cadastrarEm'),
-    /^function cadastrarEm\(destino\) \{\s*\n\s*fecharMenuCadastro\(\);/
+    /^function cadastrarEm\(destino, tipo\) \{\s*\n\s*fecharMenuCadastro\(\);/
   );
 });
 
@@ -148,6 +153,8 @@ test('o botão dentro de cada aba não foi removido', () => {
   // Decisão registrada: um clique (botão da página) contra dois (menu global).
   // Remover custaria um clique a quem já está no lugar certo, que é o caso
   // comum. Eles não competem — o global some quando o formulário abre.
-  assert.match(HTML, /onclick="abrirPainelLancamento\(\)"[^>]*>.*Novo lançamento/s);
+  // O do Controle abre já em Saída (novoLancamentoControle → abrirPainelLancamento).
+  assert.match(HTML, /onclick="novoLancamentoControle\(\)"[^>]*>.*Novo lançamento/s);
+  assert.match(APP, /function novoLancamentoControle\(\) \{\s*\n\s*abrirPainelLancamento\(\);/);
   assert.match(HTML, /class="inv-btn-add" onclick="abrirDrawerOperacao\(\)"/);
 });

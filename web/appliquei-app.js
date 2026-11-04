@@ -319,6 +319,17 @@ function abrirPainelLancamento() {
     if (alvo) alvo.focus({ preventScroll: true });
   }, 240);
 }
+/**
+ * "Novo lançamento" do cabeçalho: abre já em Saída (com a conta lembrada),
+ * que é o lançamento mais comum. Edição em andamento ou tipo já escolhido
+ * ficam como estão.
+ */
+function novoLancamentoControle() {
+  abrirPainelLancamento();
+  const editando = (document.getElementById('editTransacaoId') || {}).value;
+  const tipo = (document.getElementById('categoriaTransacao') || {}).value;
+  if (!editando && !tipo && typeof selecionarChipTipo === 'function') selecionarChipTipo('saida');
+}
 function fecharPainelLancamento() {
   const painel = document.getElementById('painelNovoLancamento');
   if (!painel) return;
@@ -409,7 +420,7 @@ function abrirMenuCadastro() {
   const btnBarra = document.getElementById('mobTabCadastro');
   if (btnBarra) btnBarra.setAttribute('aria-expanded', 'true');
   document.body.classList.add('fab-aberto');
-  const primeiro = menu.querySelector('.fab-opcao');
+  const primeiro = menu.querySelector('.fab-rapido, .fab-opcao');
   if (primeiro && typeof primeiro.focus === 'function') primeiro.focus();
 }
 
@@ -432,7 +443,7 @@ function fecharMenuCadastro() {
  * própria seção, e abri-lo com outra aba na tela deixaria o formulário
  * invisível. O respiro entre as duas coisas dá tempo de a seção pintar.
  */
-function cadastrarEm(destino) {
+function cadastrarEm(destino, tipo) {
   fecharMenuCadastro();
   const aba = destino === 'investimento' ? 'patrimonio' : 'controle';
   const jaEstaNaAba =
@@ -448,9 +459,17 @@ function cadastrarEm(destino) {
       if (typeof abrirDrawerOperacao === 'function') abrirDrawerOperacao();
     } else if (typeof abrirPainelLancamento === 'function') {
       abrirPainelLancamento();
+      // "+ → Despesa": o formulário já abre no tipo (e com a conta lembrada).
+      if (tipo && typeof selecionarChipTipo === 'function') selecionarChipTipo(tipo);
     }
   };
   jaEstaNaAba ? abrir() : setTimeout(abrir, 180);
+}
+
+/** "+ → Transferir": o modal de transferência serve em qualquer aba. */
+function cadastrarTransferencia() {
+  fecharMenuCadastro();
+  if (typeof abrirTransferenciaModal === 'function') abrirTransferenciaModal();
 }
 
 // Esc fecha o menu — mesma tecla que fecha todo o resto do app.
@@ -584,6 +603,8 @@ function selecionarChipTipo(tipo) {
   // Já em Saída, tocar de novo não desfaz "Fixa".
   if (!(tipo === 'saida' && sel.value === 'despesa_fixa')) sel.value = cat;
   verificarRegraCartao();
+  // Lançamento novo: a conta do último lançamento deste tipo já vem escolhida.
+  if (typeof lancUiAplicarContaLembrada === 'function') lancUiAplicarContaLembrada();
 }
 
 // O extrato virou uma lista só, ordenada por valor. As abas do topo escondiam
