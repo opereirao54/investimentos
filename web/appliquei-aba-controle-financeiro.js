@@ -628,7 +628,9 @@ function verificarRegraCartao() {
         const ehEntrada = cat === 'receita' || cat === 'resgate_investimento';
         lbl.innerHTML = ehEntrada
           ? 'Banco / instituição que recebe <span style="color:var(--cor-erro);">*</span>'
-          : 'Banco / instituição de onde sai <span style="color:var(--cor-erro);">*</span>';
+          : cat === 'despesa_variavel'
+            ? 'Pagou com <span style="color:var(--cor-erro);">*</span>'
+            : 'Banco / instituição de onde sai <span style="color:var(--cor-erro);">*</span>';
       }
       inicializarDatalistBancosTransacao(cat);
     } else {

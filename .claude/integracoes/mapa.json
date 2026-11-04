@@ -868,6 +868,32 @@
       "prova": "test/integracao-inv27-importar-fatura.test.js + test/importar-fatura.test.js",
       "status": "coberta",
       "fragilidade": "O FITID só existe no OFX; no CSV a idempotência depende do casamento por valor e parcela. Parcela antiga (N>1) vem com a data do início do ciclo, não a da compra: dataCompra fica vazia nela de propósito."
+    },
+    {
+      "id": "INV-28",
+      "titulo": "Ajuste de saldo só mexe no caixa da conta",
+      "regra": "O 'Conferir saldo' grava a diferença entre o saldo real (digitado pela pessoa) e o do app em conta.ajustes[] — {id, valor com sinal, data}. Ajuste NÃO é transação: entra no caixa da conta (mpSomaAjustesConta em mpCalcularSaldoPorInstituicao, mpCalcularSaldoTotal e mpExtratoInstituicao; somaAjustesConta no /saldo do Telegram) e em nada que mostre resultado do mês (calcularResumoMes, Projeção, relatório, insights). Desfazer remove o item; fundir contas leva os ajustes para o destino.",
+      "gravidade": "alta",
+      "entidades": ["conta"],
+      "arquivos": [
+        "web/appliquei-conferir-saldo.js",
+        "web/appliquei-patrimonio.js",
+        "web/appliquei-contas.js",
+        "api/_lib/telegram-consultas.js"
+      ],
+      "simbolos": [
+        "ajustes",
+        "mpSomaAjustesConta",
+        "mpAjustesConta",
+        "conferirAjustar",
+        "conferirDesfazerAjuste",
+        "somaAjustesConta"
+      ],
+      "sintoma": "\"Ajustei o saldo e a Projeção do mês mudou\" · \"o saldo do Telegram é diferente do app\" · \"fundi as contas e o saldo mudou\" · \"desfiz o ajuste e o saldo não voltou\".",
+      "historico": "Nasceu em 04/11/2026: o Patrimônio mostrava -R$ 726,83 no Nubank de quem tinha mais de R$ 2.000 no banco, sem nenhum sinal de que o número não batia.",
+      "prova": "test/integracao-inv28-ajuste-saldo.test.js + test/conferir-saldo.test.js",
+      "status": "coberta",
+      "fragilidade": "Quem calcula caixa por conta fora de patrimonio.js (hoje: telegram-consultas.js, cópia server-side) tem de somar os ajustes também — uma terceira cópia que esqueça deles diverge do app sem erro."
     }
   ],
   "riscosConhecidos": [

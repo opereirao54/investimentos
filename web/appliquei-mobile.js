@@ -2354,6 +2354,8 @@ function mobPatrimonioRedesenharCarteiras() {
           ],
         ];
         if (conta)
+          acoes.push(["conferirAbrir('" + _mobEsc(conta.id) + "')", 'ph-check-circle', 'Conferir']);
+        if (conta)
           acoes.push([
             "editarContaForm('" + _mobEsc(conta.id) + "')",
             'ph-pencil-simple',
@@ -2414,6 +2416,9 @@ function mobPatrimonioRedesenharCarteiras() {
         '</span><b class="mpw-total valor-mascarado">' +
         _mobEsc(_mobPatFmt(x.total)) +
         '</b></button>' +
+        (conta && typeof conferirAvisoHtml === 'function'
+          ? conferirAvisoHtml(conta.id, x.caixa)
+          : '') +
         corpo +
         '</article>' +
         extrato
@@ -3171,9 +3176,12 @@ function mobRenderContas() {
           ' · ' +
           (c.arquivada
             ? 'arquivada'
-            : saldo
-              ? 'saldo inicial ' + _mobEsc(_mobDreFmt(saldo))
-              : 'sem saldo inicial');
+            : c.conferidoEm
+              ? 'conferido em ' +
+                _mobEsc(new Date(c.conferidoEm).toLocaleDateString('pt-BR').slice(0, 5))
+              : saldo
+                ? 'saldo inicial ' + _mobEsc(_mobDreFmt(saldo))
+                : 'sem saldo inicial');
         const idJs = "'" + _mobEsc(id) + "'";
         const acoes = c.arquivada
           ? [['restaurarContaUI(' + idJs + ')', 'ph-arrow-counter-clockwise', 'Restaurar']]
