@@ -8,5 +8,17 @@
 
 ## Mudanças testadas
 
-| Data | Mudança | Hipótese | Resultado |
-| ---- | ------- | -------- | --------- |
+| Data                | Mudança                                                                                                                                                                                                                      | Hipótese                                                                                                                         | Resultado                                                                                                                    |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| 04/11 (News, Copom) | **Abertura nova:** gancho falado e escrito no segundo 0, com o número; manchetes logo depois; vinheta depois do gancho (~3 s) ou fora; tarja News no topo o vídeo todo. Vale para os Reels seguintes enquanto o teste durar. | O começo não segura: tempo médio de 4 a 8 s em qualquer duração, retenção de 7 a 20%; a vinheta e a capa ocupavam ~2 s desses 5. | Comparar com o News #1 (5 s, 9%). Vira padrão nas duas séries se o tempo médio passar de 10 s e a retenção de 30%. _a medir_ |
+
+## Linha de base (04/11, 7 Reels)
+
+Tempo médio 5,6 s · retenção 14% · salvos 0,1% · compart. 0,6% · 79 visitas
+ao perfil e 0 cliques no link em 30 dias. Melhor Reel: a geladeira (26/10),
+retenção 20% e compart. 1,4%, com o número no gancho e sem vinheta.
+
+Não contam como teste (já eram combinados e não vinham sendo seguidos):
+Reel às 19h, News de 30 a 45 s, 1ª linha da legenda = o gancho, pedido de
+compartilhamento falado para uma pessoa concreta, comentário fixado com
+pergunta e resposta a todo comentário na primeira hora.

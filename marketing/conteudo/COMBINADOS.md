@@ -123,6 +123,14 @@ true`), mesmo modelo do News.
 
 ## Métricas (30/10)
 
+- **Em teste desde 04/11 (fundador aprovou): abertura nova.** Gancho falado
+  e escrito no segundo 0, com o número; manchetes (News) logo depois;
+  vinheta só depois do gancho (~3 s) ou fora; tarja/selo da série no topo o
+  vídeo todo. Meta: tempo médio acima de 10 s e retenção acima de 30%
+  (linha de base: 5,6 s e 14%). Registro em `marketing/metricas/LEIAME.md`.
+- **Comentários:** fixar um comentário com pergunta e responder todos na
+  primeira hora.
+
 - O fundador vê os números na aba **Redes sociais** do admin; eu analiso e
   proponho mudanças seguindo
   `.claude/skills/marketing-saas/referencias/analise-metricas.md`
