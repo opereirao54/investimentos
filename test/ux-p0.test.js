@@ -10,6 +10,8 @@ const { validarEstado } = require('../scripts/lib/invariantes.js');
 
 const ORDEM = ORDEM_CONTROLE.concat(['web/appliquei-sonhos.js']);
 const H = new Date();
+// último dia do mês corrente: "dia 31" não existe em meses de 30 dias e viraria
+// o dia 1º do mês seguinte (o teste quebrava em abril, junho, setembro e novembro)
 const ymd = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
@@ -32,7 +34,7 @@ function conta(s, contaId, extra) {
       mes: H.getMonth(),
       ano: H.getFullYear(),
       data: H.toISOString(),
-      dataVencimento: ymd(new Date(H.getFullYear(), H.getMonth(), 31)),
+      dataVencimento: ymd(new Date(H.getFullYear(), H.getMonth() + 1, 0)),
       pago: false,
     },
     extra || {}
@@ -52,7 +54,7 @@ test('P0-1: baixa com R$ 0 numa conta comum não marca como paga', () => {
 
 test('P0-1: "Passar para o mês que vem" leva a conta e o vencimento juntos', () => {
   const { s, conta: c } = app();
-  const t = conta(s, c.id, { dataVencimento: ymd(new Date(H.getFullYear(), H.getMonth(), 31)) });
+  const t = conta(s, c.id, { dataVencimento: ymd(new Date(H.getFullYear(), H.getMonth() + 1, 0)) });
   s.adiarLancamentoUmMes(t.id);
   const prox = new Date(H.getFullYear(), H.getMonth() + 1, 1);
   assert.equal(t.mes, prox.getMonth());

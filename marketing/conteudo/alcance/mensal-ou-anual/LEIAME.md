@@ -12,7 +12,7 @@ empatar, o dinheiro dele teria que render 3,5% ao mês. Fecha com a pegadinha
 da academia ("só vale se você usar o ano todo. Né, Caio?"). O app não aparece;
 a marca só assina. Caio e Mateus são personagens fictícios.
 
-- `appliquei-mensal-ou-anual-com-capa.mp4`: **o arquivo para postar**: a capa no primeiro
+- `appliquei-mensal-ou-anual-com-capa.mp4`: **o arquivo para postar**: vinheta Appliquei Explica (1,6 s) antes do episódio; a capa no primeiro
   quadro (0,1 s, vira a miniatura no TikTok e no Shorts) e embutida no arquivo.
 - `appliquei-mensal-ou-anual.mp4`: final, narrado (-15 LUFS).
 - `video.html`, `narracao.json`, `narracao-charon-leitura.wav`, `trilha.wav`

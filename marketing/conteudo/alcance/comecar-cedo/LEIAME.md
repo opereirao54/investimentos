@@ -9,7 +9,7 @@ teve menos tempo para dobrar. O app não aparece. A marca só
 assina ("Mais contas assim: siga o Appliquei"). Mateus e Caio são personagens
 fictícios.
 
-- `appliquei-comecar-cedo-com-capa.mp4`: **o arquivo para postar**: a capa no primeiro
+- `appliquei-comecar-cedo-com-capa.mp4`: **o arquivo para postar**: vinheta Appliquei Explica (1,6 s) antes do episódio; a capa no primeiro
   quadro (0,1 s, vira a miniatura no TikTok e no Shorts) e embutida no arquivo.
 - `appliquei-comecar-cedo.mp4`: final, narrado (-15 LUFS).
 - `video.html`, `narracao.json`, `narracao-charon-leitura.wav`, `trilha.wav`
