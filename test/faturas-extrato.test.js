@@ -384,10 +384,9 @@ test('celular: barra de busca + Filtros, etiquetas e gaveta; no computador, só 
   assert.match(HTML, /id="extratoBtnFiltros"[^>]*onclick="abrirFolhaFiltros\(\)"/);
   assert.match(HTML, /id="extratoFolha" class="ext-folha" hidden/);
   assert.match(HTML, /onclick="aplicarFolhaFiltros\(\)"/);
-  assert.match(
-    HTML,
-    /#controle #extratoCategorias, #controle #extratoFerramentas \{ display: none !important; \}/
-  );
+  assert.match(HTML, /#controle #extratoFerramentas \{ display: none !important; \}/);
+  // A categoria é uma faixa de toque no topo do extrato (um toque filtra).
+  assert.doesNotMatch(HTML, /#controle #extratoCategorias[^{]*\{ display: none/);
   // A gaveta e a tela de Faturas ficam acima da barra de abas do celular.
   assert.match(HTML, /\.ext-folha \{ position: fixed; inset: 0; z-index: 9995;/);
 });

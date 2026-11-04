@@ -1215,6 +1215,8 @@
             cursor: pointer;
         }
         .ins-sugestao-nao:hover { opacity: 1; background: rgba(0, 0, 0, 0.06); }
+        /* Categoria já aplicada: o botão é "Desfazer", com texto. */
+        .ins-sugestao-aplicada .ins-sugestao-nao { width: auto; padding: 0 10px; font-size: 12px; font-weight: 700; font-family: 'Figtree', sans-serif; opacity: 0.85; }
         .ins-sugestao-usar:focus-visible,
         .ins-sugestao-nao:focus-visible {
             outline: 2px solid var(--cor-primaria);
@@ -2762,6 +2764,12 @@
 
         /* === TOAST === */
         #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 99999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+        /* Aviso com ação (Desfazer): o botão recebe o toque; o resto do aviso não. */
+        .toast-com-acao .toast-acao {
+            pointer-events: auto; margin-left: auto; flex-shrink: 0; min-height: 36px; padding: 0 12px;
+            border: 0; border-radius: 8px; background: rgba(255,255,255,0.18); color: inherit;
+            font: 700 13px 'Figtree', sans-serif; cursor: pointer; text-decoration: underline;
+        }
         .toast {
             display: flex;
             align-items: center;
@@ -3026,6 +3034,8 @@
         .lanc-chip.mais { border-style: dashed; color: var(--cor-texto-mutado); }
         .lanc-chip.mais.on { border-style: solid; }
         .lanc-chip.cartao { border-color: var(--cor-borda-amber); color: var(--cor-txt-amber); background: var(--cor-bg-amber); }
+        .lanc-parc-chips { gap: 6px; }
+        .lanc-parc-chips .lanc-chip { min-height: 36px; padding: 0 12px; font-size: 13px; }
         .lanc-oculto { display: none !important; }
         /* "Todas": a lista completa só aparece quando pedida. */
         #painelNovoLancamento select.lanc-lista { display: none; }
@@ -7768,6 +7778,24 @@
         .fab-opcao-txt { display: grid; gap: 2px; min-width: 0; }
         .fab-opcao-titulo { font-size: 13.5px; font-weight: 700; }
         .fab-opcao-sub { font-size: 11.5px; color: var(--cor-texto-mutado); line-height: 1.35; }
+        .fab-rapidos {
+            padding: 12px; border-radius: 14px; background: var(--cor-branco);
+            border: 1px solid var(--cor-borda); box-shadow: var(--shadow-hover);
+            animation: fabSobe 0.18s cubic-bezier(.34,1.4,.64,1) backwards;
+        }
+        .fab-rapidos-tit { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--cor-texto-mutado); margin: 0 2px 10px; }
+        .fab-rapidos-grade { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+        .fab-rapido {
+            display: flex; flex-direction: column; align-items: center; gap: 6px;
+            min-height: 64px; padding: 6px 2px; border: 0; border-radius: 12px; background: transparent;
+            font: 600 12px 'Figtree', sans-serif; color: var(--cor-texto-principal); cursor: pointer;
+        }
+        .fab-rapido:hover, .fab-rapido:focus-visible { background: var(--cor-superficie); outline: none; }
+        .fab-rapido-ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 18px; }
+        .fab-rapido-ic.desp { background: var(--cor-bg-erro, rgba(220,38,38,0.1)); color: var(--cor-erro); }
+        .fab-rapido-ic.rec { background: var(--cor-bg-primaria); color: var(--tinta-verde); }
+        .fab-rapido-ic.cart { background: var(--cor-bg-amber); color: var(--cor-txt-amber); }
+        .fab-rapido-ic.transf { background: var(--cor-bg-info); color: var(--tinta-azul); }
         #fabBackdrop {
             position: fixed; inset: 0; z-index: 9992;
             background: rgba(15,23,42,0.28); backdrop-filter: blur(2px);
@@ -11541,6 +11569,7 @@
             #controle .ext-campo select { width: 100%; max-width: none; min-height: 44px; border-radius: 12px; font-size: 16px !important; }
             #controle .page-actions > .btn-faturas { font-size: 0; width: 44px !important; padding: 0; }
             #controle .page-actions > .btn-faturas .ph-credit-card { font-size: 19px; }
+            #controle .page-actions > .btn-transferir { display: none !important; }
             /* Atalhos só com ícone: a palavra sai e o espaço entre ícone e
                texto (gap) também — com ele o ícone ficava fora do centro. */
             #controle .page-actions .btn-rotulo { display: none; }
@@ -11553,11 +11582,14 @@
             #controle [data-mob-aba="extrato"] > #mobExtResumo { order: 1; }
             #controle [data-mob-aba="extrato"] > #extratoBarra { order: 2; }
             #controle [data-mob-aba="extrato"] > div:first-child { order: 3; }
+            #controle [data-mob-aba="extrato"] > #extratoCategorias { order: 3; }
             #controle [data-mob-aba="extrato"] > #extratoAtivos { order: 4; }
             #controle [data-mob-aba="extrato"] > #extratoUnificado { order: 5; }
             #controle [data-mob-aba="extrato"] > #extratoVazio { order: 6; }
             #controle [data-mob-aba="extrato"] > #extratoRodape { order: 7; }
-            #controle #extratoCategorias, #controle #extratoFerramentas { display: none !important; }
+            /* As categorias voltam como faixa de deslizar (um toque filtra; antes:
+               Filtros → Categoria → Ver). A gaveta continua com ordem e conta. */
+            #controle #extratoFerramentas { display: none !important; }
             #controle .ext-barra { margin-bottom: 10px; }
             #controle .ext-busca { min-height: 46px; border-radius: 14px; border-width: 1px; padding: 0 14px; }
             #controle .ext-busca i { font-size: 18px; }
@@ -12018,6 +12050,7 @@
                 margin: 0 -16px; padding: 2px 16px 6px; scroll-padding: 0 16px; scrollbar-width: none;
             }
             .mp-fila::-webkit-scrollbar { display: none; }
+            .mp-card.fatura { cursor: pointer; }
             .mp-card {
                 flex: 0 0 156px; scroll-snap-align: start; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px;
                 background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 20px; padding: 14px;
@@ -12212,7 +12245,7 @@
                 list-style: none; margin: 0; padding: 0 14px;
                 background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 18px;
             }
-            .mi-mov { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--cor-borda); }
+            .mi-mov { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--cor-borda); cursor: pointer; }
             .mi-mov:last-child { border-bottom: 0; }
             .mi-mov-ic {
                 width: 40px; height: 40px; border-radius: 13px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
@@ -13678,13 +13711,17 @@
          lança no dia a dia são um movimento do mês e um aporte. -->
     <div id="fabBackdrop" hidden onclick="fecharMenuCadastro()" aria-hidden="true"></div>
     <div id="fabMenu" hidden role="menu" aria-labelledby="fabNovoLancamento">
-        <button type="button" class="fab-opcao" role="menuitem" onclick="cadastrarEm('lancamento')">
-            <span class="fab-opcao-icone lanc"><i class="ph-fill ph-receipt"></i></span>
-            <span class="fab-opcao-txt">
-                <span class="fab-opcao-titulo">Lançamento</span>
-                <span class="fab-opcao-sub">Receita, despesa ou fatura no Controle financeiro</span>
-            </span>
-        </button>
+        <!-- Os quatro lançamentos do dia a dia em um toque (avaliação de cliques,
+             11/2026): antes era "Lançamento" → escolher o tipo no formulário. -->
+        <div class="fab-rapidos" role="group" aria-labelledby="fabRapidosTit">
+            <span class="fab-rapidos-tit" id="fabRapidosTit">Lançar no Controle financeiro</span>
+            <div class="fab-rapidos-grade">
+                <button type="button" class="fab-rapido" role="menuitem" onclick="cadastrarEm('lancamento', 'saida')"><span class="fab-rapido-ic desp"><i class="ph-bold ph-minus"></i></span>Despesa</button>
+                <button type="button" class="fab-rapido" role="menuitem" onclick="cadastrarEm('lancamento', 'entrada')"><span class="fab-rapido-ic rec"><i class="ph-bold ph-plus"></i></span>Receita</button>
+                <button type="button" class="fab-rapido" role="menuitem" onclick="cadastrarEm('lancamento', 'cartao')"><span class="fab-rapido-ic cart"><i class="ph-bold ph-credit-card"></i></span>Cartão</button>
+                <button type="button" class="fab-rapido" role="menuitem" onclick="cadastrarTransferencia()"><span class="fab-rapido-ic transf"><i class="ph-bold ph-arrows-left-right"></i></span>Transferir</button>
+            </div>
+        </div>
         <button type="button" class="fab-opcao" role="menuitem" onclick="cadastrarEm('investimento')">
             <span class="fab-opcao-icone inv"><i class="ph-fill ph-trend-up"></i></span>
             <span class="fab-opcao-txt">
@@ -14517,7 +14554,11 @@
                     <button type="button" class="btn-secundario mob-olho" onclick="mobAlternarValores()" aria-label="Esconder ou mostrar valores"><i class="ph ph-eye"></i></button>
                     <button type="button" class="btn-secundario btn-faturas" onclick="abrirFaturas()" aria-label="Faturas do cartão"><i class="ph ph-credit-card" aria-hidden="true"></i><span class="btn-rotulo">Faturas</span></button>
                     <button type="button" class="btn-secundario btn-config" onclick="abrirModalConfig()" aria-label="Configurações"><i class="ph ph-sliders" aria-hidden="true"></i><span class="btn-rotulo">Configurações</span></button>
-                    <button class="btn-acao" onclick="abrirPainelLancamento()" style="background-color: var(--cor-primaria);"><i class="ph-bold ph-plus"></i> Novo lançamento</button>
+                    <!-- Transferir mora aqui também (antes só em Meu patrimônio); no
+                         celular ele está nos atalhos do Início e no "+". -->
+                    <button type="button" class="btn-secundario btn-transferir" onclick="abrirTransferenciaModal()" aria-label="Transferir entre contas"><i class="ph ph-arrows-left-right" aria-hidden="true"></i><span class="btn-rotulo">Transferir</span></button>
+                    <!-- Abre já em Saída, o lançamento mais comum (um clique a menos). -->
+                    <button class="btn-acao" onclick="novoLancamentoControle()" style="background-color: var(--cor-primaria);"><i class="ph-bold ph-plus"></i> Novo lançamento</button>
                 </div>
             </div>
 
@@ -14688,8 +14729,6 @@
                 <div id="acoesBannerSaldoMesAnt" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
             </div>
 
-            <div id="painelInsights" data-mob-aba="resumo"></div>
-
             <!-- Recolhido por padrão: seis contas a vencer empurravam a DRE
                  e o extrato para 150px mais abaixo, todo mês. O cabeçalho
                  mantém o que importa à distância (quantas e quanto), e a
@@ -14705,39 +14744,11 @@
                 <div id="listaVencimentosContainer" class="vencimentos-grid"></div>
             </div>
 
-            <div data-mob-aba="resumo" class="ctrl-saude-composicao" style="display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:20px;align-items:stretch;">
-                <div class="thermo-card" id="painelTermometro" style="margin-bottom:0; min-width: 0;">
-                    <div class="thermo-head">
-                        <div class="thermo-title"><i class="ph ph-thermometer"></i> Saúde financeira — Regra dos 60%</div>
-                        <span id="badgeStatus60" class="badge badge-status-ok">Sem dados</span>
-                    </div>
-                    <p id="msgContextual60" style="font-size:12.5px;color:var(--cor-texto-mutado);margin-bottom:12px;">Adicione receitas e despesas para visualizar seu limite de segurança.</p>
-                    <div class="bar-wrap">
-                        <div id="barTermometro60" class="bar-fill" style="width:0%;background:var(--cor-texto-mutado);"></div>
-                        <div class="bar-mark"></div>
-                    </div>
-                    <div class="bar-labels"><span>0%</span><span class="bar-label-limit">limite 60%</span><span style="margin-left:auto">100%</span></div>
-                    <div class="thermo-stats">
-                        <div class="t-stat"><div class="t-stat-lbl">Consumo atual</div><div class="t-stat-val" id="lblGasto60">R$ 0,00</div></div>
-                        <div class="t-stat"><div class="t-stat-lbl">Limite seguro (60%)</div><div class="t-stat-val" id="lblReceita60">R$ 0,00</div></div>
-                        <div class="t-stat"><div class="t-stat-lbl">Percentual</div><div class="t-stat-val"><span id="lblPerc60">0</span>%</div></div>
-                    </div>
-                </div>
-                <div class="card-container" style="margin-bottom:0; min-width: 0;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-                        <h4 style="font-size:12px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.4px;margin:0;">Composição do mês</h4>
-                        <select id="agrupamentoComposicao" onchange="setAgrupamentoComposicao(this.value)" style="font-size:11px;padding:4px 8px;border:1px solid var(--cor-borda);border-radius:8px;background-color:var(--cor-branco);color:var(--cor-texto-principal);cursor:pointer;">
-                            <option value="contabil">Por Categoria</option>
-                            <option value="despesa">Por Categoria da Despesa</option>
-                        </select>
-                    </div>
-                    <div class="grafico-container" style="height:180px;margin-top:0;"><canvas id="graficoComposicao"></canvas></div>
-                    <div style="text-align:center;margin-top:8px;font-size:12px;color:var(--cor-texto-mutado);" id="legendaPizzaVazia">Adicione receitas e despesas para visualizar.</div>
-                </div>
-            </div>
-
-            <div id="mobInicioFim" class="mob-inicio" data-mob-aba="resumo"></div>
-
+            <!-- No computador o que se usa todo dia vem logo depois dos números:
+                 vencimentos, extrato e o formulário; análise (O que notamos, saúde,
+                 composição) fica abaixo. Antes o extrato começava a ~1.500 px do
+                 topo (avaliação de cliques, 11/2026). No celular cada bloco mora na
+                 sua aba (data-mob-aba), e a ordem aqui não muda nada lá. -->
             <div style="margin-bottom:20px;">
 
                 <div class="card-container" data-mob-aba="extrato" style="margin-bottom:0;display:flex;flex-direction:column; min-width: 0;">
@@ -14906,6 +14917,9 @@
                              hoje começa na 1 e não precisa da pergunta; quem já está pagando
                              responde com as palavras da fatura do banco ("Parcela 2/10"). -->
                         <div class="lanc-parcelas" id="grupoParcelas" style="display:none;">
+                            <!-- Os parcelamentos comuns em um toque (10x custava 9 toques no +).
+                                 O − / + continua para o número que não está aqui. -->
+                            <div class="lanc-chips lanc-parc-chips" id="lancParcChips" role="group" aria-label="Número de parcelas"></div>
                             <div class="lanc-linha">
                                 <label for="qtdParcelas">Parcelas</label>
                                 <div class="lanc-step"><button type="button" aria-label="Menos uma parcela" onclick="lancUiPasso('qtdParcelas', -1)">−</button><input type="number" id="qtdParcelas" value="1" min="1" max="48" inputmode="numeric" oninput="atualizarParcelaInicialUI(); atualizarResumoFatura()"><button type="button" aria-label="Mais uma parcela" onclick="lancUiPasso('qtdParcelas', 1)">+</button></div>
@@ -15025,6 +15039,41 @@
                     <button class="btn-secundario" id="btnCancelarEdicao" onclick="cancelarEdicaoControle()" style="display:none;width:100%;margin-top:10px;"><i class="ph ph-x"></i> Cancelar edição</button>
                 </div>
             </div>
+
+            <div id="painelInsights" data-mob-aba="resumo"></div>
+
+            <div data-mob-aba="resumo" class="ctrl-saude-composicao" style="display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:20px;align-items:stretch;">
+                <div class="thermo-card" id="painelTermometro" style="margin-bottom:0; min-width: 0;">
+                    <div class="thermo-head">
+                        <div class="thermo-title"><i class="ph ph-thermometer"></i> Saúde financeira — Regra dos 60%</div>
+                        <span id="badgeStatus60" class="badge badge-status-ok">Sem dados</span>
+                    </div>
+                    <p id="msgContextual60" style="font-size:12.5px;color:var(--cor-texto-mutado);margin-bottom:12px;">Adicione receitas e despesas para visualizar seu limite de segurança.</p>
+                    <div class="bar-wrap">
+                        <div id="barTermometro60" class="bar-fill" style="width:0%;background:var(--cor-texto-mutado);"></div>
+                        <div class="bar-mark"></div>
+                    </div>
+                    <div class="bar-labels"><span>0%</span><span class="bar-label-limit">limite 60%</span><span style="margin-left:auto">100%</span></div>
+                    <div class="thermo-stats">
+                        <div class="t-stat"><div class="t-stat-lbl">Consumo atual</div><div class="t-stat-val" id="lblGasto60">R$ 0,00</div></div>
+                        <div class="t-stat"><div class="t-stat-lbl">Limite seguro (60%)</div><div class="t-stat-val" id="lblReceita60">R$ 0,00</div></div>
+                        <div class="t-stat"><div class="t-stat-lbl">Percentual</div><div class="t-stat-val"><span id="lblPerc60">0</span>%</div></div>
+                    </div>
+                </div>
+                <div class="card-container" style="margin-bottom:0; min-width: 0;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+                        <h4 style="font-size:12px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.4px;margin:0;">Composição do mês</h4>
+                        <select id="agrupamentoComposicao" onchange="setAgrupamentoComposicao(this.value)" style="font-size:11px;padding:4px 8px;border:1px solid var(--cor-borda);border-radius:8px;background-color:var(--cor-branco);color:var(--cor-texto-principal);cursor:pointer;">
+                            <option value="contabil">Por Categoria</option>
+                            <option value="despesa">Por Categoria da Despesa</option>
+                        </select>
+                    </div>
+                    <div class="grafico-container" style="height:180px;margin-top:0;"><canvas id="graficoComposicao"></canvas></div>
+                    <div style="text-align:center;margin-top:8px;font-size:12px;color:var(--cor-texto-mutado);" id="legendaPizzaVazia">Adicione receitas e despesas para visualizar.</div>
+                </div>
+            </div>
+
+            <div id="mobInicioFim" class="mob-inicio" data-mob-aba="resumo"></div>
 
             <div data-mob-aba="projecao" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:12px;">
                 <h2 style="font-size:15px;font-weight:600;color:var(--cor-texto-principal);margin:0;display:flex;align-items:center;gap:7px;"><i class="ph ph-calendar-check" style="color:var(--cor-info);font-size:18px;"></i> Projeção de caixa (DRE)</h2>
@@ -16992,17 +17041,17 @@
     <!-- Utilities extraídas de app.js — carregadas SÍNCRONO antes de app.js
          para que parseBRL, mostrarToast, etc. estejam disponíveis nos IIFEs
          de parse-time. Bump no ?v= ao mexer no arquivo (cache-bust manual). -->
-    <script src="/web/appliquei-utils.js?v=storage-proto"></script>
+    <script src="/web/appliquei-utils.js?v=menos-cliques-1"></script>
     <!-- Yahoo Finance proxy + base de dados de ativos. Sem deps em
          state da app — pode carregar antes ou depois de app.js. -->
     <script src="/web/appliquei-catalogo-b3.js?v=catalogo1"></script>
     <script src="/web/appliquei-yahoo-finance.js?v=catalogo1"></script>
-    <script src="/web/appliquei-app.js?v=form-lancamento-1"></script>
+    <script src="/web/appliquei-app.js?v=menos-cliques-1"></script>
     <script src="/web/appliquei-combobox.js?v=combo-rolagem"></script>
     <!-- Contas / Instituições financeiras (entidade central). Carrega logo
          após app.js: usa transacoes/historicoCompras p/ o seed inicial e
          expõe `contas` + CRUD p/ os módulos seguintes. -->
-    <script src="/web/appliquei-contas.js?v=conferir-saldo-1"></script>
+    <script src="/web/appliquei-contas.js?v=menos-cliques-1"></script>
     <!-- ABA 1 sub-sistemas — todos consumidos pelo window.onload em app.js
          ou por user action depois. Function declarations => globais. -->
     <script src="/web/appliquei-aba1-charts.js?v=onda5-evolucao"></script>
@@ -17026,13 +17075,13 @@
     <script src="/web/appliquei-desempenho.js?v=fase4"></script>
     <script src="/web/appliquei-ir.js?v=fase4"></script>
     <script src="/web/appliquei-insights.js?v=insights-1"></script>
-    <script src="/web/appliquei-aba-controle-financeiro.js?v=pagou-com-1"></script>
+    <script src="/web/appliquei-aba-controle-financeiro.js?v=menos-cliques-1"></script>
     <script src="/web/appliquei-faturas.js?v=fatura-excluir-1"></script>
     <script src="/web/appliquei-categorias-palavras.js?v=importar-fatura-6"></script>
     <script src="/web/appliquei-importar-fatura.js?v=importar-fatura-6"></script>
     <script src="/web/appliquei-importar-fatura-ui.js?v=importar-fatura-6"></script>
-    <script src="/web/appliquei-lancamento-ui.js?v=pagou-com-1"></script>
-    <script src="/web/appliquei-insights-ui.js?v=inicio-mob"></script>
+    <script src="/web/appliquei-lancamento-ui.js?v=menos-cliques-1"></script>
+    <script src="/web/appliquei-insights-ui.js?v=menos-cliques-1"></script>
     <script src="/web/appliquei-relatorio-mensal.js?v=detalhe-categorias"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
     <script src="/web/appliquei-duvidas.js?v=termos-1"></script>
@@ -17048,7 +17097,7 @@
          historicoCompras, bens e sonhos para saber quais passos já estão
          feitos — todos declarados nos arquivos acima. -->
     <script src="/web/appliquei-primeiros-passos.js?v=boas-vindas-telegram"></script>
-    <script src="/web/appliquei-mobile.js?v=conferir-saldo-1"></script>
+    <script src="/web/appliquei-mobile.js?v=menos-cliques-1"></script>
     <script src="/web/appliquei-termos.js?v=termos-1"></script>
     <script src="/web/appliquei-excluir-conta.js?v=excluir-1"></script>
     <script src="/web/appliquei-privacidade.js?v=termos-1"></script>

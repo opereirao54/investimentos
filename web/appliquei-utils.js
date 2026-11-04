@@ -229,6 +229,45 @@ function mostrarToast(mensagem, tipo = 'sucesso', duracao = 3500) {
   }, duracao);
 }
 
+/**
+ * Aviso com "Desfazer". Para ações reversíveis que dispensam a janela de
+ * confirmação (um toque a menos): o desfazer fica à vista por `duracao` ms.
+ * `aoDesfazer` roda no máximo uma vez.
+ */
+function mostrarToastDesfazer(mensagem, aoDesfazer, duracao = 7000) {
+  const container = document.getElementById('toast-container');
+  if (!container) return null;
+  const toast = document.createElement('div');
+  toast.className = 'toast toast-aviso toast-com-acao';
+  toast.setAttribute('role', 'status');
+  toast.innerHTML = `<i class="ph-fill ph-trash"></i><span>${mensagem}</span>`;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'toast-acao';
+  btn.textContent = 'Desfazer';
+  let feito = false;
+  const sair = () => {
+    if (!toast.isConnected || toast.classList.contains('saindo')) return;
+    toast.classList.add('saindo');
+    toast.addEventListener('animationend', () => toast.remove());
+    setTimeout(() => toast.remove(), 600);
+  };
+  btn.addEventListener('click', () => {
+    if (feito) return;
+    feito = true;
+    sair();
+    try {
+      aoDesfazer();
+    } catch (e) {
+      console.error('[desfazer]', e);
+    }
+  });
+  toast.appendChild(btn);
+  container.appendChild(toast);
+  setTimeout(sair, duracao);
+  return toast;
+}
+
 // --- EXPORTAÇÃO / IMPORTAÇÃO ---
 function exportarDados() {
   const dados = {

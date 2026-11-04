@@ -157,6 +157,16 @@ function _lancRenderContas(tipo) {
   if (!host || !inp) return;
   var nomes = tipo === 'entrada' || tipo === 'saida' ? lancUiContasDestaque(tipo) : [];
   var valor = (inp.value || '').trim();
+  // A conta escolhida (ou lembrada) é sempre um botão, mesmo fora das 3 de
+  // destaque: senão ela aparecia como texto livre, parecendo conta nova.
+  if (
+    nomes.length &&
+    valor &&
+    nomes.indexOf(valor) === -1 &&
+    _lancContasAtivasNomes().indexOf(valor) !== -1
+  ) {
+    nomes = [valor].concat(nomes).slice(0, LANC_UI_MAX_CHIPS);
+  }
   var naLista = nomes.indexOf(valor) !== -1;
   // Sem conta cadastrada, ou um nome que não é botão: o campo de texto aparece.
   var digitar = !nomes.length || lancUiContaOutra || (valor && !naLista);
@@ -181,11 +191,120 @@ function _lancRenderContas(tipo) {
   if (dica) dica.classList.toggle('lanc-oculto', !digitar);
 }
 
+// ── Conta lembrada ───────────────────────────────────────────────────────
+//
+// Avaliação de cliques (docs/AVALIACAO-CLIQUES-CONTROLE-2026-11.md): tocar
+// na conta era o toque a mais de todo gasto e de toda receita, mesmo para
+// quem só tem uma conta. Num lançamento NOVO a conta já vem escolhida — a
+// do último lançamento do mesmo tipo (entrada × saída), ou a única conta —
+// e o botão dela aparece aceso, trocando com um toque. Nada é escolhido em
+// edição: lá a conta é a do lançamento.
+
+/** 'entrada' | 'saida' | '' de um lançamento salvo. */
+function _lancTipoDe(t) {
+  var c = (t && t.categoria) || '';
+  if (c === 'receita') return 'entrada';
+  if (c === 'despesa_fixa' || c === 'despesa_variavel') return 'saida';
+  return '';
+}
+
+/** Nomes das contas ativas que recebem lançamento (corretora fica de fora). */
+function _lancContasAtivasNomes() {
+  if (typeof contasAtivas !== 'function') return [];
+  return contasAtivas()
+    .filter(function (c) {
+      return c && c.nome && c.tipo !== 'corretora';
+    })
+    .map(function (c) {
+      return c.nome;
+    });
+}
+
+/** Nome da conta de um lançamento salvo, se ela ainda está ativa. */
+function _lancContaDe(t, ativas) {
+  if (!t) return '';
+  var nome = '';
+  if (t.contaId && typeof obterConta === 'function') {
+    var c = obterConta(t.contaId);
+    if (c) nome = c.nome;
+  }
+  if (!nome) nome = t.banco || '';
+  return ativas.indexOf(nome) !== -1 ? nome : '';
+}
+
+/**
+ * A conta que um lançamento novo deste tipo já traz escolhida. Com
+ * `descricao`, procura antes o último lançamento com o MESMO nome ("Mercado"
+ * sai sempre do Nubank) e só depois o último do tipo. '' quando não há o que
+ * lembrar e a pessoa tem mais de uma conta.
+ */
+function lancUiContaLembrada(tipo, lista, descricao) {
+  if (tipo !== 'entrada' && tipo !== 'saida') return '';
+  var ativas = _lancContasAtivasNomes();
+  if (!ativas.length) return '';
+  var norma = function (s) {
+    var M = typeof window !== 'undefined' ? window.AppliqueiInsights : null;
+    return M && M.normalizarDescricao
+      ? M.normalizarDescricao(s || '')
+      : String(s || '')
+          .trim()
+          .toLowerCase();
+  };
+  var alvo = descricao ? norma(descricao) : '';
+  var arr = Array.isArray(lista) ? lista : [];
+  var doTipo = '';
+  for (var i = arr.length - 1; i >= 0; i--) {
+    var t = arr[i];
+    if (!t || t.transferenciaId || _lancTipoDe(t) !== tipo) continue;
+    var nome = _lancContaDe(t, ativas);
+    if (!nome) continue;
+    // Série repetida guarda "(3/12)" no nome; a comparação é pela raiz.
+    if (alvo && norma(String(t.descricao || '').replace(/\s*\(\d+\/\d+\)\s*$/, '')) === alvo)
+      return nome;
+    if (!doTipo) doTipo = nome;
+    if (!alvo) break;
+  }
+  if (descricao) return '';
+  return doTipo || (ativas.length === 1 ? ativas[0] : '');
+}
+
+/** A conta preenchida por lancUiContaLembrada (não pela pessoa). */
+var lancUiContaAuto = false;
+/** A pessoa mexeu na conta (tocou, digitou, apagou): a lembrança para. */
+var lancUiContaTocada = false;
+
+/**
+ * Preenche a conta de um lançamento NOVO, se a pessoa ainda não escolheu.
+ * Com `descricao`, troca uma conta que veio sozinha pela do último lançamento
+ * de mesmo nome; nunca troca a que a pessoa tocou.
+ */
+function lancUiAplicarContaLembrada(descricao) {
+  var inp = _lancEl('bancoTransacao');
+  if (!inp) return;
+  if (((_lancEl('editTransacaoId') || {}).value || '').trim()) return;
+  if (lancUiContaTocada) return;
+  var atual = (inp.value || '').trim();
+  if (atual && !lancUiContaAuto) return;
+  var nome = lancUiContaLembrada(
+    lancUiTipo(),
+    typeof transacoes !== 'undefined' ? transacoes : [],
+    descricao
+  );
+  if (!nome || nome === atual) return;
+  inp.value = nome;
+  lancUiContaAuto = true;
+  lancUiContaOutra = false;
+  if (typeof avisarContaNovaTransacao === 'function') avisarContaNovaTransacao();
+  lancUiSincronizar();
+}
+
 function lancUiEscolherConta(nome) {
   var inp = _lancEl('bancoTransacao');
   if (!inp) return;
   inp.value = nome;
   lancUiContaOutra = false;
+  lancUiContaAuto = false;
+  lancUiContaTocada = true;
   var host = _lancEl('lancContaChips');
   if (host) host.classList.remove('lanc-falta');
   if (typeof avisarContaNovaTransacao === 'function') avisarContaNovaTransacao();
@@ -209,6 +328,8 @@ function lancUiPedirConta() {
 
 function lancUiOutraConta() {
   lancUiContaOutra = true;
+  lancUiContaAuto = false;
+  lancUiContaTocada = true;
   lancUiSincronizar();
   var inp = _lancEl('bancoTransacao');
   if (inp) inp.focus();
@@ -273,6 +394,29 @@ function lancUiEscolherCartao(id) {
 }
 
 // ── Tipo de gasto, parcelas, observação ──────────────────────────────────
+
+/** Parcelamentos em um toque; o − / + cobre o resto (até 48). */
+var LANC_UI_PARCELAS = [1, 2, 3, 6, 10, 12];
+
+function _lancRenderParcelas() {
+  var host = _lancEl('lancParcChips');
+  var inp = _lancEl('qtdParcelas');
+  if (!host || !inp) return;
+  var n = parseInt(inp.value, 10) || 1;
+  host.innerHTML = LANC_UI_PARCELAS.map(function (p) {
+    return _lancChip(p === 1 ? 'À vista' : p + 'x', p === n, 'lancUiEscolherParcelas', p);
+  }).join('');
+}
+
+function lancUiEscolherParcelas(n) {
+  var inp = _lancEl('qtdParcelas');
+  if (!inp) return;
+  var v = Math.max(1, Math.min(parseInt(inp.max, 10) || 48, parseInt(n, 10) || 1));
+  if ((parseInt(inp.value, 10) || 1) === v) return;
+  inp.value = v;
+  inp.dispatchEvent(new Event('input', { bubbles: true }));
+  lancUiSincronizar();
+}
 
 function lancUiTipoGasto(cat) {
   var sel = _lancEl('categoriaTransacao');
@@ -420,7 +564,10 @@ function lancUiSincronizar() {
 
   _lancRenderCategorias();
   _lancRenderContas(tipo);
-  if (tipo === 'cartao') _lancRenderCartoes();
+  if (tipo === 'cartao') {
+    _lancRenderCartoes();
+    _lancRenderParcelas();
+  }
 
   var obs = _lancEl('obsTransacao');
   var grupoObs = _lancEl('grupoObs');
@@ -449,6 +596,8 @@ function lancUiReiniciar() {
   lancUiCatAberta = false;
   lancUiContaOutra = false;
   lancUiObsAberta = false;
+  lancUiContaAuto = false;
+  lancUiContaTocada = false;
   var grupo = _lancEl('grupoParcelaInicial');
   if (grupo) grupo.dataset.aberto = '';
   lancUiSincronizar();
@@ -461,6 +610,13 @@ function lancUiLigar() {
   ['click', 'input', 'change'].forEach(function (ev) {
     painel.addEventListener(ev, lancUiAgendar);
   });
+  // Digitar no nome da conta é escolher: a conta lembrada não a troca mais.
+  var banco = _lancEl('bancoTransacao');
+  if (banco)
+    banco.addEventListener('input', function () {
+      lancUiContaAuto = false;
+      lancUiContaTocada = true;
+    });
   lancUiSincronizar();
 }
 
@@ -474,5 +630,6 @@ if (typeof module !== 'undefined' && module.exports) {
     lancUiCategoriasDestaque: lancUiCategoriasDestaque,
     lancUiResumo: lancUiResumo,
     lancUiCartoesPagouCom: lancUiCartoesPagouCom,
+    lancUiContaLembrada: lancUiContaLembrada,
   };
 }

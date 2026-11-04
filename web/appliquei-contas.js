@@ -897,7 +897,11 @@ function abrirTransferenciaModal() {
     '<div style="display:flex;flex-direction:column;gap:10px;text-align:left;">' +
     campo(
       'De',
-      '<select id="transfOrigem" style="' + estiloCtrl + '">' + optsOrigem + '</select>'
+      '<select id="transfOrigem" onchange="transfOrigemMudou()" style="' +
+        estiloCtrl +
+        '">' +
+        optsOrigem +
+        '</select>'
     ) +
     campo(
       'Para',
@@ -930,6 +934,18 @@ function abrirTransferenciaModal() {
     if (outra) dst.value = outra.id;
   }
   modal.style.display = 'flex';
+}
+
+// Trocou o "De" para a conta que estava no "Para": o "Para" passa para outra,
+// em vez de deixar a pessoa montar uma transferência da conta para ela mesma.
+function transfOrigemMudou() {
+  const org = document.getElementById('transfOrigem');
+  const dst = document.getElementById('transfDestino');
+  if (!org || !dst || org.value !== dst.value) return;
+  const outra = Array.prototype.find.call(dst.options, function (o) {
+    return o.value && o.value !== org.value;
+  });
+  if (outra) dst.value = outra.value;
 }
 
 // Lógica pura (testável): cria o par de transações balanceado. Retorna
@@ -1053,5 +1069,6 @@ if (typeof window !== 'undefined') {
   window.confirmarFusaoUI = confirmarFusaoUI;
   window.abrirTransferenciaModal = abrirTransferenciaModal;
   window.confirmarTransferencia = confirmarTransferencia;
+  window.transfOrigemMudou = transfOrigemMudou;
   window.criarTransferencia = criarTransferencia;
 }

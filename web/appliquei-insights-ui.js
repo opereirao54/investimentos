@@ -1102,6 +1102,9 @@ function insightsSugestaoAvaliar() {
 
   var texto = (campo.value || '').trim();
   if (texto.length < 3) return insightsSugestaoLimpar();
+  // "Mercado" sai sempre do Nubank: a conta do último lançamento com esse nome
+  // vem junto (só troca a conta que veio sozinha, nunca a que a pessoa tocou).
+  if (typeof lancUiAplicarContaLembrada === 'function') lancUiAplicarContaLembrada(texto);
   if (insightsSugestaoRecusada[M.normalizarDescricao(texto)]) return insightsSugestaoLimpar();
 
   var sug;
@@ -1117,6 +1120,25 @@ function insightsSugestaoAvaliar() {
   insightsSugestaoAtual = sug;
   // Só a categoria: o tipo continua sendo o que a pessoa escolheu.
   var alvo = insightsUiRotuloCategoria(sug.categoriaDespesa);
+
+  // Mesmo nome de antes e nenhuma categoria escolhida ainda: aplica direto
+  // (era um toque a mais em todo gasto repetido — avaliação de cliques de
+  // 11/2026). Diz o que fez e deixa desfazer; categoria escolhida pela pessoa
+  // continua só recebendo o "Usar".
+  var selDesp = document.getElementById('categoriaDespesa');
+  if (sug.via === 'exata' && selDesp && !selDesp.value) {
+    selDesp.value = sug.categoriaDespesa;
+    if (typeof lancUiSincronizar === 'function') lancUiSincronizar();
+    host.innerHTML =
+      '<div class="ins-sugestao ins-sugestao-aplicada">' +
+      '<i class="ph-fill ph-sparkle ins-sugestao-icone"></i>' +
+      '<div class="ins-sugestao-txt">Categoria <b>' +
+      insightsUiEscapar(alvo) +
+      '</b>, como das outras vezes</div>' +
+      '<button type="button" class="ins-sugestao-nao" onclick="insightsSugestaoDesfazer()">Desfazer</button>' +
+      '</div>';
+    return;
+  }
 
   host.innerHTML =
     '<div class="ins-sugestao">' +
@@ -1163,6 +1185,15 @@ function insightsSugestaoUsar() {
   if (typeof mostrarToast === 'function') {
     mostrarToast('Categoria preenchida — confira antes de salvar.', 'info');
   }
+}
+
+/** Desfaz a categoria aplicada sozinha e não insiste nesta descrição. */
+function insightsSugestaoDesfazer() {
+  var sug = insightsSugestaoAtual;
+  var selDesp = document.getElementById('categoriaDespesa');
+  if (sug && selDesp && selDesp.value === sug.categoriaDespesa) selDesp.value = '';
+  insightsSugestaoRecusar();
+  if (typeof lancUiSincronizar === 'function') lancUiSincronizar();
 }
 
 /** "Não" vale para esta descrição até a página recarregar. */

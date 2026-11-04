@@ -2821,6 +2821,10 @@ function vencDeveAbrir(estado) {
   if (e.temAtraso || e.temHoje) return true;
   if (e.salvo === '1') return true;
   if (e.salvo === '0') return false;
+  // Sem escolha salva: abre quando algo vence nos próximos 7 dias. Recolhido,
+  // pagar começava por rolar até o cabeçalho e abri-lo (avaliação de cliques,
+  // 11/2026); quem fechar o painel continua com ele fechado.
+  if (e.temSemana) return true;
   return false;
 }
 
@@ -3189,6 +3193,10 @@ function deletarTransacao(idStr) {
             <button class="btn-acao" style="background-color: var(--cor-texto-principal);" onclick="executarDelecao('unica')"><i class="ph ph-target"></i> Excluir apenas este mês</button>
             <button class="btn-acao" style="background-color: var(--cor-erro);" onclick="executarDelecao('todas')"><i class="ph ph-trash"></i> Excluir este e os futuros</button>
         `;
+  } else if (controleExclusaoDesfazivel(transacao)) {
+    // Avulso: exclui na hora e oferece "Desfazer" no aviso (a confirmação
+    // custava um toque em toda exclusão — avaliação de cliques, 11/2026).
+    return executarDelecao('unica');
   } else {
     msg.innerHTML = `Tem certeza de que deseja excluir o lançamento <strong>"${transacao.descricao}"</strong>?`;
     acoes.innerHTML = `
@@ -3196,6 +3204,19 @@ function deletarTransacao(idStr) {
         `;
   }
   modal.style.display = 'flex';
+}
+
+/**
+ * Pode sair sem confirmação, com "Desfazer"? Só o lançamento sozinho e
+ * simples: sem série (a pergunta "só este mês / os futuros" continua), sem
+ * sonho, sem transferência (é um par), sem aporte vinculado e sem parcela de
+ * cartão. Pura para poder ser testada.
+ */
+function controleExclusaoDesfazivel(t) {
+  if (!t || t.groupId || t.sonhoId || t.transferenciaId) return false;
+  if (t.operacaoId || t.compromissoId || t.aporteId || t.aporteVinculadoId) return false;
+  if (t.categoria === 'cartao_credito' && /\(\d+\/\d+\)\s*$/.test(t.descricao || '')) return false;
+  return true;
 }
 
 function fecharModal() {
@@ -3206,6 +3227,7 @@ function fecharModal() {
 function executarDelecao(modo) {
   if (!itemParaDeletar) return;
   if (itemParaDeletar.sonhoId) return avisarExclusaoParcelaSonho(itemParaDeletar);
+  const transacoesAntesExclusao = transacoes;
   if (modo === 'todas') {
     transacoes = transacoes.filter(
       (t) =>
@@ -3219,8 +3241,20 @@ function executarDelecao(modo) {
     transacoes = transacoes.filter((t) => t.id != itemParaDeletar.id);
   }
   const excluidoId = itemParaDeletar.id;
+  const excluido = itemParaDeletar;
+  const posicao = transacoesAntesExclusao.findIndex((t) => t.id == excluidoId);
   salvarTransacoes();
-  mostrarToast('Lançamento excluído.', 'aviso');
+  if (
+    modo === 'unica' &&
+    controleExclusaoDesfazivel(excluido) &&
+    typeof mostrarToastDesfazer === 'function'
+  ) {
+    mostrarToastDesfazer(`"${excluido.descricao}" excluído.`, () =>
+      desfazerExclusaoLancamento(excluido, posicao)
+    );
+  } else {
+    mostrarToast('Lançamento excluído.', 'aviso');
+  }
   fecharModal();
   // Excluído pelo formulário de edição: o formulário não pode continuar
   // editando um lançamento que não existe mais.
@@ -3229,6 +3263,21 @@ function executarDelecao(modo) {
     cancelarEdicaoControle();
     if (typeof fecharPainelLancamento === 'function') fecharPainelLancamento();
   }
+  atualizarTelaControle();
+  atualizarDatalistDescricoes();
+  if (typeof faturasAtualizarSeAberta === 'function') faturasAtualizarSeAberta();
+}
+
+/**
+ * "Desfazer" do aviso: devolve o lançamento como estava, na mesma posição da
+ * lista. Se ele já voltou (outro aparelho, toque duplo), não duplica.
+ */
+function desfazerExclusaoLancamento(t, posicao) {
+  if (!t || transacoes.some((x) => x.id == t.id)) return;
+  const i = posicao >= 0 && posicao <= transacoes.length ? posicao : transacoes.length;
+  transacoes.splice(i, 0, t);
+  if (!salvarTransacoes()) return;
+  mostrarToast('Lançamento de volta.', 'sucesso');
   atualizarTelaControle();
   atualizarDatalistDescricoes();
   if (typeof faturasAtualizarSeAberta === 'function') faturasAtualizarSeAberta();
@@ -3980,11 +4029,16 @@ function atualizarTelaControle() {
   });
 
   painelVenc.style.display = qtdVencimentos > 0 ? 'block' : 'none';
+  const daquiUmaSemana = new Date(hojeObj.getFullYear(), hojeObj.getMonth(), hojeObj.getDate() + 7);
+  const semanaStr = `${daquiUmaSemana.getFullYear()}-${String(daquiUmaSemana.getMonth() + 1).padStart(2, '0')}-${String(daquiUmaSemana.getDate()).padStart(2, '0')}`;
   atualizarCabecalhoVencimentos({
     qtd: qtdVencimentos,
     total: totalVencimentos,
     temHoje: temVencimentoHoje,
     temAtraso: temContaVencida,
+    temSemana: contasComVencimento.some(
+      (t) => t.dataVencimento >= hojeStr && t.dataVencimento <= semanaStr
+    ),
   });
   if (bannerAlertaHoje) bannerAlertaHoje.style.display = temVencimentoHoje ? 'flex' : 'none';
   if (bannerAlertaAtraso) bannerAlertaAtraso.style.display = temContaVencida ? 'flex' : 'none';
