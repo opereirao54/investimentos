@@ -1,30 +1,33 @@
 [
   [
     0.2,
-    8.8,
-    "Hoje o Copom decide a Selic: treze e setenta e cinco, ou treze e meio. E o Mateus já tá esperando os juros caírem pra parcelar a TV."
-  ],
-  [9.2, 13.8, "O mercado tá dividido. Mas, no seu bolso, quanto vale um quarto de ponto?"],
-  [
-    14.2,
-    21.7,
-    "Na poupança, nada muda. Com a Selic acima de oito e meio, ela rende meio por cento ao mês mais a TR, com corte ou sem corte."
+    6.38,
+    "Hoje o Copom decide os juros do país. Mas o juro que mais te machuca não é decidido lá."
   ],
   [
-    22.1,
-    29.3,
-    "Num CDB de cem por cento do CDI, um quarto de ponto muda uns vinte e cinco reais por ano em cada dez mil reais, antes do imposto."
+    6.73,
+    12.02,
+    "O Mateus tem mil reais na poupança. E deixou mil reais da fatura do cartão pra depois."
   ],
   [
-    29.7,
-    37.5,
-    "Agora a dívida. O rotativo do cartão cobra mais de quatrocentos e cinquenta por cento ao ano. Um quarto de ponto nem aparece nessa conta."
+    12.37,
+    17.9,
+    "No mês, a poupança pagou pra ele uns sete reais. O cartão cobrou cento e cinquenta e três."
   ],
-  [37.9, 42.1, "O Caio não espera o Copom. Ele paga a fatura inteira e nem entra nesse juro."],
   [
-    42.5,
-    48.7,
-    "Regra de bolso: a Selic mexe em centavos. O juro da dívida mexe em centenas. Comece por ela."
+    18.25,
+    26.1,
+    "Ou seja: ele empresta pro banco barato, e pega de volta caríssimo. E a Selic cair um quarto de ponto não muda nada disso."
   ],
-  [49.1, 52.7, "Manda pra quem tá esperando os juros caírem. E segue o Appliquei."]
+  [
+    26.45,
+    34.43,
+    "O Caio, na mesma situação, usou a poupança pra quitar o cartão. Deixou de ganhar sete reais pra parar de pagar cento e cinquenta e três."
+  ],
+  [
+    34.78,
+    40.4,
+    "Regra de bolso: dinheiro guardado com dívida no cartão não é reserva. É prejuízo."
+  ],
+  [40.75, 45.04, "Manda pra quem guarda dinheiro e paga juros no cartão. E segue o Appliquei."]
 ]

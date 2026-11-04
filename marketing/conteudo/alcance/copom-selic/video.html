@@ -1,12 +1,10 @@
 <!doctype html>
 <!--
-  Appliquei News #2 (≈53 s, 1080×1920): "13,75% ou 13,50%? Quanto vale um
-  quarto de ponto no seu bolso". Feito para servir com qualquer decisão do
-  Copom de 04/11/2026 (corte de 0,25 ou manutenção). Apartidário e sem
-  recomendação de investimento: explica o mecanismo. Mateus é o mau exemplo
-  (espera os juros caírem para parcelar), Caio o bom. O app não aparece.
-  Números em LEIAME.md. Tempos das animações saem do próprio texto da
-  narração (posição da palavra na frase), então mudar narracao.json basta.
+  Appliquei News #2 (≈45 s + vinheta, 1080×1920): "O banco te paga 7 e te
+  cobra 153". Dia do Copom (04/11/2026), vale para qualquer decisão. Mateus
+  guarda R$ 1.000 na poupança e rola R$ 1.000 da fatura; Caio quita. Voz
+  Sulafat. Apartidário, sem recomendação de investimento. Os tempos das
+  animações saem do narracao.json (posição da palavra na frase).
 -->
 <html lang="pt-BR">
 <head>
@@ -89,13 +87,22 @@
   .tag-m { position: absolute; right: 30px; top: -28px; padding: 8px 20px; border-radius: 99px; background: var(--azul); color: #082f49; font-size: 28px; font-weight: 900; }
   .dif { position: absolute; left: 0; right: 0; top: 1370px; text-align: center; font-family: 'DM Mono', monospace; font-size: 64px; color: var(--vermelho); }
 
-    /* regra e fecho (iguais ao News #1) */
+    .cadeia { position: absolute; left: 70px; right: 70px; display: flex; align-items: center; justify-content: center; gap: 22px; }
+  .elo { width: 270px; padding: 28px 18px; border-radius: 30px; text-align: center; background: rgba(240,250,244,.06); border: 3px solid rgba(240,250,244,.25); }
+  .elo .ic { font-size: 84px; line-height: 1; }
+  .elo b { display: block; margin-top: 12px; font-size: 36px; font-weight: 900; }
+  .elo small { display: block; margin-top: 4px; font-family: 'DM Mono', monospace; font-size: 30px; color: var(--vermelho); }
+  .seta-c { font-family: 'DM Mono', monospace; font-size: 60px; color: var(--mudo); }
+
+  /* regra e fecho (iguais ao News #1) */
   .quem { position: absolute; left: 90px; right: 90px; display: flex; align-items: center; gap: 30px; padding: 36px 40px; border-radius: 40px; }
   .quem .av { flex: none; width: 130px; height: 130px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 68px; font-weight: 900; color: #052e1f; }
   .quem b { display: block; font-size: 46px; font-weight: 900; }
   .quem small { display: block; margin-top: 6px; font-size: 34px; color: var(--deck); }
   .q-caio { background: rgba(52,211,153,.12); border: 3px solid rgba(52,211,153,.55); }
   .q-caio .av { background: var(--sinal); }
+  .q-mat { background: rgba(248,113,113,.1); border: 3px solid rgba(248,113,113,.5); }
+  .q-mat .av { background: var(--vermelho); }
   .feito { position: absolute; left: 90px; right: 90px; display: flex; align-items: center; gap: 28px; padding: 30px 36px; border-radius: 30px; background: rgba(240,250,244,.06); border: 3px solid rgba(240,250,244,.2); font-size: 42px; font-weight: 800; line-height: 1.2; }
   .feito .ok { flex: none; width: 78px; height: 78px; border-radius: 50%; background: var(--sinal); color: #052e1f; display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: 900; }
   .feito em { font-style: normal; color: var(--sinal); }
@@ -121,78 +128,62 @@
   <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
   <div class="serie news" id="serie">Appliquei News</div>
 
-  <!-- 1. GANCHO: o número no segundo 0 -->
+  <!-- 1. GANCHO: número + manchetes reais -->
   <div class="cena" id="c1">
-    <div class="big" style="top:300px;"><div class="rot">Copom decide a Selic hoje</div>
-      <div class="vs"><span class="taxa">13,75%</span><i>ou</i></div>
-      <div class="vs" style="margin-top:-10px;"><span class="taxa" style="color:var(--sinal)">13,50%</span><i>?</i></div></div>
-    <div class="fala" style="top:1010px;">
-      <div class="fq el" id="fq">Mateus</div>
-      <div class="frase el" id="ff" style="font-size:62px;line-height:1.1;">"Vou esperar os juros<br>caírem pra parcelar a TV."</div>
+    <div class="big" style="top:200px;"><div class="rot">Copom decide os juros hoje</div>
+      <div class="vs" style="margin-top:6px;"><span class="taxa" style="font-size:80px;color:var(--deck)">Selic</span><span class="taxa" style="color:var(--sinal);font-size:150px;">13,75%</span></div></div>
+    <div class="pilha" style="top:520px;">
+      <div class="card el" id="m1"><div class="bar">Economia · 03/11/2026</div><div class="corpo"><b style="font-size:44px;">Fim dos cortes na Selic? Dólar e risco fiscal pressionam Copom em semana decisiva</b><small>Fonte: Mix Vale</small></div></div>
+      <div class="card el" id="m2"><div class="bar">Economia · 03/11/2026</div><div class="corpo"><b style="font-size:44px;">Mercado eleva projeção para inflação, juros e dólar em 2026</b><small>Fonte: Agência Brasil</small></div></div>
     </div>
+    <div class="faixa el" id="fx" style="top:1260px;"><span style="font-size:62px;line-height:1.15;">O juro que mais<br>te machuca é outro</span></div>
   </div>
 
-  <!-- 2. MANCHETES -->
+  <!-- 2. MATEUS -->
   <div class="cena" id="c2">
-    <div class="pilha">
-      <div class="card" id="m1"><div class="bar">Economia · 03/11/2026</div><div class="corpo"><b>Fim dos cortes na Selic? Dólar e risco fiscal pressionam Copom em semana decisiva</b><small>Fonte: Mix Vale</small></div></div>
-      <div class="card el" id="m2"><div class="bar">Economia · 03/11/2026</div><div class="corpo"><b>Mercado eleva projeção para inflação, juros e dólar em 2026</b><small>Fonte: Agência Brasil</small></div></div>
-    </div>
-    <div class="faixa el" id="fx" style="top:1330px;"><span style="font-size:74px;">Quanto vale ¼ de ponto?</span></div>
+    <div class="quem q-mat el" id="qm" style="top:300px;"><div class="av">M</div><div><b>Mateus</b><small>guarda e deve ao mesmo tempo</small></div></div>
+    <div class="caixa el" id="k1" style="top:640px;"><b>🐷 Na poupança</b><span class="taxa">R$ 1.000</span></div>
+    <div class="caixa el" id="k2" style="top:1030px;border-color:rgba(248,113,113,.6);"><b>💳 Fatura pra depois</b><span class="taxa" style="color:var(--vermelho)">R$ 1.000</span></div>
   </div>
 
-  <!-- 3. POUPANÇA -->
+  <!-- 3. A CONTA -->
   <div class="cena" id="c3">
-    <div class="tit el" id="pt" style="position:absolute;left:70px;right:70px;top:300px;text-align:center;font-size:86px;">Poupança</div>
-    <div class="carimbo el" id="pc" style="top:470px;"><span>nada muda</span></div>
-    <div class="caixa el" id="pr" style="top:760px;"><b>Selic acima de 8,5%</b><span class="taxa">0,5% ao mês</span><b style="margin-top:10px;color:var(--deck);font-size:40px;">+ TR</b></div>
-    <div class="chip am el" id="pk" style="top:1300px;"><span>com corte ou sem corte</span></div>
+    <div class="chip am el" id="em" style="top:300px;"><span>em 1 mês</span></div>
+    <div class="caixa el" id="g1" style="top:480px;"><b>🐷 A poupança pagou</b><span class="taxa" style="font-size:150px;">+ R$ 7</span></div>
+    <div class="caixa el" id="g2" style="top:900px;border-color:rgba(248,113,113,.7);background:rgba(248,113,113,.08);"><b>💳 O cartão cobrou</b><span class="taxa" style="font-size:150px;color:var(--vermelho)">− R$ 153</span></div>
   </div>
 
-  <!-- 4. CDB -->
+  <!-- 4. A VIRADA -->
   <div class="cena" id="c4">
-    <div class="regra-c el" id="cr">CDB de <em>100% do CDI</em> · R$ 10 mil por 1 ano</div>
-    <div class="recibo sex el" id="r1" style="top:560px;">
-      <div class="cab"><span>Selic 13,75%</span><span>CDI ≈ 13,65%</span></div>
-      <div class="tot">Rende <span>R$ 1.365</span></div>
+    <div class="tit el" id="vt" style="position:absolute;left:70px;right:70px;top:300px;text-align:center;font-size:72px;">O banco no meio</div>
+    <div class="cadeia" style="top:520px;">
+      <div class="elo el" id="v1"><div class="ic">🐷</div><b>Te paga</b><small style="color:var(--sinal)">R$ 7</small></div>
+      <div class="seta-c el" id="vs1">⇄</div>
+      <div class="elo el" id="v2"><div class="ic">🏦</div><b>Banco</b><small style="color:var(--deck)">empresta</small></div>
     </div>
-    <div class="recibo el" id="r2" style="top:900px;">
-      <div class="cab"><span>Selic 13,50%</span><span>CDI ≈ 13,40%</span></div>
-      <div class="tot">Rende <span>R$ 1.340</span></div>
-    </div>
-    <div class="dif el" id="df" style="top:1260px;color:var(--ambar);">≈ R$ 25 por ano</div>
-    <div class="chip mini el" id="ir" style="top:1390px;"><span>antes do imposto de renda</span></div>
+    <div class="chip el" id="v3" style="top:900px;"><span style="border-color:var(--vermelho);color:var(--vermelho);font-size:52px;">Te cobra R$ 153</span></div>
+    <div class="caixa el" id="v4" style="top:1150px;padding:30px 40px;"><b style="font-size:42px;">Selic −¼ de ponto</b><b style="margin-top:10px;font-size:52px;color:var(--ambar)">não muda nada disso</b></div>
   </div>
 
-  <!-- 5. ROTATIVO -->
+  <!-- 5. CAIO -->
   <div class="cena" id="c5">
-    <div class="tit el" id="dt" style="position:absolute;left:70px;right:70px;top:300px;text-align:center;font-size:80px;">Agora, <em class="a">a dívida</em></div>
-    <div class="barras">
-      <div class="el" id="b1" style="position:relative;top:480px;"><div class="r">Rotativo do cartão <span style="color:var(--vermelho)">451,7% ao ano</span></div><div class="tr"><i id="b1i" style="background:linear-gradient(90deg,#b91c1c,var(--vermelho));"></i></div></div>
-      <div class="el" id="b2" style="position:relative;top:520px;"><div class="r">¼ de ponto da Selic <span style="color:var(--sinal)">0,25</span></div><div class="tr"><i id="b2i" style="background:var(--sinal);"></i></div></div>
-    </div>
-    <div class="carimbo el" id="dc" style="top:1180px;"><span style="border-color:var(--ambar);color:var(--ambar);font-size:60px;">nem aparece</span></div>
-    <div class="nota el" id="dn" style="top:1420px;">Média de setembro de 2026 (Banco Central)</div>
+    <div class="quem q-caio el" id="qc" style="top:320px;"><div class="av">C</div><div><b>Caio</b><small>na mesma situação</small></div></div>
+    <div class="feito el" id="h1" style="top:640px;"><div class="ok">✓</div><div>Usou a poupança pra <em>quitar o cartão</em></div></div>
+    <div class="caixa el" id="h2" style="top:900px;padding:28px 40px;"><b style="color:var(--deck)">Deixou de ganhar</b><span class="taxa" style="font-size:90px;color:var(--mudo)">R$ 7</span></div>
+    <div class="caixa el" id="h3" style="top:1230px;padding:28px 40px;border-color:rgba(52,211,153,.6);background:rgba(52,211,153,.1);"><b>Parou de pagar</b><span class="taxa" style="font-size:110px;">R$ 153</span></div>
   </div>
 
-  <!-- 6. CAIO -->
+  <!-- 6. REGRA -->
   <div class="cena" id="c6">
-    <div class="quem q-caio el" id="qc" style="top:400px;"><div class="av">C</div><div><b>Caio</b><small>não espera o Copom</small></div></div>
-    <div class="feito el" id="h1" style="top:740px;"><div class="ok">✓</div><div>Paga a <em>fatura inteira</em></div></div>
-    <div class="feito el" id="h2" style="top:940px;"><div class="ok">✓</div><div>Nem entra no <em>juro do rotativo</em></div></div>
+    <div class="regra el" id="rg" style="top:480px;"><div class="rot">Regra de bolso</div><b>Dinheiro guardado com<br>dívida no cartão<br>não é <em>reserva</em>.</b></div>
+    <div class="carimbo el" id="rp" style="top:1080px;"><span style="border-color:var(--vermelho);color:var(--vermelho);font-size:84px;">É prejuízo</span></div>
   </div>
 
-  <!-- 7. REGRA -->
+  <!-- 7. FECHO -->
   <div class="cena" id="c7">
-    <div class="regra el" id="rg" style="top:520px;"><div class="rot">Regra de bolso</div><b>A Selic mexe em <em>centavos</em>.<br>O juro da dívida, em <em>centenas</em>.</b></div>
-    <div class="chip el" id="rc" style="top:1060px;"><span style="border-color:var(--sinal);color:var(--sinal);font-size:56px;">Comece por ela</span></div>
-  </div>
-
-  <!-- 8. FECHO -->
-  <div class="cena" id="c8">
-    <div class="manda el" id="mn"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 11.5 21 3l-8.5 18-2.2-7.3z" fill="#052e1f"/></svg></div><b>Manda pra quem tá esperando<br>os juros caírem</b></div>
+    <div class="manda el" id="mn"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 11.5 21 3l-8.5 18-2.2-7.3z" fill="#052e1f"/></svg></div><b>Manda pra quem guarda<br>dinheiro e paga juros<br>no cartão</b></div>
     <div class="assina el" id="as"><img src="wordmark.svg" alt="Appliquei"><p>Mais contas assim: <em>siga o Appliquei</em></p></div>
-    <div class="aviso el" id="av">Conteúdo educacional e apartidário, sem recomendação de investimento. Selic de 13,75% antes da reunião de 04/11/2026. CDB: CDI ≈ Selic − 0,10 ponto, R$ 10 mil por 12 meses, antes do IR. Poupança: Lei 12.703/2012. Rotativo: média de set/2026 (BC). Personagens fictícios.</div>
+    <div class="aviso el" id="av">Conteúdo educacional e apartidário, sem recomendação de investimento. Poupança: 0,5% ao mês + TR (≈0,66% em out/2026). Cartão: rotativo médio ≈15,3% ao mês (451,7% ao ano, Banco Central, set/2026). Personagens fictícios.</div>
   </div>
 
   <div class="barra-t" id="barraT"></div>
@@ -206,7 +197,7 @@
     $('malha').innerHTML = m.join('');
   })();
 
-  const NAR = [[0.2, 8.8, "Hoje o Copom decide a Selic: treze e setenta e cinco, ou treze e meio. E o Mateus já tá esperando os juros caírem pra parcelar a TV."], [9.2, 13.8, "O mercado tá dividido. Mas, no seu bolso, quanto vale um quarto de ponto?"], [14.2, 21.7, "Na poupança, nada muda. Com a Selic acima de oito e meio, ela rende meio por cento ao mês mais a TR, com corte ou sem corte."], [22.1, 29.3, "Num CDB de cem por cento do CDI, um quarto de ponto muda uns vinte e cinco reais por ano em cada dez mil reais, antes do imposto."], [29.7, 37.5, "Agora a dívida. O rotativo do cartão cobra mais de quatrocentos e cinquenta por cento ao ano. Um quarto de ponto nem aparece nessa conta."], [37.9, 42.1, "O Caio não espera o Copom. Ele paga a fatura inteira e nem entra nesse juro."], [42.5, 48.7, "Regra de bolso: a Selic mexe em centavos. O juro da dívida mexe em centenas. Comece por ela."], [49.1, 52.7, "Manda pra quem tá esperando os juros caírem. E segue o Appliquei."]];
+  const NAR = [[0.2, 6.38, "Hoje o Copom decide os juros do país. Mas o juro que mais te machuca não é decidido lá."], [6.73, 12.02, "O Mateus tem mil reais na poupança. E deixou mil reais da fatura do cartão pra depois."], [12.37, 17.9, "No mês, a poupança pagou pra ele uns sete reais. O cartão cobrou cento e cinquenta e três."], [18.25, 26.1, "Ou seja: ele empresta pro banco barato, e pega de volta caríssimo. E a Selic cair um quarto de ponto não muda nada disso."], [26.45, 34.43, "O Caio, na mesma situação, usou a poupança pra quitar o cartão. Deixou de ganhar sete reais pra parar de pagar cento e cinquenta e três."], [34.78, 40.4, "Regra de bolso: dinheiro guardado com dívida no cartão não é reserva. É prejuízo."], [40.75, 45.04, "Manda pra quem guarda dinheiro e paga juros no cartão. E segue o Appliquei."]];
   // cena i começa 0,15 s antes da fala i; a última termina no DUR
   const DUR = +(NAR[NAR.length - 1][1] + 0.9).toFixed(2);
   const CENAS = NAR.map((f, i) => ['c' + (i + 1), i === 0 ? 0 : f[0] - 0.15, i + 1 < NAR.length ? NAR[i + 1][0] - 0.15 : DUR + 0.2]);
@@ -240,26 +231,20 @@
       el.style.display = dentro ? 'block' : 'none';
       if (dentro) cenaExtra(id, t - a);
     }
-    const fim = CENAS[7][1];
+    const fim = CENAS[CENAS.length - 1][1];
     $('serie').style.opacity = t < fim ? 1 : 1 - prog(t, fim, fim + 0.3);
     $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
   }
 
   function cenaExtra(id, lt) {
     const q = (p) => quando(+id.slice(1) - 1, p);
-    if (id === 'c1') { surge($('fq'), lt, q('E o Mateus'), 0.35, 20); surge($('ff'), lt, q('esperando'), 0.4, 20); }
-    if (id === 'c2') { cai($('m1'), lt, 0, -1.4); cai($('m2'), lt, 0.9, 1.1); surge($('fx'), lt, q('quanto'), 0.4, 30); }
-    if (id === 'c3') { surge($('pt'), lt, 0.1, 0.4, 30); surge($('pc'), lt, q('nada'), 0.35, 0); surge($('pr'), lt, q('Com a Selic'), 0.4, 30); surge($('pk'), lt, q('com corte'), 0.35, 10); }
-    if (id === 'c4') { surge($('cr'), lt, 0.1, 0.4, 20); surge($('r1'), lt, q('um quarto'), 0.4, 40); surge($('r2'), lt, q('muda'), 0.4, 40); surge($('df'), lt, q('vinte'), 0.35, 10); surge($('ir'), lt, q('antes'), 0.35, 10); }
-    if (id === 'c5') {
-      surge($('dt'), lt, 0.1, 0.4, 30);
-      surge($('b1'), lt, q('O rotativo'), 0.35, 20); $('b1i').style.width = 100 * easeOut(prog(lt, q('mais de'), q('mais de') + 1.2)) + '%';
-      surge($('b2'), lt, q('Um quarto'), 0.35, 20); $('b2i').style.width = (100 * 0.25 / 451.7) * easeOut(prog(lt, q('Um quarto') + 0.3, q('Um quarto') + 0.8)) + '%';
-      surge($('dc'), lt, q('nem aparece'), 0.35, 0); surge($('dn'), lt, q('nem aparece') + 0.4, 0.35, 10);
-    }
-    if (id === 'c6') { surge($('qc'), lt, 0.1, 0.4, 40); surge($('h1'), lt, q('Ele paga'), 0.4, 30); surge($('h2'), lt, q('e nem'), 0.4, 30); }
-    if (id === 'c7') { surge($('rg'), lt, q('a Selic'), 0.45, 30); surge($('rc'), lt, q('Comece'), 0.4, 20); }
-    if (id === 'c8') {
+    if (id === 'c1') { cai($('m1'), lt, 0.5, -1.4); cai($('m2'), lt, 1.5, 1.1); surge($('fx'), lt, q('Mas o juro'), 0.4, 30); }
+    if (id === 'c2') { surge($('qm'), lt, 0.1, 0.4, 40); surge($('k1'), lt, q('mil reais na'), 0.4, 30); surge($('k2'), lt, q('E deixou'), 0.4, 30); }
+    if (id === 'c3') { surge($('em'), lt, 0.1, 0.35, 10); surge($('g1'), lt, q('a poupança'), 0.4, 30); surge($('g2'), lt, q('O cartão'), 0.4, 30); }
+    if (id === 'c4') { surge($('vt'), lt, 0.1, 0.4, 30); surge($('v1'), lt, q('ele empresta'), 0.35, 30); surge($('vs1'), lt, q('barato'), 0.3, 0); surge($('v2'), lt, q('barato'), 0.35, 30); surge($('v3'), lt, q('caríssimo'), 0.4, 20); surge($('v4'), lt, q('E a Selic'), 0.4, 20); }
+    if (id === 'c5') { surge($('qc'), lt, 0.1, 0.4, 40); surge($('h1'), lt, q('usou'), 0.4, 30); surge($('h2'), lt, q('Deixou'), 0.4, 30); surge($('h3'), lt, q('pra parar'), 0.4, 30); }
+    if (id === 'c6') { surge($('rg'), lt, q('dinheiro'), 0.45, 30); surge($('rp'), lt, q('É prejuízo'), 0.35, 0); }
+    if (id === 'c7') {
       surge($('mn'), lt, 0.1, 0.4, 40);
       $('mn').querySelector('.ic').style.transform = `scale(${1 + 0.06 * Math.sin(lt * 7) * prog(lt, 0.5, 1)})`;
       surge($('as'), lt, q('E segue'), 0.45, 40); surge($('av'), lt, q('E segue') + 0.6, 0.4, 10);
