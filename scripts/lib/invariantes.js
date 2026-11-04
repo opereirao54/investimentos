@@ -628,6 +628,35 @@ function validarEstado(estado, opcoes) {
     }
   }
 
+  // INV-28 — ajuste de saldo ("Conferir saldo") mora na conta e só no caixa.
+  // Cada ajuste tem id único, valor finito ≠ 0 e data válida: um ajuste sem
+  // data ou com valor NaN some do saldo ou o corrompe sem aviso. Transação
+  // com categoria 'ajuste_saldo' já é acusada pelo INV-05 (vocabulário).
+  const idsAjuste = new Set();
+  for (const c of contas) {
+    if (c.ajustes == null) continue;
+    if (!Array.isArray(c.ajustes)) {
+      acusar('INV-28', `Conta "${c.nome || c.id}" com ajustes fora de lista.`, c);
+      continue;
+    }
+    for (const a of c.ajustes) {
+      const v = Number(a && a.valor);
+      const ts = a && a.data ? new Date(a.data).getTime() : NaN;
+      if (!a || !a.id || !isFinite(v) || !v || !isFinite(ts)) {
+        acusar(
+          'INV-28',
+          `Ajuste de saldo inválido na conta "${c.nome || c.id}" (precisa de id, valor ≠ 0 e data).`,
+          a
+        );
+        continue;
+      }
+      if (idsAjuste.has(a.id)) {
+        acusar('INV-28', `Ajuste de saldo ${a.id} repetido — entra duas vezes no caixa.`, a);
+      }
+      idsAjuste.add(a.id);
+    }
+  }
+
   // INV-07 — saldo de abertura entra uma única vez.
   const vistos = new Map();
   for (const c of contas) {

@@ -160,14 +160,22 @@ function _lancRenderContas(tipo) {
   var naLista = nomes.indexOf(valor) !== -1;
   // Sem conta cadastrada, ou um nome que não é botão: o campo de texto aparece.
   var digitar = !nomes.length || lancUiContaOutra || (valor && !naLista);
-  host.innerHTML = nomes.length
-    ? nomes
-        .map(function (n) {
-          return _lancChip(n, n === valor && !lancUiContaOutra, 'lancUiEscolherConta', n);
-        })
-        .join('') + _lancChip('Outra', !!digitar, 'lancUiOutraConta', '', 'mais')
-    : '';
-  host.hidden = !nomes.length;
+  var cartoesChips = lancUiCartoesPagouCom(tipo);
+  host.innerHTML =
+    (nomes.length
+      ? nomes
+          .map(function (n) {
+            return _lancChip(n, n === valor && !lancUiContaOutra, 'lancUiEscolherConta', n);
+          })
+          .join('') + _lancChip('Outra', !!digitar, 'lancUiOutraConta', '', 'mais')
+      : '') +
+    cartoesChips
+      .map(function (c) {
+        var rot = /cart[aã]o/i.test(c.nome || '') ? c.nome : 'Cartão ' + c.nome;
+        return _lancChip(rot, false, 'lancUiPagouNoCartao', c.id, 'cartao');
+      })
+      .join('');
+  host.hidden = !nomes.length && !cartoesChips.length;
   inp.classList.toggle('lanc-oculto', !digitar);
   var dica = _lancEl('dicaBancoTransacao');
   if (dica) dica.classList.toggle('lanc-oculto', !digitar);
@@ -204,6 +212,40 @@ function lancUiOutraConta() {
   lancUiSincronizar();
   var inp = _lancEl('bancoTransacao');
   if (inp) inp.focus();
+}
+
+// ── "Pagou com": cartão na saída variável ────────────────────────────────
+//
+// Saída variável nasce PAGA e desconta da conta na hora (compra à vista). Uma
+// compra no crédito lançada aqui tirava do saldo do banco um dinheiro que só
+// sai quando a fatura é paga — e, se a mesma compra entrasse depois pela
+// fatura, saía duas vezes. Por isso, na saída variável, os cartões aparecem ao
+// lado das contas: escolher um cartão leva o lançamento para Cartão, à vista,
+// com aquele cartão. Só em lançamento NOVO: na edição a troca de tipo segue
+// pelos botões do topo, como sempre.
+
+/** Cartões oferecidos como "pagou com" (só saída variável nova). */
+function lancUiCartoesPagouCom(tipo) {
+  if (tipo !== 'saida') return [];
+  var cat = (_lancEl('categoriaTransacao') || {}).value || '';
+  if (cat !== 'despesa_variavel') return [];
+  if (((_lancEl('editTransacaoId') || {}).value || '').trim()) return [];
+  if ((_lancEl('transacaoFixa') || {}).checked) return [];
+  var lista = typeof cartoesAtivos === 'function' ? cartoesAtivos() : [];
+  return lista.slice(0, LANC_UI_MAX_CHIPS);
+}
+
+function lancUiPagouNoCartao(id) {
+  if (typeof selecionarChipTipo === 'function') selecionarChipTipo('cartao');
+  else lancUiTipoGasto('cartao_credito');
+  lancUiEscolherCartao(id);
+  var q = _lancEl('qtdParcelas');
+  if (q && (parseInt(q.value, 10) || 1) !== 1) {
+    q.value = 1;
+    q.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  if (typeof mostrarToast === 'function')
+    mostrarToast('No crédito: entra na fatura e só sai da conta quando a fatura for paga.', 'info');
 }
 
 // ── Cartão ───────────────────────────────────────────────────────────────
@@ -431,5 +473,6 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     lancUiCategoriasDestaque: lancUiCategoriasDestaque,
     lancUiResumo: lancUiResumo,
+    lancUiCartoesPagouCom: lancUiCartoesPagouCom,
   };
 }
