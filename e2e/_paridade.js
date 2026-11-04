@@ -112,6 +112,8 @@ const OVERLAYS = [
 const EQUIVALENTES = {
   'fn:abrirPainelLancamento':
     'no celular o "Novo lançamento" largo sai do Controle; o "+" da barra inferior abre o menu de cadastro → Despesa/Receita/Cartão (cadastrarEm → abrirPainelLancamento, já no tipo)',
+  'fn:abrirTransferenciaModal':
+    'no Controle do celular o "Transferir" do cabeçalho sai (falta espaço); a mesma transferência abre pelo atalho "Transferir" do Início (mobAcaoRapida) e pelo "+" da barra → Transferir (cadastrarTransferencia), ambos chamando abrirTransferenciaModal',
   'fn:novoLancamentoControle':
     'é o "Novo lançamento" do cabeçalho do computador (abre já em Saída); no celular o mesmo vem do "+" da barra → Despesa (cadastrarEm → abrirPainelLancamento + selecionarChipTipo)',
   'fn:alternarPainelVencimentos':
