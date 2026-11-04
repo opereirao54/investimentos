@@ -32,3 +32,5 @@ Abertura nova em teste (`marketing/metricas/LEIAME.md`): gancho no segundo 0,
 **O que medir:** compartilhamentos (o tema é feito para "mandar pra quem…"),
 tempo médio e retenção (teste da abertura; meta >10 s e >30%), e se a voz
 feminina muda algo (registrar junto, sabendo que mistura duas variáveis).
+
+Manchetes da abertura (cena 1): "Copom se reúne nesta quarta-feira e mercado projeta nova redução da Selic para 13,50% ao ano" (WSCOM, 04/11) e "Fim dos cortes na Selic? Dólar e risco fiscal pressionam Copom em semana decisiva" (Mix Vale, 03/11).
