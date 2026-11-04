@@ -26,6 +26,30 @@ test('série pela legenda', () => {
   assert.equal(serieDaLegenda('Faltam 6 dias. Appliquei: sonhos'), 'appliquei');
   assert.equal(serieDaLegenda('Mesma geladeira, mesmo cartão'), 'outros');
   assert.equal(serieDaLegenda(undefined), 'outros');
+  // antes da reta final, "Faltam X dias" + Appliquei não é a série Appliquei
+  assert.equal(
+    serieDaLegenda('Parcelado?\n⏳ Faltam 66 dias. Appliquei', '2026-10-28T21:30:05+0000'),
+    'outros'
+  );
+  assert.equal(
+    serieDaLegenda('Faltam 6 dias. Appliquei: sonhos', '2026-12-27T22:00:00Z'),
+    'appliquei'
+  );
+});
+
+test('registro do Reel: id do Instagram vence o título e corrige a série', () => {
+  const r = resumirReel(
+    {
+      id: '18455740294193420',
+      caption: 'Appliquei Explica: a conta do dia a dia\n⏳ Faltam 64 dias',
+      timestamp: '2026-10-30T15:12:26+0000',
+    },
+    ins({ views: 248, reach: 204, ig_reels_avg_watch_time: 5000 })
+  );
+  assert.equal(r.duracaoSeg, 73.7);
+  assert.equal(r.serie, 'explica');
+  const dolar = resumirReel({ id: 'd', caption: 'O dólar teve a maior alta em 27 anos.' }, []);
+  assert.equal(dolar.serie, 'news');
 });
 
 test('título é a primeira linha não vazia, cortada em 120', () => {

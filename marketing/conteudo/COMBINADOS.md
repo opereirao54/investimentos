@@ -12,16 +12,21 @@ mudar (com a data).
 
 ## Série até o lançamento (aprovada em 25/10/2026)
 
+> **Grade nova (fundador, 04/11): segunda Appliquei Explica, quarta Appliquei
+> News, sexta Appliquei Explica. Só isso, sempre com a contagem regressiva.**
+> A reta final diária de 27/12 a 02/01 continua (fundador, 04/11). Vale sobre
+> qualquer "seg, qua e sex" / "ter e qui" mais abaixo.
+
 - **Lançamento:** sábado, **02/01/2027**. Calendário em `CALENDARIO.md` (PDF
   simples gerado dele com `node marketing/conteudo/gerar-pdf.js`).
 - **Duas séries fixas (fundador, 29/10), só Reels:**
-  - **Appliquei Explica** (seg, qua e sex): o dinheiro do dia a dia (gastos
+  - **Appliquei Explica** (seg e sex desde 04/11): o dinheiro do dia a dia (gastos
     invisíveis, cartão, reserva, metas), no formato Mateus × Caio com a conta
     na tela. Os temas do `CALENDARIO.md` são desta série. Selo verde "Appliquei
     Explica" no topo (renomeada de "Conta de Padaria" em 29/10: soava
     infantil). Vinheta verde (`vinheta.sh explica`) e capa verde (`"explica":
 true`), mesmo modelo do News.
-  - **Appliquei News** (ter e qui): a notícia econômica do momento traduzida
+  - **Appliquei News** (qua desde 04/11; antes ter e qui): a notícia econômica do momento traduzida
     para o bolso (Selic, dólar, inflação, gasolina, financiamento, eleição,
     Black Friday, 13º). Tema escolhido **na véspera**, pela notícia mais
     quente; abertura com manchetes reais recriadas no visual da marca; 30 a
@@ -30,7 +35,7 @@ true`), mesmo modelo do News.
     recomendação: explicar o mecanismo ("com juros menores, a renda fixa
     rende menos e muita gente olha outros investimentos"), nunca "invista em
     X" (CVM). O Reel do dólar (qui 29/10) conta como **News #1**.
-  - Começam na **segunda 02/11**: 5 Reels por semana até 26/12 e **todo dia**
+  - **3 Reels por semana** (seg, qua, sex) de 04/11 a 26/12 e **todo dia**
     de 27/12 a 02/01 (os 7 vídeos de produto prontos). Sexta 30/10: o carro
     (Appliquei Explica), antecipado de 02/11.
   - **Série "Appliquei"** (reta final, 27/12 a 02/01, todo dia): os vídeos de
@@ -118,6 +123,14 @@ true`), mesmo modelo do News.
 
 ## Métricas (30/10)
 
+- **Em teste desde 04/11 (fundador aprovou): abertura nova.** Gancho falado
+  e escrito no segundo 0, com o número; manchetes (News) logo depois;
+  vinheta só depois do gancho (~3 s) ou fora; tarja/selo da série no topo o
+  vídeo todo. Meta: tempo médio acima de 10 s e retenção acima de 30%
+  (linha de base: 5,6 s e 14%). Registro em `marketing/metricas/LEIAME.md`.
+- **Comentários:** fixar um comentário com pergunta e responder todos na
+  primeira hora.
+
 - O fundador vê os números na aba **Redes sociais** do admin; eu analiso e
   proponho mudanças seguindo
   `.claude/skills/marketing-saas/referencias/analise-metricas.md`
@@ -128,6 +141,11 @@ true`), mesmo modelo do News.
   TikTok e YouTube por print até ter conexão.
 
 ## Pendentes (lembrar o fundador)
+
+- **Conferir vídeo × legenda antes de postar** (04/11): em 02/11 o "Quem
+  chegou aos 65 com mais?" saiu com a legenda do "R$ 30 ou R$ 300", às 8h30.
+  O pacote traz o gancho do vídeo na 1ª linha da legenda para quem posta
+  bater um com o outro, e o horário é 19h.
 
 - **Métricas:** pedir os números de cada Reel no dia seguinte (visualizações,
   retenção, salvamentos, compartilhamentos) e anotar no calendário. Revisão

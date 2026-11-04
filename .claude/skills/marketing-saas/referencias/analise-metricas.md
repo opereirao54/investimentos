@@ -23,6 +23,29 @@ npm run metricas:instagram
   números da tela "Estatísticas" do Reel em vez de inventar.
 - TikTok e YouTube ainda não têm conexão: use o print que o fundador mandar.
 
+## Antes dos números: conferir a operação e o painel
+
+Lição da análise de 04/11: três falhas de postagem e a série errada no painel
+quase viraram conclusões sobre o conteúdo. Antes de qualquer hipótese:
+
+1. **Operação de cada Reel novo:**
+   - o vídeo bate com a legenda? (em 02/11 o "Quem chegou aos 65 com mais?"
+     saiu com a legenda do "R$ 30 ou R$ 300" e teve 0 compartilhamentos);
+   - saiu às 19h e no dia da grade (seg Explica, qua News, sex Explica)?
+   - a 1ª linha da legenda é o gancho do vídeo? (o carro saiu com a
+     assinatura da série na 1ª linha);
+   - tem o selo "Faltam X dias" e a linha da contagem?
+
+   Falha de operação vai para "Pendentes" no `COMBINADOS.md` e para o pacote
+   de quem posta; o número daquele Reel não entra na comparação de temas.
+
+2. **Painel:** todo Reel com a série certa e com retenção. "outros" num Reel
+   da série ou "—" na retenção = falta a entrada em
+   `api/_lib/reels-duracoes.json`. Acrescente `{ "inicio", "seg", "serie" }`
+   e, quando a legenda postada não começa pelo gancho, também o `"id"` do
+   Reel (está no `marketing/metricas/instagram/AAAA-MM-DD.json`). O teste
+   `test/redes-instagram.test.js` cobre o registro.
+
 ## O que olhar, em ordem de peso
 
 | Métrica                                    | Por que importa                                             | Referência inicial    |
@@ -44,12 +67,18 @@ retenção daquele Reel. A curva segundo a segundo e a retenção dos 3 primeiro
 segundos não vêm pela API: quando precisar, peça o print da tela
 "Estatísticas" do Reel.
 
+**Linha de base do perfil (04/11, 7 Reels):** tempo médio 5,6 s, retenção
+14%, salvos 0,1%, compartilhamentos 0,6%, 79 visitas ao perfil e 0 cliques no
+link em 30 dias. Melhor Reel: a geladeira (26/10), retenção 20% e compart.
+1,4%. Até a revisão de 16/11, compare com ela além das referências acima.
+
 As referências são pontos de partida: depois de 3 semanas, troque pelas
 médias reais do perfil (mediana dos Reels da própria série).
 
 ## Rotina
 
-1. **Dia seguinte a cada Reel (no lembrete diário):** rode o script e mande
+1. **Dia seguinte a cada Reel (no lembrete diário):** confira a operação e o
+   painel (seção acima), rode o script e mande
    ao fundador uma linha por Reel novo: views, salvos %, compart. %, tempo
    médio, e se ficou acima ou abaixo da média da série. Anote na coluna
    "Publicado" do `CALENDARIO.md`.
@@ -73,8 +102,31 @@ médias reais do perfil (mediana dos Reels da própria série).
 | Uma série muito acima da outra por 2 semanas | o público prefere aquele tipo | puxar o tom/tema vencedor para a outra série, sem mudar os dias |
 | Reel longo (60 s+) com tempo médio baixo     | duração                       | testar versão de 30–45 s do mesmo tema                          |
 
-Uma mudança por vez, para saber o que funcionou. Registre cada mudança e o
-resultado em `marketing/metricas/LEIAME.md`.
+**Uma mudança de conteúdo por vez**, para saber o que funcionou. Isso vale
+só para os testes (abertura, duração, gancho, tema, CTA novo). O que já é
+combinado e não está sendo seguido (19h, News de 30 a 45 s, 1ª linha = gancho,
+contagem, pedido de compartilhamento falado) se corrige tudo de uma vez e não
+conta como teste.
+
+**Não pare na mudança única.** Toda análise pedida pelo fundador traz, além
+do teste da semana, as alavancas que não são conteúdo, cada uma com o número
+que a justifica:
+
+- **Perfil:** bio com a promessa e os dias da grade; fixar o melhor Reel;
+  arquivar o que anuncia coisa desatualizada. Sinal: visitas ao perfil altas
+  e cliques no link ou seguidores baixos.
+- **Comentários:** comentário fixado com pergunta ("Você é o Caio ou o
+  Mateus?") e resposta a todos na primeira hora.
+- **Reel de teste do Instagram:** o mesmo vídeo com duas aberturas, mostrado
+  só a quem não segue, para testar o gancho sem gastar um dia da grade.
+- **Collab** com perfis pequenos de finanças ou humor do dia a dia.
+- **Impulsionar** o melhor Reel orgânico (R$ 10–20/dia, 3 dias, público
+  frio), só depois que a retenção estiver boa.
+- **Busca:** palavras que as pessoas procuram ("cartão de crédito", "reserva
+  de emergência") na 1ª linha da legenda e no texto da tela.
+- **TikTok e YouTube:** pedir os prints; o formato pode estar indo melhor lá.
+
+Registre cada teste e o resultado em `marketing/metricas/LEIAME.md`.
 
 ## Limites
 
