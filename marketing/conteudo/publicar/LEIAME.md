@@ -13,8 +13,8 @@ chamados pelo que mostram), com horário, passo a passo, legenda e hashtags.
 produz só o Reel do dia seguinte, com legendas e hashtags das três redes.
 
 **Desde 29/10, só Reels** (fundador): sem stories. Duas séries: **Appliquei
-Explica** (seg, qua e sex) e **Appliquei News** (ter e qui, a notícia do
-momento no bolso). Reel às 19h no Instagram, TikTok e YouTube Shorts (regras
+Explica** (seg e sex) e **Appliquei News** (qua, a notícia do momento no
+bolso), grade de 04/11, sempre com a contagem regressiva. Reel às 19h no Instagram, TikTok e YouTube Shorts (regras
 em `../COMBINADOS.md`). Ajuste depois de 3 semanas pelas estatísticas do
 perfil. Os dias de 26 a 28/10, abaixo, ainda tinham stories.
 
@@ -162,3 +162,13 @@ Conteúdo educacional. Valores de exemplo para um carro de R$ 80 mil (IPVA de 4%
 
 #educacaofinanceira #financaspessoais #carro #dinheiro #dicasdefinancas
 ```
+
+---
+
+## Assinaturas das séries na legenda (desde 04/11)
+
+- `💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta.`
+- `📰 Appliquei News: a notícia da semana no seu bolso, toda quarta.`
+
+A 1ª linha da legenda é sempre o gancho do vídeo (é o que a pessoa lê e é por
+onde o painel reconhece o Reel); a assinatura vem depois.

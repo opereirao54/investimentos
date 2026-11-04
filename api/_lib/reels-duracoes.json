@@ -1,17 +1,52 @@
 {
   "_leia": "Duração de cada Reel postado, para calcular o % assistido (a API do Instagram não informa a duração). A chave é o começo da 1ª linha da legenda ou, quando a legenda postada não começa pelo gancho, o id do Reel no Instagram. 'serie' corrige a série quando a legenda não traz 'Appliquei News' ou 'Appliquei Explica'. O marketing atualiza ao postar.",
   "reels": [
-    { "inicio": "Mesma geladeira, mesmo cartão", "seg": 39.3, "serie": "explica" },
-    { "inicio": "Parcelado sem juros ou à vista com desconto", "seg": 32.6, "serie": "explica" },
-    { "inicio": "O dólar teve a maior alta em 27 anos", "seg": 56.3, "serie": "news" },
-    { "inicio": "Agora tem hora marcada por aqui", "seg": 20.1, "serie": "outros" },
-    { "inicio": "Esse carro custa R$ 2.100 por mês", "seg": 73.7, "serie": "explica" },
+    {
+      "inicio": "Mesma geladeira, mesmo cartão",
+      "seg": 39.3,
+      "serie": "explica"
+    },
+    {
+      "inicio": "Parcelado sem juros ou à vista com desconto",
+      "seg": 32.6,
+      "serie": "explica"
+    },
+    {
+      "inicio": "O dólar teve a maior alta em 27 anos",
+      "seg": 56.3,
+      "serie": "news"
+    },
+    {
+      "inicio": "Agora tem hora marcada por aqui",
+      "seg": 20.1,
+      "serie": "outros"
+    },
+    {
+      "inicio": "Esse carro custa R$ 2.100 por mês",
+      "seg": 73.7,
+      "serie": "explica"
+    },
     {
       "id": "18455740294193420",
       "inicio": "Esse carro custa R$ 2.100 por mês",
       "seg": 73.7,
       "serie": "explica"
     },
-    { "inicio": "R$ 30 por mês ou R$ 300 no anual", "seg": 41.2, "serie": "explica" }
+    {
+      "id": "18053972519810471",
+      "inicio": "Mateus investiu R$ 36 mil",
+      "seg": 51.1,
+      "serie": "explica"
+    },
+    {
+      "inicio": "Mateus investiu R$ 36 mil",
+      "seg": 51.1,
+      "serie": "explica"
+    },
+    {
+      "inicio": "R$ 30 por mês ou R$ 300 no anual",
+      "seg": 41.2,
+      "serie": "explica"
+    }
   ]
 }
