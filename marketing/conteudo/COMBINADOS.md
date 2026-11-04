@@ -86,7 +86,7 @@ true`), mesmo modelo do News.
 
 ## Como os vídeos são feitos
 
-- **Voz:** sempre a **Charon** (Gemini TTS). Regravar o roteiro inteiro num
+- **Voz:** **Charon** (Gemini TTS, masculina) e, desde 04/11 (fundador), também a **Sulafat** (feminina) como opção, para variar entre os vídeos. Uma voz por vídeo. Regravar o roteiro inteiro num
   pedido só (frase emendada muda volume e tom). Trocar palavras que o TTS
   confunde no contexto ("caro" num vídeo sobre "carro" → "pesa no bolso").
 - **Personagens:** sempre **Caio e Mateus**, fictícios. **Mateus é sempre o
