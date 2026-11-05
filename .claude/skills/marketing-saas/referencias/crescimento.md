@@ -8,15 +8,15 @@ muda série, dia, horário, voz ou personagem sem o "sim" dele.
 
 ## Onde estamos (retrato de 05/11, @app.liquei)
 
-| Número (30 dias)            | Valor     | Leitura                                              |
-| --------------------------- | --------- | ---------------------------------------------------- |
-| Seguidores                  | **16**    | a conta ainda é "fria" para o algoritmo              |
-| Reels / views               | 8 / 1.411 | ~176 views por Reel, quase tudo de quem não segue    |
+| Número (30 dias)            | Valor       | Leitura                                             |
+| --------------------------- | ----------- | --------------------------------------------------- |
+| Seguidores                  | **16**      | a conta ainda é "fria" para o algoritmo             |
+| Reels / views               | 8 / 1.411   | ~176 views por Reel, quase tudo de quem não segue   |
 | Tempo médio / retenção      | 5,6 s / 14% | **o gargalo**: a pessoa sai antes da conta aparecer |
-| Compartilhamentos / alcance | 0,9%      | perto do bom (1%); News #2 fez 3,5%                  |
-| Salvos / alcance            | 0,1%      | quase zero: a regra de bolso não chega a ser vista   |
-| Seguiram pelos Reels        | **0**     | ninguém vê motivo para seguir                        |
-| Visitas ao perfil / cliques | 81 / 0    | quem visita não encontra o que fazer                 |
+| Compartilhamentos / alcance | 0,9%        | perto do bom (1%); News #2 fez 3,5%                 |
+| Salvos / alcance            | 0,1%        | quase zero: a regra de bolso não chega a ser vista  |
+| Seguiram pelos Reels        | **0**       | ninguém vê motivo para seguir                       |
+| Visitas ao perfil / cliques | 81 / 0      | quem visita não encontra o que fazer                |
 
 Funil de crescimento de uma conta pequena:
 
@@ -157,12 +157,12 @@ pelo jurídico (ver `docs/PENDENCIAS-LANCAMENTO.md`).
 
 Tudo o que não for o vídeo acontece em volta dos 3 dias, sem post extra.
 
-| Quando                 | O que fazer                                                                                                                                                                       | Quem             |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| **Véspera (produção)** | gancho com número no quadro 0; 20–35 s; palavra buscável na 1ª linha, na tela e na fala; CTA de seguir com o **tema do próximo Reel**; pedido de envio para uma pessoa concreta | Claude           |
-| **19h (postagem)**     | conferir vídeo × legenda; postar nas 3 redes; fixar o comentário com pergunta                                                                                                    | quem posta       |
-| **19h–20h (1ª hora)**  | responder todo comentário (resposta com a conta gera 2º comentário); fundador e sócio mandam o **link** do Reel no status e em 3–5 grupos onde o tema cabe; comentar com a conta em 2–3 posts recentes de perfis grandes sobre o mesmo tema | fundador e sócio |
-| **Dia seguinte**       | números do Reel (painel + prints do TikTok/YouTube); se for o melhor da semana, vai para os fixados do perfil                                                                     | Claude + fundador |
+| Quando                 | O que fazer                                                                                                                                                                                                                                 | Quem              |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| **Véspera (produção)** | gancho com número no quadro 0; 20–35 s; palavra buscável na 1ª linha, na tela e na fala; CTA de seguir com o **tema do próximo Reel**; pedido de envio para uma pessoa concreta                                                             | Claude            |
+| **19h (postagem)**     | conferir vídeo × legenda; postar nas 3 redes; fixar o comentário com pergunta                                                                                                                                                               | quem posta        |
+| **19h–20h (1ª hora)**  | responder todo comentário (resposta com a conta gera 2º comentário); fundador e sócio mandam o **link** do Reel no status e em 3–5 grupos onde o tema cabe; comentar com a conta em 2–3 posts recentes de perfis grandes sobre o mesmo tema | fundador e sócio  |
+| **Dia seguinte**       | números do Reel (painel + prints do TikTok/YouTube); se for o melhor da semana, vai para os fixados do perfil                                                                                                                               | Claude + fundador |
 
 Nos dias sem Reel (ter, qui, sáb) não se posta nada; dá para usar o tempo em
 perfil, collab e respostas.
