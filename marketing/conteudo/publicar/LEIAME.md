@@ -181,6 +181,7 @@ original (AirDrop, Drive/iCloud ou WhatsApp como **Documento**).
 3. Configurações avançadas: "Carregar na qualidade mais alta" ligado.
 4. Colar a legenda e publicar às 19h.
 5. Fixar o comentário: `Você é o Caio ou o Mateus? Quanto você separa no dia do salário? 👇` e responder todos na 1ª hora.
+6. **Até 20h (fundador e sócio):** mandar o **link** do Reel no status do WhatsApp e em 3–5 grupos (família, trabalho, condomínio: tema de salário cabe em todos) com a frase `Seu salário cai amanhã? Olha essa conta 👇`.
 
 ```
 O salário cai até amanhã. Dia 20, o do Mateus já acabou. 💸
@@ -193,9 +194,9 @@ O Caio faz ao contrário: no dia do salário, antes de qualquer conta, separa R$
 
 Salva pra agendar a sua amanhã 🔖 e manda pra quem diz que nunca sobra nada. 🔁
 
-💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta.
+💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta. Segunda: a garantia estendida que a loja empurra no caixa. Segue pra ver.
 
-⏳ Faltam 57 dias para o que estamos preparando pra 2027. Segue pra não perder.
+⏳ Faltam 57 dias para o que estamos preparando pra 2027.
 
 Conteúdo educacional. Em novembro de 2026, o quinto dia útil é sábado, 7 (o sábado conta; o feriado de Finados, não): é o prazo da CLT (art. 459) para pagar o salário. Valores ilustrativos, sem rendimento. Personagens fictícios.
 
@@ -209,7 +210,7 @@ Conteúdo educacional. Em novembro de 2026, o quinto dia útil é sábado, 7 (o 
 3. Colar a legenda e publicar às 19h.
 
 ```
-O salário cai até amanhã. Dia 20, o do Mateus já acabou. 💸 Primeiro você se paga, depois paga o resto: R$ 300 no dia do salário viram R$ 3.600 no ano. Segue pra não perder. ⏳ Faltam 57 dias.
+O salário cai até amanhã. Dia 20, o do Mateus já acabou. 💸 Primeiro você se paga, depois paga o resto: R$ 300 no dia do salário viram R$ 3.600 no ano. Segunda tem a garantia estendida: segue pra ver. ⏳ Faltam 57 dias.
 
 #educacaofinanceira #salario #financaspessoais #dinheiro #quintodiautil
 ```

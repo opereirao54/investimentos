@@ -68,14 +68,14 @@ svg.malha { position: absolute; inset: 0; }
 .faixa-news { position: absolute; left: -40px; right: -40px; top: 300px; height: 300px; background: #b91c1c;
   display: flex; flex-direction: column; align-items: center; justify-content: center; transform: skewY(-4deg);
   box-shadow: 0 24px 60px rgba(0,0,0,.35); }
-.faixa-news b { font-size: 150px; font-weight: 900; letter-spacing: -.045em; line-height: 1; color: #fff; transform: skewY(4deg); }
+.faixa-news b { font-size: 124px; font-weight: 900; letter-spacing: -.045em; line-height: 1; color: #fff; transform: skewY(4deg); }
 .faixa-news span { margin-top: 10px; padding: 6px 34px; background: #fff; color: #b91c1c; font-family: 'DM Mono', monospace;
   font-size: 70px; letter-spacing: .32em; text-indent: .32em; transform: skewY(4deg); }
 .faixa-news.explica { background: #059669; }
 .faixa-news.ouro { background: linear-gradient(100deg, #a86b12 0%, #f6d365 18%, #fff3c4 28%, #e2a72e 42%, #b97a17 58%, #f9dc7a 74%, #fff1b8 82%, #c88a1e 100%); border-top: 3px solid #fff1b8; border-bottom: 3px solid #8a5a0c; }
-.faixa-news.ouro img { width: 640px; transform: skewY(4deg); }
+.faixa-news.ouro img { width: 600px; transform: skewY(4deg); }
 .faixa-news.lanc-verde { background: #059669; }
-.faixa-news.lanc-verde img { width: 640px; transform: skewY(4deg); }
+.faixa-news.lanc-verde img { width: 600px; transform: skewY(4deg); }
 .aviso-lanc { padding: 14px 34px; border-radius: 99px; background: linear-gradient(100deg, #a86b12 0%, #f6d365 18%, #fff3c4 28%, #e2a72e 42%, #b97a17 58%, #f9dc7a 74%, #fff1b8 82%, #c88a1e 100%); font-family: 'DM Mono', monospace; font-weight: 500;
   font-size: 40px; letter-spacing: .14em; text-transform: uppercase; color: #2a1a04; margin-bottom: 56px; box-shadow: 0 10px 24px rgba(0,0,0,.4); }
 .faixa-news.explica span { color: #047857; }
