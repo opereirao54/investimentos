@@ -63,7 +63,7 @@ Três Reels por semana, às 19h, **sempre com a contagem regressiva** (selo
 
 | Data      | Faltam | Série     | Reel                                                                                                      | Status |
 | --------- | ------ | --------- | --------------------------------------------------------------------------------------------------------- | ------ |
-| qua 04/11 | 59     | News      | Copom decide a Selic hoje: o que muda no seu bolso (poupança, CDB, financiamento)                         | ✅     |
+| qua 04/11 | 59     | News      | Copom decide a Selic hoje: o que muda no seu bolso (poupança, CDB, financiamento) — 18h06 · 103 views em ~14 h · ret. 11% (5 s de 47,6) · compart. 3,5% (3) · 0 salvos | 📤     |
 | sex 06/11 | 57     | Explica   | Frete grátis acima de R$ 99: a pegadinha do carrinho                                                      | 🆕     |
 | seg 09/11 | 54     | Explica   | Garantia estendida: o seguro que paga a loja                                                              | 🆕     |
 | qua 11/11 | 52     | News      | Inflação de outubro (IPCA sai 10/11): seu salário subiu e você não ficou mais rico                        | 🆕     |
