@@ -86,10 +86,12 @@ Quem faz é o sócio (dono do Instagram), uma vez só:
    `A conta do dinheiro do dia a dia que ninguém te mostra 🧮` /
    `💡 Seg e sex: Appliquei Explica` / `📰 Qua: Appliquei News` /
    `⏳ 02/01/2027: vem aí`.
-3. **Desafixar o banner** Missão/Visão/Valores (os 3 posts continuam juntos
-   no fim da grade, então o banner não se desmonta) e **fixar 3 Reels**: a
+3. **Arquivar o banner** Missão/Visão/Valores e **fixar 3 Reels**: a
    geladeira (melhor retenção, 22%), "O banco te paga R$ 7" (melhor
    compartilhamento, 3,5%) e "Parcelado ou à vista?" (mais views, 293).
+   Erro de 05/11: desafixado, o banner **não** fica junto; cada post novo
+   empurra a grade uma casa e ele só se alinha a cada 3 posts. Banner de 3
+   peças só funciona fixado; e teve as menores views do perfil (28 a 53).
 4. **Trocar a capa** desses 3 (⋯ › Editar › Editar capa › da galeria, se o
    app oferecer) pelas capas novas com faixa (`publicar/01-…`, `02-…`,
    `05-…-capa.png`): grade com cara de série e sem "Conta de Padaria".
