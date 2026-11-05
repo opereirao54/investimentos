@@ -70,25 +70,35 @@ Reel da grade"). O mesmo vídeo já vai para Instagram, TikTok e YouTube às
 
 ### 3. Perfil que converte visita em seguidor (81 visitas, 0 seguiram)
 
-Quem chega ao perfil decide em 3 s. Quem faz é o sócio (dono do Instagram),
-uma vez só (passo a passo mandado em 05/11):
+**Como estava (print de 05/11):** nome "Appliquei"; bio genérica ("Seu
+dinheiro precisa de direção… Organize suas finanças… Em breve!") que não diz
+o que a pessoa ganha seguindo; os 3 fixados eram o banner Missão/Visão/
+Valores (fala da empresa, não de quem chega); dois Reels com o selo antigo
+"Conta de Padaria" (nome rejeitado em 29/10); "Toda semana, dois encontros
+marcados" anuncia a grade velha; e o ícone de Reel/fixado do Instagram cobria
+o "I" de APPLIQUEI nas capas com faixa (corrigido em `capa.js` em 05/11:
+faixa com 124 px, livre do canto superior direito).
+
+Quem faz é o sócio (dono do Instagram), uma vez só:
 
 1. **Nome** (Editar perfil › Nome, entra na busca): `Appliquei • Finanças pessoais`.
-2. **Bio:** promessa + grade + data, sem citar o app (até 26/12 ele não
-   aparece):
+2. **Bio** (sem citar o app até 26/12):
    `A conta do dinheiro do dia a dia que ninguém te mostra 🧮` /
    `💡 Seg e sex: Appliquei Explica` / `📰 Qua: Appliquei News` /
    `⏳ 02/01/2027: vem aí`.
-3. **Fixar 3 Reels** (⋯ › Fixar no perfil), pelos números de 05/11: a
+3. **Desafixar o banner** Missão/Visão/Valores (os 3 posts continuam juntos
+   no fim da grade, então o banner não se desmonta) e **fixar 3 Reels**: a
    geladeira (melhor retenção, 22%), "O banco te paga R$ 7" (melhor
    compartilhamento, 3,5%) e "Parcelado ou à vista?" (mais views, 293).
-   Trocar quando outro Reel passar um deles.
-4. **Arquivar** (⋯ › Arquivar, dá para desfazer) o que anuncia coisa velha:
-   "Agora tem hora marcada por aqui" (anuncia a grade antiga, News ter e qui)
-   e o Reel do propósito (45 views, fala do app antes da hora).
-5. **Link da bio:** não existe lista de espera, então não prometer uma
-   (CONAR). Até 26/12, sem link ou o que já estiver; em 26/12 entra a página
-   do app com o teste grátis.
+4. **Trocar a capa** desses 3 (⋯ › Editar › Editar capa › da galeria, se o
+   app oferecer) pelas capas novas com faixa (`publicar/01-…`, `02-…`,
+   `05-…-capa.png`): grade com cara de série e sem "Conta de Padaria".
+5. **Arquivar** (⋯ › Arquivar, dá para desfazer): "Toda semana, dois
+   encontros marcados" (grade velha) e "Por que o Appliquei existe?".
+6. **Link da bio:** não existe lista de espera, então não prometer uma
+   (CONAR). Até 26/12, sem link; em 26/12 entra a página do app.
+7. **Foto:** só o ícone verde, grande, sem a palavra (no círculo pequeno a
+   palavra "Appliquei" fica ilegível).
 
 ### 4. Pedir o "seguir" com motivo
 
