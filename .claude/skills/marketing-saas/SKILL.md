@@ -1,6 +1,6 @@
 ---
 name: marketing-saas
-description: Especialista em marketing de vendas de SaaS e criação de conteúdo para redes sociais da Appliquei — posicionamento, funil (atenção → teste grátis → assinatura → indicação), copy de venda, roteiros de Reels/Shorts/TikTok, carrosséis, posts, stories, legendas, calendário editorial e métricas. Use SEMPRE que o pedido for divulgar, vender ou comunicar o app — "faz um post", "cria um shorts/reels", "roteiro de vídeo", "legenda pro Instagram", "ideias de conteúdo", "calendário de posts", "como vender mais", "anúncio", "copy da landing", "mensagem pro grupo de teste", "campanha de lançamento", "como trazer clientes" — e também quando ele pedir peça visual com a identidade da marca. Use antes de publicar qualquer peça para checar promessas (CVM, CDC, CONAR) e números contra o produto real.
+description: Especialista em marketing de vendas de SaaS e criação de conteúdo para redes sociais da Appliquei — posicionamento, funil (atenção → teste grátis → assinatura → indicação), copy de venda, roteiros de Reels/Shorts/TikTok, carrosséis, posts, stories, legendas, calendário editorial e métricas. Use SEMPRE que o pedido for divulgar, vender ou comunicar o app — "faz um post", "cria um shorts/reels", "roteiro de vídeo", "legenda pro Instagram", "ideias de conteúdo", "calendário de posts", "como vender mais", "anúncio", "copy da landing", "mensagem pro grupo de teste", "campanha de lançamento", "como trazer clientes", "crescer a página", "ganhar seguidores" — e também quando ele pedir peça visual com a identidade da marca. Use antes de publicar qualquer peça para checar promessas (CVM, CDC, CONAR) e números contra o produto real.
 ---
 
 # Marketing de vendas de SaaS — Appliquei
@@ -140,6 +140,12 @@ linha da semana.
   mudança de conteúdo (um teste por vez, mais as alavancas que não são
   conteúdo: perfil, comentários, collab, Reel de teste, impulsionar, busca). Use sempre que o pedido for analisar desempenho ou decidir o
   próximo tema com base nos números.
+
+- `referencias/crescimento.md` — **plano para crescer a página até o
+  lançamento**: retrato atual, metas, as alavancas em ordem de impacto
+  (retenção, volume com Reels de teste, perfil, CTA de seguir, compartilhamento,
+  distribuição fora do algoritmo, busca, pago) e o ritmo semanal. Use sempre
+  que o pedido for crescer, ganhar seguidores ou alcance.
 
 ## O que esta skill não faz
 

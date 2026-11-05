@@ -142,6 +142,13 @@ true`), mesmo modelo do News.
 
 ## Pendentes (lembrar o fundador)
 
+- **Plano de crescimento (05/11, aguardando o fundador):**
+  `.claude/skills/marketing-saas/referencias/crescimento.md`. Decidir: (1) um
+  Reel por semana com rosto/voz do fundador ou do sócio; (2) Reels de teste
+  do Instagram nos dias sem grade (ter, qui, sáb); (3) ajuste do perfil —
+  nome buscável, bio com a grade, 3 fixados, link único de lista de espera
+  (com o sócio); (4) mandar cada Reel na rede própria na 1ª hora.
+
 - **Conferir vídeo × legenda antes de postar** (04/11): em 02/11 o "Quem
   chegou aos 65 com mais?" saiu com a legenda do "R$ 30 ou R$ 300", às 8h30.
   O pacote traz o gancho do vídeo na 1ª linha da legenda para quem posta
