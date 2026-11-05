@@ -1,5 +1,10 @@
 # Reel de teste: "Parcelado ou à vista?" com abertura nova (≈32 s)
 
+> **Não publicado (05/11):** a conta não tem a opção "Reel de teste". O teste
+> da abertura passou para o Reel de segunda 09/11. O arquivo com o selo foi
+> tirado de `publicar/`; fica aqui o narrado sem selo, como referência do
+> modelo de abertura.
+
 **Reel de teste do Instagram** de qui 05/11/2026 (proposto pelo fundador):
 mostrado só a quem não segue, fora da grade e do perfil. Mesmo tema e mesma
 conta do "Parcelado ou à vista?" de 28/10 (o Reel com mais views, 293;
