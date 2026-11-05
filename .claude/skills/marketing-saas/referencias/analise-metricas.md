@@ -117,7 +117,7 @@ que a justifica:
   e cliques no link ou seguidores baixos.
 - **Comentários:** comentário fixado com pergunta ("Você é o Caio ou o
   Mateus?") e resposta a todos na primeira hora.
-- **Reel de teste do Instagram:** o mesmo vídeo com duas aberturas, mostrado
+- **Reel de teste do Instagram** (indisponível na conta em 05/11; ver `crescimento.md`): o mesmo vídeo com duas aberturas, mostrado
   só a quem não segue, para testar o gancho sem gastar um dia da grade.
 - **Collab** com perfis pequenos de finanças ou humor do dia a dia.
 - **Impulsionar** o melhor Reel orgânico (R$ 10–20/dia, 3 dias, público
