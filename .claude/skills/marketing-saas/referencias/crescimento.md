@@ -56,26 +56,21 @@ de tempo médio, o algoritmo para de distribuir depois do primeiro lote.
 - **Teste a propor ao fundador — rosto ou voz humana.** Os 8 Reels são todos
   texto animado com voz de TTS e nenhum passou de 22% de retenção. Em finanças
   pessoais, as contas pequenas que crescem rápido quase sempre têm uma pessoa
-  falando para a câmera (ou mãos + celular + voz real). Proposta: um Reel por
-  semana gravado pelo fundador ou pelo sócio no celular, 20–30 s, o mesmo
+  falando para a câmera (ou mãos + celular + voz real). Proposta: um dos 3 Reels
+  da semana gravado pelo fundador ou pelo sócio no celular, 20–30 s, o mesmo
   roteiro Mateus × Caio contado em primeira pessoa, com a conta na tela por
   cima. É mudança de combinado (formato e voz), então **perguntar antes**.
-- **Gancho testado sem gastar a grade:** **Reel de teste** do Instagram (só
-  para quem não segue) com o mesmo vídeo e 2–3 aberturas diferentes. Ganha a
-  que tiver mais tempo médio; essa vai para a grade.
+- **Gancho testado dentro da grade:** sem Reel extra (fundador, 05/11), o
+  teste de gancho é um por Reel da grade: cada Reel muda só a abertura e
+  compara o tempo médio com o anterior da mesma série.
 
-### 2. Volume — mais bilhetes na loteria
+### 2. Grade fixa: seg, qua e sex, nada a mais (fundador, 05/11)
 
-Conta de 16 seguidores vive de não seguidores; cada post é uma chance nova.
-
-- **Reels de teste nos dias sem grade** (ter, qui, sáb): variações de gancho
-  dos vídeos que já existem não aparecem no perfil e não quebram a grade de
-  seg/qua/sex. Custo: só exportar outra abertura.
-- **TikTok e YouTube Shorts** já recebem o mesmo vídeo; o TikTok distribui
-  mais para conta nova. Pedir os prints: se lá estiver indo melhor, é lá que
-  o formato está sendo validado.
-- **Recortes:** um Reel de 35 s vira um de 12 s só com o gancho + a virada
-  ("a conta que ninguém faz"), postado como teste.
+"Precisamos potencializar dentro do que temos de cronograma seg qua e sex."
+Não há Reel extra em ter, qui ou sáb (nem Reel de teste). Cada um dos 3 Reels
+tem de render o máximo, com o ciclo de 4 tempos abaixo ("Ciclo de cada
+Reel da grade"). O mesmo vídeo já vai para Instagram, TikTok e YouTube às
+19h; o TikTok distribui mais para conta nova, então pedir os prints de lá.
 
 ### 3. Perfil que converte visita em seguidor (81 visitas, 0 seguiram)
 
@@ -146,20 +141,19 @@ R$ 1,50, parar e voltar para o orgânico. Gasto só com o "sim" do fundador.
 5.768/71); "concurso cultural" tem regras próprias. Não propor sem passar
 pelo jurídico (ver `docs/PENDENCIAS-LANCAMENTO.md`).
 
-## Ritmo semanal de crescimento (até 26/12)
+## Ciclo de cada Reel da grade (seg, qua, sex)
 
-| Dia | O que fazer                                                                  |
-| --- | ---------------------------------------------------------------------------- |
-| Seg | Reel da grade (Explica) 19h + resumo da semana anterior com 1 mudança        |
-| Ter | Reel de teste: 2 aberturas do Reel de segunda; fundador manda nos grupos     |
-| Qua | Reel da grade (News) 19h                                                     |
-| Qui | Reel de teste do News (abertura ou recorte de 12 s); 1 collab em negociação |
-| Sex | Reel da grade (Explica) 19h                                                  |
-| Sáb | Reel de teste: recorte do melhor da semana; ajustar perfil/fixados           |
-| Dom | Nada novo; responder comentários                                             |
+Tudo o que não for o vídeo acontece em volta dos 3 dias, sem post extra.
 
-Toda postagem: comentário fixado com pergunta, resposta a todos na 1ª hora,
-link enviado para a rede própria.
+| Quando                 | O que fazer                                                                                                                                                                       | Quem             |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| **Véspera (produção)** | gancho com número no quadro 0; 20–35 s; palavra buscável na 1ª linha, na tela e na fala; CTA de seguir com o **tema do próximo Reel**; pedido de envio para uma pessoa concreta | Claude           |
+| **19h (postagem)**     | conferir vídeo × legenda; postar nas 3 redes; fixar o comentário com pergunta                                                                                                    | quem posta       |
+| **19h–20h (1ª hora)**  | responder todo comentário (resposta com a conta gera 2º comentário); fundador e sócio mandam o **link** do Reel no status e em 3–5 grupos onde o tema cabe; comentar com a conta em 2–3 posts recentes de perfis grandes sobre o mesmo tema | fundador e sócio |
+| **Dia seguinte**       | números do Reel (painel + prints do TikTok/YouTube); se for o melhor da semana, vai para os fixados do perfil                                                                     | Claude + fundador |
+
+Nos dias sem Reel (ter, qui, sáb) não se posta nada; dá para usar o tempo em
+perfil, collab e respostas.
 
 ## Como medir se está funcionando
 

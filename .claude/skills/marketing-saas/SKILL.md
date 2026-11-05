@@ -143,7 +143,7 @@ linha da semana.
 
 - `referencias/crescimento.md` — **plano para crescer a página até o
   lançamento**: retrato atual, metas, as alavancas em ordem de impacto
-  (retenção, volume com Reels de teste, perfil, CTA de seguir, compartilhamento,
+  (retenção, ciclo de cada Reel da grade seg/qua/sex, perfil, CTA de seguir, compartilhamento,
   distribuição fora do algoritmo, busca, pago) e o ritmo semanal. Use sempre
   que o pedido for crescer, ganhar seguidores ou alcance.
 
