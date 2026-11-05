@@ -677,8 +677,8 @@ function _mobLigarExtrato() {
     _mobExtToque = null;
   });
 
-  // Toque simples na linha (fora dos botões) abre/fecha o painel: o deslize
-  // não é descobrível por todo mundo.
+  // Toque simples na linha (fora dos botões) abre a edição; o deslize mostra
+  // as ações (pagar, editar, excluir) para quem conhece o gesto.
   lista.addEventListener('click', (e) => {
     if (!mobEhCelular()) return;
     if (e.target.closest('button')) {
@@ -692,9 +692,22 @@ function _mobLigarExtrato() {
       _mobExtFecharTodos(null);
       return;
     }
-    const abrir = !item.classList.contains('mob-acoes');
+    // Toque na linha abre a edição (com Excluir dentro) — era linha → lápis,
+    // e o lápis só aparecia depois de descobrir o toque. Painel aberto pelo
+    // deslize fecha com o toque, como antes; linha sem edição (ex.: aporte de
+    // investimento) continua mostrando as ações.
+    if (item.classList.contains('mob-acoes')) {
+      item.classList.remove('mob-acoes');
+      return;
+    }
+    const editar = item.querySelector('button[onclick^="prepararEdicao"]');
+    if (editar) {
+      _mobExtFecharTodos(null);
+      editar.click();
+      return;
+    }
     _mobExtFecharTodos(item);
-    item.classList.toggle('mob-acoes', abrir);
+    item.classList.add('mob-acoes');
   });
 }
 
@@ -1205,8 +1218,11 @@ function _mobLinhaMovimento(t) {
   const dia = t.data
     ? new Date(t.data).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
     : '';
+  // Tocar na movimentação abre a edição dela (antes: Extrato → linha → lápis).
   return (
-    '<li class="mi-mov"><span class="mi-mov-ic' +
+    '<li class="mi-mov" role="button" tabindex="0" onclick="prepararEdicao(\'' +
+    _mobEsc(String(t.id)) +
+    '\')"><span class="mi-mov-ic' +
     (entrada ? ' in' : '') +
     '"><i class="ph ' +
     (entrada
@@ -1871,7 +1887,9 @@ function _mobProximos(itens, hojeStr) {
         return (
           '<article class="mp-card fatura ' +
           dia.estado +
-          '"><div class="mp-topo"><span class="mp-dia">' +
+          '" role="button" tabindex="0" aria-label="Ver a fatura" onclick="abrirModalGrupoCartao(\'' +
+          _mobEsc(key) +
+          '\')"><div class="mp-topo"><span class="mp-dia">' +
           dia.rot +
           '</span><span class="mp-ic"><i class="ph ph-credit-card"></i></span></div><div class="mp-corpo"><b>' +
           _mobEsc(nome) +
@@ -1880,9 +1898,12 @@ function _mobProximos(itens, hojeStr) {
           (n === 1 ? ' compra' : ' compras') +
           '</small><span class="mp-val valor-mascarado">' +
           _mobEsc(_mobDreFmt(g.total)) +
-          '</span></div><button type="button" class="mp-btn" onclick="abrirModalGrupoCartao(\'' +
+          '</span></div>' +
+          // Pagar direto, como a conta comum tem "Baixar" (antes: Ver fatura →
+          // Pagar → confirmar). Tocar no resto do card abre a fatura.
+          '<button type="button" class="mp-btn" onclick="event.stopPropagation();baixarGrupoCartao(\'' +
           _mobEsc(key) +
-          '\')">Ver fatura</button></article>'
+          '\')">Pagar</button></article>'
         );
       }
       const t = it.conta;
@@ -2354,6 +2375,8 @@ function mobPatrimonioRedesenharCarteiras() {
           ],
         ];
         if (conta)
+          acoes.push(["conferirAbrir('" + _mobEsc(conta.id) + "')", 'ph-check-circle', 'Conferir']);
+        if (conta)
           acoes.push([
             "editarContaForm('" + _mobEsc(conta.id) + "')",
             'ph-pencil-simple',
@@ -2414,6 +2437,9 @@ function mobPatrimonioRedesenharCarteiras() {
         '</span><b class="mpw-total valor-mascarado">' +
         _mobEsc(_mobPatFmt(x.total)) +
         '</b></button>' +
+        (conta && typeof conferirAvisoHtml === 'function'
+          ? conferirAvisoHtml(conta.id, x.caixa)
+          : '') +
         corpo +
         '</article>' +
         extrato
@@ -3171,9 +3197,12 @@ function mobRenderContas() {
           ' · ' +
           (c.arquivada
             ? 'arquivada'
-            : saldo
-              ? 'saldo inicial ' + _mobEsc(_mobDreFmt(saldo))
-              : 'sem saldo inicial');
+            : c.conferidoEm
+              ? 'conferido em ' +
+                _mobEsc(new Date(c.conferidoEm).toLocaleDateString('pt-BR').slice(0, 5))
+              : saldo
+                ? 'saldo inicial ' + _mobEsc(_mobDreFmt(saldo))
+                : 'sem saldo inicial');
         const idJs = "'" + _mobEsc(id) + "'";
         const acoes = c.arquivada
           ? [['restaurarContaUI(' + idJs + ')', 'ph-arrow-counter-clockwise', 'Restaurar']]

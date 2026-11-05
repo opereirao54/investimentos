@@ -105,7 +105,13 @@ function saldoCaixaPorConta(refMs) {
     });
   } else {
     contasAtivas().forEach(function (c) {
-      mapa[c.id] = Number(c.saldoInicial) || 0;
+      mapa[c.id] =
+        (Number(c.saldoInicial) || 0) +
+        (Array.isArray(c.ajustes)
+          ? c.ajustes.reduce(function (s, a) {
+              return s + (Number(a && a.valor) || 0);
+            }, 0)
+          : 0);
     });
   }
   if (ref > agora) aplicarAgendadoNoSaldo(mapa, agora, ref);
@@ -457,6 +463,14 @@ function fundirContas(idDestino, idsOrigem) {
     const o = obterConta(id);
     if (!o) return;
     destino.saldoInicial = (Number(destino.saldoInicial) || 0) + (Number(o.saldoInicial) || 0);
+    // Ajustes do "Conferir saldo" são caixa da conta: fundir sem levá-los
+    // mudaria o saldo somado das duas.
+    if (Array.isArray(o.ajustes) && o.ajustes.length) {
+      if (!Array.isArray(destino.ajustes)) destino.ajustes = [];
+      o.ajustes.forEach(function (a) {
+        destino.ajustes.push(a);
+      });
+    }
     // Guarda o nome (e aliases) absorvidos para que registros antigos que ainda
     // referenciam essa instituição por texto continuem resolvendo no destino.
     addAlias(appliqueiNormalizarNomeConta(o.nome));
@@ -547,6 +561,7 @@ function abrirNovaContaForm() {
   document.getElementById('contaTipo').value = 'banco';
   document.getElementById('contaSaldoInicial').value = '';
   document.getElementById('contaDataSaldoInicial').value = '';
+  contaFormModoSaldoHoje(true);
   const titulo = document.getElementById('tituloFormConta');
   if (titulo) titulo.textContent = 'Nova conta';
   f.style.display = 'block';
@@ -570,10 +585,50 @@ function editarContaForm(id) {
       ? formatarBRLInput(c.saldoInicial)
       : '';
   document.getElementById('contaDataSaldoInicial').value = c.dataSaldoInicial || '';
+  contaFormModoSaldoHoje(false);
   const titulo = document.getElementById('tituloFormConta');
   if (titulo) titulo.textContent = 'Editar conta';
   document.getElementById('formNovaConta').style.display = 'block';
   document.getElementById('contaNome').focus();
+}
+
+// Conta NOVA pergunta "quanto tem nela hoje?" — o número que a pessoa vê no
+// app do banco — e não "saldo inicial (opcional)". Opcional, ninguém
+// preenchia: a conta nascia do zero e o primeiro gasto já deixava o saldo
+// negativo no Patrimônio, sem explicação. Na edição o campo volta a ser o
+// saldo de abertura, com data (uso avançado).
+function contaFormModoSaldoHoje(novo) {
+  const lbl = document.getElementById('lblContaSaldoInicial');
+  if (lbl)
+    lbl.innerHTML = novo
+      ? 'Quanto tem nela hoje? <span style="color:var(--cor-erro);">*</span>'
+      : 'Saldo inicial';
+  const grupoData = document.getElementById('grupoContaDataSaldoInicial');
+  if (grupoData) grupoData.style.display = novo ? 'none' : '';
+  const dica = document.getElementById('dicaContaSaldoInicial');
+  if (dica) dica.style.display = novo ? 'none' : '';
+  const dicaHoje = document.getElementById('dicaContaSaldoHoje');
+  if (dicaHoje) dicaHoje.style.display = novo ? '' : 'none';
+}
+
+// Saldo de abertura que faz o saldo de HOJE bater com `saldoHoje`. Se já há
+// lançamentos com esse nome de banco (digitado antes de a conta existir), eles
+// passam a ser desta conta ao criá-la; a abertura desconta o que eles já
+// movimentaram, senão o mesmo dinheiro contaria duas vezes.
+function saldoAberturaParaSaldoHoje(nome, saldoHoje) {
+  let movimentado = 0;
+  try {
+    if (
+      typeof mpCalcularSaldoPorInstituicao === 'function' &&
+      typeof mpNormalizarInstituicao === 'function'
+    ) {
+      const key = mpNormalizarInstituicao(nome).key;
+      const porInst = mpCalcularSaldoPorInstituicao(Date.now()) || {};
+      const b = key && porInst['nome:' + key];
+      if (b) movimentado = Number(b.caixa) || 0;
+    }
+  } catch (e) {}
+  return Math.round(((Number(saldoHoje) || 0) - movimentado) * 100) / 100;
 }
 
 function salvarFormConta() {
@@ -602,12 +657,24 @@ function salvarFormConta() {
     });
     mostrarToast('Conta atualizada.', 'sucesso');
   } else {
-    criarConta({
+    const campo = document.getElementById('contaSaldoInicial');
+    if (!campo || !String(campo.value || '').trim()) {
+      if (campo) campo.focus();
+      return mostrarToast(
+        'Informe quanto tem nessa conta hoje (pode ser 0) — é o que faz o saldo bater com o banco.',
+        'erro'
+      );
+    }
+    const nova = criarConta({
       nome: nome,
       tipo: tipo,
-      saldoInicial: saldoInicial,
-      dataSaldoInicial: dataSaldoInicial,
+      saldoInicial: saldoAberturaParaSaldoHoje(nome, saldoInicial),
+      dataSaldoInicial: null,
     });
+    if (nova) {
+      nova.conferidoEm = new Date().toISOString();
+      salvarContas();
+    }
     mostrarToast('Conta criada.', 'sucesso');
   }
   cancelarFormConta();
@@ -739,7 +806,11 @@ function renderMinhasContas() {
     .map(function (c) {
       const arq = c.arquivada;
       const saldo = Number(c.saldoInicial) || 0;
-      const saldoTxt = saldo ? 'Saldo inicial ' + fmt(saldo) : 'Sem saldo inicial';
+      const saldoTxt = c.conferidoEm
+        ? 'Conferido com o banco em ' + new Date(c.conferidoEm).toLocaleDateString('pt-BR')
+        : saldo
+          ? 'Saldo inicial ' + fmt(saldo)
+          : 'Sem saldo inicial';
       const acao = arq
         ? '<button class="' +
           btn +
@@ -826,7 +897,11 @@ function abrirTransferenciaModal() {
     '<div style="display:flex;flex-direction:column;gap:10px;text-align:left;">' +
     campo(
       'De',
-      '<select id="transfOrigem" style="' + estiloCtrl + '">' + optsOrigem + '</select>'
+      '<select id="transfOrigem" onchange="transfOrigemMudou()" style="' +
+        estiloCtrl +
+        '">' +
+        optsOrigem +
+        '</select>'
     ) +
     campo(
       'Para',
@@ -859,6 +934,18 @@ function abrirTransferenciaModal() {
     if (outra) dst.value = outra.id;
   }
   modal.style.display = 'flex';
+}
+
+// Trocou o "De" para a conta que estava no "Para": o "Para" passa para outra,
+// em vez de deixar a pessoa montar uma transferência da conta para ela mesma.
+function transfOrigemMudou() {
+  const org = document.getElementById('transfOrigem');
+  const dst = document.getElementById('transfDestino');
+  if (!org || !dst || org.value !== dst.value) return;
+  const outra = Array.prototype.find.call(dst.options, function (o) {
+    return o.value && o.value !== org.value;
+  });
+  if (outra) dst.value = outra.value;
 }
 
 // Lógica pura (testável): cria o par de transações balanceado. Retorna
@@ -982,5 +1069,6 @@ if (typeof window !== 'undefined') {
   window.confirmarFusaoUI = confirmarFusaoUI;
   window.abrirTransferenciaModal = abrirTransferenciaModal;
   window.confirmarTransferencia = confirmarTransferencia;
+  window.transfOrigemMudou = transfOrigemMudou;
   window.criarTransferencia = criarTransferencia;
 }

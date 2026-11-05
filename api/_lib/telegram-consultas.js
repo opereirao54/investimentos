@@ -189,6 +189,17 @@ function saldoInicialConta(c, refMs) {
   return sIni;
 }
 
+// appliquei-patrimonio.js → mpSomaAjustesConta (ajustes do "Conferir saldo")
+function somaAjustesConta(c, refMs) {
+  if (!c || !Array.isArray(c.ajustes)) return 0;
+  return c.ajustes.reduce((s, a) => {
+    const v = Number(a && a.valor);
+    if (!a || !isFinite(v) || !v) return s;
+    const ts = a.data ? new Date(a.data).getTime() : 0;
+    return isFinite(ts) && ts > refMs ? s : s + v;
+  }, 0);
+}
+
 // appliquei-patrimonio.js → mpChaveInstTransacao
 function chaveInstTransacao(t, contas) {
   const conta = resolverConta(t, contas);
@@ -219,7 +230,7 @@ function saldoPorInstituicao(dados, refMs) {
   contas
     .filter((c) => c && !c.arquivada)
     .forEach((c) => {
-      const sIni = saldoInicialConta(c, refMs);
+      const sIni = saldoInicialConta(c, refMs) + somaAjustesConta(c, refMs);
       if (sIni) ensure(c.id, c.nome).caixa += sIni;
     });
   (dados.transacoes || []).forEach((t) => {

@@ -366,6 +366,23 @@ function mpSaldoInicialConta(c, refMs) {
   return sIni;
 }
 
+// Ajustes de saldo de uma conta (fluxo "Conferir saldo"): a diferença entre o
+// que o app calculava e o que a pessoa viu no app do banco, registrada no dia
+// da conferência. Mora na CONTA, não em `transacoes`, de propósito: ajuste não
+// é receita nem despesa — não pode entrar no resultado do mês, na Projeção, no
+// relatório nem nos insights. Só o caixa da conta o enxerga. Valor com sinal.
+function mpAjustesConta(c, refMs) {
+  if (!c || !Array.isArray(c.ajustes)) return [];
+  return c.ajustes.filter((a) => {
+    if (!a || !isFinite(Number(a.valor)) || !Number(a.valor)) return false;
+    const ts = a.data ? new Date(a.data).getTime() : 0;
+    return !(isFinite(ts) && ts > refMs);
+  });
+}
+function mpSomaAjustesConta(c, refMs) {
+  return mpAjustesConta(c, refMs).reduce((s, a) => s + Number(a.valor), 0);
+}
+
 // Chave/label de agrupamento por instituição. Prioriza a CONTA resolvida
 // (key = conta.id); cai para o nome em texto (key 'nome:<norm>'); e, quando não
 // há instituição alguma, cai em 'a-reconciliar' (os antigos vazamentos "Sem
@@ -392,7 +409,7 @@ function mpCalcularSaldoTotal(refMs) {
   let saldo = 0;
   if (typeof contasAtivas === 'function') {
     contasAtivas().forEach((c) => {
-      saldo += mpSaldoInicialConta(c, refMs);
+      saldo += mpSaldoInicialConta(c, refMs) + mpSomaAjustesConta(c, refMs);
     });
   }
   if (typeof transacoes !== 'undefined') {
@@ -433,7 +450,7 @@ function mpCalcularSaldoPorInstituicao(refMs) {
   // Saldos de abertura das contas cadastradas entram no caixa.
   if (typeof contasAtivas === 'function') {
     contasAtivas().forEach((c) => {
-      const sIni = mpSaldoInicialConta(c, refMs);
+      const sIni = mpSaldoInicialConta(c, refMs) + mpSomaAjustesConta(c, refMs);
       if (sIni) ensure(c.id, c.nome).caixa += sIni;
     });
   }
@@ -803,6 +820,17 @@ function mpExtratoInstituicao(key, refMs) {
           abertura: true,
         });
       }
+      mpAjustesConta(c, refMs).forEach((a) => {
+        const ts = a.data ? new Date(a.data).getTime() : 0;
+        movs.push({
+          ts: isFinite(ts) ? ts : 0,
+          desc: 'Ajuste de saldo',
+          categoria: 'ajuste_saldo',
+          valor: Number(a.valor),
+          ajusteId: a.id,
+          contaId: c.id,
+        });
+      });
     });
   }
   if (typeof transacoes !== 'undefined') {
@@ -816,6 +844,13 @@ function mpExtratoInstituicao(key, refMs) {
         desc: t.descricao || mpCategoriaLabelMov(t.categoria),
         categoria: t.categoria,
         valor: entrada ? valor : -valor,
+        // Conta a pagar marcada como paga: o extrato oferece "Não paguei" na
+        // própria linha. Marcar pago por engano era invisível — o dinheiro
+        // saía do saldo e a pessoa só via o número errado, sem saber de onde.
+        txId:
+          !entrada && (t.categoria === 'despesa_fixa' || t.categoria === 'cartao_credito')
+            ? t.id
+            : undefined,
       });
     });
   }
@@ -845,8 +880,26 @@ function mpTipoMovInfo(categoria, abertura) {
     investimento_variavel: { label: 'Aporte', cls: 'aporte' },
     previdencia: { label: 'Previdência', cls: 'aporte' },
     sonho: { label: 'Sonho', cls: 'aporte' },
+    ajuste_saldo: { label: 'Ajuste', cls: 'ajuste' },
   };
   return mapa[categoria] || null;
+}
+
+// Ação de desfazer na linha do extrato: o ajuste de saldo e a baixa de conta a
+// pagar. Ids vão em data-* (nunca interpolados no onclick).
+function mpAcaoExtratoHtml(m) {
+  const esc = (v) =>
+    String(v == null ? '' : v)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;');
+  if (m.categoria === 'ajuste_saldo' && m.ajusteId) {
+    return `<button type="button" class="mp-extrato-acao" data-conta="${esc(m.contaId)}" data-ajuste="${esc(m.ajusteId)}" onclick="conferirDesfazerAjuste(this.dataset.conta, this.dataset.ajuste)">Desfazer</button>`;
+  }
+  if (m.txId) {
+    return `<button type="button" class="mp-extrato-acao" data-tx="${esc(m.txId)}" onclick="conferirNaoPaguei(this.dataset.tx)" title="Volta para a pagar e devolve o valor ao saldo">Não paguei</button>`;
+  }
+  return '';
 }
 
 // HTML do extrato (mais recente primeiro). Limita o número de linhas no DOM.
@@ -913,6 +966,7 @@ function mpRenderExtratoHtml(movs) {
                 <div class="mp-extrato-vals">
                     <span class="mp-extrato-valor ${cls}">${sinal}${mpFmtBRL(Math.abs(m.valor))}</span>
                     <span class="mp-extrato-saldo">saldo ${mpFmtBRL(m.saldoApos)}</span>
+                    ${mpAcaoExtratoHtml(m)}
                 </div>
             </div>`;
     })
@@ -1040,7 +1094,13 @@ function mpRenderInstituicoes(consolidado) {
       // Extrato (movimentações de caixa) recolhível por instituição.
       const aberto = !!(mpEstado.extratoAberto && mpEstado.extratoAberto[x.key]);
       const extratoHtml = mpRenderExtratoHtml(mpExtratoInstituicao(x.key, Date.now()));
-      const tituloExtrato = '<i class="ph ph-receipt"></i> Extrato — movimentações de caixa';
+      const ehConta = !x.reconciliar && typeof obterConta === 'function' && !!obterConta(x.key);
+      const avisoHtml =
+        ehConta && typeof conferirAvisoHtml === 'function' ? conferirAvisoHtml(x.key, x.caixa) : '';
+      const btnConferir = ehConta
+        ? ` <button type="button" class="mp-extrato-conferir" data-conta="${String(x.key).replace(/"/g, '&quot;')}" onclick="conferirAbrir(this.dataset.conta)"><i class="ph ph-check-circle"></i> Conferir saldo</button>`
+        : '';
+      const tituloExtrato = `<i class="ph ph-receipt"></i> Extrato — movimentações de caixa${btnConferir}`;
       return `
             <div class="mp-inst-item mp-inst-collapsible">
                 <div class="mp-inst-head" onclick="mpToggleExtrato(${i})" title="Ver extrato">
@@ -1059,6 +1119,7 @@ function mpRenderInstituicoes(consolidado) {
                     </div>
                 </div>
                 ${detalheHtml}
+                ${avisoHtml}
                 <div class="mp-inst-extrato" id="mp-extrato-${i}" style="display:${aberto ? 'flex' : 'none'}">
                     <div class="mp-extrato-titulo">${tituloExtrato}</div>
                     ${extratoHtml}

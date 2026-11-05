@@ -89,12 +89,15 @@ test('tocar no lançamento mostra Editar e Excluir; excluir tira da fatura na ho
   await linha.click();
   await expect(page.locator('.fat-item-acoes')).toBeVisible();
   await page.click('.fat-item-excluir[data-id="e2e_pizza"]');
-  // A confirmação abre por cima da fatura.
-  await expect(page.locator('#modalConfirmacao')).toBeVisible();
-  await page.click('#modalAcoes button:has-text("Sim, excluir")');
+  // Compra avulsa: sai na hora, sem janela, com "Desfazer" no aviso.
+  await expect(page.locator('#modalConfirmacao')).toBeHidden();
   await expect(page.locator('.fat-item[data-id="e2e_pizza"]')).toHaveCount(0);
   expect(await page.evaluate(() => transacoes.some((t) => t.id === 'e2e_pizza'))).toBe(false);
   await expect(page.locator('#telaFaturas')).toBeVisible();
+  // O Desfazer devolve a compra à fatura.
+  await page.click('.toast-acao:has-text("Desfazer")');
+  await expect(page.locator('.fat-item[data-id="e2e_pizza"]')).toHaveCount(1);
+  expect(await page.evaluate(() => transacoes.filter((t) => t.id === 'e2e_pizza').length)).toBe(1);
 });
 
 test('parcela: "este e os futuros" apaga a série daqui para frente', async ({ page }) => {
@@ -115,8 +118,8 @@ test('Editar abre o formulário, que agora também tem "Excluir lançamento"', a
   expect(await page.evaluate(() => document.getElementById('editTransacaoId').value)).toBe(
     'e2e_pizza'
   );
+  // Avulso: exclui na hora (com Desfazer no aviso), sem janela de confirmação.
   await page.click('#btnExcluirEdicao');
-  await page.click('#modalAcoes button:has-text("Sim, excluir")');
   expect(await page.evaluate(() => transacoes.some((t) => t.id === 'e2e_pizza'))).toBe(false);
   // O formulário sai do modo edição: nada fica apontando para o que sumiu.
   expect(await page.evaluate(() => document.getElementById('editTransacaoId').value)).toBe('');

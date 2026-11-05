@@ -209,6 +209,9 @@ test('o painel de vencimentos nasce recolhido, mas nunca esconde o que está ven
   assert.equal(s.vencDeveAbrir({}), false, 'recolhido por padrão — é o motivo de existir');
   assert.equal(s.vencDeveAbrir({ salvo: '1' }), true, 'a escolha de quem abriu fica valendo');
   assert.equal(s.vencDeveAbrir({ salvo: '0' }), false);
+  // Algo vencendo na semana abre o painel — mas a escolha de fechar vale.
+  assert.equal(s.vencDeveAbrir({ temSemana: true }), true);
+  assert.equal(s.vencDeveAbrir({ salvo: '0', temSemana: true }), false);
   // Estes dois ganham da preferência: é o único caso em que recolher custa
   // dinheiro (juros, multa).
   assert.equal(s.vencDeveAbrir({ salvo: '0', temAtraso: true }), true);

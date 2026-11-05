@@ -47,6 +47,11 @@
       "inicio": "R$ 30 por mês ou R$ 300 no anual",
       "seg": 41.2,
       "serie": "explica"
+    },
+    {
+      "inicio": "O banco te paga R$ 7",
+      "seg": 47.6,
+      "serie": "news"
     }
   ]
 }

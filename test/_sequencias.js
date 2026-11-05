@@ -206,6 +206,33 @@ const ACOES = [
     },
   },
   {
+    // Exclusão avulsa sem confirmação (avaliação de cliques, 11/2026): sai na
+    // hora e o aviso guarda o "Desfazer", que outra ação pode apertar depois —
+    // inclusive várias ações depois, quando o mundo já mudou.
+    nome: 'excluir um lançamento avulso (com Desfazer guardado)',
+    fn: (m, r) => {
+      if (typeof m.s.controleExclusaoDesfazivel !== 'function') return null;
+      const lista = m.s.transacoes.filter((t) => m.s.controleExclusaoDesfazivel(t));
+      if (!lista.length) return null;
+      const t = lista[Math.floor(r() * lista.length)];
+      return () => {
+        m.s.mostrarToastDesfazer = (msg, desfazer) => {
+          m.desfazerExclusao = desfazer;
+        };
+        m.s.deletarTransacao(t.id);
+      };
+    },
+  },
+  {
+    nome: 'apertar o Desfazer da última exclusão',
+    fn: (m) => {
+      if (typeof m.desfazerExclusao !== 'function') return null;
+      const desfazer = m.desfazerExclusao;
+      // O aviso continua na tela: o segundo toque não pode duplicar.
+      return () => desfazer();
+    },
+  },
+  {
     nome: 'transferência entre contas',
     fn: (m, r) => {
       const ativas = m.s.contasAtivas();

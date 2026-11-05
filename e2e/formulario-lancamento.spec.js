@@ -86,8 +86,11 @@ test('saída: cada botão preenche o campo de sempre, e o resumo diz o que vai s
 
   // Salvar sem conta: nada é gravado e os botões de conta pedem atenção
   // (o campo de texto está escondido, então o foco vai para eles).
+  // A conta vem lembrada (último lançamento de saída); aqui a pessoa a apaga,
+  // e a lembrança não pode voltar sozinha por cima disso.
   await page.evaluate(() => {
     document.getElementById('bancoTransacao').value = '';
+    document.getElementById('bancoTransacao').dispatchEvent(new Event('input', { bubbles: true }));
     lancUiSincronizar();
   });
   const n0 = await page.evaluate(() => transacoes.length);
