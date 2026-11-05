@@ -81,8 +81,8 @@ faixa com 124 px, livre do canto superior direito).
 
 Quem faz é o sócio (dono do Instagram), uma vez só:
 
-1. **Nome** (Editar perfil › Nome, entra na busca): `Appliquei • Finanças pessoais`.
-2. **Bio** (sem citar o app até 26/12):
+1. ✅ (05/11) **Nome** (Editar perfil › Nome, entra na busca): `Appliquei • Finanças pessoais`.
+2. ✅ (05/11) **Bio** (sem citar o app até 26/12):
    `A conta do dinheiro do dia a dia que ninguém te mostra 🧮` /
    `💡 Seg e sex: Appliquei Explica` / `📰 Qua: Appliquei News` /
    `⏳ 02/01/2027: vem aí`.
@@ -99,7 +99,7 @@ Quem faz é o sócio (dono do Instagram), uma vez só:
    encontros marcados" (grade velha) e "Por que o Appliquei existe?".
 6. **Link da bio:** não existe lista de espera, então não prometer uma
    (CONAR). Até 26/12, sem link; em 26/12 entra a página do app.
-7. **Foto:** só o ícone verde, grande, sem a palavra (no círculo pequeno a
+7. **Foto:** só o ícone verde, grande, sem a palavra (`marketing/perfil/foto-perfil.png`, 1080×1080) (no círculo pequeno a
    palavra "Appliquei" fica ilegível).
 
 ### 4. Pedir o "seguir" com motivo
