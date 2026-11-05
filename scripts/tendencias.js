@@ -28,61 +28,80 @@ const TZ = 180; // Brasília (UTC-3), em minutos
 
 // Assuntos que mexem no bolso de quem vive de salário (o filtro do bolso).
 const BOLSO =
-  /sal[aá]rio|13[ºo°]?|d[eé]cimo|pix|pre[cç]o|infla[cç][aã]o|ipca|d[oó]lar|gasolina|combust|diesel|juros|selic|copom|imposto|receita federal|\bir\b|inss|fgts|black ?friday|conta de luz|bandeira tarif|energia|aluguel|cart[aã]o|banco|nubank|financiamento|aposentad|benef[ií]cio|bolsa fam[ií]lia|aux[ií]lio|ipva|iptu|desconto|promo[cç]|mercado|cesta b[aá]sica|feira|caro|tarifa|d[ií]vida|serasa|desenrola|poupan[cç]a|cdb|tesouro|greve|pis|abono|seguro.desemprego|emprego|demiss|dia [uú]til|feriado/i;
+  /sal[aá]rio|13[ºo°]|d[eé]cimo terceiro|\bpix\b|pre[cç]o|infla[cç][aã]o|ipca|d[oó]lar|gasolina|combust[ií]vel|diesel|juros|selic|copom|imposto|receita federal|imposto de renda|inss|fgts|black ?friday|conta de luz|bandeira tarif|aluguel|cart[aã]o de cr[eé]dito|fatura|financiamento|aposentad|bolsa fam[ií]lia|aux[ií]lio|p[eé] de meia|ipva|iptu|cesta b[aá]sica|tarifa|d[ií]vida|serasa|desenrola|poupan[cç]a|\bcdb\b|tesouro direto|abono|pis\b|seguro.desemprego|dia [uú]til|feriado|sal[aá]rio m[ií]nimo/i;
 
-function decodificar(s) {
-  return String(s || '')
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .trim();
+// Categorias da página "Em alta" do Trends (campo 10 de cada tendência).
+const CAT = { FINANCAS: 3, POLITICA: 14, ESPORTES: 17 };
+
+// A página "Em alta" (trends.google.com/trending) traz a lista completa das
+// últimas 24 h embutida no HTML (bloco ds:0), com volume, alta e termos
+// relacionados. O RSS público só traz ~10 itens, por isso não serve.
+async function listaEmAlta(horas) {
+  const res = await fetch(`${BASE}/trending?geo=BR&hl=pt-BR&hours=${horas}`, {
+    headers: { 'User-Agent': UA },
+  });
+  if (!res.ok) throw new Error(`página Em alta: HTTP ${res.status}`);
+  const html = await res.text();
+  const i = html.indexOf("AF_initDataCallback({key: 'ds:0'");
+  const ini = i < 0 ? -1 : html.indexOf('data:', i);
+  const fim = ini < 0 ? -1 : html.indexOf(', sideChannel', ini);
+  if (fim < 0) throw new Error('o Google mudou a página Em alta; mande o print enquanto eu ajusto');
+  const lista = JSON.parse(html.slice(ini + 5, fim))[1] || [];
+  return lista.map((t) => {
+    const relacionados = t[9] || [];
+    const categorias = t[10] || [];
+    const deBolso =
+      categorias.includes(CAT.FINANCAS) ||
+      [t[0], ...relacionados.slice(0, 8)].some((q) => BOLSO.test(q));
+    return {
+      termo: t[0],
+      volume: t[6] || 0,
+      alta: t[8] || 0,
+      inicio: t[3] && t[3][0] ? new Date(t[3][0] * 1000) : null,
+      ativa: t[4] == null,
+      relacionados,
+      categorias,
+      deBolso,
+      politica: categorias.includes(CAT.POLITICA),
+    };
+  });
 }
 
-function tag(bloco, nome) {
-  const m = bloco.match(new RegExp(`<${nome}>([\\s\\S]*?)</${nome}>`));
-  return m ? decodificar(m[1]) : '';
+function volumeBR(n) {
+  if (n >= 1e6) return `${n / 1e6} mi+`;
+  if (n >= 1e3) return `${n / 1e3} mil+`;
+  return `${n}+`;
+}
+
+function linha(t) {
+  const h = t.inicio ? Math.max(0, Math.round((Date.now() - t.inicio) / 36e5)) : null;
+  const quando = h == null ? '' : ` · há ${h} h`;
+  const marca = t.politica ? '⚠️ ' : t.deBolso ? '💰 ' : '   ';
+  console.log(
+    `${marca}${t.termo}  ${volumeBR(t.volume)} buscas · ↑${t.alta}%${quando}${t.ativa ? ' · ativa' : ''}`
+  );
+  const rel = t.relacionados.filter((q) => q !== t.termo).slice(0, 4);
+  if (rel.length) console.log(`      ${rel.join(' · ')}`);
 }
 
 async function emAlta() {
-  const res = await fetch(`${BASE}/trending/rss?geo=BR`, { headers: { 'User-Agent': UA } });
-  if (!res.ok) throw new Error(`RSS do Trends: HTTP ${res.status}`);
-  const xml = await res.text();
-  const itens = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].map((m) => {
-    const b = m[1];
-    const noticia = (b.match(/<ht:news_item>([\s\S]*?)<\/ht:news_item>/) || [])[1] || '';
-    const termo = tag(b, 'title');
-    const manchete = tag(noticia, 'ht:news_item_title');
-    return {
-      termo,
-      trafego: tag(b, 'ht:approx_traffic'),
-      quando: tag(b, 'pubDate'),
-      manchete,
-      fonte: tag(noticia, 'ht:news_item_source'),
-      link: tag(noticia, 'ht:news_item_url'),
-      // 2 = o termo é de bolso; 1 = só a manchete fala de bolso (conferir).
-      bolso: BOLSO.test(termo) ? 2 : BOLSO.test(manchete) ? 1 : 0,
-    };
-  });
-
+  const lista = await listaEmAlta(24);
   const hora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-  console.log(`Pesquisas em alta no Brasil (Google Trends) · ${hora}`);
+  console.log(`Em alta no Brasil · últimas 24 h · ${lista.length} tendências · ${hora}`);
   console.log(
-    '💰 = assunto de bolso · ❔ = só a manchete fala de bolso (conferir) · depois, as outras 3 perguntas do filtro\n'
+    '💰 de bolso · ⚠️ política (fora, pelo combinado) · depois, as outras 3 perguntas do filtro\n'
   );
-  const ordem = [...itens].sort((a, b) => b.bolso - a.bolso);
-  for (const i of ordem) {
-    console.log(`${['  ', '❔', '💰'][i.bolso]} ${i.termo}  (${i.trafego || '?'} buscas)`);
-    if (i.manchete) console.log(`     ${i.manchete} — ${i.fonte}`);
-    if (i.link) console.log(`     ${i.link}`);
-  }
-  if (!ordem.some((i) => i.bolso))
-    console.log(
-      '\nNenhum assunto de bolso em alta agora. Veja a curva de um termo:\n' +
-        '  npm run tendencias -- "13º salário" "black friday"'
-    );
+
+  console.log('Os 5 primeiros da página (mesma ordem do site, "por relevância"):');
+  lista.slice(0, 5).forEach(linha);
+
+  const bolso = lista
+    .filter((t) => t.deBolso)
+    .sort((a, b) => b.volume - a.volume || b.alta - a.alta);
+  console.log(`\nDe bolso (${bolso.length}), por volume:`);
+  if (!bolso.length)
+    console.log('   nenhum agora. Veja a curva de um termo: npm run tendencias -- "13º salário"');
+  bolso.slice(0, 15).forEach(linha);
 }
 
 // --- Explorar: curva de 12 meses e buscas em ascensão -----------------------
