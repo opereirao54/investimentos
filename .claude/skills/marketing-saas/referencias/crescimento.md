@@ -85,7 +85,7 @@ uma vez só (passo a passo mandado em 05/11):
    Trocar quando outro Reel passar um deles.
 4. **Arquivar** (⋯ › Arquivar, dá para desfazer) o que anuncia coisa velha:
    "Agora tem hora marcada por aqui" (anuncia a grade antiga, News ter e qui)
-   e o carrossel do propósito (45 views, fala do app antes da hora).
+   e o Reel do propósito (45 views, fala do app antes da hora).
 5. **Link da bio:** não existe lista de espera, então não prometer uma
    (CONAR). Até 26/12, sem link ou o que já estiver; em 26/12 entra a página
    do app com o teste grátis.
