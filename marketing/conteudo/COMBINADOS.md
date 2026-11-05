@@ -118,6 +118,12 @@ true`), mesmo modelo do News.
   ligado; no TikTok, "Permitir upload em alta qualidade".
 - **Capa** com a frase do gancho em todo vídeo (`capa.js`), na capa e no
   primeiro quadro (`appliquei-<tema>-com-capa.mp4`).
+- **Padrão da capa (fundador, 05/11):** faixa da série (News vermelha,
+  Explica verde, reta final dourada) com APPLIQUEI em 124 px, longe do canto
+  superior direito, onde o Instagram põe o ícone de Reel e o de fixado (antes
+  ele cobria o "I"). Já está no `capa.js`: toda capa nova sai assim. Conferir
+  no recorte 3:4 da grade antes de entregar. Nada de rótulo "Conta de
+  Padaria" nem capa sem faixa.
 - **Números conferidos com fonte** antes de gravar; aviso educacional e
   "Personagens fictícios" no fim; nada de recomendação (CVM).
 
