@@ -61,38 +61,39 @@ Três Reels por semana, às 19h, **sempre com a contagem regressiva** (selo
 
 ### Daqui até o lançamento
 
-| Data      | Faltam | Série     | Reel                                                                                                      | Status |
-| --------- | ------ | --------- | --------------------------------------------------------------------------------------------------------- | ------ |
+| Data      | Faltam | Série     | Reel                                                                                                                                                                   | Status |
+| --------- | ------ | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
 | qua 04/11 | 59     | News      | Copom decide a Selic hoje: o que muda no seu bolso (poupança, CDB, financiamento) — 18h06 · 103 views em ~14 h · ret. 11% (5 s de 47,6) · compart. 3,5% (3) · 0 salvos | 📤     |
-| sex 06/11 | 57     | Explica   | Frete grátis acima de R$ 99: a pegadinha do carrinho                                                      | 🆕     |
-| seg 09/11 | 54     | Explica   | Garantia estendida: o seguro que paga a loja                                                              | 🆕     |
-| qua 11/11 | 52     | News      | Inflação de outubro (IPCA sai 10/11): seu salário subiu e você não ficou mais rico                        | 🆕     |
-| sex 13/11 | 50     | Explica   | Quanto o seu delivery custa em um ano                                                                     | 🆕     |
-| seg 16/11 | 47     | Explica   | A regra 50-30-20 em 30 segundos (**revisão dos temas em 16/11**)                                          | 🆕     |
-| qua 18/11 | 45     | News      | assunto da semana (reserva: ganha até R$ 5 mil? confira o holerite, isenção do IR)                        | 🆕     |
-| sex 20/11 | 43     | Explica   | Reserva de emergência: qual é o seu número                                                                | 🆕     |
-| seg 23/11 | 40     | Explica   | Seu banco é obrigado a te dar conta de graça (`alcance/tarifas-banco`)                                    | ✅     |
-| qua 25/11 | 38     | News      | Black Friday chegando: o desconto de 25% que deixou a TV mais cara                                        | 🆕     |
-| sex 27/11 | 36     | Explica   | 13º: o investimento que rende 100% ao ano é quitar dívida cara (dia da Black Friday)                      | 🆕     |
-| seg 30/11 | 33     | Explica   | Pague-se primeiro: guardar no dia 1 ou no dia 30?                                                         | 🆕     |
-| qua 02/12 | 31     | News      | assunto da semana                                                                                         | 🆕     |
-| sex 04/12 | 29     | Explica   | Financiou um carro de R$ 80 mil? Você paga um carro e meio                                                | 🆕     |
-| seg 07/12 | 26     | Explica   | R$ 30 por mês ou R$ 300 no anual? (`alcance/mensal-ou-anual`, longe do parcelado)                         | ✅     |
-| qua 09/12 | 24     | News      | assunto da semana (Copom de dezembro, se for nessa semana)                                                | 🆕     |
-| sex 11/12 | 22     | Explica   | As contas de janeiro que você esquece em dezembro (IPVA, IPTU, escola)                                    | 🆕     |
-| seg 14/12 | 19     | Explica   | Natal sem fatura em janeiro: o orçamento dos presentes                                                    | 🆕     |
-| qua 16/12 | 17     | News      | 2ª parcela do 13º (até 20/12): para onde vai cada real                                                    | 🆕     |
-| sex 18/12 | 15     | Explica   | Natal em 10× vira janeiro até outubro (parcelas empilhadas)                                               | 🆕     |
-| seg 21/12 | 12     | Explica   | Para onde foi o seu dinheiro em 2026?                                                                     | 🆕     |
-| qua 23/12 | 10     | News      | assunto da semana, fechando com o teaser "Em 10 dias, você vai parar de adivinhar"                        | 🆕     |
-| sáb 26/12 | 7      | Explica   | Meta de 2027 sem data é só desejo (sexta 25/12 é Natal: fica livre)                                       | 🆕     |
-| dom 27/12 | 6      | Appliquei | Sonhos (`sonhos/`)                                                                                        | ✅     |
-| seg 28/12 | 5      | Appliquei | Meus investimentos (`investimentos/`)                                                                     | ✅     |
-| ter 29/12 | 4      | Appliquei | Patrimônio (`patrimonio/`)                                                                                | ✅     |
-| qua 30/12 | 3      | Appliquei | Telegram (`telegram/`)                                                                                    | ✅     |
-| qui 31/12 | 2      | Appliquei | Automações, 45 s (`resumo/appliquei-resumo-45s.mp4`), Réveillon                                           | ✅     |
-| sex 01/01 | 1      | Appliquei | Teaser: "Você sabe quanto realmente tem?" (`lancamento-janeiro/`)                                         | ✅     |
-| sáb 02/01 | 0      | Appliquei | **Lançamento:** "Tudo o que o Appliquei faz", 55 s (`resumo/appliquei-tudo-55s.mp4`), **fixar no perfil** | ✅     |
+| sex 06/11 | 57     | Explica   | O salário cai até amanhã: guardar o que sobra × se pagar primeiro (quinto dia útil, em alta no Trends em 05/11; troca do fundador, voz Sulafat)                        | ✅     |
+| a definir | —      | Explica   | Frete grátis acima de R$ 99: a pegadinha do carrinho (saiu de 06/11)                                                                                                   | 🆕     |
+| seg 09/11 | 54     | Explica   | Garantia estendida: o seguro que paga a loja                                                                                                                           | 🆕     |
+| qua 11/11 | 52     | News      | Inflação de outubro (IPCA sai 10/11): seu salário subiu e você não ficou mais rico                                                                                     | 🆕     |
+| sex 13/11 | 50     | Explica   | Quanto o seu delivery custa em um ano                                                                                                                                  | 🆕     |
+| seg 16/11 | 47     | Explica   | A regra 50-30-20 em 30 segundos (**revisão dos temas em 16/11**)                                                                                                       | 🆕     |
+| qua 18/11 | 45     | News      | assunto da semana (reserva: ganha até R$ 5 mil? confira o holerite, isenção do IR)                                                                                     | 🆕     |
+| sex 20/11 | 43     | Explica   | Reserva de emergência: qual é o seu número                                                                                                                             | 🆕     |
+| seg 23/11 | 40     | Explica   | Seu banco é obrigado a te dar conta de graça (`alcance/tarifas-banco`)                                                                                                 | ✅     |
+| qua 25/11 | 38     | News      | Black Friday chegando: o desconto de 25% que deixou a TV mais cara                                                                                                     | 🆕     |
+| sex 27/11 | 36     | Explica   | 13º: o investimento que rende 100% ao ano é quitar dívida cara (dia da Black Friday)                                                                                   | 🆕     |
+| seg 30/11 | 33     | Explica   | Pague-se primeiro: guardar no dia 1 ou no dia 30?                                                                                                                      | 🆕     |
+| qua 02/12 | 31     | News      | assunto da semana                                                                                                                                                      | 🆕     |
+| sex 04/12 | 29     | Explica   | Financiou um carro de R$ 80 mil? Você paga um carro e meio                                                                                                             | 🆕     |
+| seg 07/12 | 26     | Explica   | R$ 30 por mês ou R$ 300 no anual? (`alcance/mensal-ou-anual`, longe do parcelado)                                                                                      | ✅     |
+| qua 09/12 | 24     | News      | assunto da semana (Copom de dezembro, se for nessa semana)                                                                                                             | 🆕     |
+| sex 11/12 | 22     | Explica   | As contas de janeiro que você esquece em dezembro (IPVA, IPTU, escola)                                                                                                 | 🆕     |
+| seg 14/12 | 19     | Explica   | Natal sem fatura em janeiro: o orçamento dos presentes                                                                                                                 | 🆕     |
+| qua 16/12 | 17     | News      | 2ª parcela do 13º (até 20/12): para onde vai cada real                                                                                                                 | 🆕     |
+| sex 18/12 | 15     | Explica   | Natal em 10× vira janeiro até outubro (parcelas empilhadas)                                                                                                            | 🆕     |
+| seg 21/12 | 12     | Explica   | Para onde foi o seu dinheiro em 2026?                                                                                                                                  | 🆕     |
+| qua 23/12 | 10     | News      | assunto da semana, fechando com o teaser "Em 10 dias, você vai parar de adivinhar"                                                                                     | 🆕     |
+| sáb 26/12 | 7      | Explica   | Meta de 2027 sem data é só desejo (sexta 25/12 é Natal: fica livre)                                                                                                    | 🆕     |
+| dom 27/12 | 6      | Appliquei | Sonhos (`sonhos/`)                                                                                                                                                     | ✅     |
+| seg 28/12 | 5      | Appliquei | Meus investimentos (`investimentos/`)                                                                                                                                  | ✅     |
+| ter 29/12 | 4      | Appliquei | Patrimônio (`patrimonio/`)                                                                                                                                             | ✅     |
+| qua 30/12 | 3      | Appliquei | Telegram (`telegram/`)                                                                                                                                                 | ✅     |
+| qui 31/12 | 2      | Appliquei | Automações, 45 s (`resumo/appliquei-resumo-45s.mp4`), Réveillon                                                                                                        | ✅     |
+| sex 01/01 | 1      | Appliquei | Teaser: "Você sabe quanto realmente tem?" (`lancamento-janeiro/`)                                                                                                      | ✅     |
+| sáb 02/01 | 0      | Appliquei | **Lançamento:** "Tudo o que o Appliquei faz", 55 s (`resumo/appliquei-tudo-55s.mp4`), **fixar no perfil**                                                              | ✅     |
 
 **Reserva (saíram da grade de 5 por semana):** R$ 100 de 2016 valem quanto
 hoje? (regra dos 72 da inflação; bom para um News de IPCA) · Quanto tempo até

@@ -1,0 +1,294 @@
+<!doctype html>
+<!--
+  Appliquei Explica (≈45 s + vinheta, 1080×1920): "O salário cai até amanhã".
+  Sex 06/11/2026, véspera do quinto dia útil (sáb 07/11). Mateus guarda o que
+  sobra (e nunca sobra); Caio se paga primeiro: R$ 300 no dia do salário,
+  R$ 3.600 no ano. Voz Sulafat. Sem rendimento, sem recomendação. Os tempos
+  das animações saem do narracao.json.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root {
+    --campo1: #0b1410; --campo2: #0f1f18; --campo3: #112720;
+    --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa;
+    --sinal: #34d399; --primaria: #059669; --ambar: #fbbf24; --vermelho: #f87171; --azul: #60a5fa;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--campo1); }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: linear-gradient(150deg, var(--campo1) 0%, var(--campo2) 50%, var(--campo3) 100%); }
+  .halo { position: absolute; inset: -20%;
+    background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.22), transparent 70%),
+                radial-gradient(40% 35% at 10% 90%, rgba(5,150,105,.18), transparent 70%); }
+  .malha { position: absolute; inset: 0; }
+  .cena { position: absolute; inset: 0; opacity: 0; }
+  .tit { font-weight: 900; letter-spacing: -.035em; line-height: 1.05; color: var(--tinta); }
+  .tit em { font-style: normal; color: var(--sinal); }
+  .tit em.a { color: var(--ambar); }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 200px; z-index: 20; }
+  .serie { position: absolute; right: 150px; top: 60px; padding: 10px 20px; border-radius: 99px; border: 2px solid rgba(52,211,153,.45); background: rgba(52,211,153,.12);
+    font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .12em; text-transform: uppercase; color: var(--sinal); z-index: 20; }
+  .serie.news { border: none; background: #b91c1c; color: #fff; font-weight: 500; letter-spacing: .14em; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); z-index: 30; }
+  .el { opacity: 0; }
+  .chip { position: absolute; left: 0; right: 0; text-align: center; }
+  .chip span { display: inline-block; padding: 14px 32px; border-radius: 20px; border: 3px solid rgba(240,250,244,.4); font-size: 40px; font-weight: 800; color: var(--deck); }
+  .chip.am span { border-color: var(--ambar); color: var(--ambar); }
+  .chip.mini span { font-size: 30px; padding: 10px 24px; border-width: 2px; color: var(--mudo); }
+
+  /* 1. Manchete */
+  .pilha { position: absolute; left: 70px; right: 70px; top: 235px; }
+  .card { position: relative; background: #f4f4f0; border-radius: 22px; overflow: hidden; box-shadow: 10px 12px 0 rgba(0,0,0,.55); margin-bottom: 34px; }
+  .card .bar { background: #b91c1c; color: #fff; font-weight: 900; font-size: 30px; letter-spacing: .04em; padding: 14px 34px; text-transform: uppercase; }
+  .card .corpo { padding: 24px 34px 22px; }
+  .card b { display: block; color: #111; font-size: 50px; font-weight: 900; line-height: 1.12; letter-spacing: -.015em; }
+  .card small { display: block; margin-top: 12px; color: #666; font-size: 26px; }
+  .fala { position: absolute; left: 0; right: 0; top: 1060px; text-align: center; }
+  .fala .fq { display: inline-block; padding: 12px 28px; border-radius: 99px; background: rgba(96,165,250,.16); border: 3px solid var(--azul); font-size: 34px; font-weight: 800; color: #dbeafe; }
+  .fala .frase { margin-top: 26px; font-size: 80px; font-weight: 900; letter-spacing: -.02em; text-transform: uppercase; }
+  .faixa { position: absolute; left: 0; right: 0; top: 1400px; text-align: center; }
+  .faixa span { display: inline-block; background: #facc15; color: #111; font-size: 88px; font-weight: 900; padding: 8px 44px; text-transform: uppercase; letter-spacing: -.01em; }
+
+  
+  .big { position: absolute; left: 0; right: 0; text-align: center; }
+  .rot { font-family: 'DM Mono', monospace; font-size: 34px; letter-spacing: .16em; text-transform: uppercase; color: var(--mudo); }
+  .taxa { font-family: 'DM Mono', monospace; font-weight: 500; letter-spacing: -.04em; }
+  .vs { display: flex; justify-content: center; align-items: baseline; gap: 34px; margin-top: 10px; }
+  .vs .taxa { font-size: 150px; }
+  .vs i { font-style: normal; font-size: 56px; font-weight: 900; color: var(--mudo); }
+  .caixa { position: absolute; left: 90px; right: 90px; padding: 40px 44px; border-radius: 36px; background: rgba(240,250,244,.06); border: 3px solid rgba(240,250,244,.22); text-align: center; }
+  .caixa b { display: block; font-size: 48px; font-weight: 900; }
+  .caixa .taxa { display: block; margin-top: 14px; font-size: 110px; color: var(--sinal); }
+  .carimbo { position: absolute; left: 0; right: 0; text-align: center; }
+  .carimbo span { display: inline-block; padding: 14px 44px; border: 6px solid var(--sinal); border-radius: 18px; color: var(--sinal); font-size: 78px; font-weight: 900; text-transform: uppercase; transform: rotate(-4deg); }
+  .nota { position: absolute; left: 90px; right: 90px; text-align: center; font-size: 32px; color: var(--mudo); line-height: 1.35; }
+  .barras { position: absolute; left: 90px; right: 90px; }
+  .barras .r { display: flex; justify-content: space-between; align-items: baseline; font-size: 38px; font-weight: 800; margin: 34px 0 14px; }
+  .barras .r span { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 46px; }
+  .barras .tr { height: 70px; border-radius: 35px; background: rgba(240,250,244,.08); overflow: hidden; }
+  .barras .tr i { display: block; height: 100%; width: 0; border-radius: 35px; }
+
+/* 4. Cartão */
+  .regra-c { position: absolute; left: 90px; right: 90px; top: 300px; padding: 30px 36px; border-radius: 30px; background: rgba(52,211,153,.1); border: 3px solid rgba(52,211,153,.5); text-align: center; font-size: 42px; font-weight: 900; }
+  .regra-c em { font-style: normal; color: var(--sinal); }
+  .recibo { position: absolute; left: 90px; right: 90px; padding: 30px 40px; border-radius: 30px; background: #fff; color: #12241c; box-shadow: 0 30px 70px rgba(0,0,0,.45); }
+  .recibo .cab { display: flex; justify-content: space-between; font-family: 'DM Mono', monospace; font-size: 28px; letter-spacing: .08em; text-transform: uppercase; color: #51655b; padding-bottom: 14px; border-bottom: 3px dashed #c9d5cf; }
+  .recibo .ln { display: flex; justify-content: space-between; align-items: baseline; margin-top: 16px; font-size: 38px; font-weight: 800; }
+  .recibo .ln span { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 40px; }
+  .recibo .tot { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; padding-top: 14px; border-top: 2px solid #e7eeea; font-size: 44px; font-weight: 900; }
+  .recibo .tot span { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 64px; letter-spacing: -.03em; }
+  .recibo.seg { border: 5px solid var(--azul); }
+  .recibo.seg .tot span { color: #b91c1c; }
+  .recibo.sex .tot span { color: #047857; }
+  .tag-m { position: absolute; right: 30px; top: -28px; padding: 8px 20px; border-radius: 99px; background: var(--azul); color: #082f49; font-size: 28px; font-weight: 900; }
+  .dif { position: absolute; left: 0; right: 0; top: 1370px; text-align: center; font-family: 'DM Mono', monospace; font-size: 64px; color: var(--vermelho); }
+
+    .cadeia { position: absolute; left: 70px; right: 70px; display: flex; align-items: center; justify-content: center; gap: 22px; }
+  .elo { width: 270px; padding: 28px 18px; border-radius: 30px; text-align: center; background: rgba(240,250,244,.06); border: 3px solid rgba(240,250,244,.25); }
+  .elo .ic { font-size: 84px; line-height: 1; }
+  .elo b { display: block; margin-top: 12px; font-size: 36px; font-weight: 900; }
+  .elo small { display: block; margin-top: 4px; font-family: 'DM Mono', monospace; font-size: 30px; color: var(--vermelho); }
+  .seta-c { font-family: 'DM Mono', monospace; font-size: 60px; color: var(--mudo); }
+
+  /* regra e fecho (iguais ao News #1) */
+  .quem { position: absolute; left: 90px; right: 90px; display: flex; align-items: center; gap: 30px; padding: 36px 40px; border-radius: 40px; }
+  .quem .av { flex: none; width: 130px; height: 130px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 68px; font-weight: 900; color: #052e1f; }
+  .quem b { display: block; font-size: 46px; font-weight: 900; }
+  .quem small { display: block; margin-top: 6px; font-size: 34px; color: var(--deck); }
+  .q-caio { background: rgba(52,211,153,.12); border: 3px solid rgba(52,211,153,.55); }
+  .q-caio .av { background: var(--sinal); }
+  .q-mat { background: rgba(248,113,113,.1); border: 3px solid rgba(248,113,113,.5); }
+  .q-mat .av { background: var(--vermelho); }
+  .feito { position: absolute; left: 90px; right: 90px; display: flex; align-items: center; gap: 28px; padding: 30px 36px; border-radius: 30px; background: rgba(240,250,244,.06); border: 3px solid rgba(240,250,244,.2); font-size: 42px; font-weight: 800; line-height: 1.2; }
+  .feito .ok { flex: none; width: 78px; height: 78px; border-radius: 50%; background: var(--sinal); color: #052e1f; display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: 900; }
+  .feito em { font-style: normal; color: var(--sinal); }
+  .regra { position: absolute; left: 70px; right: 70px; padding: 44px 44px; border-radius: 44px; background: rgba(240,250,244,.06); border: 3px solid rgba(52,211,153,.5); box-shadow: 0 0 80px rgba(52,211,153,.15); text-align: center; }
+  .regra .rot { color: var(--sinal); font-size: 30px; }
+  .regra b { display: block; margin-top: 18px; font-size: 62px; font-weight: 900; letter-spacing: -.02em; line-height: 1.1; }
+  .regra b em { font-style: normal; color: var(--ambar); }
+  .manda { position: absolute; left: 0; right: 0; top: 470px; text-align: center; }
+  .manda .ic { width: 170px; height: 170px; margin: 0 auto; border-radius: 44px; background: var(--sinal); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 70px rgba(52,211,153,.4); }
+  .manda .ic svg { width: 96px; height: 96px; margin-left: -8px; }
+  .manda b { display: block; margin-top: 34px; font-size: 64px; font-weight: 900; letter-spacing: -.03em; line-height: 1.1; }
+  .assina { position: absolute; left: 0; right: 0; top: 1000px; text-align: center; }
+  .assina img { width: 440px; }
+  .assina p { margin-top: 26px; font-size: 44px; font-weight: 800; color: var(--deck); }
+  .assina p em { font-style: normal; color: var(--sinal); }
+  .aviso { position: absolute; left: 80px; right: 80px; top: 1320px; padding: 22px 26px; border-radius: 22px; background: rgba(11,20,16,.9); border: 2px solid rgba(240,250,244,.35); text-align: center; font-size: 25px; line-height: 1.4; color: var(--tinta); }
+
+  .gancho { position: absolute; left: 70px; right: 70px; top: 200px; text-align: center; }
+  .gancho .tit { font-size: 96px; }
+  .saldo { position: absolute; left: 90px; right: 90px; padding: 34px 40px; border-radius: 36px; background: rgba(240,250,244,.06); border: 3px solid rgba(240,250,244,.22); text-align: center; }
+  .saldo .rot { font-size: 30px; }
+  .saldo .taxa { display: block; margin-top: 8px; font-size: 150px; }
+  .gastos { position: absolute; left: 90px; right: 90px; display: flex; flex-wrap: wrap; justify-content: center; gap: 22px; }
+  .gasto { padding: 16px 30px; border-radius: 24px; background: rgba(248,113,113,.1); border: 3px solid rgba(248,113,113,.55); font-size: 40px; font-weight: 800; }
+  .gasto span { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--vermelho); margin-left: 12px; }
+  .balao { position: absolute; left: 140px; right: 140px; padding: 30px 40px; border-radius: 40px 40px 40px 8px; background: #f4f4f0; color: #111; font-size: 52px; font-weight: 900; text-align: center; box-shadow: 10px 12px 0 rgba(0,0,0,.45); }
+  .fluxo { position: absolute; left: 90px; right: 90px; }
+  .passo { display: flex; justify-content: space-between; align-items: baseline; padding: 26px 34px; border-radius: 28px; background: rgba(240,250,244,.06); border: 3px solid rgba(240,250,244,.2); font-size: 40px; font-weight: 800; margin-bottom: 22px; }
+  .passo span { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 52px; }
+  .passo.g { border-color: rgba(52,211,153,.7); background: rgba(52,211,153,.12); }
+  .passo.g span { color: var(--sinal); }
+  .passo small { display: block; font-size: 28px; font-weight: 600; color: var(--mudo); margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <div class="halo"></div>
+  <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+  <div class="serie" id="serie">Appliquei Explica</div>
+
+  <!-- 1. GANCHO: escrito no segundo 0, com o número; manchete real logo depois -->
+  <div class="cena" id="c1">
+    <div class="gancho"><div class="rot">Quinto dia útil de novembro</div>
+      <div class="tit" style="margin-top:14px;">O salário cai<br><em class="a">até amanhã</em></div></div>
+    <div class="pilha" style="top:560px;">
+      <div class="card el" id="m1"><div class="bar">Salário · 04/11/2026</div><div class="corpo"><b style="font-size:46px;">Quando é o quinto dia útil em novembro de 2026? Veja data-limite para pagamento do salário</b><small>Fonte: Valor Econômico</small></div></div>
+    </div>
+    <div class="faixa el" id="fx" style="top:1110px;"><span style="font-size:66px;line-height:1.15;">Dia 20, o do Mateus<br>já acabou</span></div>
+    <div class="chip el" id="fc" style="top:1360px;"><span style="border-color:var(--sinal);color:var(--sinal);font-size:48px;">O do Caio, não.</span></div>
+  </div>
+
+  <!-- 2. MATEUS -->
+  <div class="cena" id="c2">
+    <div class="quem q-mat el" id="qm" style="top:300px;"><div class="av">M</div><div><b>Mateus</b><small>recebe e vê o que sobra</small></div></div>
+    <div class="saldo el" id="s1" style="top:640px;"><div class="rot">💰 Salário caiu</div><span class="taxa" style="color:var(--sinal)">R$ 3.000</span></div>
+    <div class="balao el" id="b1" style="top:1080px;">“O que sobrar,<br>eu guardo.”</div>
+  </div>
+
+  <!-- 3. O MÊS DO MATEUS -->
+  <div class="cena" id="c3">
+    <div class="saldo" id="s2" style="top:300px;"><div class="rot" id="s2r">Saldo do Mateus</div><span class="taxa" id="s2v">R$ 3.000</span></div>
+    <div class="gastos" style="top:760px;">
+      <div class="gasto el" id="g1">Pix<span>−R$ 180</span></div>
+      <div class="gasto el" id="g2">Delivery<span>−R$ 240</span></div>
+      <div class="gasto el" id="g3">Contas<span>−R$ 1.900</span></div>
+      <div class="gasto el" id="g4">Cartão<span>−R$ 680</span></div>
+    </div>
+    <div class="carimbo el" id="ns" style="top:1250px;"><span style="border-color:var(--vermelho);color:var(--vermelho);">Nunca sobra</span></div>
+  </div>
+
+  <!-- 4. CAIO -->
+  <div class="cena" id="c4">
+    <div class="quem q-caio el" id="qc" style="top:300px;"><div class="av">C</div><div><b>Caio</b><small>faz ao contrário</small></div></div>
+    <div class="fluxo" style="top:620px;">
+      <div class="passo el" id="p1"><div>💰 Salário cai<small>dia do pagamento</small></div><span>R$ 3.000</span></div>
+      <div class="passo g el" id="p2"><div>🔒 Antes de tudo<small>transferência agendada</small></div><span>−R$ 300</span></div>
+      <div class="passo el" id="p3"><div>🧾 Contas e o mês<small>com o que fica</small></div><span>R$ 2.700</span></div>
+    </div>
+  </div>
+
+  <!-- 5. A CONTA -->
+  <div class="cena" id="c5">
+    <div class="big el" id="x1" style="top:300px;"><div class="rot">Em 1 ano</div><div class="vs"><span class="taxa" style="font-size:120px;">R$ 300</span><i>× 12</i></div></div>
+    <div class="caixa el" id="x2" style="top:620px;border-color:rgba(52,211,153,.6);background:rgba(52,211,153,.1);"><b>Guardado</b><span class="taxa" style="font-size:150px;">R$ 3.600</span></div>
+    <div class="barras el" id="x3" style="top:1040px;">
+      <div class="r">1 salário <span>R$ 3.000</span></div><div class="tr"><i id="bA" style="background:var(--mudo)"></i></div>
+      <div class="r">Guardado no ano <span style="color:var(--sinal)">R$ 3.600</span></div><div class="tr"><i id="bB" style="background:linear-gradient(90deg,var(--primaria),var(--sinal))"></i></div>
+    </div>
+  </div>
+
+  <!-- 6. REGRA -->
+  <div class="cena" id="c6">
+    <div class="regra el" id="rg" style="top:460px;"><div class="rot">Regra de bolso</div><b>Primeiro você<br><em>se paga</em>.<br>Depois, o resto.</b></div>
+    <div class="carimbo el" id="rp" style="top:1100px;"><span style="border-color:var(--vermelho);color:var(--vermelho);font-size:70px;">O que sobra<br>nunca sobra</span></div>
+  </div>
+
+  <!-- 7. FECHO -->
+  <div class="cena" id="c7">
+    <div class="manda el" id="mn" style="top:330px;"><div class="ic"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4.5L6 21z" fill="#052e1f"/></svg></div><b>Salva pra agendar<br>a sua amanhã</b></div>
+    <div class="chip el" id="mn2" style="top:820px;"><span style="font-size:42px;">Manda pra quem diz que nunca sobra</span></div>
+    <div class="assina el" id="as" style="top:1000px;"><img src="wordmark.svg" alt="Appliquei"><p>Mais contas assim: <em>siga o Appliquei</em></p></div>
+    <div class="aviso el" id="av">Conteúdo educacional. Quinto dia útil de novembro/2026: sábado, 7 (o sábado conta; Finados, não), prazo do art. 459 da CLT. Valores ilustrativos, sem rendimento. Personagens fictícios.</div>
+  </div>
+
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  function $(id) { return document.getElementById(id); }
+  (function () {
+    const L = 1080, A = 1920, m = [];
+    for (let x = 60; x < L; x += 60) m.push(`<line x1="${x}" y1="0" x2="${x}" y2="${A}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 60; y < A; y += 60) m.push(`<line x1="0" y1="${y}" x2="${L}" y2="${y}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    $('malha').innerHTML = m.join('');
+  })();
+
+  const NAR = [[0.2, 6.73, "O salário cai até amanhã. Dia vinte, o do Mateus já acabou. O do Caio, não."], [7.08, 11.54, "O Mateus recebe três mil e pensa: o que sobrar, eu guardo."], [11.89, 16.42, "Pix aqui, delivery ali… Dia vinte: zero. Nunca sobra."], [16.77, 26.21, "O Caio faz ao contrário. No dia do salário, antes de qualquer conta, ele separa trezentos. Transferência agendada."], [26.56, 32.57, "Trezentos vezes doze: três mil e seiscentos. Mais que um salário inteiro no ano."], [32.92, 39.66, "A regra: primeiro você se paga. Depois, o resto. Porque o que sobra… nunca sobra."], [40.01, 44.51, "Salva pra agendar a sua amanhã. E manda pra quem diz que nunca sobra nada."]];
+  const DUR = +(NAR[NAR.length - 1][1] + 0.9).toFixed(2);
+  const CENAS = NAR.map((f, i) => ['c' + (i + 1), i === 0 ? 0 : f[0] - 0.15, i + 1 < NAR.length ? NAR[i + 1][0] - 0.15 : DUR + 0.2]);
+  function quando(i, palavra) {
+    const [a, b, txt] = NAR[i], k = txt.indexOf(palavra);
+    return 0.15 + (k < 0 ? 0 : k / txt.length) * (b - a) + (i === 0 ? NAR[0][0] : 0) - 0.1;
+  }
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  function surge(el, lt, a, dur, dy) {
+    const p = easeBack(prog(lt, a, a + (dur || 0.4)));
+    el.style.opacity = clamp(p, 0, 1);
+    el.style.transform = `translateY(${(1 - p) * (dy == null ? 40 : dy)}px) scale(${0.85 + 0.15 * p})`;
+  }
+  function cai(el, lt, a, rot) {
+    const p = a <= 0 ? 1 : easeBack(prog(lt, a, a + 0.4));
+    el.style.opacity = clamp(p, 0, 1);
+    el.style.transform = `translateY(${(1 - p) * -80}px) rotate(${rot}deg) scale(${1.08 - 0.08 * p})`;
+  }
+  const brl = (v) => 'R$ ' + Math.round(v).toLocaleString('pt-BR');
+
+  function render(t) {
+    for (const [id, a, b] of CENAS) {
+      const el = $(id);
+      const dentro = t >= a - 0.01 && t < b;
+      const fadeIn = id === 'c1' ? 1 : easeOut(prog(t, a, a + 0.25));
+      const fadeOut = 1 - prog(t, b - 0.2, b);
+      el.style.opacity = dentro ? Math.min(fadeIn, fadeOut) : 0;
+      el.style.display = dentro ? 'block' : 'none';
+      if (dentro) cenaExtra(id, t - a);
+    }
+    const fim = CENAS[CENAS.length - 1][1];
+    $('serie').style.opacity = t < fim ? 1 : 1 - prog(t, fim, fim + 0.3);
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+
+  function cenaExtra(id, lt) {
+    const q = (p) => quando(+id.slice(1) - 1, p);
+    if (id === 'c1') { cai($('m1'), lt, 0.6, -1.2); $('fx').style.opacity = 1; /* o número do gancho fica na tela desde o segundo 0 */ surge($('fc'), lt, q('O do Caio'), 0.35, 20); }
+    if (id === 'c2') { surge($('qm'), lt, 0.1, 0.4, 40); surge($('s1'), lt, q('três mil'), 0.4, 30); surge($('b1'), lt, q('o que sobrar'), 0.4, 30); }
+    if (id === 'c3') {
+      // os gastos entram e o saldo desce até zero no "Dia vinte"
+      const marcos = [[q('Pix'), 180], [q('delivery'), 240], [q('delivery') + 0.7, 1900], [q('Dia vinte') - 0.3, 680]];
+      let gasto = 0;
+      marcos.forEach(([a, v], i) => { surge($('g' + (i + 1)), lt, a, 0.35, 20); gasto += v * easeOut(prog(lt, a, a + 0.5)); });
+      const s = 3000 - gasto;
+      $('s2v').textContent = brl(Math.max(0, s));
+      $('s2v').style.color = s < 1 ? 'var(--vermelho)' : s < 1000 ? 'var(--ambar)' : 'var(--tinta)';
+      $('s2r').textContent = lt >= q('Dia vinte') ? 'Dia 20 · saldo do Mateus' : 'Saldo do Mateus';
+      surge($('ns'), lt, q('Nunca sobra'), 0.35, 0);
+    }
+    if (id === 'c4') { surge($('qc'), lt, 0.1, 0.4, 40); surge($('p1'), lt, q('No dia'), 0.4, 30); surge($('p2'), lt, q('ele separa'), 0.4, 30); surge($('p3'), lt, q('Transferência') + 0.4, 0.4, 30); }
+    if (id === 'c5') {
+      surge($('x1'), lt, 0.1, 0.4, 30); surge($('x2'), lt, q('três mil e seiscentos'), 0.4, 30); surge($('x3'), lt, q('Mais que'), 0.4, 30);
+      const p = easeOut(prog(lt, q('Mais que') + 0.2, q('Mais que') + 1.2));
+      $('bA').style.width = (p * 3000 / 3600 * 100).toFixed(1) + '%'; $('bB').style.width = (p * 100).toFixed(1) + '%';
+    }
+    if (id === 'c6') { surge($('rg'), lt, q('primeiro'), 0.45, 30); surge($('rp'), lt, q('Porque'), 0.35, 0); }
+    if (id === 'c7') {
+      surge($('mn'), lt, 0.1, 0.4, 40);
+      $('mn').querySelector('.ic').style.transform = `scale(${1 + 0.06 * Math.sin(lt * 7) * prog(lt, 0.5, 1)})`;
+      surge($('mn2'), lt, q('E manda'), 0.4, 20);
+      surge($('as'), lt, q('E manda') + 0.9, 0.45, 40); surge($('av'), lt, q('E manda') + 1.3, 0.4, 10);
+      $('logoFixo').style.opacity = 1 - prog(lt, q('E manda') + 0.6, q('E manda') + 0.9);
+    } else $('logoFixo').style.opacity = 1;
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>
