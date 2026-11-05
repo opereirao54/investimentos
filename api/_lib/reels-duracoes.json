@@ -52,6 +52,11 @@
       "inicio": "O banco te paga R$ 7",
       "seg": 47.6,
       "serie": "news"
+    },
+    {
+      "inicio": "O salário cai até amanhã",
+      "seg": 47.1,
+      "serie": "explica"
     }
   ]
 }
