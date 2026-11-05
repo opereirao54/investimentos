@@ -165,6 +165,50 @@ Conteúdo educacional. Valores de exemplo para um carro de R$ 80 mil (IPVA de 4%
 
 ---
 
+## QUINTA 05/11 · Faltam 58 dias · Reel de teste (fora da grade)
+
+Pedido do fundador (05/11): um conteúdo de teste hoje. Vai como **Reel de
+teste** do Instagram: só quem **não segue** vê, não aparece na grade nem no
+perfil e não disputa com o Reel de amanhã. Só Instagram (TikTok e YouTube não
+têm Reel de teste). Testa uma coisa só: a abertura com os preços na tela no
+quadro 0.
+
+**19h · INSTAGRAM (Reel de teste)** · vídeo "Qual sai mais barato? R$ 900 ou 10× de R$ 100"
+
+1. Novo Reel › escolher o vídeo do parcelado com os dois cartões de preço.
+2. Capa: deixar o primeiro quadro (Reel de teste não vai para a grade).
+3. Configurações avançadas: "Carregar na qualidade mais alta" ligado.
+4. Colar a legenda.
+5. Na última tela, ligar **"Reel de teste"** (ou "Compartilhar como teste")
+   antes de publicar. Se a opção não aparecer, não publicar: avisar.
+6. Fixar o comentário: `Você pagaria à vista ou parcelaria? 👇` e responder
+   todos na 1ª hora. Não mandar nos grupos (o teste é com quem não conhece a
+   página).
+
+```
+R$ 900 à vista ou 10× de R$ 100 sem juros? A maioria escolhe errado. 🤔
+
+Parcelando, o dinheiro fica rendendo enquanto você paga… mas, para empatar com 10% de desconto em 10×, ele teria que render quase 2% ao mês.
+
+📌 Regra de bolso: divida o desconto pela metade do número de parcelas. Se der mais do que o seu dinheiro rende por mês, pague à vista (sem tirar da reserva de emergência).
+
+Manda pra quem vive parcelando. 🔁
+
+💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta. Segue pra ver a próxima.
+
+⏳ Faltam 58 dias para o que estamos preparando pra 2027.
+
+Conteúdo educacional, não é recomendação de investimento. Supondo renda fixa perto de 1% ao mês; confira as taxas do momento.
+
+#educacaofinanceira #parceladoouavista #financaspessoais #dinheiro #dicasdefinancas
+```
+
+**Depois de 24 h:** mandar o print das Estatísticas do Reel de teste (tempo
+médio, % assistido, views). Se for bem, o Instagram oferece publicá-lo para
+os seguidores; não aceitar sem falar comigo (é o mesmo tema de 28/10).
+
+---
+
 ## SEXTA 06/11 · Faltam 57 dias · Appliquei Explica
 
 Pauta do Google Trends (quinto dia útil em alta em 05/11), no lugar do frete
