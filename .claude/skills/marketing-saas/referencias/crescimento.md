@@ -53,13 +53,9 @@ de tempo médio, o algoritmo para de distribuir depois do primeiro lote.
 - **Duração:** 20–35 s até a retenção passar de 30%. O News #2 com 47,6 s não
   melhorou o tempo médio; vídeo mais curto sobe a % assistida e ganha
   reassistida.
-- **Teste a propor ao fundador — rosto ou voz humana.** Os 8 Reels são todos
-  texto animado com voz de TTS e nenhum passou de 22% de retenção. Em finanças
-  pessoais, as contas pequenas que crescem rápido quase sempre têm uma pessoa
-  falando para a câmera (ou mãos + celular + voz real). Proposta: um dos 3 Reels
-  da semana gravado pelo fundador ou pelo sócio no celular, 20–30 s, o mesmo
-  roteiro Mateus × Caio contado em primeira pessoa, com a conta na tela por
-  cima. É mudança de combinado (formato e voz), então **perguntar antes**.
+- **Sem rosto nem voz do fundador ou do sócio** (fundador, 05/11). A
+  retenção sobe pelo roteiro e pela edição: número no quadro 0, movimento
+  no 1º segundo, vídeo curto e as vozes Charon e Sulafat.
 - **Gancho testado dentro da grade:** sem Reel extra (fundador, 05/11), o
   teste de gancho é um por Reel da grade: cada Reel muda só a abertura e
   compara o tempo médio com o anterior da mesma série.
@@ -74,19 +70,25 @@ Reel da grade"). O mesmo vídeo já vai para Instagram, TikTok e YouTube às
 
 ### 3. Perfil que converte visita em seguidor (81 visitas, 0 seguiram)
 
-Quem chega ao perfil decide em 3 s. Checklist (conferir com o sócio, dono do
-Instagram):
+Quem chega ao perfil decide em 3 s. Quem faz é o sócio (dono do Instagram),
+uma vez só (passo a passo mandado em 05/11):
 
-- **Nome do perfil com palavra buscável:** "Appliquei | Dinheiro do dia a dia"
-  (o campo nome entra na busca do Instagram).
-- **Bio com promessa + grade + contagem:** "A conta que ninguém te mostra 🧮 ·
-  Seg e sex: Appliquei Explica · Qua: News · App chega em 02/01" e o link.
-- **Fixar os 3 melhores Reels** (hoje: geladeira, News #2 e o de maior tempo
-  médio) e arquivar o que estiver desatualizado.
-- **Link da bio** com um único destino: lista de espera "me avisa no dia"
-  (0 cliques até hoje; um destino só e uma frase do que acontece ao clicar).
-- **Grade visual:** capas com a mesma faixa e o número grande, para o perfil
-  parecer uma série e não posts soltos.
+1. **Nome** (Editar perfil › Nome, entra na busca): `Appliquei • Finanças pessoais`.
+2. **Bio:** promessa + grade + data, sem citar o app (até 26/12 ele não
+   aparece):
+   `A conta do dinheiro do dia a dia que ninguém te mostra 🧮` /
+   `💡 Seg e sex: Appliquei Explica` / `📰 Qua: Appliquei News` /
+   `⏳ 02/01/2027: vem aí`.
+3. **Fixar 3 Reels** (⋯ › Fixar no perfil), pelos números de 05/11: a
+   geladeira (melhor retenção, 22%), "O banco te paga R$ 7" (melhor
+   compartilhamento, 3,5%) e "Parcelado ou à vista?" (mais views, 293).
+   Trocar quando outro Reel passar um deles.
+4. **Arquivar** (⋯ › Arquivar, dá para desfazer) o que anuncia coisa velha:
+   "Agora tem hora marcada por aqui" (anuncia a grade antiga, News ter e qui)
+   e o carrossel do propósito (45 views, fala do app antes da hora).
+5. **Link da bio:** não existe lista de espera, então não prometer uma
+   (CONAR). Até 26/12, sem link ou o que já estiver; em 26/12 entra a página
+   do app com o teste grátis.
 
 ### 4. Pedir o "seguir" com motivo
 

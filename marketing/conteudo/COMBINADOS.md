@@ -146,9 +146,10 @@ true`), mesmo modelo do News.
   `.claude/skills/marketing-saas/referencias/crescimento.md`. **Fundador
   (05/11): só a grade seg, qua e sex, nada a mais** (sem Reel de teste em
   outros dias); cada Reel segue o "ciclo de cada Reel da grade" (véspera,
-  19h, 1ª hora, dia seguinte). Ainda a decidir: (1) um Reel por semana com
-  rosto/voz do fundador ou do sócio, dentro da grade; (2) ajuste do perfil
-  — nome buscável, bio com a grade, 3 fixados, link único (com o sócio).
+  19h, 1ª hora, dia seguinte). **Sem rosto nem voz do fundador ou do sócio**
+  (fundador, 05/11: "não vamos revelar nossa voz ou rosto"); os Reels
+  seguem com as vozes Charon e Sulafat. Ajuste do perfil: passo a passo
+  na seção "Perfil" do plano, a fazer pelo sócio (dono do Instagram).
 
 - **Conferir vídeo × legenda antes de postar** (04/11): em 02/11 o "Quem
   chegou aos 65 com mais?" saiu com a legenda do "R$ 30 ou R$ 300", às 8h30.
