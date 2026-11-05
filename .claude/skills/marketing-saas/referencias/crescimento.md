@@ -56,6 +56,9 @@ de tempo médio, o algoritmo para de distribuir depois do primeiro lote.
 - **Sem rosto nem voz do fundador ou do sócio** (fundador, 05/11). A
   retenção sobe pelo roteiro e pela edição: número no quadro 0, movimento
   no 1º segundo, vídeo curto e as vozes Charon e Sulafat.
+- **Sem Reel de teste:** a conta não tem a opção "Reel de teste" do
+  Instagram (conferido pelo fundador em 05/11). Não propor de novo até ele
+  dizer que apareceu.
 - **Gancho testado dentro da grade:** sem Reel extra (fundador, 05/11), o
   teste de gancho é um por Reel da grade: cada Reel muda só a abertura e
   compara o tempo médio com o anterior da mesma série.

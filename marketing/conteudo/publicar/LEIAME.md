@@ -165,6 +165,15 @@ Conteúdo educacional. Valores de exemplo para um carro de R$ 80 mil (IPVA de 4%
 
 ---
 
+## QUINTA 05/11 · Faltam 58 dias · sem Reel (teste cancelado)
+
+O Reel de teste do parcelado foi produzido, mas **não foi publicado**: a conta
+não tem a opção "Reel de teste" no Instagram (fundador, 05/11). Como post
+normal ele repetiria o tema de 28/10 fora da grade, então não sai. O teste da
+abertura com o número no quadro 0 passa para o Reel de segunda 09/11.
+
+---
+
 ## SEXTA 06/11 · Faltam 57 dias · Appliquei Explica
 
 Pauta do Google Trends (quinto dia útil em alta em 05/11), no lugar do frete
