@@ -165,6 +165,88 @@ Conteúdo educacional. Valores de exemplo para um carro de R$ 80 mil (IPVA de 4%
 
 ---
 
+## QUINTA 05/11 · Faltam 58 dias · sem Reel (teste cancelado)
+
+O Reel de teste do parcelado foi produzido, mas **não foi publicado**: a conta
+não tem a opção "Reel de teste" no Instagram (fundador, 05/11). Como post
+normal ele repetiria o tema de 28/10 fora da grade, então não sai. O teste da
+abertura com o número no quadro 0 passa para o Reel de segunda 09/11.
+
+---
+
+## SEXTA 06/11 · Faltam 57 dias · Appliquei Explica
+
+Pauta do Google Trends (quinto dia útil em alta em 05/11), no lugar do frete
+grátis. Voz Sulafat. Vinheta verde depois da 1ª frase.
+
+**Antes de postar:** conferir que o vídeo é o do salário ("O salário cai até
+amanhã") e que a 1ª linha da legenda é a mesma frase. Mandar o arquivo
+original (AirDrop, Drive/iCloud ou WhatsApp como **Documento**).
+
+**19h · INSTAGRAM (Reel)** · vídeo "O salário cai até amanhã"
+
+1. Novo Reel › escolher o vídeo do salário.
+2. Capa: Editar capa › Adicionar da galeria › a imagem verde "O salário cai até amanhã. Dia 20, o do Mateus acabou."
+3. Configurações avançadas: "Carregar na qualidade mais alta" ligado.
+4. Colar a legenda e publicar às 19h.
+5. Fixar o comentário: `Você é o Caio ou o Mateus? Quanto você separa no dia do salário? 👇` e responder todos na 1ª hora.
+6. **Até 20h (fundador e sócio):** mandar o **link** do Reel no status do WhatsApp e em 3–5 grupos (família, trabalho, condomínio: tema de salário cabe em todos) com a frase `Seu salário cai amanhã? Olha essa conta 👇`.
+
+```
+O salário cai até amanhã. Dia 20, o do Mateus já acabou. 💸
+
+O Mateus recebe R$ 3.000 e pensa: "o que sobrar, eu guardo". Pix aqui, delivery ali… no dia 20, o saldo está zerado. Nunca sobra.
+
+O Caio faz ao contrário: no dia do salário, antes de qualquer conta, separa R$ 300 numa transferência agendada e vive com o resto. R$ 300 × 12 = R$ 3.600 no ano. Mais que um salário inteiro.
+
+📌 Regra de bolso: primeiro você se paga, depois paga o resto. Porque o que sobra… nunca sobra.
+
+Salva pra agendar a sua amanhã 🔖 e manda pra quem diz que nunca sobra nada. 🔁
+
+💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta. Segunda: a garantia estendida que a loja empurra no caixa. Segue pra ver.
+
+⏳ Faltam 57 dias para o que estamos preparando pra 2027.
+
+Conteúdo educacional. Em novembro de 2026, o quinto dia útil é sábado, 7 (o sábado conta; o feriado de Finados, não): é o prazo da CLT (art. 459) para pagar o salário. Valores ilustrativos, sem rendimento. Personagens fictícios.
+
+#educacaofinanceira #salario #financaspessoais #dinheiro #dicasdefinancas
+```
+
+**19h · TIKTOK** · o mesmo vídeo do salário
+
+1. Enviar o vídeo original; capa = primeiro quadro (já é a capa).
+2. "Permitir upload em alta qualidade" ligado.
+3. Colar a legenda e publicar às 19h.
+
+```
+O salário cai até amanhã. Dia 20, o do Mateus já acabou. 💸 Primeiro você se paga, depois paga o resto: R$ 300 no dia do salário viram R$ 3.600 no ano. Segunda tem a garantia estendida: segue pra ver. ⏳ Faltam 57 dias.
+
+#educacaofinanceira #salario #financaspessoais #dinheiro #quintodiautil
+```
+
+**19h · YOUTUBE SHORTS** · o mesmo vídeo do salário
+
+1. Enviar o vídeo original; no app do YouTube, escolher o primeiro quadro como capa.
+2. Título e descrição abaixo; publicar às 19h.
+
+Título:
+
+```
+O salário cai até amanhã. Por que o do Mateus acaba no dia 20? #shorts
+```
+
+Descrição:
+
+```
+Regra de bolso: primeiro você se paga, depois paga o resto. R$ 300 separados no dia do salário viram R$ 3.600 no ano, mais que um salário inteiro. Inscreva-se pra mais contas assim. ⏳ Faltam 57 dias.
+
+Conteúdo educacional. Valores ilustrativos, sem rendimento. Personagens fictícios.
+
+#educacaofinanceira #salario #financaspessoais #dinheiro
+```
+
+---
+
 ## Assinaturas das séries na legenda (desde 04/11)
 
 - `💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta.`

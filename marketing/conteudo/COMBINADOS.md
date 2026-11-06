@@ -118,6 +118,12 @@ true`), mesmo modelo do News.
   ligado; no TikTok, "Permitir upload em alta qualidade".
 - **Capa** com a frase do gancho em todo vídeo (`capa.js`), na capa e no
   primeiro quadro (`appliquei-<tema>-com-capa.mp4`).
+- **Padrão da capa (fundador, 05/11):** faixa da série (News vermelha,
+  Explica verde, reta final dourada) com APPLIQUEI em 124 px, longe do canto
+  superior direito, onde o Instagram põe o ícone de Reel e o de fixado (antes
+  ele cobria o "I"). Já está no `capa.js`: toda capa nova sai assim. Conferir
+  no recorte 3:4 da grade antes de entregar. Nada de rótulo "Conta de
+  Padaria" nem capa sem faixa.
 - **Números conferidos com fonte** antes de gravar; aviso educacional e
   "Personagens fictícios" no fim; nada de recomendação (CVM).
 
@@ -141,6 +147,15 @@ true`), mesmo modelo do News.
   TikTok e YouTube por print até ter conexão.
 
 ## Pendentes (lembrar o fundador)
+
+- **Plano de crescimento (05/11):**
+  `.claude/skills/marketing-saas/referencias/crescimento.md`. **Fundador
+  (05/11): só a grade seg, qua e sex, nada a mais** (sem Reel de teste em
+  outros dias); cada Reel segue o "ciclo de cada Reel da grade" (véspera,
+  19h, 1ª hora, dia seguinte). **Sem rosto nem voz do fundador ou do sócio**
+  (fundador, 05/11: "não vamos revelar nossa voz ou rosto"); os Reels
+  seguem com as vozes Charon e Sulafat. Ajuste do perfil: passo a passo
+  na seção "Perfil" do plano, a fazer pelo sócio (dono do Instagram).
 
 - **Conferir vídeo × legenda antes de postar** (04/11): em 02/11 o "Quem
   chegou aos 65 com mais?" saiu com a legenda do "R$ 30 ou R$ 300", às 8h30.
