@@ -3,7 +3,7 @@
 Lista viva do que falta para abrir a Appliquei a mais testadores e depois
 divulgar. Ao concluir um item, mova-o para "Feito" com a data e o PR.
 
-Última revisão: 26/10/2026.
+Última revisão: 07/11/2026.
 
 ## Entrada em produção (cobrança de verdade)
 
@@ -67,6 +67,12 @@ O código está pronto (26/10/2026); o resto é painel. Passo a passo completo e
   enquanto a conta existir" — confirmar.
 - Aviso de 30 dias antes de mudar o preço (nos Termos) — manter ou tirar.
 - Plano B se o advogado exigir credenciamento para a carteira sugerida.
+- Patrimônio e Controle (07/11/2026), escolhas feitas na implementação que
+  valem confirmar: o Patrimônio abre em **Líquido** quando há dívida; dívida =
+  financiamentos ativos + faturas aberta/fechada não pagas (parcelas futuras
+  ficam de fora); o número grande do Controle é a **sobra do mês** (a
+  acumulada virou selo/linha). Proposta completa no canvas "Appliquei —
+  Patrimônio e Controle".
 - Vercel: fica no Hobby, um ambiente só, por enquanto (26/10/2026). Revisitar
   quando a receita justificar: os termos do Hobby são para uso não comercial,
   e o Pro tira o teto de 12 funções e dá o Spend Management.
@@ -77,8 +83,24 @@ O código está pronto (26/10/2026); o resto é painel. Passo a passo completo e
       Hoje o reembolso é manual, por pedido; os Termos já preveem.
 - [ ] **Limite de requisições em `/api/market`** (opcional, risco baixo:
       exige login e usa cache).
+- [ ] **Patrimônio e Controle — o que o canvas propõe e ainda não entrou**
+      (07/11/2026): limite por categoria (hoje só a média de 3 meses);
+      deslizar a linha do extrato para pagar/excluir; folha do lançamento
+      com "paguei outro valor / adiar / só este mês"; faturas com as parcelas
+      já comprometidas; novo bem em passos com busca FIPE única; nova conta em
+      grade de instituições; simulador de antecipação; liquidez da renda fixa
+      (falta o campo de prazo de resgate); "por que mudou" separando
+      proventos e amortização; gráfico do líquido no passado (reconstruir o
+      saldo devedor pelo contrato).
 
 ## Feito
+
+- 07/11/2026 · branch `claude/intelligent-ritchie-6o5r6m` — Patrimônio: web com
+  líquido/bruto, linha do tempo, balanço tem/deve, "por que mudou", fôlego,
+  classes em lista, contas sem lista duplicada; celular com lista de
+  instituições, 1M, dívidas e "gerenciar contas". Controle: sobra do mês em
+  destaque nos dois, "Saúde do mês" com os critérios do termômetro, gastos por
+  categoria × média, projeção em barras no web, sem os valores repetidos.
 
 - 26/10/2026 · produção — Applicash desligado (tela: `APPLICASH_ATIVO` no
   `<head>` do app; servidor: `APPLICASH_ENABLED`); "Pro + IA" fora da landing e
