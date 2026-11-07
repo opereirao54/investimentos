@@ -718,6 +718,7 @@ function irParaValoresBem() {
   document.getElementById('bemAcoesPasso1').style.display = 'none';
   document.getElementById('bemPasso2').style.display = '';
   document.getElementById('bemAcoesPasso2').style.display = 'flex';
+  bemMarcarPasso(3);
   var card = document.querySelector('#modalBem > div');
   if (card) card.scrollTop = 0;
   // A comparação por m² usa o valor atual, que só existe neste passo.
@@ -729,6 +730,7 @@ function voltarParaDadosBem() {
   document.getElementById('bemAcoesPasso2').style.display = 'none';
   document.getElementById('bemPasso1').style.display = '';
   document.getElementById('bemAcoesPasso1').style.display = 'flex';
+  bemMarcarPasso(2);
 }
 
 function bemToggleFinanciamento() {
@@ -1390,8 +1392,13 @@ function abrirNovoBemForm() {
   document.getElementById('bemDataCompra').value = new Date().toISOString().slice(0, 10);
   bemOnTrocarTipo();
   resetarPassosBem();
+  var busca = document.getElementById('bemFipeBusca');
+  if (busca) busca.value = '';
+  var res = document.getElementById('bemFipeResultados');
+  if (res) res.innerHTML = '';
+  // Bem novo começa pelo tipo (passo 1); a edição pula direto para os dados.
+  bemMostrarPasso0(true);
   modal.style.display = 'flex';
-  document.getElementById('bemNome').focus();
 }
 
 function editarBemForm(id) {
@@ -1399,6 +1406,7 @@ function editarBemForm(id) {
   if (!b) return;
   abrirNovoBemForm();
   document.getElementById('bemEditId').value = id;
+  bemMostrarPasso0(false);
   document.getElementById('tituloModalBem').querySelector('span').textContent = 'Editar bem';
   document.getElementById('bemNome').value = b.nome;
   document.getElementById('bemDescricao').value = b.descricao || '';
@@ -1685,6 +1693,12 @@ function bemFipeOnAno() {
   var modeloC = document.getElementById('bemFipeModelo').value;
   var anoC = document.getElementById('bemFipeAno').value;
   if (!anoC) return;
+  bemFipeAplicar(tipoV, marcaC, modeloC, anoC);
+}
+
+/** Consulta o valor de um veículo da FIPE e preenche o bem (valor atual,
+ *  nome se vazio e o registro `fipe` que a atualização mensal usa). */
+function bemFipeAplicar(tipoV, marcaC, modeloC, anoC) {
   var info = document.getElementById('bemFipeInfo');
   if (info) {
     info.style.display = '';
@@ -1725,8 +1739,10 @@ function bemFipeOnAno() {
       var marcaNome = data.Marca || data.marca || '';
       var modeloNome = data.Modelo || data.modelo || '';
       var inputNome = document.getElementById('bemNome');
+      // "Como você chama este bem": o nome curto do modelo ("Civic"), não o
+      // nome inteiro da tabela.
       if (inputNome && !inputNome.value.trim()) {
-        inputNome.value = (marcaNome + ' ' + modeloNome).trim();
+        inputNome.value = String(modeloNome).split(' ')[0] || (marcaNome + ' ' + modeloNome).trim();
       }
     })
     .catch(function () {
@@ -1736,6 +1752,355 @@ function bemFipeOnAno() {
       }
       mostrarToast('Não foi possível consultar o valor FIPE.', 'erro');
     });
+}
+
+// ------------------------------------------------------------
+// Busca única na FIPE ("civic 2020")
+// ------------------------------------------------------------
+// A API pública da FIPE não tem busca por texto: anda por marca → modelo →
+// ano. A busca acha a marca pelo nome digitado ou pelo modelo (mapa dos mais
+// vendidos), filtra os modelos dessa marca pelas outras palavras e, havendo
+// ano, já traz o valor das primeiras opções. Os selects continuam embaixo,
+// em "Não achei", para o que a busca não cobrir.
+var FIPE_MODELO_MARCA = {
+  civic: 'honda',
+  city: 'honda',
+  fit: 'honda',
+  hrv: 'honda',
+  wrv: 'honda',
+  corolla: 'toyota',
+  yaris: 'toyota',
+  hilux: 'toyota',
+  sw4: 'toyota',
+  etios: 'toyota',
+  rav4: 'toyota',
+  onix: 'chevrolet',
+  prisma: 'chevrolet',
+  cruze: 'chevrolet',
+  tracker: 'chevrolet',
+  s10: 'chevrolet',
+  spin: 'chevrolet',
+  cobalt: 'chevrolet',
+  celta: 'chevrolet',
+  montana: 'chevrolet',
+  equinox: 'chevrolet',
+  gol: 'volkswagen',
+  polo: 'volkswagen',
+  virtus: 'volkswagen',
+  tcross: 'volkswagen',
+  nivus: 'volkswagen',
+  saveiro: 'volkswagen',
+  fox: 'volkswagen',
+  voyage: 'volkswagen',
+  jetta: 'volkswagen',
+  amarok: 'volkswagen',
+  taos: 'volkswagen',
+  tera: 'volkswagen',
+  hb20: 'hyundai',
+  hb20s: 'hyundai',
+  creta: 'hyundai',
+  tucson: 'hyundai',
+  ka: 'ford',
+  ecosport: 'ford',
+  ranger: 'ford',
+  fiesta: 'ford',
+  focus: 'ford',
+  territory: 'ford',
+  uno: 'fiat',
+  mobi: 'fiat',
+  argo: 'fiat',
+  cronos: 'fiat',
+  strada: 'fiat',
+  toro: 'fiat',
+  palio: 'fiat',
+  siena: 'fiat',
+  pulse: 'fiat',
+  fastback: 'fiat',
+  fiorino: 'fiat',
+  kwid: 'renault',
+  sandero: 'renault',
+  logan: 'renault',
+  duster: 'renault',
+  captur: 'renault',
+  oroch: 'renault',
+  compass: 'jeep',
+  renegade: 'jeep',
+  commander: 'jeep',
+  kicks: 'nissan',
+  versa: 'nissan',
+  frontier: 'nissan',
+  march: 'nissan',
+  sentra: 'nissan',
+  208: 'peugeot',
+  2008: 'peugeot',
+  3008: 'peugeot',
+  c3: 'citroen',
+  c4: 'citroen',
+  tiggo: 'chery',
+  t7: 'caoa',
+  song: 'byd',
+  dolphin: 'byd',
+  seal: 'byd',
+};
+
+function _fipeNorm(v) {
+  return String(v || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+/** "civic exl 2020" → { ano: '2020', palavras: ['civic', 'exl'] } */
+function fipeInterpretarBusca(texto) {
+  var palavras = _fipeNorm(texto).split(' ').filter(Boolean);
+  var ano = '';
+  palavras = palavras.filter(function (p) {
+    if (!ano && /^(19[5-9]\d|20[0-4]\d)$/.test(p)) {
+      ano = p;
+      return false;
+    }
+    return true;
+  });
+  return { ano: ano, palavras: palavras };
+}
+
+/** A marca da busca: o nome digitado ou a dona do modelo. */
+function fipeAcharMarca(marcas, palavras) {
+  var lista = marcas || [];
+  var porNome = null;
+  palavras.some(function (p) {
+    if (p.length < 2) return false;
+    porNome = lista.find(function (m) {
+      return _fipeNorm(m.nome).split(' ').indexOf(p) !== -1;
+    });
+    return !!porNome;
+  });
+  if (porNome) return porNome;
+  var dona = null;
+  palavras.some(function (p) {
+    var alvo = FIPE_MODELO_MARCA[p.replace(/\s/g, '')];
+    if (!alvo) return false;
+    dona = lista.find(function (m) {
+      return _fipeNorm(m.nome).indexOf(alvo) !== -1;
+    });
+    return !!dona;
+  });
+  return dona;
+}
+
+/**
+ * Resultados da busca: [{ tipoV, marca, marcaCodigo, modelo, modeloCodigo,
+ * ano, anoCodigo, valor }] — com ano quando ele foi digitado (e o valor das
+ * primeiras opções), só os modelos quando não foi.
+ */
+function fipeBuscar(texto, tipoV) {
+  var tipo = tipoV || 'carros';
+  var q = fipeInterpretarBusca(texto);
+  if (!q.palavras.length) return Promise.resolve([]);
+  return fipeMarcas(tipo).then(function (marcas) {
+    var marca = fipeAcharMarca(marcas, q.palavras);
+    if (!marca) return [];
+    var marcaPalavras = _fipeNorm(marca.nome).split(' ');
+    var resto = q.palavras.filter(function (p) {
+      return marcaPalavras.indexOf(p) === -1;
+    });
+    return fipeModelos(tipo, marca.codigo).then(function (data) {
+      var modelos = (data && data.modelos) || data || [];
+      var achados = modelos
+        .filter(function (m) {
+          var nm = _fipeNorm(m.nome);
+          var compacto = nm.replace(/\s/g, '');
+          return resto.every(function (p) {
+            return nm.split(' ').indexOf(p) !== -1 || compacto.indexOf(p) !== -1;
+          });
+        })
+        .slice(0, 8);
+      var base = achados.map(function (m) {
+        return {
+          tipoV: tipo,
+          marca: marca.nome,
+          marcaCodigo: String(marca.codigo),
+          modelo: m.nome,
+          modeloCodigo: String(m.codigo),
+          ano: '',
+          anoCodigo: '',
+          valor: '',
+        };
+      });
+      if (!q.ano) return base;
+      return Promise.all(
+        base.slice(0, 6).map(function (r) {
+          return fipeAnos(tipo, r.marcaCodigo, r.modeloCodigo)
+            .then(function (anos) {
+              return (anos || [])
+                .filter(function (a) {
+                  return String(a.nome || a.codigo || '').indexOf(q.ano) === 0;
+                })
+                .map(function (a) {
+                  return Object.assign({}, r, { ano: a.nome, anoCodigo: String(a.codigo) });
+                });
+            })
+            .catch(function () {
+              return [];
+            });
+        })
+      ).then(function (listas) {
+        var comAno = [].concat.apply([], listas).slice(0, 6);
+        return Promise.all(
+          comAno.map(function (r, i) {
+            if (i > 3) return r;
+            return fipeValor(tipo, r.marcaCodigo, r.modeloCodigo, r.anoCodigo)
+              .then(function (v) {
+                return Object.assign({}, r, {
+                  valor: (v && (v.Valor || v.valor)) || '',
+                  ref: (v && (v.MesReferencia || v.mesReferencia)) || '',
+                });
+              })
+              .catch(function () {
+                return r;
+              });
+          })
+        );
+      });
+    });
+  });
+}
+
+var _bemFipeBusca = { timer: null, seq: 0, res: [], sel: -1 };
+
+function bemFipeBuscarDigitado() {
+  clearTimeout(_bemFipeBusca.timer);
+  _bemFipeBusca.timer = setTimeout(bemFipeBuscarAgora, 450);
+}
+
+function bemFipeBuscarAgora() {
+  var el = document.getElementById('bemFipeResultados');
+  var txt = ((document.getElementById('bemFipeBusca') || {}).value || '').trim();
+  if (!el) return;
+  if (txt.length < 2) {
+    el.innerHTML = '';
+    return;
+  }
+  var tipoSel = (document.getElementById('bemFipeVeiculoTipo') || {}).value || 'carros';
+  var seq = ++_bemFipeBusca.seq;
+  el.innerHTML =
+    '<div class="bem-fipe-msg"><i class="ph ph-spinner ph-spin"></i> Buscando na tabela FIPE…</div>';
+  fipeBuscar(txt, tipoSel)
+    .then(function (res) {
+      if (seq !== _bemFipeBusca.seq) return;
+      _bemFipeBusca.res = res;
+      _bemFipeBusca.sel = -1;
+      bemFipeDesenharResultados();
+    })
+    .catch(function () {
+      if (seq !== _bemFipeBusca.seq) return;
+      el.innerHTML =
+        '<div class="bem-fipe-msg">A tabela FIPE não respondeu agora. Tente de novo ou use "Não achei".</div>';
+    });
+}
+
+function bemFipeDesenharResultados() {
+  var el = document.getElementById('bemFipeResultados');
+  if (!el) return;
+  var res = _bemFipeBusca.res || [];
+  if (!res.length) {
+    el.innerHTML =
+      '<div class="bem-fipe-msg">Nada encontrado. Escreva a marca junto (ex.: "honda civic 2020") ou use "Não achei".</div>';
+    return;
+  }
+  var esc = function (v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/"/g, '&quot;');
+  };
+  el.innerHTML = res
+    .map(function (r, i) {
+      return (
+        '<button type="button" role="option" class="bem-fipe-op" aria-selected="' +
+        (i === _bemFipeBusca.sel) +
+        '" onclick="bemFipeEscolher(' +
+        i +
+        ')"><span>' +
+        esc(r.marca.replace(/^.* - /, '') + ' ' + r.modelo + (r.ano ? ' · ' + r.ano : '')) +
+        '</span><b>' +
+        esc(r.valor || (r.ano ? '' : 'ver anos')) +
+        '</b>' +
+        (r.ref ? '<small>FIPE de ' + esc(String(r.ref).trim()) + '</small>' : '') +
+        '</button>'
+      );
+    })
+    .join('');
+}
+
+/** Escolheu uma opção: com ano, aplica; sem ano, lista os anos do modelo. */
+function bemFipeEscolher(i) {
+  var r = (_bemFipeBusca.res || [])[i];
+  if (!r) return;
+  if (r.anoCodigo) {
+    _bemFipeBusca.sel = i;
+    bemFipeDesenharResultados();
+    bemFipeAplicar(r.tipoV, r.marcaCodigo, r.modeloCodigo, r.anoCodigo);
+    return;
+  }
+  var el = document.getElementById('bemFipeResultados');
+  if (el)
+    el.innerHTML =
+      '<div class="bem-fipe-msg"><i class="ph ph-spinner ph-spin"></i> Carregando os anos…</div>';
+  fipeAnos(r.tipoV, r.marcaCodigo, r.modeloCodigo)
+    .then(function (anos) {
+      _bemFipeBusca.res = (anos || []).slice(0, 12).map(function (a) {
+        return Object.assign({}, r, { ano: a.nome, anoCodigo: String(a.codigo), valor: '' });
+      });
+      _bemFipeBusca.sel = -1;
+      bemFipeDesenharResultados();
+    })
+    .catch(function () {
+      if (el) el.innerHTML = '<div class="bem-fipe-msg">A tabela FIPE não respondeu agora.</div>';
+    });
+}
+
+// ------------------------------------------------------------
+// Passos do bem novo: 1 tipo · 2 dados · 3 valores e financiamento
+// ------------------------------------------------------------
+function bemMarcarPasso(n) {
+  var barra = document.getElementById('bemPassos');
+  var txt = document.getElementById('bemPassoTxt');
+  var novo = !((document.getElementById('bemEditId') || {}).value || '');
+  if (barra) {
+    barra.hidden = !novo || !n;
+    barra.setAttribute('data-passo', String(n || 0));
+  }
+  if (txt) txt.textContent = novo && n ? 'Passo ' + Math.min(n, 3) + ' de 3' : '';
+}
+
+function bemMostrarPasso0(mostrar) {
+  var p0 = document.getElementById('bemPasso0');
+  var p1 = document.getElementById('bemPasso1');
+  var a1 = document.getElementById('bemAcoesPasso1');
+  if (p0) p0.style.display = mostrar ? '' : 'none';
+  if (p1) p1.style.display = mostrar ? 'none' : '';
+  if (a1) a1.style.display = mostrar ? 'none' : 'flex';
+  bemMarcarPasso(mostrar ? 1 : 2);
+}
+
+function bemEscolherTipoNovo(tipo) {
+  var sel = document.getElementById('bemTipo');
+  if (sel) sel.value = tipo;
+  bemOnTrocarTipo();
+  bemMostrarPasso0(false);
+  var busca = document.getElementById('bemFipeResultados');
+  if (busca) busca.innerHTML = '';
+  var foco = document.getElementById(tipo === 'veiculo' ? 'bemFipeBusca' : 'bemNome');
+  if (foco) foco.focus();
+}
+
+function bemVoltarDoPasso1() {
+  var editando = (document.getElementById('bemEditId') || {}).value;
+  if (editando) return fecharModalBem();
+  bemMostrarPasso0(true);
 }
 
 function bemAtualizarFipe(id) {

@@ -8907,6 +8907,42 @@
         .conta-arquivar-bloco[hidden] { display: none; }
         .conta-arquivar { align-self: flex-start; color: var(--tinta-ambar, #b45309) !important; border-color: var(--cor-borda) !important; }
         .conta-arquivar-bloco span { font-size: 12px; color: var(--cor-texto-mutado); line-height: 1.45; }
+        /* Novo bem em passos (appliquei-bens.js) */
+        .bem-passos { display: flex; gap: 6px; margin: -6px 0 6px; }
+        .bem-passos span { flex: 1; height: 4px; border-radius: 2px; background: var(--cor-borda); }
+        .bem-passos[data-passo="1"] span:nth-child(-n+1),
+        .bem-passos[data-passo="2"] span:nth-child(-n+2),
+        .bem-passos[data-passo="3"] span:nth-child(-n+3) { background: var(--cor-patrimonio); }
+        .bem-passos[hidden], .bem-passo-txt:empty { display: none; }
+        .bem-passo-txt { display: block; font-size: 12px; font-weight: 700; color: var(--cor-texto-mutado); margin-bottom: 12px; }
+        .bem-passo0 { display: flex; flex-direction: column; gap: 10px; }
+        .bem-p0-tit { font-size: 18px; color: var(--cor-texto-principal); margin-bottom: 4px; }
+        .bem-p0-op { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 76px; padding: 12px 14px; border: 1.5px solid var(--cor-borda); border-radius: 16px; background: var(--cor-branco); text-align: left; cursor: pointer; font-family: 'Figtree', sans-serif; color: var(--cor-texto-principal); }
+        .bem-p0-op:hover { border-color: var(--cor-patrimonio); }
+        .bem-p0-op > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+        .bem-p0-op b { font-size: 15.5px; }
+        .bem-p0-op small { font-size: 12.5px; color: var(--cor-texto-mutado); line-height: 1.4; }
+        .bem-p0-op > i { color: var(--cor-texto-mutado); }
+        .bem-p0-ic { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; background: color-mix(in srgb, var(--cor-patrimonio) 14%, transparent); color: var(--cor-patrimonio); flex-shrink: 0; }
+        .bem-p0-nota { font-size: 12.5px; color: var(--cor-texto-mutado); margin: 4px 0 0; line-height: 1.45; }
+        .bem-fipe-busca { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+        .bem-fipe-busca label { font-size: 12px; font-weight: 600; color: var(--cor-texto-secundario); }
+        .bem-fipe-campo { display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 12px; border: 1.5px solid var(--cor-patrimonio); border-radius: 12px; background: var(--cor-branco); color: var(--cor-texto-mutado); }
+        .bem-fipe-campo input { flex: 1; min-width: 0; border: 0 !important; outline: none; background: none !important; box-shadow: none !important; padding: 0 !important; font: 500 15px 'Figtree', sans-serif; color: var(--cor-texto-principal); }
+        .bem-fipe-res { display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; }
+        .bem-fipe-res:not(:empty) { border: 1px solid var(--cor-borda); }
+        .bem-fipe-op { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 2px 10px; align-items: center; width: 100%; min-height: 48px; padding: 10px 12px; border: 0; border-top: 1px solid var(--cor-borda); background: var(--cor-branco); text-align: left; cursor: pointer; font: 500 13.5px 'Figtree', sans-serif; color: var(--cor-texto-principal); }
+        .bem-fipe-op:first-child { border-top: 0; }
+        .bem-fipe-op[aria-selected="true"] { background: color-mix(in srgb, var(--cor-patrimonio) 10%, var(--cor-branco)); font-weight: 700; }
+        .bem-fipe-op b { font: 600 13.5px 'DM Mono', monospace; }
+        .bem-fipe-op small { grid-column: 1 / -1; font-size: 11.5px; color: var(--cor-texto-mutado); }
+        .bem-fipe-msg { font-size: 12.5px; color: var(--cor-texto-mutado); padding: 10px 12px; }
+        .bem-fipe-manual { margin-bottom: 8px; }
+        .bem-fipe-manual > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--cor-patrimonio); padding: 6px 0; min-height: 32px; }
+        .bem-fipe-manual[open] > summary { margin-bottom: 8px; }
+        /* Veículo: a busca FIPE vem antes do nome (ela já preenche o nome). */
+        #bemPasso1 { display: flex; flex-direction: column; }
+        #bemFipeWrap { order: -1; margin-bottom: 6px; }
         /* "Observação": resumo do que foi quitado por tipo, no topo do extrato */
         .mp-extrato-resumo {
             margin-bottom:10px; padding:10px 12px; border-radius:10px;
@@ -16593,6 +16629,17 @@
                         <button class="drawer-fechar" onclick="fecharModalBem()" aria-label="Fechar"><i class="ph ph-x" style="font-size:18px;"></i></button>
                     </div>
                     <input type="hidden" id="bemEditId" value="">
+                    <div id="bemPassos" class="bem-passos" aria-hidden="true"><span></span><span></span><span></span></div>
+                    <small id="bemPassoTxt" class="bem-passo-txt"></small>
+
+                    <!-- Passo 1 (só no bem novo): o tipo em cartões grandes. -->
+                    <div id="bemPasso0" class="bem-passo0" style="display:none;">
+                        <b class="bem-p0-tit">O que você quer cadastrar?</b>
+                        <button type="button" class="bem-p0-op" onclick="bemEscolherTipoNovo('imovel')"><span class="bem-p0-ic"><i class="ph ph-house-line" aria-hidden="true"></i></span><span><b>Imóvel</b><small>Casa, apartamento, terreno. Estimamos pelo CEP e m².</small></span><i class="ph ph-caret-right" aria-hidden="true"></i></button>
+                        <button type="button" class="bem-p0-op" onclick="bemEscolherTipoNovo('veiculo')"><span class="bem-p0-ic"><i class="ph ph-car-simple" aria-hidden="true"></i></span><span><b>Veículo</b><small>Carro, moto, caminhão. O valor segue a tabela FIPE todo mês.</small></span><i class="ph ph-caret-right" aria-hidden="true"></i></button>
+                        <button type="button" class="bem-p0-op" onclick="bemEscolherTipoNovo('outro')"><span class="bem-p0-ic"><i class="ph ph-package" aria-hidden="true"></i></span><span><b>Outro bem</b><small>Equipamento, joia, participação em empresa. Você informa o valor.</small></span><i class="ph ph-caret-right" aria-hidden="true"></i></button>
+                        <p class="bem-p0-nota">Dinheiro em banco e investimentos não entram aqui: eles já aparecem pelas contas e pela carteira.</p>
+                    </div>
 
                     <div id="bemPasso1">
                         <div class="grid-2-iguais" style="gap:10px;">
@@ -16623,6 +16670,13 @@
 
                         <div id="bemFipeWrap" style="display:none;">
                             <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--cor-texto-mutado);margin:10px 0 6px;display:flex;align-items:center;gap:5px;"><i class="ph ph-car-simple"></i> Consulta tabela FIPE</div>
+                            <div class="bem-fipe-busca">
+                                <label for="bemFipeBusca">Marca, modelo e ano</label>
+                                <span class="bem-fipe-campo"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><input type="search" id="bemFipeBusca" placeholder="Ex.: civic 2020, onix 2022" autocomplete="off" oninput="bemFipeBuscarDigitado()"></span>
+                                <div id="bemFipeResultados" class="bem-fipe-res" role="listbox" aria-label="Resultados da tabela FIPE"></div>
+                            </div>
+                            <details class="bem-fipe-manual">
+                            <summary>Não achei: escolher por marca, modelo e ano</summary>
                             <div class="grid-2-iguais" style="gap:10px;">
                                 <div class="form-group"><label>Tipo de veículo</label><select id="bemFipeVeiculoTipo" onchange="bemFipeOnTipoVeiculo()"></select></div>
                                 <div class="form-group"><label>Marca</label><select id="bemFipeMarca" onchange="bemFipeOnMarca()" disabled></select></div>
@@ -16631,6 +16685,7 @@
                                 <div class="form-group"><label>Modelo</label><select id="bemFipeModelo" onchange="bemFipeOnModelo()" disabled></select></div>
                                 <div class="form-group"><label>Ano</label><select id="bemFipeAno" onchange="bemFipeOnAno()" disabled></select></div>
                             </div>
+                            </details>
                             <div id="bemFipeInfo" style="display:none;font-size:12px;padding:8px 10px;border-radius:8px;background:var(--cor-bg-primaria);border:1px solid var(--cor-borda-primaria);color:var(--cor-txt-primaria);margin-bottom:8px;"></div>
                         </div>
                     </div>
@@ -16683,7 +16738,7 @@
                     <div id="bemPasso3" style="display:none;"></div>
 
                     <div id="bemAcoesPasso1" style="display:flex;gap:10px;margin-top:20px;">
-                        <button class="btn-secundario" style="flex:1;" onclick="fecharModalBem()">Cancelar</button>
+                        <button class="btn-secundario" style="flex:1;" onclick="bemVoltarDoPasso1()">Voltar</button>
                         <button class="btn-acao" style="flex:1;background:var(--cor-patrimonio);" onclick="irParaValoresBem()">Continuar <i class="ph-bold ph-arrow-right"></i></button>
                     </div>
                     <div id="bemAcoesPasso2" style="display:none;gap:10px;margin-top:20px;">
