@@ -85,7 +85,7 @@ O código está pronto (26/10/2026); o resto é painel. Passo a passo completo e
       exige login e usa cache).
 - [ ] **Patrimônio e Controle — o que o canvas propõe e ainda não entrou**
       (07/11/2026): limite por categoria (hoje só a média de 3 meses);
-      deslizar a linha do extrato para pagar/excluir; folha do lançamento
+      folha do lançamento
       com "paguei outro valor / adiar / só este mês"; faturas com as parcelas
       já comprometidas; novo bem em passos com busca FIPE única; nova conta em
       grade de instituições; simulador de antecipação; liquidez da renda fixa
