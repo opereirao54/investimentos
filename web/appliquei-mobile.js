@@ -1094,6 +1094,116 @@ function _mobCartaoProjecao() {
  * Desenha o topo e o fim do Início no celular. `d` vem de
  * atualizarTelaControle com os totais do mês já calculados.
  */
+/**
+ * "Para onde foi" dentro do cartão do topo (canvas): a barra do mês e uma
+ * linha por destino com valor e fatia do que entrou. Os números são os do
+ * resumo que o Controle já calculou (d.resumo = calcularResumoMes).
+ */
+function _mobDestinoNoCartao(d) {
+  const r = d && d.resumo;
+  if (!r) return '';
+  const n = (v) => Number(v) || 0;
+  const entrou = n(r.receita) + n(r.resgate);
+  const partes = [
+    ['Fixas', n(r.despFixa), '#f97316'],
+    ['Variáveis', n(r.despVar), '#e11d48'],
+    ['Cartão', n(r.cartao), '#f59e0b'],
+    ['Investido', n(r.invFixo) + n(r.invVar), '#2563eb'],
+    ['Sonhos', n(r.sonho), '#7c3aed'],
+  ];
+  const saiu = partes.reduce((a, p) => a + p[1], 0);
+  partes.push(['Sobra', Math.max(0, entrou - saiu), '#10b981']);
+  const visiveis = partes.filter((p) => p[1] > 0.005);
+  if (!visiveis.length) return '';
+  const base = Math.max(entrou, saiu) || 1;
+  const aPagar = typeof saidasAPagarDoMes === 'function' ? saidasAPagarDoMes(d.mes, d.ano) : 0;
+  return (
+    (aPagar > 0.005
+      ? '<p class="mi-falta">falta pagar <b class="valor-mascarado">' +
+        _mobEsc(_mobDreFmt(aPagar)) +
+        '</b> este mês</p>'
+      : '') +
+    '<div class="mc-barra mi-destino-barra" aria-hidden="true">' +
+    visiveis
+      .map(
+        (p) =>
+          '<span style="background:' +
+          p[2] +
+          ';width:' +
+          ((p[1] / base) * 100).toFixed(2) +
+          '%"></span>'
+      )
+      .join('') +
+    '</div><div class="mi-destino">' +
+    visiveis
+      .map(
+        (p) =>
+          '<div><i style="background:' +
+          p[2] +
+          '"></i><span>' +
+          p[0] +
+          '</span><b class="valor-mascarado">' +
+          _mobEsc(_mobDreFmt(p[1])) +
+          '</b><small>' +
+          (entrou > 0 ? Math.round((p[1] / entrou) * 100) + '%' : '') +
+          '</small></div>'
+      )
+      .join('') +
+    '</div>'
+  );
+}
+
+/** "O que notamos" em cartão: o primeiro aviso, com o valor e o normal. */
+function _mobNotamosCartao() {
+  const lista = _mobInsights();
+  if (!lista.length || typeof insightsUiApresentar !== 'function') return '';
+  const ap = insightsUiApresentar(lista[0]) || {};
+  return (
+    '<section class="mi-card mi-notamos"><span class="mi-notamos-rot">O que notamos' +
+    (lista.length > 1 ? ' · 1 de ' + lista.length : '') +
+    '</span><b>' +
+    _mobEsc(ap.titulo || '') +
+    '</b>' +
+    (ap.frase ? '<p>' + ap.frase + '</p>' : '') +
+    '<button type="button" class="mi-link" onclick="mobStoryAbrir(0)">Ver detalhes <i class="ph ph-caret-right"></i></button></section>'
+  );
+}
+
+/** Por categoria: as três maiores do mês, com o traço da média de 3 meses. */
+function _mobCategorias(mes, ano) {
+  if (typeof gastosPorCategoriaComMedia !== 'function') return '';
+  const linhas = gastosPorCategoriaComMedia(mes, ano).filter((l) => l.valor > 0.005);
+  if (!linhas.length) return '';
+  const max = linhas.reduce((a, l) => Math.max(a, l.valor, l.media || 0), 0) || 1;
+  return (
+    '<section class="mi-cats"><div class="mi-tit-linha"><h2 class="mi-h2">Por categoria</h2>' +
+    '<button type="button" class="mi-link" onclick="mobSegControle(\'extrato\')">Todas <i class="ph ph-caret-right"></i></button></div>' +
+    '<div class="mi-card mi-cats-lista">' +
+    linhas
+      .slice(0, 3)
+      .map(
+        (l) =>
+          '<button type="button" class="ctrl-cat' +
+          (l.alerta ? ' alerta' : '') +
+          '" data-cat="' +
+          _mobEsc(l.slug === '__sem_categoria__' ? '' : l.slug) +
+          '" onclick="filtrarExtratoPorCategoria(this.dataset.cat);mobSegControle(\'extrato\')"><span class="ctrl-cat-nome">' +
+          _mobEsc(l.rotulo) +
+          '</span><span class="ctrl-cat-trilho"><span style="width:' +
+          ((l.valor / max) * 100).toFixed(1) +
+          '%"></span>' +
+          (l.media != null
+            ? '<em style="left:' + ((l.media / max) * 100).toFixed(1) + '%"></em>'
+            : '') +
+          '</span><b class="valor-mascarado">' +
+          _mobEsc(_mobDreFmt(l.valor)) +
+          '</b></button>'
+      )
+      .join('') +
+    '<small class="mi-cats-nota">traço = sua média dos 3 meses anteriores</small></div></section>'
+  );
+}
+
 function mobRenderInicio(d) {
   const topo = document.getElementById('mobInicio');
   const fim = document.getElementById('mobInicioFim');
@@ -1140,26 +1250,6 @@ function mobRenderInicio(d) {
     _mobEsc(score && score !== '—' ? score + ' · ' + rot : rot || '—') +
     '</span><span class="mi-termo-txt">Relatório do mês</span><i class="ph ph-caret-right"></i></button>';
 
-  const a = _mobAneis(d);
-  const leg = MOB_ANEIS.map(
-    (x) =>
-      '<button type="button" class="mi-leg" data-anel="' +
-      x.k +
-      '" aria-pressed="' +
-      (_mobAnelRealce === x.k ? 'true' : 'false') +
-      '" onclick="mobAnelRealcar(\'' +
-      x.k +
-      '\')"><span class="mi-leg-dot" style="background:' +
-      (x.k === 'gastos' && a.gastos.alerta ? 'var(--cor-erro)' : x.cor) +
-      '"></span><span class="mi-leg-txt"><b>' +
-      x.nome +
-      '</b><small>' +
-      _mobEsc(a[x.k].sub) +
-      '</small></span><span class="mi-leg-val">' +
-      _mobEsc(a[x.k].val) +
-      '</span></button>'
-  ).join('');
-
   const conta =
     d.saldoConta == null
       ? ''
@@ -1205,25 +1295,27 @@ function mobRenderInicio(d) {
     '</span><span class="mi-dia">' +
     origem +
     '</span></div>' +
-    _mobSvgAneis(a) +
     '</div>' +
+    _mobDestinoNoCartao(d) +
     _mobLinhaCarregado(d) +
     conta +
-    '<div class="mi-legs">' +
-    leg +
-    '</div></section>' +
+    '</section>' +
     '<nav class="mi-atalhos" aria-label="Atalhos">' +
     atalhos +
     '</nav>';
 
+  // "Para onde foi" entrou no cartão do topo (_mobDestinoNoCartao); a
+  // projeção mora na aba Projeção. Ordem do canvas: O que notamos, Falta
+  // pagar, Por categoria, Movimentações.
   const comp = document.getElementById('mobComposicao');
-  if (comp) comp.innerHTML = _mobComposicao(d.composicao);
+  if (comp) comp.innerHTML = '';
   const prox = document.getElementById('mobProximos');
-  if (prox) prox.innerHTML = _mobProximos(d.vencimentos, d.hojeStr);
+  if (prox)
+    prox.innerHTML =
+      _mobNotamosCartao() + _mobProximos(d.vencimentos, d.hojeStr) + _mobCategorias(d.mes, d.ano);
 
   const movs = _mobMovimentos(d.mes, d.ano);
   fim.innerHTML =
-    _mobCartaoProjecao() +
     '<section class="mi-movs"><div class="mi-tit-linha"><h2 class="mi-h2">Movimentações</h2>' +
     '<button type="button" class="mi-link" onclick="mobSegControle(\'extrato\')">Extrato completo <i class="ph ph-caret-right"></i></button></div>' +
     (movs.length
@@ -1732,10 +1824,17 @@ function _mobProximos(itens, hojeStr) {
     })
     .join('');
   return (
-    '<section class="mp"><div class="mi-tit-linha"><h2 class="mi-h2">Próximos dias</h2><span class="mc-total"><b class="valor-mascarado">' +
+    // Lista vertical com os dois próximos (canvas); o resto atrás de "+ N".
+    // O carrossel escondia do terceiro em diante.
+    '<section class="mp"><div class="mi-tit-linha"><h2 class="mi-h2">Falta pagar</h2><span class="mc-total"><b class="valor-mascarado">' +
     _mobEsc(_mobDreFmt(total)) +
-    '</b> a pagar</span></div><div class="mp-fila">' +
+    '</b></span></div><div class="mi-card mp-fila mp-lista">' +
     cards +
+    (itens.length > 2
+      ? '<button type="button" class="mp-mais" onclick="this.parentNode.classList.add(\'todos\');this.remove()">+ ' +
+        (itens.length - 2) +
+        ' até o fim do mês</button>'
+      : '') +
     '</div></section>'
   );
 }
@@ -1866,6 +1965,11 @@ function mobPatDesenharProventos() {
   wrap.innerHTML = htmlProjecaoProventos(projecaoProventos12m(obterResumoCarteira()), {
     link: "mobIrPara('patrimonio');mudarSubAbaPatrimonio('dividendos');document.getElementById('subtabBtnDividendos').scrollIntoView({block:'start'})",
   });
+}
+
+/** Redesenha o topo da foto (chamada pelo seletor Mês/12M do "Por que mudou"). */
+function mobPatRedesenharTopo() {
+  if (_mobPat.dados) _mobPatDesenharTopo();
 }
 
 function mobPatAlternarLiquido(liq) {
@@ -2026,9 +2130,9 @@ function _mobPatDesenharTopo() {
   // trocar para Líquido. Fora da barra (a barra é só o que você tem).
   const chipDivida =
     divida > 0
-      ? '<button type="button" class="mpm-chip mpm-chip-divida" onclick="mobPatIrPara(\'mpMobBens\')"><span class="mpm-chip-dot" style="background:var(--cor-erro)"></span><span class="mpm-chip-txt"><small>Dívidas</small><b class="valor-mascarado">−' +
+      ? '<button type="button" class="mpm-chip mpm-lin mpm-chip-divida" onclick="mobPatIrPara(\'mpMobBens\')"><span class="mpm-chip-dot" style="background:var(--cor-erro)"></span><span class="mpm-chip-txt"><small>Dívidas</small><b class="valor-mascarado">−' +
         _mobEsc(_mobPatFmt(divida)) +
-        '</b></span></button>'
+        '</b></span><i class="ph ph-caret-right" aria-hidden="true"></i></button>'
       : '';
   const soma = partes.reduce((a, p) => a + Math.max(0, p[1]), 0);
   const barra = partes
@@ -2042,11 +2146,13 @@ function _mobPatDesenharTopo() {
         '%"></span>'
     )
     .join('');
+  // Composição em lista, como o canvas: ponto, nome, valor e seta; a linha
+  // de dívidas fecha a lista (chipDivida).
   const chips =
     partes
       .map(
         (p) =>
-          '<button type="button" class="mpm-chip" onclick="mobPatIrPara(\'' +
+          '<button type="button" class="mpm-chip mpm-lin" onclick="mobPatIrPara(\'' +
           p[3] +
           '\')"><span class="mpm-chip-dot" style="background:' +
           p[2] +
@@ -2055,15 +2161,16 @@ function _mobPatDesenharTopo() {
           (soma > 0 ? ' · ' + Math.round((Math.max(0, p[1]) / soma) * 100) + '%' : '') +
           '</small><b class="valor-mascarado">' +
           _mobEsc(_mobPatFmt(p[1])) +
-          '</b></span></button>'
+          '</b></span><i class="ph ph-caret-right" aria-hidden="true"></i></button>'
       )
       .join('') + chipDivida;
 
   topo.innerHTML =
     '<div class="mpm-cab"><p class="mpm-tit">Patrimônio ' +
     (liquido ? 'líquido' : 'total') +
-    '</p>' +
+    '</p><span class="mpm-cab-acoes">' +
     seg +
+    '<button type="button" class="mpm-olho" onclick="toggleValoresOcultos()" aria-label="Esconder ou mostrar valores"><i class="ph ph-eye"></i></button></span>' +
     '</div>' +
     '<p class="mpm-valor valor-mascarado" id="mpmValor">' +
     _mobEsc(_mobPatFmt(total)) +
@@ -2078,14 +2185,14 @@ function _mobPatDesenharTopo() {
         periodos +
         '</div>'
       : '') +
-    (partes.length
-      ? '<section class="mpm-comp"><h2 class="mi-h2">Do que ele é feito</h2><div class="mc-barra" aria-hidden="true">' +
-        barra +
-        '</div><div class="mpm-chips">' +
-        chips +
-        '</div></section>'
-      : '') +
     _mobPatMudouHtml() +
+    (partes.length
+      ? '<section class="mpm-comp"><h2 class="mi-h2">Do que ele é feito</h2><div class="mi-card mpm-comp-card"><div class="mc-barra" aria-hidden="true">' +
+        barra +
+        '</div><div class="mpm-chips mpm-lista">' +
+        chips +
+        '</div></div></section>'
+      : '') +
     _mobPatFolegoHtml(d.folego);
   _mobPatTitulo(total, quando, delta);
   if (g.svg) _mobPatLigarScrub(serie, g, total, quando, delta);
@@ -2146,7 +2253,8 @@ function _mobPatLigarScrub(serie, g, total, quando, delta) {
 
 /** Por que mudou, em três linhas: contas, valorização e bens (mpMudancaDoMes). */
 function _mobPatMudouHtml() {
-  const m = typeof mpMudancaDoMes === 'function' ? mpMudancaDoMes(_mobPat.serie) : null;
+  const meses = typeof mpWeb !== 'undefined' ? mpWeb.mudouMeses : 1;
+  const m = typeof mpMudancaDoMes === 'function' ? mpMudancaDoMes(_mobPat.serie, meses) : null;
   if (!m) return '';
   const num = (v) =>
     '<b class="valor-mascarado ' +
@@ -2161,7 +2269,9 @@ function _mobPatMudouHtml() {
     ['Bens', m.bens],
   ].filter((l, i) => i === 0 || Math.abs(l[1]) > 0.005);
   return (
-    '<section class="mpm-mudou"><div class="mi-tit-linha"><h2 class="mi-h2">Por que mudou</h2><span class="mpm-mudou-tot">' +
+    '<section class="mpm-mudou"><div class="mi-tit-linha"><h2 class="mi-h2">Por que mudou</h2>' +
+    (typeof mpdMudouSeletorHtml === 'function' ? mpdMudouSeletorHtml() : '') +
+    '</div><div class="mpm-mudou-sub"><span class="mpm-mudou-tot">' +
     num(m.total) +
     ' desde ' +
     _mobEsc(_mobPatRotuloMes(m.de)) +
@@ -3138,8 +3248,24 @@ function mobRenderBens() {
     icones[t.v] = t.icon;
   });
   const cab =
-    '<div class="mi-tit-linha"><h2 class="mi-h2">Bens</h2><button type="button" class="mi-link" onclick="abrirNovoBemForm()"><i class="ph ph-plus"></i> Bem</button></div>';
-  if (!todos.length) {
+    '<div class="mi-tit-linha"><h2 class="mi-h2">Bens e dívidas</h2><button type="button" class="mi-link" onclick="abrirNovoBemForm()"><i class="ph ph-plus"></i> Bem</button></div>';
+  // Faturas em aberto entram aqui como dívida (as mesmas do balanço do web).
+  const faturas =
+    typeof mpDividaCartoes === 'function'
+      ? mpDividaCartoes(new Date())
+          .map(
+            (f) =>
+              '<button type="button" class="mpl-fatura" data-cartao="' +
+              _mobEsc(String(f.cartaoId)) +
+              '" onclick="abrirFaturas(this.dataset.cartao, \'atual\')"><span class="mpl-fatura-ic"><i class="ph ph-credit-card"></i></span><span><b>Fatura ' +
+              _mobEsc(f.nome) +
+              '</b><small>em aberto</small></span><b class="valor-mascarado neg">−' +
+              _mobEsc(_mobDreFmt(f.valor)) +
+              '</b></button>'
+          )
+          .join('')
+      : '';
+  if (!todos.length && !faturas) {
     el.innerHTML =
       cab +
       '<p class="mi-vazio">Nenhum bem cadastrado. Imóveis e veículos entram no seu patrimônio.</p>';
@@ -3196,6 +3322,7 @@ function mobRenderBens() {
         );
       })
       .join('') +
+    faturas +
     '</div>';
 }
 

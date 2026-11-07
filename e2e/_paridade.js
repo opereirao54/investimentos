@@ -109,6 +109,10 @@ const OVERLAYS = [
  * que ninguém use esta lista para silenciar uma perda de verdade.
  */
 const EQUIVALENTES = {
+  'fn:confirmarPagamento':
+    '"Pagar" no Falta pagar do web; no celular é "Baixar" no Falta pagar do Início (mobBaixarConta → mobConfirmarBaixa → confirmarPagamento)',
+  'fn:mpdMenuInstituicao':
+    'menu ⋯ de cada instituição no web; no celular tocar na linha da instituição abre as mesmas ações (mobPatAbrirCarteira)',
   'fn:ctrlDreSelecionar':
     'barra de um mês da projeção no web; no celular é tocar na barra ou no cartão do mês (mobDreIrPara)',
   'fn:mpWebAlternarLiquido':

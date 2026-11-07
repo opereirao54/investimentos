@@ -871,10 +871,10 @@ function mpToggleExtrato(i) {
   if (!mpEstado.extratoAberto) mpEstado.extratoAberto = {};
   const aberto = !mpEstado.extratoAberto[key];
   mpEstado.extratoAberto[key] = aberto;
-  const body = document.getElementById('mp-extrato-' + i);
-  const chev = document.getElementById('mp-chev-' + i);
-  if (body) body.style.display = aberto ? 'flex' : 'none';
-  if (chev) chev.classList.toggle('aberto', aberto);
+  // O extrato só é montado quando aberto (com muitas contas, montar todos a
+  // cada render pesava); redesenha a lista para trazê-lo.
+  const wrap = document.getElementById('mp-lista-inst');
+  if (wrap && mpEstado._ultimoConsolidado) mpRenderInstituicoes(mpEstado._ultimoConsolidado);
   if (typeof mobPatrimonioRedesenharCarteiras === 'function') mobPatrimonioRedesenharCarteiras();
 }
 
@@ -885,6 +885,7 @@ function mpToggleExtrato(i) {
 function mpRenderInstituicoes(consolidado) {
   const wrap = document.getElementById('mp-lista-inst');
   if (!wrap) return;
+  mpEstado._ultimoConsolidado = consolidado;
   const saldos = mpCalcularSaldoPorInstituicao(Date.now());
   // Une corretoras (investido) e contas (caixa) pela MESMA CHAVE — conta.id
   // quando resolvida, senão 'nome:<norm>' ou 'a-reconciliar'. Assim "Itaú" da
@@ -933,91 +934,83 @@ function mpRenderInstituicoes(consolidado) {
   mpEstado._extratoKeys = arr.map((x) => x.key);
   // A lista pronta, na mesma ordem dos índices, para o celular.
   mpEstado._instituicoes = arr;
-  wrap.innerHTML = arr
-    .map((x, i) => {
-      const pct = totalGeral !== 0 ? (x.total / totalGeral) * 100 : 0;
-      const tipo = mpTipoInstituicao(x.key);
-      const tipoBadge = tipo
-        ? `<span class="mp-inst-tipo"><i class="ph ${tipo.icon}"></i>${tipo.label}</span>`
-        : '';
-      const recon = x.reconciliar
-        ? ' <span class="mp-inst-badge" style="background:var(--cor-erro);color:#fff;">A RECONCILIAR</span>'
-        : '';
-      const sub = x.reconciliar
-        ? 'Movimentos sem instituição — informe o banco no lançamento'
-        : `Caixa ${mpFmtBRL(x.caixa)} · Investido ${mpFmtBRL(x.investido)}`;
-      // Avatar premium: ícone do tipo (banco/corretora/...) ou a inicial do nome,
-      // numa cor estável derivada da chave da instituição.
-      const accent = mpCorInstituicao(x.key, x.reconciliar);
-      const avatarInner = tipo
-        ? `<i class="ph ${tipo.icon}"></i>`
-        : x.reconciliar
-          ? '<i class="ph ph-warning"></i>'
-          : mpIniciaisInstituicao(x.nome);
-      // Detalhe: caixa + cada classe de investimento que ESTÁ nesta instituição,
-      // para a pessoa ver exatamente o que tem em cada banco/corretora.
-      const detalhe = [];
-      if (x.caixa > 0.01)
-        detalhe.push({ label: 'Caixa', valor: x.caixa, cor: mpCorCategoria('caixa') });
-      Object.keys(x.classes || {}).forEach((cl) => {
-        if (x.classes[cl] > 0.01)
-          detalhe.push({
-            label: MP_LABELS[cl] || cl,
-            valor: x.classes[cl],
-            cor: mpCorCategoria(cl),
-          });
-      });
-      detalhe.sort((a, b) => b.valor - a.valor);
-      const detalheHtml = detalhe.length
-        ? `<div class="mp-inst-detalhe">${detalhe
-            .map(
-              (d) =>
-                `<span class="mp-inst-chip"><span class="mp-leg-dot" style="background:${d.cor};margin-top:0;width:8px;height:8px;"></span>${d.label} <strong>${mpFmtBRL(d.valor)}</strong></span>`
-            )
-            .join('')}</div>`
-        : '';
-      // Extrato (movimentações de caixa) recolhível por instituição.
-      const aberto = !!(mpEstado.extratoAberto && mpEstado.extratoAberto[x.key]);
-      const extratoHtml = mpRenderExtratoHtml(mpExtratoInstituicao(x.key, Date.now()));
-      const ehConta = !x.reconciliar && typeof obterConta === 'function' && !!obterConta(x.key);
-      const avisoHtml =
-        ehConta && typeof conferirAvisoHtml === 'function' ? conferirAvisoHtml(x.key, x.caixa) : '';
-      const btnConferir = ehConta
-        ? ` <button type="button" class="mp-extrato-conferir" data-conta="${String(x.key).replace(/"/g, '&quot;')}" onclick="conferirAbrir(this.dataset.conta)"><i class="ph ph-check-circle"></i> Conferir saldo</button>`
-        : '';
-      // As ações da conta moram aqui, junto do saldo dela: antes ficavam numa
-      // segunda lista ("Minhas Contas") que repetia as mesmas instituições.
-      const idEsc = String(x.key).replace(/"/g, '&quot;');
-      const acoesConta = ehConta
-        ? `<span class="mpd-acoes-conta"><button type="button" data-conta="${idEsc}" onclick="editarContaForm(this.dataset.conta)"><i class="ph ph-pencil-simple"></i> Editar</button><button type="button" data-conta="${idEsc}" onclick="fundirContaPrompt(this.dataset.conta)"><i class="ph ph-arrows-merge"></i> Fundir</button><button type="button" class="perigo" data-conta="${idEsc}" onclick="arquivarContaUI(this.dataset.conta)"><i class="ph ph-archive"></i> Arquivar</button></span>`
-        : '';
-      const tituloExtrato = `<i class="ph ph-receipt"></i> Extrato — movimentações de caixa${btnConferir}${acoesConta}`;
-      return `
-            <div class="mp-inst-item mp-inst-collapsible">
-                <div class="mp-inst-head" onclick="mpToggleExtrato(${i})" title="Ver extrato">
-                    <div class="mp-inst-head-left">
-                        <i class="ph ph-caret-right mp-inst-chevron${aberto ? ' aberto' : ''}" id="mp-chev-${i}"></i>
-                        <span class="mp-inst-avatar" style="--mp-accent:${accent};">${avatarInner}</span>
-                        <div class="mp-inst-meta">
-                            <span class="mp-inst-nome">${x.nome} ${tipoBadge}${recon}</span>
-                            <span class="mp-inst-sub" style="text-align:left;">${sub}</span>
-                            <span class="mp-inst-share" title="${mpPctBR(pct)} do patrimônio"><span class="mp-inst-share-fill" style="width:${Math.max(2, Math.min(100, pct)).toFixed(1)}%;background:${accent};"></span></span>
-                        </div>
-                    </div>
-                    <div class="mp-inst-head-right">
-                        <span class="mp-inst-valor">${mpFmtBRL(x.total)}</span>
-                        <span class="mp-inst-sub">${mpPctBR(pct)}</span>
-                    </div>
+  const cab =
+    '<div class="mpd-inst-cab" aria-hidden="true"><span></span><span>Instituição</span><span>Caixa</span><span>Investido</span><span>Total</span><span></span></div>';
+  wrap.innerHTML =
+    cab +
+    arr
+      .map((x, i) => {
+        const pct = totalGeral !== 0 ? (x.total / totalGeral) * 100 : 0;
+        const tipo = mpTipoInstituicao(x.key);
+        const accent = mpCorInstituicao(x.key, x.reconciliar);
+        // Linha do canvas: tipo, o que tem dentro (classes) e a fatia do total.
+        const classes = Object.keys(x.classes || {})
+          .filter((cl) => x.classes[cl] > 0.01)
+          .sort((a, b) => x.classes[b] - x.classes[a])
+          .map((cl) => (MP_LABELS[cl] || cl) + ' ' + mpFmtBRL(x.classes[cl]));
+        const sub = x.reconciliar
+          ? 'Movimentos sem instituição — informe o banco no lançamento'
+          : [
+              tipo ? tipo.label : null,
+              classes.length ? classes.join(' · ') : mpPctBR(pct) + ' do total',
+            ]
+              .filter(Boolean)
+              .join(' · ');
+        const aberto = !!(mpEstado.extratoAberto && mpEstado.extratoAberto[x.key]);
+        const menuAberto = mpEstado.menuAberto === x.key;
+        const ehConta = !x.reconciliar && typeof obterConta === 'function' && !!obterConta(x.key);
+        const avisoHtml =
+          ehConta && typeof conferirAvisoHtml === 'function'
+            ? conferirAvisoHtml(x.key, x.caixa)
+            : '';
+        const idEsc = mpEsc(x.key);
+        // O ⋯ abre as ações da conta. Antes elas ficavam numa segunda lista
+        // ("Minhas Contas") que repetia as mesmas instituições.
+        const acoes = [
+          `<button type="button" onclick="mpToggleExtrato(${i})"><i class="ph ph-receipt"></i> ${aberto ? 'Fechar extrato' : 'Ver extrato'}</button>`,
+          `<button type="button" onclick="abrirTransferenciaModal()"><i class="ph ph-arrows-left-right"></i> Transferir</button>`,
+        ];
+        if (ehConta)
+          acoes.push(
+            `<button type="button" data-conta="${idEsc}" onclick="conferirAbrir(this.dataset.conta)"><i class="ph ph-check-circle"></i> Conferir saldo</button>`,
+            `<button type="button" data-conta="${idEsc}" onclick="editarContaForm(this.dataset.conta)"><i class="ph ph-pencil-simple"></i> Editar</button>`,
+            `<button type="button" data-conta="${idEsc}" onclick="fundirContaPrompt(this.dataset.conta)"><i class="ph ph-arrows-merge"></i> Fundir</button>`,
+            `<button type="button" class="perigo" data-conta="${idEsc}" onclick="arquivarContaUI(this.dataset.conta)"><i class="ph ph-archive"></i> Arquivar</button>`
+          );
+        const extratoHtml = aberto
+          ? mpRenderExtratoHtml(mpExtratoInstituicao(x.key, Date.now()))
+          : '';
+        const num = (v, mostrarZero) =>
+          Math.abs(v) > 0.005 || mostrarZero
+            ? `<span class="mpd-num mpd-oculta">${mpFmtBRL(v)}</span>`
+            : '<span class="mpd-num mpd-traco">—</span>';
+        return `
+            <div class="mpd-inst${aberto ? ' aberto' : ''}">
+                <div class="mpd-inst-lin" onclick="if (!event.target.closest('button')) mpToggleExtrato(${i})" title="Ver extrato">
+                    <span class="mpd-inst-av" style="background:${accent};">${x.reconciliar ? '<i class="ph ph-warning"></i>' : mpEsc(mpIniciaisInstituicao(x.nome))}</span>
+                    <span class="mpd-inst-nome"><b>${mpEsc(x.nome)}</b><small>${mpEsc(sub)}</small><span class="mpd-inst-trilho"><span style="width:${Math.max(2, Math.min(100, pct)).toFixed(1)}%;background:${accent};"></span></span></span>
+                    ${num(x.caixa, true)}
+                    ${num(x.investido, false)}
+                    <span class="mpd-num mpd-oculta mpd-inst-total">${mpFmtBRL(x.total)}</span>
+                    <button type="button" class="mpd-mais" aria-label="Ações de ${mpEsc(x.nome)}" aria-expanded="${menuAberto}" onclick="mpdMenuInstituicao(${i})"><i class="ph ph-dots-three"></i></button>
                 </div>
-                ${detalheHtml}
                 ${avisoHtml}
+                <div class="mpd-inst-menu"${menuAberto ? '' : ' hidden'}>${acoes.join('')}</div>
                 <div class="mp-inst-extrato" id="mp-extrato-${i}" style="display:${aberto ? 'flex' : 'none'}">
-                    <div class="mp-extrato-titulo">${tituloExtrato}</div>
+                    <i class="ph ph-caret-right mp-inst-chevron${aberto ? ' aberto' : ''}" id="mp-chev-${i}" hidden></i>
                     ${extratoHtml}
                 </div>
             </div>`;
-    })
-    .join('');
+      })
+      .join('');
+}
+
+/** Abre ou fecha o menu ⋯ de uma instituição (um aberto por vez). */
+function mpdMenuInstituicao(i) {
+  const key = (mpEstado._extratoKeys || [])[i];
+  if (key == null) return;
+  mpEstado.menuAberto = mpEstado.menuAberto === key ? null : key;
+  if (mpEstado._ultimoConsolidado) mpRenderInstituicoes(mpEstado._ultimoConsolidado);
 }
 
 // Cor estável (determinística) para o avatar de uma instituição, derivada da
@@ -1086,7 +1079,7 @@ function mpLimparTxOrigemOrfas() {
 // === Meu patrimônio · web: dívidas, herói, balanço, mudança ===
 // ============================================================
 
-var mpWeb = { liquido: null, periodo: 12 };
+var mpWeb = { liquido: null, periodo: 12, mudouMeses: 1 };
 var MP_WEB_PERIODOS = [
   [1, '1M'],
   [6, '6M'],
@@ -1149,9 +1142,12 @@ function mpDividas(hoje) {
  *   - valorização: o que os investimentos ganharam ou perderam além do aporte;
  *   - bens: avaliação nova (FIPE, imóvel) ou bem que entrou/saiu.
  */
-function mpMudancaDoMes(serie) {
+function mpMudancaDoMes(serie, meses) {
   if (!Array.isArray(serie) || serie.length < 2) return null;
-  const a = serie[serie.length - 2];
+  // `meses`: quantos meses para trás (1 = desde o fim do mês passado; 12 =
+  // nos últimos 12 meses). Com histórico mais curto, compara com o início.
+  const n = Math.max(1, Math.min(serie.length - 1, Number(meses) || 1));
+  const a = serie[serie.length - 1 - n];
   const b = serie[serie.length - 1];
   const aportes = (Number(b.custo) || 0) - (Number(a.custo) || 0);
   const contas = b.caixa - a.caixa + aportes;
@@ -1586,7 +1582,7 @@ function mpRenderBalancoWeb(d) {
 function mpRenderMudouWeb(d) {
   const el = document.getElementById('mpwMudou');
   if (!el) return;
-  const m = mpMudancaDoMes(d && d.serie);
+  const m = mpMudancaDoMes(d && d.serie, mpWeb.mudouMeses);
   if (!m) {
     el.innerHTML =
       '<h3 style="margin:0 0 6px;font-size:14px">Por que mudou</h3><p class="mpd-vazio">A partir do segundo mês, mostramos aqui quanto veio do que sobrou nas contas e quanto veio da valorização.</p>';
@@ -1617,7 +1613,9 @@ function mpRenderMudouWeb(d) {
     ['Bens', 'nova avaliação, compra ou venda', m.bens],
   ];
   el.innerHTML =
-    '<h3 style="margin:0 0 4px;font-size:14px">Por que mudou</h3>' +
+    '<div class="mpd-topo"><h3 style="margin:0;font-size:14px">Por que mudou</h3>' +
+    mpdMudouSeletorHtml() +
+    '</div>' +
     '<span class="mpd-sub">De ' +
     _mpWebRotuloMes(m.de) +
     ' até hoje</span>' +
@@ -1636,6 +1634,35 @@ function mpRenderMudouWeb(d) {
     '<div class="mpd-total"><span>Variação</span>' +
     num(m.total) +
     '</div>';
+}
+
+/** Mês / 12M do "Por que mudou" — o mesmo seletor no web e no celular. */
+function mpdMudouSeletorHtml() {
+  return (
+    '<div class="mpd-periodos" role="group" aria-label="Período">' +
+    [
+      [1, 'Mês'],
+      [12, '12M'],
+    ]
+      .map(
+        (p) =>
+          '<button type="button" aria-pressed="' +
+          (mpWeb.mudouMeses === p[0]) +
+          '" onclick="mpdMudouPeriodo(' +
+          p[0] +
+          ')">' +
+          p[1] +
+          '</button>'
+      )
+      .join('') +
+    '</div>'
+  );
+}
+
+function mpdMudouPeriodo(meses) {
+  mpWeb.mudouMeses = Number(meses) === 12 ? 12 : 1;
+  if (mpEstado._web) mpRenderMudouWeb(mpEstado._web);
+  if (typeof mobPatRedesenharTopo === 'function') mobPatRedesenharTopo();
 }
 
 /** Investimentos por classe, em lista: valor, fatia e quanto rendeu. */

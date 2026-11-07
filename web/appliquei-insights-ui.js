@@ -68,6 +68,8 @@ function insightsUiDispensar(id) {
     console.error('[insights] dispensar', e);
   }
   insightsUiRenderizar();
+  // A cópia dos avisos dentro da Saúde do mês (web) acompanha.
+  if (typeof pintarAvisosNaSaude === 'function') pintarAvisosNaSaude();
 }
 
 function insightsUiRestaurarTodos() {
@@ -645,6 +647,12 @@ var insightsUiRealceTimer = null;
 /** Rola até o elemento sem brigar com quem prefere menos movimento. */
 function insightsUiIrPara(elId) {
   var el = document.getElementById(elId);
+  // No web o painel de vencimentos deu lugar ao "Falta pagar" (ao lado do
+  // extrato); fora da vista, o aviso leva até ele.
+  if (el && elId === 'painelVencimentos' && !el.offsetParent) {
+    var alt = document.getElementById('ctlFaltaPagar');
+    if (alt && alt.offsetParent) el = alt;
+  }
   if (!el || typeof el.scrollIntoView !== 'function') return;
   // No celular o destino pode estar noutra aba do Controle (appliquei-mobile.js).
   if (typeof mobRevelar === 'function') mobRevelar(el);
