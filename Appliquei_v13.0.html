@@ -8872,6 +8872,41 @@
         .conf-it-desc small { font-size: 11px; color: var(--cor-texto-mutado); }
         .conf-it-val { font-family: 'DM Mono', monospace; font-weight: 600; }
         .conf-it-acoes { display: flex; flex-wrap: wrap; gap: 0 12px; width: 100%; color: var(--cor-primaria); }
+        .conf-comp .dif { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; align-items: center; }
+        .conf-modo { border: 0; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+        .conf-modo legend { font-size: 14px; font-weight: 800; margin-bottom: 8px; padding: 0; }
+        .conf-modo label { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1.5px solid var(--cor-borda); border-radius: 14px; cursor: pointer; }
+        .conf-modo label:has(input:checked) { border-color: var(--cor-primaria); background: var(--cor-bg-primaria); }
+        .conf-modo input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--cor-primaria); flex-shrink: 0; }
+        .conf-modo span { display: flex; flex-direction: column; gap: 2px; }
+        .conf-modo b { font-size: 14.5px; }
+        .conf-modo small { font-size: 12.5px; color: var(--cor-texto-secundario); line-height: 1.4; }
+        .conf-procurar { margin-top: 12px; }
+        .conf-procurar > summary { cursor: pointer; font-weight: 700; font-size: 14px; color: var(--cor-txt-primaria); padding: 8px 0; min-height: 36px; list-style: none; }
+        .conf-procurar > summary::after { content: ' ›'; }
+        .conf-procurar[open] > summary::after { content: ' ⌄'; }
+        /* Nova conta: grade de instituições, tipo em botões, arquivar no pé */
+        .conta-grade-bloco { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+        .conta-grade-bloco[hidden] { display: none; }
+        .conta-grade-tit { font-size: 15px; color: var(--cor-texto-principal); }
+        .conta-busca { display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 12px; border: 1px solid var(--cor-borda); border-radius: 12px; background: var(--cor-branco); color: var(--cor-texto-mutado); }
+        .conta-busca input { flex: 1; min-width: 0; border: 0 !important; outline: none; background: none !important; box-shadow: none !important; padding: 0 !important; font: 500 14px 'Figtree', sans-serif; color: var(--cor-texto-principal); }
+        .conta-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; max-height: 260px; overflow-y: auto; padding: 2px; }
+        .conta-inst { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 6px; min-height: 84px; border: 1.5px solid var(--cor-borda); border-radius: 14px; background: var(--cor-branco); cursor: pointer; font: 600 12.5px 'Figtree', sans-serif; color: var(--cor-texto-principal); text-align: center; }
+        .conta-inst.on { border-color: var(--cor-primaria); background: var(--cor-bg-primaria); }
+        .conta-inst:disabled { opacity: .5; cursor: default; }
+        .conta-inst-sig { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; color: #fff; font: 800 12.5px 'Figtree', sans-serif; }
+        .conta-inst-nome { display: flex; flex-direction: column; line-height: 1.2; }
+        .conta-inst-nome small { font-size: 10.5px; font-weight: 500; color: var(--cor-texto-mutado); }
+        .conta-inst-vazio { grid-column: 1 / -1; font-size: 13px; color: var(--cor-texto-mutado); margin: 4px 0; }
+        .conta-tipo-select { display: none !important; }
+        .conta-tipos { display: flex; flex-wrap: wrap; gap: 6px; }
+        .conta-tipos button { min-height: 38px; padding: 0 12px; border-radius: 99px; border: 1px solid var(--cor-borda); background: var(--cor-branco); font: 600 13px 'Figtree', sans-serif; color: var(--cor-texto-secundario); cursor: pointer; }
+        .conta-tipos button[aria-pressed="true"] { border: 2px solid var(--cor-primaria); background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); }
+        .conta-arquivar-bloco { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--cor-borda); }
+        .conta-arquivar-bloco[hidden] { display: none; }
+        .conta-arquivar { align-self: flex-start; color: var(--tinta-ambar, #b45309) !important; border-color: var(--cor-borda) !important; }
+        .conta-arquivar-bloco span { font-size: 12px; color: var(--cor-texto-mutado); line-height: 1.45; }
         /* "Observação": resumo do que foi quitado por tipo, no topo do extrato */
         .mp-extrato-resumo {
             margin-bottom:10px; padding:10px 12px; border-radius:10px;
@@ -16483,24 +16518,30 @@
                 <div id="formNovaConta" style="display:none;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:10px;padding:12px;margin-bottom:10px;">
                     <input type="hidden" id="contaEditId" value="">
                     <div id="tituloFormConta" style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--cor-texto-principal);">Nova conta</div>
+                    <div id="contaGradeBloco" class="conta-grade-bloco">
+                        <b class="conta-grade-tit">Qual banco ou corretora?</b>
+                        <label class="conta-busca"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><input type="search" id="contaBuscaInst" placeholder="Buscar" aria-label="Buscar instituição" oninput="contaGradeRender()"></label>
+                        <div id="contaGradeInst" class="conta-grade" role="radiogroup" aria-label="Instituição"></div>
+                    </div>
                     <div class="grid-2-iguais" style="gap:10px;">
-                        <div class="form-group"><label>Nome</label><input type="text" id="contaNome" placeholder="Ex: Nubank, Itaú, XP..."></div>
-                        <div class="form-group"><label>Tipo</label><select id="contaTipo"></select></div>
+                        <div class="form-group"><label for="contaNome">Nome</label><input type="text" id="contaNome" placeholder="Ex: Nubank, Itaú, XP..." oninput="contaGradeRender()"></div>
+                        <div class="form-group"><label>Tipo</label><select id="contaTipo" class="conta-tipo-select" aria-hidden="true" tabindex="-1"></select><div id="contaTiposChips" class="conta-tipos" role="group" aria-label="Tipo"></div></div>
                     </div>
                     <div class="grid-2-iguais" style="gap:10px;">
                         <div class="form-group"><label id="lblContaSaldoInicial" for="contaSaldoInicial">Saldo inicial</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="contaSaldoInicial" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
-                        <div class="form-group" id="grupoContaDataSaldoInicial"><label for="contaDataSaldoInicial">Saldo nesta data</label><input type="date" id="contaDataSaldoInicial"></div>
+                        <div class="form-group" id="grupoContaDataSaldoInicial"><label for="contaDataSaldoInicial">Em</label><input type="date" id="contaDataSaldoInicial"></div>
                     </div>
                     <div id="dicaContaSaldoHoje" style="display:none;font-size:11px;color:var(--cor-texto-mutado);background:var(--cor-fundo-card);border:1px solid var(--cor-borda);border-radius:8px;padding:8px 10px;margin-bottom:8px;line-height:1.5;">
                         <i class="ph ph-info" style="color:var(--cor-info);"></i> Digite o saldo que aparece <strong>agora</strong> no app do banco. É o ponto de partida: daqui em diante o app soma e desconta o que você lançar.
                     </div>
                     <div id="dicaContaSaldoInicial" style="font-size:11px;color:var(--cor-texto-mutado);background:var(--cor-fundo-card);border:1px solid var(--cor-borda);border-radius:8px;padding:8px 10px;margin-bottom:8px;line-height:1.5;">
-                        <i class="ph ph-info" style="color:var(--cor-info);"></i> Use o <strong>saldo inicial</strong> só para o dinheiro que você <strong>já tinha guardado nesta conta antes</strong> de começar a usar o app. <strong>Não lance aqui a sua receita do mês</strong> (salário etc.) — isso vai em <strong>Controle financeiro → Receita</strong>, senão o mesmo dinheiro conta em dobro no patrimônio.
+                        <i class="ph ph-info" style="color:var(--cor-info);"></i> O dinheiro que <strong>já estava</strong> na conta antes de você começar a lançar. <strong>Salário do mês vai em Receita</strong>, no Controle financeiro — senão o mesmo dinheiro conta em dobro.
                     </div>
                     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">
                         <button class="btn-secundario" onclick="cancelarFormConta()">Cancelar</button>
                         <button class="btn-acao" style="background:var(--cor-primaria);" onclick="salvarFormConta()"><i class="ph ph-check"></i> Salvar</button>
                     </div>
+                    <div id="contaArquivarBloco" class="conta-arquivar-bloco" hidden></div>
                 </div>
                 <details class="mpd-gerenciar">
                     <summary><i class="ph ph-gear-six"></i> Gerenciar contas</summary>
