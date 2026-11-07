@@ -87,10 +87,6 @@ O código está pronto (26/10/2026); o resto é painel. Passo a passo completo e
       (07/11/2026): liquidez da renda fixa (falta o campo de prazo de
       resgate); "por que mudou" separando proventos e amortização; gráfico do
       líquido no passado (reconstruir o saldo devedor pelo contrato).
-- [ ] **Antecipação registrada não mexe nas parcelas do Controle** (decisão):
-      o painel do bem baixa o saldo devedor e tira o dinheiro da conta, mas
-      as parcelas já lançadas no Controle continuam com o valor/prazo antigo
-      (o aviso diz para ajustar lá). Decidir se o app deve corrigir sozinho.
 
 ## Feito
 
@@ -100,7 +96,9 @@ O código está pronto (26/10/2026); o resto é painel. Passo a passo completo e
   categoria e Metas do mês em % (réguas da Saúde do mês); nova conta em grade
   de instituições, editar conta com arquivar; conferir saldo com "lançar a
   diferença"; novo bem em passos com busca FIPE única; painel do bem com
-  "quanto já é seu", financiamento e registro de antecipação.
+  "quanto já é seu", financiamento e registro de antecipação — que também
+  corrige as parcelas do Controle (prazo menor tira as do fim, parcela menor
+  muda o valor), com Desfazer.
 - 07/11/2026 · branch `claude/intelligent-ritchie-6o5r6m` — Patrimônio: web com
   líquido/bruto, linha do tempo, balanço tem/deve, "por que mudou", fôlego,
   classes em lista, contas sem lista duplicada; celular com lista de

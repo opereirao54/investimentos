@@ -2180,6 +2180,7 @@ function bemRegistrarAntecipacao(id, valor, modo, contaId) {
     saldoAntes: sd,
     parcelasAntes: fin.parcelasRestantes,
     parcelaAntes: fin.valorParcela,
+    valorPagoAntes: fin.valorPago,
   };
   fin.saldoDevedor = Math.round((sd - v) * 100) / 100;
   fin.valorPago = Math.round(((Number(fin.valorPago) || 0) + v) * 100) / 100;
@@ -2191,6 +2192,11 @@ function bemRegistrarAntecipacao(id, valor, modo, contaId) {
   } else {
     fin.valorParcela = Math.round(sim.parcela.novaParcela * 100) / 100;
   }
+  // As parcelas que estão lançadas no Controle acompanham: prazo menor some
+  // com as do fim; parcela menor muda o valor das que faltam.
+  registro.controle = bemAjustarParcelasControle(b, registro, sim);
+  if (registro.controle && registro.controle.grupoId)
+    fin.parcelasGrupoId = registro.controle.grupoId;
   if (!Array.isArray(fin.antecipacoes)) fin.antecipacoes = [];
   fin.antecipacoes.push(registro);
   salvarBens();
@@ -2206,6 +2212,162 @@ function bemRegistrarAntecipacao(id, valor, modo, contaId) {
     if (typeof salvarContas === 'function') salvarContas();
   }
   return { registro: registro, sim: sim };
+}
+
+// ------------------------------------------------------------
+// Parcelas do financiamento no Controle
+// ------------------------------------------------------------
+// O bem não guarda vínculo com os lançamentos: a parcela costuma ter sido
+// lançada como despesa fixa ("Financiamento apê", "Prestação do carro"). A
+// série é achada pelo valor (até 15% da parcela do contrato) e, havendo mais
+// de uma com esse valor, pelo nome. Achada uma vez, fica gravada em
+// fin.parcelasGrupoId. Na dúvida, nada é mexido.
+var BEM_PALAVRAS_PARCELA =
+  /financ|presta|parcela|habita|consorc|imovel|apart|ape\b|casa|carro|veic|moto/;
+
+function _bemNormTxt(v) {
+  return String(v || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+}
+
+function _bemMesAtualIdx(hoje) {
+  var h = hoje || new Date();
+  return h.getFullYear() * 12 + h.getMonth();
+}
+
+/** Lançamentos ainda não pagos de uma série, do mês atual em diante, em ordem. */
+function bemParcelasFuturasDoGrupo(grupoId, hoje) {
+  var desde = _bemMesAtualIdx(hoje);
+  return (typeof transacoes !== 'undefined' ? transacoes : [])
+    .filter(function (t) {
+      return t.groupId === grupoId && !t.pago && t.ano * 12 + t.mes >= desde;
+    })
+    .sort(function (a, c) {
+      return a.ano * 12 + a.mes - (c.ano * 12 + c.mes);
+    });
+}
+
+/** A série de parcelas do financiamento no Controle: groupId ou null. */
+function bemAcharParcelasControle(b, parcelaRef, hoje) {
+  var fin = (b && b.financiamento) || {};
+  if (fin.parcelasGrupoId && bemParcelasFuturasDoGrupo(fin.parcelasGrupoId, hoje).length) {
+    return fin.parcelasGrupoId;
+  }
+  var ref = Number(parcelaRef) || 0;
+  if (!(ref > 0)) return null;
+  var desde = _bemMesAtualIdx(hoje);
+  var grupos = {};
+  (typeof transacoes !== 'undefined' ? transacoes : []).forEach(function (t) {
+    if (!t.groupId || t.pago || t.ano * 12 + t.mes < desde) return;
+    if (t.categoria !== 'despesa_fixa' && t.categoria !== 'despesa_variavel') return;
+    if (Math.abs((Number(t.valor) || 0) - ref) / ref > 0.15) return;
+    if (!grupos[t.groupId])
+      grupos[t.groupId] = { id: t.groupId, desc: t.descricao, valor: t.valor };
+  });
+  var lista = Object.keys(grupos).map(function (k) {
+    return grupos[k];
+  });
+  if (!lista.length) return null;
+  var nomeBem = _bemNormTxt(b.nome).split(/\s+/)[0] || '';
+  var comNome = lista.filter(function (g) {
+    var d = _bemNormTxt(g.desc);
+    return (nomeBem.length >= 3 && d.indexOf(nomeBem) !== -1) || BEM_PALAVRAS_PARCELA.test(d);
+  });
+  if (lista.length === 1) return lista[0].id;
+  if (comNome.length === 1) return comNome[0].id;
+  return null;
+}
+
+/**
+ * Ajusta a série no Controle depois da antecipação. Devolve o que mudou
+ * ({ grupoId, removidos: [transação], valores: [{ id, valor }] }) para o
+ * Desfazer — ou { grupoId: null } quando não achou a série.
+ */
+function bemAjustarParcelasControle(b, registro, sim, hoje) {
+  var fin = b.financiamento || {};
+  var ref =
+    Number(registro.parcelaAntes) ||
+    finParcelaEsperada(
+      fin.sistema === 'price' ? 'price' : 'sac',
+      registro.saldoAntes,
+      Number(fin.taxaMensal) || 0,
+      registro.parcelasAntes
+    );
+  var grupoId = bemAcharParcelasControle(b, ref, hoje);
+  var out = { grupoId: grupoId, removidos: [], valores: [] };
+  if (!grupoId) return out;
+  var futuras = bemParcelasFuturasDoGrupo(grupoId, hoje);
+  var quitou = sim.quitou || !(Number(fin.saldoDevedor) > 0);
+  if (quitou || registro.modo === 'prazo') {
+    var manter = quitou ? 0 : Math.max(0, Number(fin.parcelasRestantes) || 0);
+    var sair = futuras.slice(manter);
+    var ids = {};
+    sair.forEach(function (t) {
+      ids[t.id] = true;
+      out.removidos.push(Object.assign({}, t));
+    });
+    for (var k = transacoes.length - 1; k >= 0; k--) {
+      if (ids[transacoes[k].id]) transacoes.splice(k, 1);
+    }
+  } else {
+    var nova = Math.round((Number(fin.valorParcela) || 0) * 100) / 100;
+    if (nova > 0) {
+      futuras.forEach(function (t) {
+        out.valores.push({ id: t.id, valor: t.valor });
+        t.valor = nova;
+      });
+    }
+  }
+  if (out.removidos.length || out.valores.length) {
+    if (typeof salvarTransacoes === 'function') salvarTransacoes();
+  }
+  return out;
+}
+
+/** Desfaz a última antecipação: dívida, conta e parcelas do Controle voltam. */
+function bemDesfazerAntecipacao(bemId, registroId) {
+  var b = obterBem(bemId);
+  var fin = b && b.financiamento;
+  if (!fin || !Array.isArray(fin.antecipacoes)) return false;
+  var i = fin.antecipacoes.findIndex(function (r) {
+    return r.id === registroId;
+  });
+  if (i === -1) return false;
+  var r = fin.antecipacoes[i];
+  fin.saldoDevedor = r.saldoAntes;
+  fin.parcelasRestantes = r.parcelasAntes;
+  fin.valorParcela = r.parcelaAntes;
+  fin.valorPago = r.valorPagoAntes;
+  fin.antecipacoes.splice(i, 1);
+  salvarBens();
+  if (r.contaId && typeof obterConta === 'function') {
+    var c = obterConta(r.contaId);
+    if (c && Array.isArray(c.ajustes)) {
+      c.ajustes = c.ajustes.filter(function (a) {
+        return a.id !== 'aj_' + r.id;
+      });
+      if (typeof salvarContas === 'function') salvarContas();
+    }
+  }
+  var ctl = r.controle || {};
+  var mudou = false;
+  (ctl.removidos || []).forEach(function (t) {
+    if (!transacoes.some((x) => x.id === t.id)) {
+      transacoes.push(t);
+      mudou = true;
+    }
+  });
+  (ctl.valores || []).forEach(function (v) {
+    var t = transacoes.find((x) => x.id === v.id);
+    if (t && !t.pago) {
+      t.valor = v.valor;
+      mudou = true;
+    }
+  });
+  if (mudou && typeof salvarTransacoes === 'function') salvarTransacoes();
+  return true;
 }
 
 function bemPainelAbrir(id) {
@@ -2261,15 +2423,38 @@ function bemPainelRegistrar() {
   if (typeof renderMeuPatrimonio === 'function') renderMeuPatrimonio(true);
   else if (typeof renderMeusBens === 'function') renderMeusBens();
   bemPainelDesenhar();
-  mostrarToast(
+  var ctl = r.registro.controle || {};
+  var nRem = (ctl.removidos || []).length;
+  var nVal = (ctl.valores || []).length;
+  var sobreControle = nRem
+    ? ' ' + nRem + (nRem === 1 ? ' parcela saiu' : ' parcelas saíram') + ' do fim, no Controle.'
+    : nVal
+      ? ' As ' +
+        nVal +
+        ' parcelas que faltam no Controle agora são de ' +
+        fmt(nVal ? obterBem(id).financiamento.valorParcela : 0) +
+        '.'
+      : ctl.grupoId
+        ? ''
+        : ' Não achei as parcelas no Controle; se estiverem lá, ajuste à mão.';
+  var msg =
     'Antecipação de ' +
-      fmt(r.registro.valor) +
-      ' registrada' +
-      (r.registro.contaId ? '' : ' (sem conta: o caixa não mudou)') +
-      '. Se as parcelas estão lançadas no Controle, ajuste o valor ou o prazo lá.',
-    'sucesso',
-    7000
-  );
+    fmt(r.registro.valor) +
+    ' registrada' +
+    (r.registro.contaId ? '' : ' (sem conta: o caixa não mudou)') +
+    '.' +
+    sobreControle;
+  var regId = r.registro.id;
+  var aoDesfazer = function () {
+    if (!bemDesfazerAntecipacao(id, regId)) return;
+    if (typeof renderMeuPatrimonio === 'function') renderMeuPatrimonio(true);
+    if (typeof atualizarTelaControle === 'function') atualizarTelaControle();
+    if (bemPainel.id === id) bemPainelDesenhar();
+    mostrarToast('Antecipação desfeita.', 'sucesso');
+  };
+  if (typeof atualizarTelaControle === 'function') atualizarTelaControle();
+  if (typeof mostrarToastDesfazer === 'function') mostrarToastDesfazer(msg, aoDesfazer, 9000);
+  else mostrarToast(msg, 'sucesso', 7000);
 }
 
 function bemPainelHtml(b) {
