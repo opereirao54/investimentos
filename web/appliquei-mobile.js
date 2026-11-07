@@ -3458,19 +3458,19 @@ function mobListaAbrir(tipo, id) {
   else mobRenderBens();
 }
 
-function _mobLinhaLista(tipo, id, icone, cor, nome, sub, valor, acoes, apagada) {
-  const aberta = _mobListas[tipo] === id;
+/** `abrir` (opcional): o que o toque na linha faz no lugar de mostrar as ações
+ *  — o bem abre o painel de detalhe, como no canvas. */
+function _mobLinhaLista(tipo, id, icone, cor, nome, sub, valor, acoes, apagada, abrir) {
+  const aberta = !abrir && _mobListas[tipo] === id;
   return (
     '<div class="mpl-item' +
     (aberta ? ' aberta' : '') +
     (apagada ? ' apagada' : '') +
     '"><button type="button" class="mpl-cab" aria-expanded="' +
     aberta +
-    '" onclick="mobListaAbrir(\'' +
-    tipo +
-    "','" +
-    _mobEsc(id) +
-    '\')"><span class="mpl-ic" style="--mpl-cor:' +
+    '" onclick="' +
+    (abrir || "mobListaAbrir('" + tipo + "','" + _mobEsc(id) + "')") +
+    '"><span class="mpl-ic" style="--mpl-cor:' +
     cor +
     '"><i class="ph ' +
     icone +
@@ -3649,7 +3649,8 @@ function mobRenderBens() {
           partes.join(' · ') || ' ',
           b.valorAtual ? _mobDreFmt(b.valorAtual) : '—',
           acoes,
-          b.arquivado
+          b.arquivado,
+          b.arquivado || typeof bemPainelAbrir !== 'function' ? '' : 'bemPainelAbrir(' + idJs + ')'
         );
       })
       .join('') +

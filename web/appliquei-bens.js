@@ -2103,6 +2103,445 @@ function bemVoltarDoPasso1() {
   bemMostrarPasso0(true);
 }
 
+// ------------------------------------------------------------
+// Detalhe do bem (canvas "Bem"): à direita no web, folha no celular
+// ------------------------------------------------------------
+// Usa o mesmo painel do extrato da instituição (#mpdPainel). Mostra quanto
+// vale, quanto já é seu, o financiamento (parcela, prazo, juros até quitar,
+// quitação), a simulação de antecipação com valores prontos e — no imóvel —
+// a referência por m².
+var bemPainel = { id: null, extra: 0, modo: 'prazo', contaId: null };
+
+var _BEM_MESES_CURTOS = [
+  'jan',
+  'fev',
+  'mar',
+  'abr',
+  'mai',
+  'jun',
+  'jul',
+  'ago',
+  'set',
+  'out',
+  'nov',
+  'dez',
+];
+
+function _bemMesAno(d) {
+  return _BEM_MESES_CURTOS[d.getMonth()] + '/' + d.getFullYear();
+}
+
+/** Mês/ano da última parcela, contando a partir do mês que vem. */
+function bemQuitacao(parcelas, hoje) {
+  var h = hoje || new Date();
+  var n = Math.max(0, Math.round(Number(parcelas) || 0));
+  if (!n) return null;
+  return new Date(h.getFullYear(), h.getMonth() + n, 1);
+}
+
+/** Valores sugeridos para antecipar: 10, 20 e 50 mil (ou frações do saldo). */
+function bemValoresAntecipar(saldo) {
+  var sd = Number(saldo) || 0;
+  if (sd <= 0) return [];
+  var base = [10000, 20000, 50000].filter(function (v) {
+    return v < sd;
+  });
+  if (base.length < 3) {
+    base = [0.1, 0.25, 0.5].map(function (f) {
+      return Math.max(100, Math.round((sd * f) / 100) * 100);
+    });
+  }
+  return base;
+}
+
+/**
+ * Registra uma antecipação: o saldo devedor cai, o prazo (ou a parcela) se
+ * ajusta pela simulação e o dinheiro sai do caixa da conta escolhida como um
+ * ajuste — fora do resultado do mês, como a transferência. O patrimônio
+ * líquido não muda: sai do caixa o mesmo tanto que sai da dívida.
+ */
+function bemRegistrarAntecipacao(id, valor, modo, contaId) {
+  var b = obterBem(id);
+  var fin = b && b.financiamento;
+  var v = Math.round((Number(valor) || 0) * 100) / 100;
+  if (!fin || !fin.ativo || !(v > 0)) return null;
+  var sd = Number(fin.saldoDevedor) || 0;
+  if (v > sd) v = sd;
+  var sim = finSimularAmortizacao(fin, v);
+  if (!sim) return null;
+  var conta = contaId && typeof obterConta === 'function' ? obterConta(contaId) : null;
+  var agora = new Date();
+  var registro = {
+    id: 'ant_' + agora.getTime(),
+    data: agora.toISOString(),
+    valor: v,
+    modo: modo === 'parcela' ? 'parcela' : 'prazo',
+    contaId: conta ? conta.id : null,
+    saldoAntes: sd,
+    parcelasAntes: fin.parcelasRestantes,
+    parcelaAntes: fin.valorParcela,
+  };
+  fin.saldoDevedor = Math.round((sd - v) * 100) / 100;
+  fin.valorPago = Math.round(((Number(fin.valorPago) || 0) + v) * 100) / 100;
+  if (sim.quitou || fin.saldoDevedor <= 0.005) {
+    fin.saldoDevedor = 0;
+    fin.parcelasRestantes = 0;
+  } else if (registro.modo === 'prazo') {
+    fin.parcelasRestantes = sim.prazo.parcelas;
+  } else {
+    fin.valorParcela = Math.round(sim.parcela.novaParcela * 100) / 100;
+  }
+  if (!Array.isArray(fin.antecipacoes)) fin.antecipacoes = [];
+  fin.antecipacoes.push(registro);
+  salvarBens();
+  if (conta) {
+    if (!Array.isArray(conta.ajustes)) conta.ajustes = [];
+    conta.ajustes.push({
+      id: 'aj_' + registro.id,
+      valor: -v,
+      data: registro.data,
+      descricao: 'Antecipação · ' + (b.nome || 'financiamento'),
+      bemId: b.id,
+    });
+    if (typeof salvarContas === 'function') salvarContas();
+  }
+  return { registro: registro, sim: sim };
+}
+
+function bemPainelAbrir(id) {
+  var b = obterBem(id);
+  if (!b) return;
+  if (bemPainel.id !== id) {
+    bemPainel.extra = 0;
+    bemPainel.modo = 'prazo';
+    bemPainel.contaId = null;
+  }
+  bemPainel.id = id;
+  if (typeof mpPainel !== 'undefined') mpPainel.key = null;
+  bemPainelDesenhar();
+}
+
+function bemPainelFechar() {
+  bemPainel.id = null;
+  if (typeof mpFecharPainelInst === 'function') mpFecharPainelInst();
+}
+
+/** Ações que abrem outro modal fecham o painel antes (no celular ele fica por cima). */
+function bemPainelAcao(acao, id) {
+  bemPainelFechar();
+  if (acao === 'editar') editarBemForm(id);
+  else if (acao === 'excluir') confirmarExcluirBem(id);
+  else if (acao === 'fipe') bemAtualizarFipe(id);
+  else if (acao === 'analise') abrirAnaliseBem(id);
+  else if (acao === 'simulador') abrirModalAmortizacao(id);
+}
+
+function bemPainelExtra(v) {
+  bemPainel.extra = Number(v) || 0;
+  bemPainelDesenhar();
+}
+
+function bemPainelModo(m) {
+  bemPainel.modo = m === 'parcela' ? 'parcela' : 'prazo';
+  bemPainelDesenhar();
+}
+
+function bemPainelConta(id) {
+  bemPainel.contaId = id || null;
+}
+
+function bemPainelRegistrar() {
+  var id = bemPainel.id;
+  var b = obterBem(id);
+  if (!b || !(bemPainel.extra > 0)) return;
+  var r = bemRegistrarAntecipacao(id, bemPainel.extra, bemPainel.modo, bemPainel.contaId);
+  if (!r) return mostrarToast('Não deu para registrar a antecipação.', 'erro');
+  var fmt = _fmtDinheiroFin();
+  bemPainel.extra = 0;
+  if (typeof renderMeuPatrimonio === 'function') renderMeuPatrimonio(true);
+  else if (typeof renderMeusBens === 'function') renderMeusBens();
+  bemPainelDesenhar();
+  mostrarToast(
+    'Antecipação de ' +
+      fmt(r.registro.valor) +
+      ' registrada' +
+      (r.registro.contaId ? '' : ' (sem conta: o caixa não mudou)') +
+      '. Se as parcelas estão lançadas no Controle, ajuste o valor ou o prazo lá.',
+    'sucesso',
+    7000
+  );
+}
+
+function bemPainelHtml(b) {
+  var esc = function (v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/"/g, '&quot;');
+  };
+  var fmt = _fmtDinheiroFin();
+  var fmtK = function (v) {
+    var n = Math.abs(Number(v) || 0);
+    if (n >= 1000) return 'R$ ' + (Math.round(n / 100) / 10).toLocaleString('pt-BR') + ' mil';
+    return fmt(n);
+  };
+  var tipo = BEM_TIPOS.find(function (t) {
+    return t.v === b.tipo;
+  }) || { label: 'Bem', icon: 'ph-package' };
+  var idEsc = esc(b.id);
+  var comprado = b.dataCompra ? new Date(b.dataCompra + 'T12:00:00') : null;
+  var sub = [tipo.label];
+  if (b.imovel && b.imovel.areaM2) sub.push(String(b.imovel.areaM2).replace('.', ',') + ' m²');
+  if (comprado && !isNaN(comprado)) sub.push('comprado em ' + _bemMesAno(comprado));
+
+  var html =
+    '<header class="mpx-cab"><span class="mpd-inst-av bem-av"><i class="ph ' +
+    tipo.icon +
+    '"></i></span><div class="mpx-tit"><h2>' +
+    esc(b.nome) +
+    '</h2><small>' +
+    esc(sub.join(' · ')) +
+    '</small></div><button type="button" class="mpx-fechar" aria-label="Fechar" onclick="bemPainelFechar()"><i class="ph ph-x"></i></button></header>';
+
+  var varia = bemVariacaoCompra(b);
+  html +=
+    '<section class="mpx-saldo"><span class="mpd-rotulo">Vale hoje</span><div class="mpx-valor mpd-oculta">' +
+    esc(fmt(b.valorAtual || 0)) +
+    '</div>' +
+    (varia !== null
+      ? '<span class="mpd-sub">' +
+        (varia >= 0 ? '+' : '−') +
+        Math.abs(varia).toFixed(1).replace('.', ',') +
+        '% sobre a compra (<span class="mpd-oculta">' +
+        esc(fmt(b.valorCompra)) +
+        '</span>)</span>'
+      : '') +
+    '</section>';
+
+  var acoes = [];
+  if (b.fipe && b.fipe.codigoFipe)
+    acoes.push(['fipe', 'ph-arrows-clockwise', 'Atualizar FIPE', '']);
+  else acoes.push(['editar', 'ph-arrows-clockwise', 'Atualizar valor', '']);
+  acoes.push(['editar', 'ph-pencil-simple', 'Editar', '']);
+  acoes.push(['excluir', 'ph-trash', 'Excluir', ' perigo']);
+  html +=
+    '<nav class="mpx-acoes" aria-label="Ações do bem">' +
+    acoes
+      .map(function (a) {
+        return (
+          '<button type="button" class="mpx-acao' +
+          a[3] +
+          '" data-bem="' +
+          idEsc +
+          '" onclick="bemPainelAcao(\'' +
+          a[0] +
+          '\', this.dataset.bem)"><span><i class="ph ' +
+          a[1] +
+          '"></i></span>' +
+          a[2] +
+          '</button>'
+        );
+      })
+      .join('') +
+    '</nav>';
+
+  var fin = b.financiamento;
+  var ativo = fin && fin.ativo && Number(fin.saldoDevedor) > 0;
+  if (ativo) {
+    var sd = Number(fin.saldoDevedor) || 0;
+    var valor = Number(b.valorAtual) || 0;
+    var seu = Math.max(0, valor - sd);
+    var pctSeu = valor > 0 ? Math.max(0, Math.min(100, Math.round((seu / valor) * 100))) : 0;
+    html +=
+      '<section class="bem-seu"><div class="mpd-topo"><b>Quanto já é seu</b><span>' +
+      pctSeu +
+      '%</span></div><div class="bem-seu-barra" role="img" aria-label="' +
+      pctSeu +
+      '% já é seu"><span style="width:' +
+      pctSeu +
+      '%"></span></div><div class="bem-seu-leg"><span><i class="seu"></i>Seu <b class="mpd-oculta">' +
+      esc(fmt(seu)) +
+      '</b></span><span><i class="banco"></i>Ainda do banco <b class="mpd-oculta">' +
+      esc(fmt(sd)) +
+      '</b></span></div><small>É isto que entra no seu patrimônio líquido.</small></section>';
+
+    var r = finResumo(fin, valor);
+    var parcela = r.parcelaInformada > 0 ? r.parcelaInformada : r.parcelaEsperada;
+    var quita = bemQuitacao(r.parcelasRestantes);
+    var mesQueVem = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
+    var jurosPrimeira = sd * (r.taxaMensal || 0);
+    var porCem = parcela > 0 ? Math.round((jurosPrimeira / parcela) * 100) : 0;
+    html +=
+      '<section class="bem-fin"><div class="mpd-topo"><b>Financiamento</b><span>' +
+      (r.sistema === 'price' ? 'Price' : 'SAC') +
+      (r.taxaMensal ? ' · ' + _fmtTaxaMensal(r.taxaMensal) : '') +
+      '</span></div><div class="bem-fin-grade">' +
+      '<div><span>Parcela de ' +
+      FATURA_MESES_BEM[mesQueVem.getMonth()] +
+      '</span><b class="mpd-oculta">' +
+      esc(fmt(parcela)) +
+      '</b></div>' +
+      '<div><span>Faltam</span><b>' +
+      r.parcelasRestantes +
+      (r.parcelasRestantes === 1 ? ' parcela' : ' parcelas') +
+      '</b></div>' +
+      '<div><span>Juros até quitar</span><b class="mpd-oculta">≈ ' +
+      esc(fmtK(r.jurosRestantes)) +
+      '</b></div>' +
+      '<div><span>Quitação</span><b>' +
+      (quita ? _bemMesAno(quita) : '—') +
+      '</b></div></div>' +
+      (porCem > 0 && porCem < 100
+        ? '<small>De cada R$ 100 da próxima parcela, R$ ' +
+          porCem +
+          ' são juros. ' +
+          (r.sistema === 'sac'
+            ? 'A proporção cai a cada mês.'
+            : 'A proporção cai ao longo do contrato.') +
+          '</small>'
+        : '') +
+      '</section>';
+
+    // Simular antecipação
+    var opcoes = bemValoresAntecipar(sd);
+    if (!(bemPainel.extra > 0) && opcoes.length)
+      bemPainel.extra = opcoes[Math.min(1, opcoes.length - 1)];
+    var sim =
+      bemPainel.extra > 0 ? finSimularAmortizacao(fin, Math.min(bemPainel.extra, sd)) : null;
+    html +=
+      '<section class="bem-ant"><b>Simular antecipação</b><div class="mpd-seg bem-ant-vals" role="group" aria-label="Quanto antecipar">' +
+      opcoes
+        .map(function (v) {
+          return (
+            '<button type="button" aria-pressed="' +
+            (v === bemPainel.extra) +
+            '" onclick="bemPainelExtra(' +
+            v +
+            ')">' +
+            esc(fmtK(v)) +
+            '</button>'
+          );
+        })
+        .join('') +
+      '</div><div class="mpd-seg" role="group" aria-label="O que reduzir"><button type="button" aria-pressed="' +
+      (bemPainel.modo === 'prazo') +
+      '" onclick="bemPainelModo(\'prazo\')">Reduzir o prazo</button><button type="button" aria-pressed="' +
+      (bemPainel.modo === 'parcela') +
+      '" onclick="bemPainelModo(\'parcela\')">Reduzir a parcela</button></div>';
+    if (sim) {
+      var depois = bemPainel.modo === 'prazo' ? sim.prazo : sim.parcela;
+      var quitaDepois = bemQuitacao(depois.parcelas);
+      html +=
+        '<div class="bem-ant-res">' +
+        (sim.quitou
+          ? 'Com ' +
+            esc(fmtK(bemPainel.extra)) +
+            ' você <b>quita o financiamento</b> e deixa de pagar <b>≈ ' +
+            esc(fmtK(sim.jurosAtuais)) +
+            '</b> de juros.'
+          : bemPainel.modo === 'prazo'
+            ? 'Economiza <b>≈ ' +
+              esc(fmtK(depois.economia)) +
+              '</b> de juros e quita <b>' +
+              depois.parcelasReduzidas +
+              (depois.parcelasReduzidas === 1 ? ' mês' : ' meses') +
+              ' antes</b>' +
+              (quitaDepois ? ' (' + _bemMesAno(quitaDepois) + ')' : '') +
+              '.'
+            : 'Economiza <b>≈ ' +
+              esc(fmtK(depois.economia)) +
+              '</b> de juros e a parcela cai para <b>' +
+              esc(fmt(depois.novaParcela)) +
+              '</b>.') +
+        '</div>';
+      var contas = typeof contasComSaldo === 'function' ? contasComSaldo() : [];
+      if (!bemPainel.contaId && contas.length) {
+        var maior = contas.slice().sort(function (a, c) {
+          return (c.saldo || 0) - (a.saldo || 0);
+        })[0];
+        bemPainel.contaId = maior && (maior.id || (maior.conta && maior.conta.id));
+      }
+      if (contas.length) {
+        html +=
+          '<label class="bem-ant-conta">Sai de<select onchange="bemPainelConta(this.value)">' +
+          contas
+            .map(function (c) {
+              var cid = c.id || (c.conta && c.conta.id);
+              var nome = c.nome || (c.conta && c.conta.nome) || '';
+              return (
+                '<option value="' +
+                esc(cid) +
+                '"' +
+                (cid === bemPainel.contaId ? ' selected' : '') +
+                '>' +
+                esc(nome) +
+                (c.saldo != null ? ' · saldo ' + esc(fmt(c.saldo)) : '') +
+                '</option>'
+              );
+            })
+            .join('') +
+          '</select></label>';
+      }
+      html +=
+        '<button type="button" class="btn-acao bem-ant-btn" onclick="bemPainelRegistrar()">Registrar antecipação de ' +
+        esc(fmtK(Math.min(bemPainel.extra, sd))) +
+        '</button><button type="button" class="mpx-mais" data-bem="' +
+        idEsc +
+        '" onclick="bemPainelAcao(\'simulador\', this.dataset.bem)">Outro valor e detalhes</button>' +
+        '<small>Estimativa pelo sistema e pela taxa do contrato. O valor exato vem do banco.</small>';
+    }
+    html += '</section>';
+    if (typeof finConflitoNaoRevisado === 'function' && finConflitoNaoRevisado(fin)) {
+      html +=
+        '<button type="button" class="mpx-mais" data-bem="' +
+        idEsc +
+        '" onclick="bemPainelAcao(\'analise\', this.dataset.bem)">Confira a taxa do contrato</button>';
+    }
+  } else if (fin && fin.ativo === false) {
+    html += '<p class="mpd-sub">Quitado.</p>';
+  }
+
+  if (b.imovel && (b.imovel.areaM2 || b.imovel.valorM2)) {
+    var area = Number(b.imovel.areaM2) || 0;
+    var m2 = Number(b.imovel.valorM2) || 0;
+    html +=
+      '<section class="bem-imovel">' +
+      (area ? '<span>Área</span><b>' + String(area).replace('.', ',') + ' m²</b>' : '') +
+      (m2
+        ? '<span>Referência do bairro</span><b class="mpd-oculta">' + esc(fmt(m2)) + '/m²</b>'
+        : '') +
+      (area && m2
+        ? '<span>Estimativa por m²</span><b class="mpd-oculta">' + esc(fmt(area * m2)) + '</b>'
+        : '') +
+      '</section>';
+  }
+  return html;
+}
+
+var FATURA_MESES_BEM = [
+  'janeiro',
+  'fevereiro',
+  'março',
+  'abril',
+  'maio',
+  'junho',
+  'julho',
+  'agosto',
+  'setembro',
+  'outubro',
+  'novembro',
+  'dezembro',
+];
+
+function bemPainelDesenhar() {
+  var b = obterBem(bemPainel.id);
+  var p = document.getElementById('mpdPainel');
+  if (!b || !p) return;
+  p.innerHTML = '<div class="mpx">' + bemPainelHtml(b) + '</div>';
+  p.hidden = false;
+  document.body.classList.add('mpd-painel-aberto');
+}
+
 function bemAtualizarFipe(id) {
   var b = obterBem(id);
   if (!b || !b.fipe) return;
@@ -2341,9 +2780,13 @@ function renderMeusBens() {
       // própria e o CSS decide o arranjo por largura.
       return (
         '<div class="mp-inst-item mp-bem' +
-        (arq ? ' mp-arq' : '') +
+        (arq ? ' mp-arq' : ' mp-bem-clicavel') +
         '"' +
-        (arq ? ' style="opacity:.55;"' : '') +
+        (arq
+          ? ' style="opacity:.55;"'
+          : ' data-bem="' +
+            b.id +
+            '" onclick="if(!event.target.closest(\'button\'))bemPainelAbrir(this.dataset.bem)"') +
         '>' +
         '<i class="ph-fill ' +
         icon +

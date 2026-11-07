@@ -8553,6 +8553,35 @@
         .mpx-mov-val { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 14px; }
         .mpx-mov-val .mp-extrato-acao { font-size: 11.5px; }
         .mpx-mais { border: 1px solid var(--cor-borda); background: var(--cor-branco); border-radius: 12px; min-height: 44px; font: 600 13px 'Figtree', sans-serif; color: var(--cor-texto-principal); cursor: pointer; }
+        /* Painel do bem (bemPainelHtml): quanto é seu, financiamento, antecipar */
+        .mp-bem-clicavel { cursor: pointer; }
+        .mp-bem-clicavel:hover .mp-inst-nome { text-decoration: underline; text-underline-offset: 2px; }
+        .bem-av { background: color-mix(in srgb, var(--cor-patrimonio) 16%, transparent) !important; color: var(--cor-patrimonio) !important; font-size: 20px !important; }
+        .bem-seu, .bem-fin, .bem-ant { display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--cor-borda); border-radius: 14px; padding: 14px 16px; }
+        .bem-seu .mpd-topo, .bem-fin .mpd-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+        .bem-seu .mpd-topo b, .bem-fin .mpd-topo b, .bem-ant > b { font-size: 15px; }
+        .bem-seu .mpd-topo span { font: 600 15px 'DM Mono', monospace; color: var(--tinta-verde); }
+        .bem-fin .mpd-topo span { font-size: 12.5px; color: var(--cor-texto-mutado); }
+        .bem-seu-barra { height: 10px; border-radius: 5px; background: color-mix(in srgb, var(--cor-erro) 22%, transparent); overflow: hidden; }
+        .bem-seu-barra span { display: block; height: 100%; background: var(--cor-primaria); border-radius: 5px; }
+        .bem-seu-leg { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px; font-size: 13px; color: var(--cor-texto-secundario); }
+        .bem-seu-leg span { display: inline-flex; align-items: center; gap: 6px; }
+        .bem-seu-leg i { width: 9px; height: 9px; border-radius: 3px; display: block; }
+        .bem-seu-leg i.seu { background: var(--cor-primaria); }
+        .bem-seu-leg i.banco { background: color-mix(in srgb, var(--cor-erro) 45%, transparent); }
+        .bem-seu-leg b { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--cor-texto-principal); }
+        .bem-seu small, .bem-fin small, .bem-ant small { font-size: 12px; color: var(--cor-texto-mutado); line-height: 1.45; }
+        .bem-fin-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .bem-fin-grade > div { background: var(--cor-superficie); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+        .bem-fin-grade span { font-size: 12px; color: var(--cor-texto-mutado); }
+        .bem-fin-grade b { font: 600 15px 'DM Mono', monospace; }
+        .bem-ant .mpd-seg { align-self: flex-start; flex-wrap: wrap; }
+        .bem-ant-res { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); border-radius: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.45; }
+        .bem-ant-conta { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--cor-texto-secundario); }
+        .bem-ant-conta select { min-height: 42px; border-radius: 10px; }
+        .bem-ant-btn { width: 100%; min-height: 48px; justify-content: center; margin: 0; }
+        .bem-imovel { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; font-size: 13.5px; color: var(--cor-texto-secundario); border-top: 1px solid var(--cor-borda); padding-top: 12px; }
+        .bem-imovel b { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--cor-texto-principal); text-align: right; }
         @media (max-width: 768px) {
             /* No celular o painel sobe de baixo, como as folhas do app. */
             .mpd-painel { top: auto; left: 0; width: 100%; max-width: none; max-height: 92vh; border-left: 0; border-radius: 22px 22px 0 0; padding: 14px 16px calc(24px + env(safe-area-inset-bottom)); box-shadow: 0 -12px 40px rgba(16,30,19,.18); z-index: 10001; }

@@ -709,7 +709,7 @@ function mpExtratoInstituicao(key, refMs) {
         const ts = a.data ? new Date(a.data).getTime() : 0;
         movs.push({
           ts: isFinite(ts) ? ts : 0,
-          desc: 'Ajuste de saldo',
+          desc: a.descricao || 'Ajuste de saldo',
           categoria: 'ajuste_saldo',
           valor: Number(a.valor),
           ajusteId: a.id,

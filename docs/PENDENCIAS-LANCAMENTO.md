@@ -84,16 +84,23 @@ O código está pronto (26/10/2026); o resto é painel. Passo a passo completo e
 - [ ] **Limite de requisições em `/api/market`** (opcional, risco baixo:
       exige login e usa cache).
 - [ ] **Patrimônio e Controle — o que o canvas propõe e ainda não entrou**
-      (07/11/2026): limite por categoria (hoje só a média de 3 meses);
-      folha do lançamento
-      com "paguei outro valor / adiar / só este mês"; novo bem em passos com busca FIPE única; nova conta em
-      grade de instituições; simulador de antecipação; liquidez da renda fixa
-      (falta o campo de prazo de resgate); "por que mudou" separando
-      proventos e amortização; gráfico do líquido no passado (reconstruir o
-      saldo devedor pelo contrato).
+      (07/11/2026): liquidez da renda fixa (falta o campo de prazo de
+      resgate); "por que mudou" separando proventos e amortização; gráfico do
+      líquido no passado (reconstruir o saldo devedor pelo contrato).
+- [ ] **Antecipação registrada não mexe nas parcelas do Controle** (decisão):
+      o painel do bem baixa o saldo devedor e tira o dinheiro da conta, mas
+      as parcelas já lançadas no Controle continuam com o valor/prazo antigo
+      (o aviso diz para ajustar lá). Decidir se o app deve corrigir sozinho.
 
 ## Feito
 
+- 07/11/2026 · branch `claude/intelligent-ritchie-6o5r6m` (2ª leva) — Faturas
+  do cartão no layout novo (limite, parcela, comprometido); folha do
+  lançamento no celular (pagar, outro valor, adiar, só este mês); limite por
+  categoria e Metas do mês em % (réguas da Saúde do mês); nova conta em grade
+  de instituições, editar conta com arquivar; conferir saldo com "lançar a
+  diferença"; novo bem em passos com busca FIPE única; painel do bem com
+  "quanto já é seu", financiamento e registro de antecipação.
 - 07/11/2026 · branch `claude/intelligent-ritchie-6o5r6m` — Patrimônio: web com
   líquido/bruto, linha do tempo, balanço tem/deve, "por que mudou", fôlego,
   classes em lista, contas sem lista duplicada; celular com lista de
