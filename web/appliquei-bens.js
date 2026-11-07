@@ -1830,6 +1830,29 @@ function bemAtualizarFipeAuto() {
 // === UI — RENDERIZAÇÃO DA LISTA                            ===
 // ============================================================
 
+// Quanto o bem valorizou ou desvalorizou sobre o que foi pago. Só aparece
+// com valor de compra informado e diferença de pelo menos 0,1%.
+function bemVariacaoCompra(b) {
+  var compra = Number(b && b.valorCompra) || 0;
+  var atual = Number(b && b.valorAtual) || 0;
+  if (!(compra > 0) || !(atual > 0)) return null;
+  var pct = ((atual - compra) / compra) * 100;
+  return Math.abs(pct) < 0.05 ? null : pct;
+}
+
+function bemVariacaoCompraHtml(b) {
+  var pct = bemVariacaoCompra(b);
+  if (pct === null) return '';
+  return (
+    '<span class="mp-bem-var" style="display:block;font-size:11px;font-weight:600;color:' +
+    (pct > 0 ? 'var(--tinta-verde)' : 'var(--tinta-vermelho)') +
+    ';">' +
+    (pct > 0 ? '+' : '−') +
+    Math.abs(pct).toFixed(1).replace('.', ',') +
+    '% sobre a compra</span>'
+  );
+}
+
 function renderMeusBens() {
   var wrap = document.getElementById('listaBens');
   if (!wrap) return;
@@ -1972,6 +1995,7 @@ function renderMeusBens() {
         '<span class="mp-inst-valor valor-mascarado">' +
         valorTxt +
         '</span>' +
+        bemVariacaoCompraHtml(b) +
         '</div>' +
         // A linha do financiamento é IRMÃ do valor, não filha: só filho direto
         // da grade recebe grid-area. Aninhada, ela voltava a dividir a coluna do

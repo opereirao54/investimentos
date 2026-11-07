@@ -1,21 +1,21 @@
 'use strict';
 
-// Os cards de "Meu patrimônio" ganharam duas informações novas, e as duas
-// dizem a MESMA coisa em lugares diferentes: a legenda da composição, no hero,
-// e a "fatia do total" dentro de cada card. Duas leituras do mesmo número são
-// duas chances de divergirem.
+// "Meu patrimônio" no web trocou os quatro cards de componente por um balanço
+// (o que você tem / o que você deve) e ganhou a linha do tempo, o "por que
+// mudou" e o fôlego. São as MESMAS parcelas mostradas de outro jeito, e o
+// risco é o de sempre: duas somas que divergem sem nada quebrar.
 //
 // O que este arquivo tranca:
 //
-//   1. As quatro fatias somam 100% do patrimônio — se sobrar ou faltar, é
-//      porque alguma parcela entrou no total sem entrar na composição.
-//   2. Patrimônio zero não vira "0,0% do total", que sugere fatia nula quando
-//      o que não existe é o total. Nem NaN, nem divisão por zero.
-//   3. A barra da fatia nunca escapa de 0-100%.
-//   4. As porcentagens saem com vírgula — o app é em pt-BR e o valor ao lado
-//      já é "R$ 24.000,00".
-//   5. O HTML tem os ganchos das quatro fatias. Um id trocado deixaria o card
-//      silenciosamente com o traço inicial para sempre.
+//   1. As fatias somam 100% do que você tem; patrimônio zero não vira "0,0%".
+//   2. Líquido = o que tem − o que deve, e a dívida só conta o que já é dívida
+//      hoje: financiamento ativo e fatura aberta/fechada. Parcela de fatura
+//      futura e financiamento quitado ficam de fora.
+//   3. "Por que mudou" fecha com a variação do gráfico ao centavo, e aporte não
+//      é contado como ganho.
+//   4. O eixo do gráfico cobre a série inteira (a linha não escapa do topo).
+//   5. As porcentagens saem em pt-BR no texto e com ponto no CSS.
+//   6. Os ganchos do web existem, somem no celular e borram no "ocultar valores".
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -27,7 +27,8 @@ const ROOT = path.resolve(__dirname, '..');
 const HTML = fs.readFileSync(path.join(ROOT, 'Appliquei_v13.0.html'), 'utf8');
 const PATR = fs.readFileSync(path.join(ROOT, 'web/appliquei-patrimonio.js'), 'utf8');
 
-const COMPONENTES = ['saldo', 'investido', 'imoveis', 'veiculos'];
+const { ORDEM_CONTROLE } = require('./_harness-integracao.js');
+const ORDEM_DIVIDA = ORDEM_CONTROLE.concat(['web/appliquei-bens.js', 'web/appliquei-faturas.js']);
 
 test('as quatro fatias somam o patrimônio inteiro', () => {
   const s = carregarApp({}, ORDEM_BASE);
@@ -90,58 +91,159 @@ test('a largura das barras continua em CSS válido — ponto, não vírgula', ()
   }
 });
 
-test('cada card de componente tem o gancho da sua fatia', () => {
-  // O fim é procurado a partir do início da seção: o nome da classe também
-  // aparece no CSS, antes dela.
-  const inicio = HTML.indexOf('<section id="meu_patrimonio"');
-  const secao = HTML.slice(inicio, HTML.indexOf('mp-onde-card', inicio));
-  for (const c of COMPONENTES) {
-    assert.ok(secao.includes('id="mp-kpi-' + c + '-fatia"'), `falta o rótulo da fatia de "${c}"`);
-    assert.ok(
-      secao.includes('id="mp-kpi-' + c + '-fatia-fill"'),
-      `falta a barra da fatia de "${c}"`
-    );
-    assert.match(
-      HTML,
-      new RegExp('\\.mp-kpi-' + c + '\\s+\\.mp-kpi-fatia-fill'),
-      `a barra de "${c}" ficaria sem cor`
-    );
-  }
-  // O JS pinta as quatro; esquecer uma deixa o card no traço inicial.
-  for (const c of COMPONENTES) {
-    assert.ok(
-      new RegExp("mpPintarFatia\\('" + c + "'").test(PATR),
-      `mpRenderKPIs não pinta a fatia de "${c}"`
-    );
-  }
+test('líquido = o que tem − o que deve; só entra o que já é dívida hoje', () => {
+  const s = carregarApp({}, ORDEM_DIVIDA);
+  const hoje = new Date();
+  s.bens.push(
+    {
+      id: 'b1',
+      nome: 'Apartamento',
+      tipo: 'imovel',
+      valorAtual: 500000,
+      financiamento: { ativo: true, saldoDevedor: 190000 },
+    },
+    {
+      id: 'b2',
+      nome: 'Carro quitado',
+      tipo: 'veiculo',
+      valorAtual: 80000,
+      financiamento: { ativo: false, saldoDevedor: 30000 },
+    }
+  );
+  s.cartoes.push({ id: 'c1', nome: 'Visa', diaFechamento: 28, diaVencimento: 5 });
+  const cand = s.cartaoFaturasCandidatas(hoje, 28, 5);
+  const ymd = (d) =>
+    d.getFullYear() +
+    '-' +
+    String(d.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(d.getDate()).padStart(2, '0');
+  const aberta = ymd(cand.aberta.vencimento);
+  const v = cand.aberta.vencimento;
+  const futura = ymd(new Date(v.getFullYear(), v.getMonth() + 3, v.getDate()));
+  const compra = (id, venc, valor, pago) => ({
+    id,
+    categoria: 'cartao_credito',
+    cartaoId: 'c1',
+    dataVencimento: venc,
+    valor,
+    pago,
+    mes: hoje.getMonth(),
+    ano: hoje.getFullYear(),
+  });
+  s.transacoes.push(
+    compra('t1', aberta, 1200, false),
+    compra('t2', aberta, 300, true),
+    compra('t3', futura, 900, false)
+  );
+
+  const d = s.mpDividas(hoje);
+  assert.equal(d.bens.length, 1, 'financiamento quitado não é dívida');
+  assert.equal(d.bens[0].valor, 190000);
+  assert.equal(d.cartoes.length, 1);
+  assert.equal(
+    d.cartoes[0].valor,
+    1200,
+    'a fatura aberta conta o que falta pagar; a futura fica de fora'
+  );
+  assert.equal(d.total, 191200);
 });
 
-test('a legenda da composição mostra o valor em R$, não só a porcentagem', () => {
-  // Era esse o buraco: "Imóveis 75.0%" dizia a proporção e escondia de quanto
-  // se estava falando, no único lugar onde as quatro parcelas aparecem juntas.
-  const ini = PATR.indexOf("var compBar = document.getElementById('mp-composition-bar')");
-  assert.ok(ini > -1, 'o bloco da composição sumiu');
-  const corpo = PATR.slice(ini, PATR.indexOf('mpPintarFatia(', ini));
-  assert.ok(corpo.includes('mp-leg-valor'), 'a legenda tem de trazer o valor em R$');
-  assert.ok(corpo.includes('mp-leg-share'), 'e a porcentagem em coluna própria');
+test('"por que mudou" fecha com a variação do gráfico e não conta aporte como ganho', () => {
+  const s = carregarApp({}, ORDEM_BASE);
+  const serie = [
+    {
+      mes: 8,
+      ano: 2026,
+      caixa: 40000,
+      investido: 50000,
+      custo: 48000,
+      bens: 600000,
+      total: 690000,
+    },
+    {
+      mes: 9,
+      ano: 2026,
+      caixa: 37000,
+      investido: 56500,
+      custo: 53000,
+      bens: 599350,
+      total: 692850,
+    },
+  ];
+  const m = s.mpMudancaDoMes(serie);
+  assert.equal(m.aportes, 5000);
+  assert.equal(m.contas, 2000, 'saíram 3 mil do caixa, mas 5 mil foram para investimento');
+  assert.equal(m.valorizacao, 1500, 'só o que o investimento ganhou além do aporte');
+  assert.equal(m.bens, -650);
   assert.ok(
-    HTML.includes('body.valores-ocultos #meu_patrimonio .mp-leg-valor'),
-    'o valor da legenda é dinheiro: tem de sumir no modo "ocultar valores"'
+    Math.abs(m.contas + m.valorizacao + m.bens - m.total) < 1e-9,
+    'as parcelas somam a variação'
   );
+  assert.equal(s.mpMudancaDoMes(serie.slice(0, 1)), null, 'com um mês só não há o que comparar');
 });
 
-test('o hero empilha em vez de partir o número quando a coluna aperta', () => {
-  // Com a composição ao lado, a coluna do total virou metade do card. Em
-  // tamanho fixo o overflow-wrap de emergência quebrava "R$ 1.496.814,74" em
-  // duas linhas, no meio dos milhares.
-  assert.match(
-    HTML,
-    /\.mp-kpi-hero \.mp-kpi-valor \{ font-size:clamp\(/,
-    'o valor do hero precisa encolher antes de quebrar'
+test('o eixo do gráfico cobre a série inteira', () => {
+  const s = carregarApp({}, ORDEM_BASE);
+  const casos = [
+    [698090, 736415],
+    [0, 0],
+    [1000, 1000],
+    [-5000, 20000],
+    [12.5, 13.1],
+    [1496814.74, 1496814.74],
+  ];
+  for (const [mn, mx] of casos) {
+    const t = s.mpEixoRedondo(mn, mx);
+    assert.equal(t.length, 3);
+    assert.ok(t[0] <= mn && t[2] >= mx, `eixo ${t} não cobre ${mn}..${mx}`);
+  }
+});
+
+test('ganho ou perda do bem sobre a compra', () => {
+  const s = carregarApp({}, ORDEM_DIVIDA);
+  assert.ok(
+    Math.abs(s.bemVariacaoCompra({ valorCompra: 480000, valorAtual: 520000 }) - 8.333) < 0.01
   );
-  assert.match(
-    HTML,
-    /@media \(max-width: 1180px\) \{\s*\.mp-kpi-hero \{ grid-template-columns: 1fr;/,
-    'abaixo de 1180px as duas colunas do hero não cabem lado a lado'
+  assert.ok(s.bemVariacaoCompra({ valorCompra: 120000, valorAtual: 98000 }) < 0);
+  assert.equal(
+    s.bemVariacaoCompra({ valorAtual: 98000 }),
+    null,
+    'sem valor de compra não há comparação'
   );
+  assert.equal(s.bemVariacaoCompra({ valorCompra: 1000, valorAtual: 1000 }), null);
+});
+
+test('os ganchos do web existem, somem no celular e borram em "ocultar valores"', () => {
+  const inicio = HTML.indexOf('<section id="meu_patrimonio"');
+  const secao = HTML.slice(inicio, HTML.indexOf('CADASTRO DE BEM', inicio));
+  for (const id of ['mpwHeroi', 'mpwBalanco', 'mpwMudou', 'mpwFolego', 'mp-classes-lista']) {
+    assert.ok(secao.includes('id="' + id + '"'), `falta o gancho #${id}`);
+  }
+  assert.ok(!secao.includes('mp-kpi-saldo-fatia'), 'os cards de componente saíram');
+  assert.match(HTML, /#meu_patrimonio \.mpw-web,/, 'os blocos do web somem no celular');
+  assert.ok(
+    HTML.includes('body.valores-ocultos #meu_patrimonio .mpw-oculta'),
+    'valores do web têm de sumir no modo "ocultar valores"'
+  );
+  // Cada função de desenho é chamada no render.
+  for (const fn of [
+    'mpRenderHeroiWeb',
+    'mpRenderBalancoWeb',
+    'mpRenderMudouWeb',
+    'mpRenderFolegoWeb',
+    'mpRenderClassesWeb',
+  ]) {
+    assert.ok(
+      new RegExp(fn + '\\(web\\)|' + fn + '\\(consolidado\\)').test(PATR),
+      `${fn} não é chamada`
+    );
+  }
+});
+
+test('a barra do balanço usa ponto no CSS', () => {
+  const ini = PATR.indexOf('function mpRenderBalancoWeb');
+  const corpo = PATR.slice(ini, PATR.indexOf('function mpRenderMudouWeb'));
+  assert.match(corpo, /toFixed\(2\) \+ '%;background:'/);
+  assert.ok(!/mpPctBR\([^)]*\) \+ '%;background/.test(corpo));
 });

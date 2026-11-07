@@ -565,7 +565,19 @@ function abrirNovaContaForm() {
   const titulo = document.getElementById('tituloFormConta');
   if (titulo) titulo.textContent = 'Nova conta';
   f.style.display = 'block';
-  document.getElementById('contaNome').focus();
+  contaFormMostrar(f);
+}
+
+// No web o formulário fica abaixo da lista de instituições; o botão que o
+// abre está no cabeçalho da página. Rola até ele para não abrir fora da vista.
+function contaFormMostrar(f) {
+  if (f && typeof f.scrollIntoView === 'function') {
+    try {
+      f.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    } catch (e) {}
+  }
+  const nome = document.getElementById('contaNome');
+  if (nome) nome.focus();
 }
 
 function cancelarFormConta() {
@@ -589,7 +601,7 @@ function editarContaForm(id) {
   const titulo = document.getElementById('tituloFormConta');
   if (titulo) titulo.textContent = 'Editar conta';
   document.getElementById('formNovaConta').style.display = 'block';
-  document.getElementById('contaNome').focus();
+  contaFormMostrar(document.getElementById('formNovaConta'));
 }
 
 // Conta NOVA pergunta "quanto tem nela hoje?" — o número que a pessoa vê no
@@ -781,6 +793,8 @@ function renderMinhasContas() {
     return c.arquivada;
   });
   const ordem = ativas.concat(arquivadas);
+  const qtd = document.getElementById('mpwQtdContas');
+  if (qtd) qtd.textContent = ordem.length ? '(' + ordem.length + ')' : '';
   if (!ordem.length) {
     // O texto antigo ("crie uma para registrar de onde o dinheiro entra e
     // sai") lia-se como pré-requisito e foi metade da confusão do primeiro

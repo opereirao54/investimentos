@@ -8083,6 +8083,82 @@
             0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0.08); }
             50% { box-shadow: 0 0 24px 4px rgba(37,99,235,0.10); }
         }
+        /* ===== Meu patrimônio · web (mpRenderHeroiWeb e vizinhos) =====
+           Linhas de cards em flex com quebra: a principal leva 2 partes, a
+           lateral 1. Abaixo de ~900px cada card ocupa a linha inteira. */
+        .mpw-acoes { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+        .mpw-acoes .btn-secundario { padding:7px 12px; font-size:12.5px; border-radius:10px; }
+        .mpw-linha { display:flex; flex-wrap:wrap; gap:16px; align-items:stretch; margin-bottom:16px; }
+        .mpw-linha > .card-container { margin:0 !important; min-width:0; }
+        .mpw-heroi, .mpw-onde { flex: 2 1 520px; }
+        .mpw-balanco, .mpw-mudou { flex: 1 1 300px; }
+        .mpw-tres > .card-container { flex: 1 1 280px; }
+        /* A linha de cada bem precisa da largura toda (nome, valor, financiamento
+           e ações em grade); em um terço da tela ela se sobrepunha. */
+        .mpw-tres > .mp-bens-card { flex-basis: 100%; order: 3; }
+        .mpw-rotulo { font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--cor-texto-mutado); font-weight:700; }
+        .mpw-topo { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+        .mpw-seg { display:inline-flex; background:var(--cor-superficie); border-radius:10px; padding:3px; }
+        .mpw-seg button { border:0; background:transparent; color:var(--cor-texto-mutado); font:600 12px 'Figtree',sans-serif; padding:5px 12px; border-radius:8px; cursor:pointer; }
+        .mpw-seg button[aria-pressed="true"] { background:var(--cor-branco); color:var(--cor-texto-principal); box-shadow:0 1px 2px rgba(0,0,0,.08); }
+        .mpw-valor-heroi { font-family:'DM Mono',monospace; font-size:clamp(28px,3.2vw,38px); font-weight:500; letter-spacing:-.02em; margin:6px 0 2px; color:var(--cor-texto-principal); }
+        .mpw-delta { font-size:13.5px; font-weight:600; }
+        .mpw-delta.pos { color:var(--tinta-verde); } .mpw-delta.neg { color:var(--cor-erro); } .mpw-delta.neu { color:var(--cor-texto-mutado); }
+        .mpw-delta b { font-family:'DM Mono',monospace; font-weight:500; }
+        .mpw-sub { font-size:12px; color:var(--cor-texto-mutado); }
+        .mpw-periodos { display:flex; gap:2px; }
+        .mpw-periodos button { border:0; background:transparent; color:var(--cor-texto-mutado); font:600 12px 'Figtree',sans-serif; padding:6px 10px; border-radius:8px; cursor:pointer; }
+        .mpw-periodos button[aria-pressed="true"] { background:color-mix(in srgb, var(--cor-primaria) 14%, transparent); color:var(--tinta-verde); font-weight:700; }
+        .mpw-graf { position:relative; margin-top:10px; }
+        .mpw-graf svg { display:block; width:100%; height:auto; overflow:visible; }
+        .mpw-graf text { font-family:'DM Mono',monospace; font-size:10px; fill:var(--cor-texto-mutado); }
+        .mpw-graf .mpw-grade { stroke:var(--cor-borda); }
+        .mpw-graf .mpw-linha-g { fill:none; stroke:var(--cor-primaria); stroke-width:2.4; stroke-linejoin:round; stroke-linecap:round; }
+        .mpw-graf .mpw-cursor { stroke:var(--cor-texto-mutado); stroke-dasharray:3 3; opacity:0; }
+        .mpw-graf.ativo .mpw-cursor { opacity:1; }
+        .mpw-dica { position:absolute; top:0; pointer-events:none; background:var(--cor-branco); border:1px solid var(--cor-borda); border-radius:10px; padding:8px 10px; font-size:12px; box-shadow:0 6px 18px rgba(0,0,0,.08); display:none; min-width:150px; }
+        .mpw-graf.ativo .mpw-dica { display:block; }
+        .mpw-dica b { display:block; font-size:12.5px; margin-bottom:2px; }
+        .mpw-dica span { display:flex; justify-content:space-between; gap:10px; font-family:'DM Mono',monospace; color:var(--cor-texto-secundario); }
+        .mpw-vazio { font-size:13px; color:var(--cor-texto-mutado); padding:18px 0 6px; }
+        .mpw-barra { display:flex; gap:2px; height:10px; border-radius:6px; overflow:hidden; margin:8px 0 12px; background:var(--cor-superficie); }
+        .mpw-barra span { display:block; height:100%; }
+        .mpw-grupo { display:flex; justify-content:space-between; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--cor-texto-mutado); font-weight:700; margin:10px 0 2px; }
+        .mpw-grupo b { font-family:'DM Mono',monospace; font-weight:500; letter-spacing:0; }
+        .mpw-lin { display:grid; grid-template-columns:10px minmax(0,1fr) auto 38px; gap:8px; align-items:center; font-size:13px; padding:5px 0; }
+        .mpw-lin.sem-pct { grid-template-columns:10px minmax(0,1fr) auto; }
+        .mpw-lin i { width:8px; height:8px; border-radius:3px; display:block; }
+        .mpw-lin .mpw-num { font-family:'DM Mono',monospace; font-size:12.5px; text-align:right; }
+        .mpw-lin .mpw-pct { color:var(--cor-texto-mutado); font-size:11.5px; text-align:right; }
+        .mpw-lin.neg .mpw-num { color:var(--cor-erro); }
+        .mpw-total { display:flex; justify-content:space-between; border-top:1px dashed var(--cor-borda); margin-top:8px; padding-top:10px; font-weight:700; font-size:14px; }
+        .mpw-total .mpw-num { font-family:'DM Mono',monospace; font-weight:500; }
+        .mpw-mud { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2px 10px; padding:8px 0; border-bottom:1px solid var(--cor-borda); font-size:13px; }
+        .mpw-mud:last-of-type { border-bottom:0; }
+        .mpw-mud small { grid-column:1; font-size:11.5px; color:var(--cor-texto-mutado); }
+        .mpw-mud .mpw-num { font-family:'DM Mono',monospace; text-align:right; }
+        .mpw-mud .mpw-num.pos { color:var(--tinta-verde); } .mpw-mud .mpw-num.neg { color:var(--cor-erro); }
+        .mpw-link { border:0; background:transparent; color:var(--tinta-verde); font:600 12.5px 'Figtree',sans-serif; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:4px 0; }
+        .mpw-classe { padding:6px 0; font-size:13px; }
+        .mpw-classe-topo { display:flex; justify-content:space-between; gap:10px; }
+        .mpw-classe-topo .mpw-num { font-family:'DM Mono',monospace; }
+        .mpw-classe-trilho { height:6px; background:var(--cor-superficie); border-radius:4px; margin:5px 0 4px; overflow:hidden; }
+        .mpw-classe-trilho span { display:block; height:100%; border-radius:4px; }
+        .mpw-classe small { font-size:11.5px; color:var(--cor-texto-mutado); }
+        .mpw-classe small.pos { color:var(--tinta-verde); } .mpw-classe small.neg { color:var(--cor-erro); }
+        .mpw-fol { padding:10px 0; border-bottom:1px solid var(--cor-borda); }
+        .mpw-fol:last-child { border-bottom:0; }
+        .mpw-fol-topo { display:flex; justify-content:space-between; gap:10px; align-items:baseline; font-size:13px; }
+        .mpw-fol-topo .mpw-num { font-family:'DM Mono',monospace; font-size:15px; }
+        .mpw-fol small { display:block; font-size:11.5px; color:var(--cor-texto-mutado); margin-top:3px; line-height:1.4; }
+        .mpw-gerenciar { margin-top:12px; border-top:1px solid var(--cor-borda); padding-top:10px; }
+        .mpw-gerenciar summary { cursor:pointer; font-size:12.5px; font-weight:600; color:var(--cor-texto-secundario); display:flex; align-items:center; gap:6px; min-height:32px; }
+        .mpw-gerenciar[open] summary { margin-bottom:8px; }
+        .mpw-acoes-conta { display:flex; flex-wrap:wrap; gap:6px; margin-left:auto; }
+        .mpw-acoes-conta button { border:1px solid var(--cor-borda); background:var(--cor-branco); color:var(--cor-texto-principal); border-radius:8px; padding:4px 9px; font:600 11.5px 'Figtree',sans-serif; cursor:pointer; display:inline-flex; gap:4px; align-items:center; }
+        .mpw-acoes-conta button.perigo { color:var(--cor-erro); }
+        body.valores-ocultos #meu_patrimonio .mpw-oculta { filter: blur(6px); }
+
         .mp-kpis { display:grid; grid-template-columns: repeat(2, 1fr); gap:14px; margin-bottom:20px; }
         .mp-kpis-hero { display:block; margin-bottom:18px; }
         .mp-kpis-componentes { grid-template-columns: repeat(2, 1fr); }
@@ -12372,13 +12448,15 @@
         /* MEU PATRIMÔNIO NO CELULAR (appliquei-mobile.js)               */
         /* ============================================================ */
         @media (max-width: 768px) {
-            #meu_patrimonio #mp-kpis,
-            #meu_patrimonio .mp-kpis-componentes,
+            #meu_patrimonio .mpw-web,
+            #meu_patrimonio .mpw-acoes,
+            #meu_patrimonio .mpw-gerenciar,
             #meu_patrimonio .mp-onde-head,
             #meu_patrimonio #mp-lista-inst,
             #meu_patrimonio .mp-contas-separador,
             #meu_patrimonio .mp-classes-card { display: none !important; }
             .mob-pat { margin-bottom: 22px; }
+            #meu_patrimonio .mpw-linha { display: block; margin: 0; }
 
             .mpm-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 4px; }
             .mpm-tit { margin: 0; font-size: 15px; font-weight: 700; color: var(--cor-texto-mutado); }
@@ -15890,100 +15968,32 @@
             <div class="page-header">
                 <div class="page-header-left">
                     <h1>Meu patrimônio</h1>
-                    <p class="subtitulo" style="margin-bottom:0">Visão consolidada de tudo o que você tem — saldo, investimentos e bens.</p>
+                    <p class="subtitulo" style="margin-bottom:0">Tudo o que você tem, menos o que deve — e para onde isso está indo.</p>
                     <button type="button" class="cotacoes-status" style="display:none;margin-top:8px;" onclick="atualizarCotacoes(true)" aria-label="Atualizar cotações"></button>
+                </div>
+                <!-- As ações de criar moram no cabeçalho, como no Controle: antes
+                     ficavam no meio da página, no card "Minhas Contas". -->
+                <div class="mpw-acoes">
+                    <button type="button" class="btn-secundario" onclick="abrirTransferenciaModal()"><i class="ph ph-arrows-left-right"></i> Transferir</button>
+                    <button type="button" class="btn-secundario" onclick="abrirNovaContaForm()"><i class="ph ph-plus"></i> Conta</button>
+                    <button type="button" class="btn-secundario" onclick="abrirNovoBemForm()"><i class="ph ph-plus"></i> Bem</button>
                 </div>
             </div>
 
             <!-- No celular (appliquei-mobile.js, mobRenderPatrimonio): o total,
-                 a linha do tempo, do que ele é feito, os cartões de cada banco
-                 e as classes de investimento. Os blocos de gestão abaixo
-                 (Minhas contas, Meus bens) são os mesmos do desktop. -->
+                 a linha do tempo, do que ele é feito, as instituições e as
+                 classes de investimento. Os blocos de gestão abaixo (contas,
+                 bens) são os mesmos do desktop. -->
             <div id="mpMob" class="mob-inicio mob-pat"></div>
 
-            <!-- KPI hero: patrimônio total.
-                 Duas colunas de propósito: o número grande sozinho deixava
-                 dois terços do card vazios, e a composição — que é a segunda
-                 pergunta de quem olha o total — vivia espremida numa fita de
-                 8px com só a porcentagem. Agora ela ocupa a metade direita e
-                 mostra também o valor em R$ de cada fatia. -->
-            <div id="mp-kpis" class="mp-kpis-hero">
-                <div class="mp-kpi mp-kpi-patrimonio mp-kpi-hero">
-                    <div class="mp-hero-principal">
-                        <div class="mp-kpi-icon"><i class="ph-fill ph-bank"></i></div>
-                        <div class="mp-kpi-body">
-                            <span class="mp-kpi-label">Patrimônio total</span>
-                            <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-patrimonio-valor">R$ 0,00</span>
-                            <span class="mp-kpi-sub" id="mp-kpi-patrimonio-sub">—</span>
-                        </div>
-                    </div>
-                    <div class="mp-hero-composicao">
-                        <span class="mp-hero-composicao-tit">Como ele está dividido</span>
-                        <div id="mp-composition-bar"></div>
-                    </div>
-                </div>
-            </div>
-            <!-- Componentes do patrimônio: cada fatia que soma no total.
-                 Empilhados (rótulo em cima, valor no meio, fatia embaixo) em
-                 vez de ícone-ao-lado-do-texto: em 4 colunas o valor não cabia
-                 na largura restante e encostava na borda do card. -->
-            <div class="mp-kpis mp-kpis-componentes">
-                <div class="mp-kpi mp-kpi-componente mp-kpi-saldo">
-                    <div class="mp-kpi-topo">
-                        <div class="mp-kpi-icon"><i class="ph-fill ph-wallet"></i></div>
-                        <span class="mp-kpi-label">Saldo em conta</span>
-                    </div>
-                    <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-saldo-valor">R$ 0,00</span>
-                    <div class="mp-kpi-rodape">
-                        <div class="mp-kpi-fatia">
-                            <div class="mp-kpi-fatia-trilho"><div class="mp-kpi-fatia-fill" id="mp-kpi-saldo-fatia-fill"></div></div>
-                            <span class="mp-kpi-fatia-pct" id="mp-kpi-saldo-fatia">—</span>
-                        </div>
-                        <span class="mp-kpi-delta neu" id="mp-kpi-saldo-delta">—</span>
-                    </div>
-                </div>
-                <div class="mp-kpi mp-kpi-componente mp-kpi-investido">
-                    <div class="mp-kpi-topo">
-                        <div class="mp-kpi-icon"><i class="ph-fill ph-trend-up"></i></div>
-                        <span class="mp-kpi-label">Total investido</span>
-                    </div>
-                    <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-investido-valor">R$ 0,00</span>
-                    <div class="mp-kpi-rodape">
-                        <div class="mp-kpi-fatia">
-                            <div class="mp-kpi-fatia-trilho"><div class="mp-kpi-fatia-fill" id="mp-kpi-investido-fatia-fill"></div></div>
-                            <span class="mp-kpi-fatia-pct" id="mp-kpi-investido-fatia">—</span>
-                        </div>
-                        <span class="mp-kpi-delta neu" id="mp-kpi-investido-delta">—</span>
-                    </div>
-                </div>
-                <div class="mp-kpi mp-kpi-componente mp-kpi-imoveis">
-                    <div class="mp-kpi-topo">
-                        <div class="mp-kpi-icon"><i class="ph-fill ph-house-line"></i></div>
-                        <span class="mp-kpi-label">Imóveis</span>
-                    </div>
-                    <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-imoveis-valor">R$ 0,00</span>
-                    <div class="mp-kpi-rodape">
-                        <div class="mp-kpi-fatia">
-                            <div class="mp-kpi-fatia-trilho"><div class="mp-kpi-fatia-fill" id="mp-kpi-imoveis-fatia-fill"></div></div>
-                            <span class="mp-kpi-fatia-pct" id="mp-kpi-imoveis-fatia">—</span>
-                        </div>
-                        <span class="mp-kpi-delta neu" id="mp-kpi-imoveis-qtd">—</span>
-                    </div>
-                </div>
-                <div class="mp-kpi mp-kpi-componente mp-kpi-veiculos">
-                    <div class="mp-kpi-topo">
-                        <div class="mp-kpi-icon"><i class="ph-fill ph-car-simple"></i></div>
-                        <span class="mp-kpi-label">Veículos</span>
-                    </div>
-                    <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-veiculos-valor">R$ 0,00</span>
-                    <div class="mp-kpi-rodape">
-                        <div class="mp-kpi-fatia">
-                            <div class="mp-kpi-fatia-trilho"><div class="mp-kpi-fatia-fill" id="mp-kpi-veiculos-fatia-fill"></div></div>
-                            <span class="mp-kpi-fatia-pct" id="mp-kpi-veiculos-fatia">—</span>
-                        </div>
-                        <span class="mp-kpi-delta neu" id="mp-kpi-veiculos-qtd">—</span>
-                    </div>
-                </div>
+            <!-- Web: o número principal é o patrimônio LÍQUIDO (o que tem menos
+                 o que deve), com a linha do tempo ao lado do balanço. Os quatro
+                 cards de componente que existiam aqui repetiam a legenda da
+                 composição; o balanço diz o mesmo uma vez só, com as dívidas.
+                 Desenhados por mpRenderHeroiWeb / mpRenderBalancoWeb. -->
+            <div class="mpw-linha mpw-web">
+                <section class="card-container mpw-heroi" id="mpwHeroi" aria-label="Patrimônio"></section>
+                <section class="card-container mpw-balanco" id="mpwBalanco" aria-label="Do que ele é feito"></section>
             </div>
 
             <div id="mpMobCarteiras" class="mob-inicio mob-pat"></div>
@@ -15992,8 +16002,13 @@
             <div id="mpMobContas" class="mob-inicio mob-pat"></div>
             <div id="mpMobBens" class="mob-inicio mob-pat"></div>
 
-            <!-- Onde está o dinheiro: extrato consolidado por instituição + Minhas Contas -->
-            <div class="card-container mp-onde-card">
+            <!-- Onde está o dinheiro: cada banco/corretora UMA vez, com caixa,
+                 investido e as ações da conta (conferir, editar, arquivar) no
+                 próprio extrato. A lista "Minhas Contas" repetia as mesmas
+                 instituições logo abaixo; ela vira "Gerenciar contas", recolhida,
+                 para o que não aparece em cima (conta zerada, arquivada, fundir). -->
+            <div class="mpw-linha">
+            <div class="card-container mp-onde-card mpw-onde">
                 <div class="mp-section-head mp-onde-head">
                     <div class="mp-onde-titulo">
                         <h3><i class="ph-fill ph-buildings mp-onde-ic"></i> Onde está o seu dinheiro</h3>
@@ -16004,15 +16019,6 @@
                     <div class="mp-empty"><i class="ph ph-bank"></i>—</div>
                 </div>
 
-                <!-- Minhas Contas (cadastro-mestre) — dentro de "Onde está o seu dinheiro" -->
-                <div class="mp-contas-separador"></div>
-                <div class="mp-section-head" style="margin-top:6px;">
-                    <h3><i class="ph-fill ph-bank" style="color:var(--cor-primaria);font-size:16px;"></i> Minhas Contas</h3>
-                    <div style="display:flex;gap:8px;">
-                        <button class="btn-secundario" style="padding:6px 12px;font-size:12px;border-radius:10px;" onclick="abrirTransferenciaModal()"><i class="ph ph-arrows-left-right"></i> Transferir</button>
-                        <button class="btn-secundario" style="padding:6px 12px;font-size:12px;border-radius:10px;" onclick="abrirNovaContaForm()"><i class="ph ph-plus"></i> Nova conta</button>
-                    </div>
-                </div>
                 <div id="formNovaConta" style="display:none;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:10px;padding:12px;margin-bottom:10px;">
                     <input type="hidden" id="contaEditId" value="">
                     <div id="tituloFormConta" style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--cor-texto-principal);">Nova conta</div>
@@ -16035,28 +16041,41 @@
                         <button class="btn-acao" style="background:var(--cor-primaria);" onclick="salvarFormConta()"><i class="ph ph-check"></i> Salvar</button>
                     </div>
                 </div>
-                <div class="mp-lista-inst" id="listaContas"><div class="mp-empty"><i class="ph ph-bank"></i>—</div></div>
+                <details class="mpw-gerenciar">
+                    <summary><i class="ph ph-gear-six"></i> Gerenciar contas <span id="mpwQtdContas"></span></summary>
+                    <div class="mp-lista-inst" id="listaContas"><div class="mp-empty"><i class="ph ph-bank"></i>—</div></div>
+                </details>
             </div>
 
-            <!-- Total investido por classe: gráfico de barras horizontal -->
-            <div class="card-container mp-classes-card">
+            <!-- Por que mudou: a variação do mês, parcela por parcela, somando
+                 exatamente a diferença do gráfico (mpMudancaDoMes). -->
+            <section class="card-container mpw-mudou mpw-web" id="mpwMudou" aria-label="Por que mudou"></section>
+            </div>
+
+            <div class="mpw-linha mpw-tres">
+            <!-- Investimentos por classe: lista compacta. O gráfico de barras com
+                 a tabela embaixo gastava um card inteiro para duas ou três
+                 classes; o detalhe completo está em Meus investimentos. -->
+            <section class="card-container mp-classes-card mpw-web" aria-label="Investimentos por classe">
                 <div class="mp-section-head">
-                    <h3>Total investido por classe</h3>
-                    <span class="mp-section-sub">Distribuição de todos os seus investimentos por tipo de ativo</span>
-                </div>
-                <div class="mp-bar-chart-wrap">
-                    <canvas id="mp-grafico-classes" aria-label="Total investido por classe"></canvas>
+                    <h3>Investimentos por classe</h3>
+                    <button type="button" class="mpw-link" onclick="mobIrPara('patrimonio')">Ver carteira <i class="ph ph-arrow-right"></i></button>
                 </div>
                 <div id="mp-classes-lista"></div>
-            </div>
+            </section>
 
             <!-- Meus Bens (imóveis, veículos, outros) -->
             <div class="card-container mp-bens-card">
                 <div class="mp-section-head">
-                    <h3><i class="ph-fill ph-house-line" style="color:var(--cor-patrimonio);"></i> Meus Bens</h3>
+                    <h3><i class="ph-fill ph-house-line" style="color:var(--cor-patrimonio);"></i> Bens</h3>
                     <button class="btn-secundario" style="padding:6px 12px;font-size:12px;border-radius:10px;" onclick="abrirNovoBemForm()"><i class="ph ph-plus"></i> Novo bem</button>
                 </div>
                 <div class="mp-lista-inst" id="listaBens"><div class="mp-empty"><i class="ph ph-package"></i>Nenhum bem cadastrado.</div></div>
+            </div>
+
+            <!-- Fôlego: quanto dá para usar logo, quantos meses a reserva cobre e
+                 os proventos previstos (mpRenderFolegoWeb). -->
+            <section class="card-container mpw-folego mpw-web" id="mpwFolego" aria-label="Fôlego"></section>
             </div>
 
             <!-- CADASTRO DE BEM — modal em passos.

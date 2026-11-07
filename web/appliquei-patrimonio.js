@@ -598,18 +598,6 @@ function mpFatiaDoTotal(valor, total) {
   return Math.max(0, Math.min(100, (v / t) * 100));
 }
 
-// Pinta, dentro do card de um componente, a fatia que ele ocupa do total: a
-// barrinha e o "x% do total".
-function mpPintarFatia(chave, valor, total) {
-  const fill = document.getElementById('mp-kpi-' + chave + '-fatia-fill');
-  const rotulo = document.getElementById('mp-kpi-' + chave + '-fatia');
-  const pct = mpFatiaDoTotal(valor, total);
-  if (fill) fill.style.width = (pct === null ? 0 : pct).toFixed(1) + '%';
-  if (rotulo) {
-    rotulo.textContent = pct === null ? '—' : mpPctBR(pct) + ' do total';
-  }
-}
-
 function mpRenderKPIs(consolidado, janela) {
   const patr =
     typeof calcularPatrimonioTotal === 'function' ? calcularPatrimonioTotal() : consolidado;
@@ -639,118 +627,15 @@ function mpRenderKPIs(consolidado, janela) {
   const saldoAnterior = mpCalcularSaldoTotal(janela.anteriorFimMs);
   const investidoAporteTotal = patr.totalInvestido;
 
-  const setText = (id, v) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = mpFmtBRL(v);
-  };
-  setText('mp-kpi-patrimonio-valor', patrimonioTotal);
-  setText('mp-kpi-saldo-valor', saldoTotal);
-  setText('mp-kpi-investido-valor', valorInvestido);
-  setText('mp-kpi-imoveis-valor', totalImoveis);
-  setText('mp-kpi-veiculos-valor', totalVeiculos);
-
-  const subPatr = document.getElementById('mp-kpi-patrimonio-sub');
-  if (subPatr) {
-    subPatr.className = 'mp-kpi-sub';
-    // A linha listava "saldo + investimentos + imóveis + veículos" — exatamente
-    // o que a legenda da composição, agora ao lado, já diz com nome, valor e
-    // porcentagem. No lugar dela vai a data da posição: o total usa cotação de
-    // mercado, então "de quando é este número" não era dito em lugar nenhum.
-    const refMs = janela && isFinite(janela.fimMs) ? janela.fimMs : Date.now();
-    subPatr.innerHTML =
-      '<i class="ph ph-clock-counter-clockwise"></i> Posição de ' +
-      new Date(refMs).toLocaleDateString('pt-BR');
-  }
-
-  var compBar = document.getElementById('mp-composition-bar');
-  if (compBar && patrimonioTotal > 0) {
-    var segs = [];
-    if (saldoTotal > 0)
-      segs.push({ label: 'Saldo em conta', valor: saldoTotal, cor: 'var(--cor-primaria)' });
-    if (valorInvestido > 0)
-      segs.push({ label: 'Investimentos', valor: valorInvestido, cor: 'var(--cor-patrimonio)' });
-    if (totalImoveis > 0) segs.push({ label: 'Imóveis', valor: totalImoveis, cor: '#f59e0b' });
-    if (totalVeiculos > 0) segs.push({ label: 'Veículos', valor: totalVeiculos, cor: '#64748b' });
-    var barHtml = '<div class="mp-composition-bar">';
-    segs.forEach(function (s) {
-      var pct = (s.valor / patrimonioTotal) * 100;
-      barHtml +=
-        // A largura vai em CSS: ponto decimal, senão o style é inválido e o
-        // segmento some. Só o texto do title é que fica em pt-BR.
-        '<div class="mp-composition-seg" style="width:' +
-        pct.toFixed(1) +
-        '%;background:' +
-        s.cor +
-        ';" title="' +
-        s.label +
-        ': ' +
-        mpFmtBRL(s.valor) +
-        ' (' +
-        mpPctBR(pct) +
-        ')"></div>';
-    });
-    barHtml += '</div>';
-    // Legenda em 3 colunas: fatia, quanto é em R$, quanto é do total. A
-    // porcentagem sozinha não responde "de quanto estamos falando".
-    barHtml += '<div class="mp-composition-legend">';
-    segs.forEach(function (s) {
-      var pct = (s.valor / patrimonioTotal) * 100;
-      barHtml +=
-        '<span class="mp-composition-legend-item"><span class="mp-leg-dot" style="background:' +
-        s.cor +
-        ';"></span>' +
-        s.label +
-        '</span>' +
-        '<span class="mp-leg-valor">' +
-        mpFmtBRL(s.valor) +
-        '</span>' +
-        '<span class="mp-leg-share">' +
-        mpPctBR(pct) +
-        '</span>';
-    });
-    barHtml += '</div>';
-    compBar.innerHTML = barHtml;
-  } else if (compBar) {
-    compBar.innerHTML = '';
-  }
-
-  // Fatia de cada componente no total, repetida dentro do próprio card.
-  mpPintarFatia('saldo', saldoTotal, patrimonioTotal);
-  mpPintarFatia('investido', valorInvestido, patrimonioTotal);
-  mpPintarFatia('imoveis', totalImoveis, patrimonioTotal);
-  mpPintarFatia('veiculos', totalVeiculos, patrimonioTotal);
-
+  // Os quatro cards de componente e a fita da composição saíram da tela: o
+  // balanço (mpRenderBalancoWeb) mostra as mesmas parcelas uma vez só, com as
+  // dívidas. Aqui ficam só os números.
   const deltaSaldo =
     saldoAnterior !== 0 ? ((saldoTotal - saldoAnterior) / Math.abs(saldoAnterior)) * 100 : 0;
   const rentab =
     investidoAporteTotal > 0
       ? ((valorInvestido - investidoAporteTotal) / investidoAporteTotal) * 100
       : 0;
-
-  const elSaldo = document.getElementById('mp-kpi-saldo-delta');
-  if (elSaldo) {
-    const cls = deltaSaldo > 0.05 ? 'pos' : deltaSaldo < -0.05 ? 'neg' : 'neu';
-    const seta = deltaSaldo > 0.05 ? '↑' : deltaSaldo < -0.05 ? '↓' : '·';
-    elSaldo.className = 'mp-kpi-delta ' + cls;
-    elSaldo.innerHTML = `${seta} ${mpFmtPct(deltaSaldo)} <span style="color:var(--cor-texto-secundario);font-weight:500;margin-left:3px">vs mês passado</span>`;
-  }
-  const elInv = document.getElementById('mp-kpi-investido-delta');
-  if (elInv) {
-    const cls = rentab > 0.05 ? 'pos' : rentab < -0.05 ? 'neg' : 'neu';
-    const seta = rentab > 0.05 ? '↑' : rentab < -0.05 ? '↓' : '·';
-    elInv.className = 'mp-kpi-delta ' + cls;
-    elInv.innerHTML = `${seta} ${mpFmtPct(rentab)} <span style="color:var(--cor-texto-secundario);font-weight:500;margin-left:3px">rentab. total</span>`;
-  }
-  const elImov = document.getElementById('mp-kpi-imoveis-qtd');
-  if (elImov) {
-    elImov.className = 'mp-kpi-delta neu';
-    elImov.textContent = qtdImoveis + ' imóve' + (qtdImoveis === 1 ? 'l' : 'is');
-  }
-  const elVeic = document.getElementById('mp-kpi-veiculos-qtd');
-  if (elVeic) {
-    elVeic.className = 'mp-kpi-delta neu';
-    elVeic.textContent = qtdVeiculos + ' veículo' + (qtdVeiculos === 1 ? '' : 's');
-  }
   // Os mesmos números, para quem desenha a foto em outro formato (celular).
   return {
     total: patrimonioTotal,
@@ -1100,7 +985,13 @@ function mpRenderInstituicoes(consolidado) {
       const btnConferir = ehConta
         ? ` <button type="button" class="mp-extrato-conferir" data-conta="${String(x.key).replace(/"/g, '&quot;')}" onclick="conferirAbrir(this.dataset.conta)"><i class="ph ph-check-circle"></i> Conferir saldo</button>`
         : '';
-      const tituloExtrato = `<i class="ph ph-receipt"></i> Extrato — movimentações de caixa${btnConferir}`;
+      // As ações da conta moram aqui, junto do saldo dela: antes ficavam numa
+      // segunda lista ("Minhas Contas") que repetia as mesmas instituições.
+      const idEsc = String(x.key).replace(/"/g, '&quot;');
+      const acoesConta = ehConta
+        ? `<span class="mpw-acoes-conta"><button type="button" data-conta="${idEsc}" onclick="editarContaForm(this.dataset.conta)"><i class="ph ph-pencil-simple"></i> Editar</button><button type="button" data-conta="${idEsc}" onclick="fundirContaPrompt(this.dataset.conta)"><i class="ph ph-arrows-merge"></i> Fundir</button><button type="button" class="perigo" data-conta="${idEsc}" onclick="arquivarContaUI(this.dataset.conta)"><i class="ph ph-archive"></i> Arquivar</button></span>`
+        : '';
+      const tituloExtrato = `<i class="ph ph-receipt"></i> Extrato — movimentações de caixa${btnConferir}${acoesConta}`;
       return `
             <div class="mp-inst-item mp-inst-collapsible">
                 <div class="mp-inst-head" onclick="mpToggleExtrato(${i})" title="Ver extrato">
@@ -1160,133 +1051,6 @@ function mpIniciaisInstituicao(nome) {
   return (palavras[0][0] + palavras[1][0]).toUpperCase();
 }
 
-function mpRenderClasses(consolidado) {
-  var canvas = document.getElementById('mp-grafico-classes');
-  var wrap = document.getElementById('mp-classes-lista');
-  if (!canvas) return;
-  var porCat = consolidado.porCategoriaExibicao || {};
-  var itens = Object.keys(porCat)
-    .map(function (cat) {
-      return {
-        cat: cat,
-        investido: porCat[cat].investido,
-        atual: porCat[cat].atual,
-      };
-    })
-    .filter(function (it) {
-      return it.atual > 0.01;
-    })
-    .sort(function (a, b) {
-      return b.atual - a.atual;
-    });
-
-  if (!itens.length) {
-    canvas.style.display = 'none';
-    if (wrap)
-      wrap.innerHTML =
-        '<div class="mp-empty" style="padding:18px"><i class="ph ph-chart-bar"></i>Nenhum investimento ainda. Registre um aporte em "Meus investimentos".</div>';
-    return;
-  }
-  canvas.style.display = '';
-  if (wrap) wrap.innerHTML = '';
-
-  var total = itens.reduce(function (a, it) {
-    return a + it.atual;
-  }, 0);
-  var labels = itens.map(function (it) {
-    return MP_LABELS[it.cat] || it.cat;
-  });
-  var valores = itens.map(function (it) {
-    return it.atual;
-  });
-  var cores = itens.map(function (it) {
-    return mpCorCategoria(it.cat);
-  });
-
-  if (typeof Chart === 'undefined') {
-    if (wrap) wrap.innerHTML = '<div class="mp-empty">Chart.js indisponível</div>';
-    return;
-  }
-
-  if (mpEstado.classesChart) mpEstado.classesChart.destroy();
-
-  var barHeight = 38;
-  canvas.parentElement.style.height = Math.max(180, itens.length * barHeight + 50) + 'px';
-
-  mpEstado.classesChart = new Chart(canvas.getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          data: valores,
-          backgroundColor: cores,
-          borderRadius: 6,
-          borderSkipped: false,
-          barThickness: 22,
-          maxBarThickness: 28,
-        },
-      ],
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 600 },
-      layout: { padding: { right: 150 } },
-      scales: {
-        x: {
-          display: false,
-          grid: { display: false },
-        },
-        y: {
-          grid: { display: false },
-          border: { display: false },
-          ticks: {
-            font: { family: "'Figtree', sans-serif", size: 12, weight: '600' },
-            color: typeof getToken === 'function' ? getToken('--cor-texto-principal') : '#1e293b',
-          },
-        },
-      },
-      plugins: {
-        legend: { display: false },
-        datalabels: {
-          anchor: 'end',
-          align: 'right',
-          clip: false,
-          offset: 6,
-          font: { family: "'DM Mono', monospace", size: 11, weight: '700' },
-          color: typeof getToken === 'function' ? getToken('--cor-texto-principal') : '#1e293b',
-          formatter: function (value) {
-            var share = total > 0 ? (value / total) * 100 : 0;
-            return mpFmtBRL(value) + '  ' + mpPctBR(share);
-          },
-        },
-        tooltip: {
-          padding: 10,
-          cornerRadius: 8,
-          callbacks: {
-            label: function (ctx) {
-              var it = itens[ctx.dataIndex];
-              var lucro = it.atual - it.investido;
-              var pct = it.investido > 0 ? (lucro / it.investido) * 100 : 0;
-              var share = total > 0 ? (it.atual / total) * 100 : 0;
-              return mpFmtBRL(it.atual) + ' (' + share.toFixed(1) + '%) · rent. ' + mpFmtPct(pct);
-            },
-          },
-        },
-      },
-    },
-  });
-
-  if (wrap) {
-    wrap.innerHTML =
-      '<div class="mp-classes-total"><span>Total investido</span><span class="mp-inst-valor">' +
-      mpFmtBRL(total) +
-      '</span></div>';
-  }
-}
-
 // Remove transações 'tx_origem_*' cujo aporte correspondente já não existe.
 // Corrige saldo para quem excluiu investimento antes do fix na exclusão.
 function mpLimparTxOrigemOrfas() {
@@ -1318,6 +1082,655 @@ function mpLimparTxOrigemOrfas() {
   }
 }
 
+// ============================================================
+// === Meu patrimônio · web: dívidas, herói, balanço, mudança ===
+// ============================================================
+
+var mpWeb = { liquido: null, periodo: 12 };
+var MP_WEB_PERIODOS = [
+  [1, '1M'],
+  [6, '6M'],
+  [12, '1A'],
+  [24, '2A'],
+  [0, 'Tudo'],
+];
+
+function mpEsc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Faturas de cartão que já são dívida: a aberta e as fechadas ainda não
+ * pagas. Parcelas de faturas futuras ficam de fora — são compromisso, não
+ * dívida de hoje. O caixa só desconta a fatura quando ela é paga, então até lá
+ * esse dinheiro aparece no banco como se fosse livre.
+ */
+function mpDividaCartoes(hoje) {
+  if (typeof faturasDoCartao !== 'function' || typeof faturasCartoesVisiveis !== 'function')
+    return [];
+  const lista = [];
+  faturasCartoesVisiveis().forEach((c) => {
+    let soma = 0;
+    faturasDoCartao(c.id, hoje).forEach((f) => {
+      if (f.status === 'aberta' || f.status === 'fechada' || f.status === 'vencida')
+        soma += Number(f.aPagar) || 0;
+    });
+    if (soma > 0.005) lista.push({ nome: c.nome || 'Cartão', valor: soma, cartaoId: c.id });
+  });
+  return lista;
+}
+
+/** Tudo o que se deve hoje: financiamentos dos bens + faturas em aberto. */
+function mpDividas(hoje) {
+  const bens = [];
+  if (typeof bensAtivos === 'function') {
+    bensAtivos().forEach((b) => {
+      const f = b.financiamento;
+      const v = f && f.ativo ? Number(f.saldoDevedor) || 0 : 0;
+      if (v > 0.005)
+        bens.push({ nome: 'Financiamento · ' + (b.nome || 'bem'), valor: v, bemId: b.id });
+    });
+  }
+  const cartoes = mpDividaCartoes(hoje);
+  const total = bens.reduce((a, x) => a + x.valor, 0) + cartoes.reduce((a, x) => a + x.valor, 0);
+  return { bens, cartoes, total };
+}
+
+/**
+ * Por que o patrimônio mudou entre o fim do mês anterior e o ponto final da
+ * série. Cada parcela vem da diferença de uma coluna da própria série, então a
+ * soma fecha com a variação do gráfico ao centavo:
+ *   - contas: o que entrou menos o que saiu do caixa, SEM contar o dinheiro
+ *     que foi para os investimentos (aporte não é gasto nem ganho);
+ *   - valorização: o que os investimentos ganharam ou perderam além do aporte;
+ *   - bens: avaliação nova (FIPE, imóvel) ou bem que entrou/saiu.
+ */
+function mpMudancaDoMes(serie) {
+  if (!Array.isArray(serie) || serie.length < 2) return null;
+  const a = serie[serie.length - 2];
+  const b = serie[serie.length - 1];
+  const aportes = (Number(b.custo) || 0) - (Number(a.custo) || 0);
+  const contas = b.caixa - a.caixa + aportes;
+  const valorizacao = b.investido - a.investido - aportes;
+  const bens = b.bens - a.bens;
+  return {
+    de: a,
+    ate: b,
+    contas,
+    aportes,
+    valorizacao,
+    bens,
+    total: b.total - a.total,
+  };
+}
+
+/** Gasto médio por mês nos últimos 6 meses fechados que tiveram gasto. */
+function mpCustoMedioMensal(hoje) {
+  const h = hoje instanceof Date ? hoje : new Date();
+  let soma = 0;
+  let meses = 0;
+  for (let k = 1; k <= 6; k++) {
+    const ini = new Date(h.getFullYear(), h.getMonth() - k, 1).getTime();
+    const fim = new Date(h.getFullYear(), h.getMonth() - k + 1, 0, 23, 59, 59, 999).getTime();
+    const v = mpCalcularDespesasJanela(ini, fim);
+    if (v > 0.005) {
+      soma += v;
+      meses++;
+    }
+  }
+  return meses ? soma / meses : 0;
+}
+
+/**
+ * Fôlego: quanto dá para usar em até um dia (caixa + renda variável + reserva
+ * de emergência; renda fixa e previdência ficam de fora porque o prazo de
+ * resgate varia), quantos meses o caixa cobre do gasto médio, e os proventos
+ * previstos para 12 meses.
+ */
+function mpFolego(kpis, consolidado) {
+  const cat = (consolidado && consolidado.porCategoria) || {};
+  const liquidoInv =
+    (cat.renda_variavel ? cat.renda_variavel.atual : 0) +
+    (cat.reserva_emergencia ? cat.reserva_emergencia.atual : 0);
+  const disponivel = Math.max(0, kpis.saldo) + liquidoInv;
+  const custo = mpCustoMedioMensal(new Date());
+  const reservaMeses = custo > 0 ? Math.max(0, kpis.saldo) / custo : null;
+  let proventos = null;
+  if (typeof projecaoProventos12m === 'function' && typeof obterResumoCarteira === 'function') {
+    try {
+      proventos = projecaoProventos12m(obterResumoCarteira());
+    } catch (e) {
+      proventos = null;
+    }
+  }
+  return {
+    disponivel,
+    pctDisponivel: mpFatiaDoTotal(disponivel, kpis.total),
+    custoMedio: custo,
+    reservaMeses,
+    proventos: proventos && proventos.total > 0 ? proventos : null,
+  };
+}
+
+function _mpWebSerieVisivel(serie) {
+  const s = serie || [];
+  if (mpWeb.periodo > 0) return s.slice(-(mpWeb.periodo + 1));
+  return s;
+}
+
+function _mpWebRotuloMes(p) {
+  const m = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+  return m[p.mes] + '/' + String(p.ano).slice(2);
+}
+
+/** Eixo com números redondos: 3 marcas que cobrem a série inteira. */
+function mpEixoRedondo(mn, mx) {
+  if (!(mx > mn)) {
+    const pad = Math.abs(mx) * 0.05 || 1000;
+    mn -= pad;
+    mx += pad;
+  }
+  const mag = Math.pow(10, Math.floor(Math.log10((mx - mn) / 2)));
+  const fatores = [1, 2, 2.5, 5, 10, 20, 25, 50, 100];
+  for (let k = 0; k < fatores.length; k++) {
+    const passo = fatores[k] * mag;
+    const ini = Math.floor(mn / passo) * passo;
+    if (ini + 2 * passo >= mx) return [ini, ini + passo, ini + 2 * passo];
+  }
+  return [mn, (mn + mx) / 2, mx];
+}
+
+function mpFmtCompacto(v) {
+  const a = Math.abs(v);
+  const sinal = v < 0 ? '−' : '';
+  if (a >= 1e6) return sinal + 'R$ ' + (a / 1e6).toFixed(1).replace('.', ',') + ' mi';
+  if (a >= 1e3) return sinal + 'R$ ' + Math.round(a / 1e3) + ' mil';
+  return sinal + 'R$ ' + Math.round(a);
+}
+
+/** SVG da evolução (o que você tem, mês a mês). */
+function mpGraficoWebSvg(serie) {
+  const W = 720;
+  const H = 230;
+  const pl = 62;
+  const pr = 12;
+  const pt = 12;
+  const pb = 24;
+  if (serie.length < 2) return null;
+  const vals = serie.map((p) => p.total);
+  const ticks = mpEixoRedondo(Math.min(...vals), Math.max(...vals));
+  const mn = ticks[0];
+  const mx = ticks[2];
+  const x = (i) => pl + (i * (W - pl - pr)) / (serie.length - 1);
+  const y = (v) => pt + (1 - (v - mn) / (mx - mn || 1)) * (H - pt - pb);
+  const pts = serie.map((p, i) => [x(i), y(p.total)]);
+  const linha = pts
+    .map((q, i) => (i ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1))
+    .join(' ');
+  const area =
+    linha +
+    ' L' +
+    pts[pts.length - 1][0].toFixed(1) +
+    ' ' +
+    (H - pb) +
+    ' L' +
+    pl +
+    ' ' +
+    (H - pb) +
+    ' Z';
+  const passoRot = Math.max(1, Math.ceil(serie.length / 7));
+  let svg =
+    '<svg viewBox="0 0 ' +
+    W +
+    ' ' +
+    H +
+    '" role="img" aria-label="Evolução do que você tem, de ' +
+    mpEsc(mpFmtBRL(vals[0])) +
+    ' a ' +
+    mpEsc(mpFmtBRL(vals[vals.length - 1])) +
+    '">' +
+    '<defs><linearGradient id="mpwGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--cor-primaria)" stop-opacity=".24"></stop><stop offset="1" stop-color="var(--cor-primaria)" stop-opacity="0"></stop></linearGradient></defs>';
+  ticks.forEach((t) => {
+    svg +=
+      '<line class="mpw-grade" x1="' +
+      pl +
+      '" x2="' +
+      (W - pr) +
+      '" y1="' +
+      y(t).toFixed(1) +
+      '" y2="' +
+      y(t).toFixed(1) +
+      '"></line>' +
+      '<text x="' +
+      (pl - 8) +
+      '" y="' +
+      (y(t) + 3).toFixed(1) +
+      '" text-anchor="end" class="mpw-oculta">' +
+      mpEsc(mpFmtCompacto(t)) +
+      '</text>';
+  });
+  svg +=
+    '<path d="' +
+    area +
+    '" fill="url(#mpwGrad)"></path><path class="mpw-linha-g" d="' +
+    linha +
+    '"></path>';
+  serie.forEach((p, i) => {
+    if (i % passoRot && i !== serie.length - 1) return;
+    const anc = i === 0 ? 'start' : i === serie.length - 1 ? 'end' : 'middle';
+    svg +=
+      '<text x="' +
+      x(i).toFixed(1) +
+      '" y="' +
+      (H - 6) +
+      '" text-anchor="' +
+      anc +
+      '">' +
+      _mpWebRotuloMes(p) +
+      '</text>';
+  });
+  const u = pts[pts.length - 1];
+  svg +=
+    '<line class="mpw-cursor" x1="' +
+    u[0] +
+    '" x2="' +
+    u[0] +
+    '" y1="' +
+    pt +
+    '" y2="' +
+    (H - pb) +
+    '"></line>' +
+    '<circle class="mpw-ponto" cx="' +
+    u[0].toFixed(1) +
+    '" cy="' +
+    u[1].toFixed(1) +
+    '" r="5" fill="var(--cor-primaria)" stroke="var(--cor-branco)" stroke-width="2"></circle></svg>';
+  return { svg, pts, W, H };
+}
+
+function mpWebAlternarLiquido(liq) {
+  mpWeb.liquido = !!liq;
+  if (mpEstado._web) mpRenderHeroiWeb(mpEstado._web);
+}
+
+function mpWebPeriodo(meses) {
+  mpWeb.periodo = Number(meses) || 0;
+  if (mpEstado._web) mpRenderHeroiWeb(mpEstado._web);
+}
+
+/** O número principal, a variação e a linha do tempo. */
+function mpRenderHeroiWeb(d) {
+  const el = document.getElementById('mpwHeroi');
+  if (!el || !d) return;
+  const k = d.kpis;
+  const temDivida = d.dividas.total > 0.005;
+  if (mpWeb.liquido === null) mpWeb.liquido = temDivida;
+  const liquido = temDivida && mpWeb.liquido;
+  const valor = k.total - (liquido ? d.dividas.total : 0);
+  const serieTodo = d.serie || [];
+  const serie = _mpWebSerieVisivel(serieTodo);
+  const g = mpGraficoWebSvg(serie);
+  const base = serie.length > 1 ? serie[0] : null;
+  let delta = '';
+  if (base) {
+    const dif = k.total - base.total;
+    const pct = base.total ? (dif / Math.abs(base.total)) * 100 : null;
+    const cls = Math.abs(dif) < 0.005 ? 'neu' : dif > 0 ? 'pos' : 'neg';
+    delta =
+      '<span class="mpw-delta ' +
+      cls +
+      '">' +
+      (cls === 'neu' ? '' : dif > 0 ? '↑ ' : '↓ ') +
+      '<b class="mpw-oculta">' +
+      mpEsc(mpFmtBRL(Math.abs(dif))) +
+      '</b>' +
+      (pct != null ? ' (' + mpPctBR(Math.abs(pct)) + ')' : '') +
+      ' desde ' +
+      _mpWebRotuloMes(base) +
+      (liquido ? ' no que você tem' : '') +
+      '</span>';
+  }
+  const seg = temDivida
+    ? '<div class="mpw-seg" role="group" aria-label="Como somar">' +
+      '<button type="button" aria-pressed="' +
+      liquido +
+      '" onclick="mpWebAlternarLiquido(true)">Líquido</button>' +
+      '<button type="button" aria-pressed="' +
+      !liquido +
+      '" onclick="mpWebAlternarLiquido(false)">Bruto</button></div>'
+    : '';
+  const periodos = MP_WEB_PERIODOS.map(
+    (p) =>
+      '<button type="button" aria-pressed="' +
+      (mpWeb.periodo === p[0]) +
+      '" onclick="mpWebPeriodo(' +
+      p[0] +
+      ')">' +
+      p[1] +
+      '</button>'
+  ).join('');
+  const quando = 'Posição de ' + new Date(d.posicaoMs || Date.now()).toLocaleDateString('pt-BR');
+  el.innerHTML =
+    '<div class="mpw-topo"><span class="mpw-rotulo">' +
+    (liquido ? 'Patrimônio líquido' : temDivida ? 'Patrimônio bruto' : 'Patrimônio total') +
+    '</span>' +
+    seg +
+    '</div>' +
+    '<div class="mpw-valor-heroi mpw-oculta">' +
+    mpEsc(mpFmtBRL(valor)) +
+    '</div>' +
+    (liquido
+      ? '<div class="mpw-sub">Você tem <b class="mpw-oculta">' +
+        mpEsc(mpFmtBRL(k.total)) +
+        '</b> e deve <b class="mpw-oculta">' +
+        mpEsc(mpFmtBRL(d.dividas.total)) +
+        '</b></div>'
+      : '') +
+    '<div class="mpw-topo" style="margin-top:6px"><div style="display:flex;flex-direction:column;gap:2px">' +
+    delta +
+    '<span class="mpw-sub">' +
+    quando +
+    '</span></div>' +
+    (serieTodo.length > 1
+      ? '<div class="mpw-periodos" role="group" aria-label="Período do gráfico">' +
+        periodos +
+        '</div>'
+      : '') +
+    '</div>' +
+    (g
+      ? '<div class="mpw-graf" id="mpwGraf">' +
+        g.svg +
+        '<div class="mpw-dica" id="mpwDica"></div></div>'
+      : '<p class="mpw-vazio">A linha do tempo aparece a partir do segundo mês de uso.</p>');
+  if (g) _mpWebLigarDica(serie, g);
+}
+
+function _mpWebLigarDica(serie, g) {
+  const caixa = document.getElementById('mpwGraf');
+  const dica = document.getElementById('mpwDica');
+  if (!caixa || !dica) return;
+  const cursor = caixa.querySelector('.mpw-cursor');
+  const ponto = caixa.querySelector('.mpw-ponto');
+  const fmt = (v) => mpEsc(mpFmtBRL(v));
+  caixa.addEventListener('pointermove', (ev) => {
+    const r = caixa.getBoundingClientRect();
+    if (!r.width) return;
+    const xr = ((ev.clientX - r.left) / r.width) * g.W;
+    let i = 0;
+    let melhor = Infinity;
+    g.pts.forEach((p, k) => {
+      const dd = Math.abs(p[0] - xr);
+      if (dd < melhor) {
+        melhor = dd;
+        i = k;
+      }
+    });
+    const p = g.pts[i];
+    const s = serie[i];
+    caixa.classList.add('ativo');
+    if (cursor) {
+      cursor.setAttribute('x1', p[0]);
+      cursor.setAttribute('x2', p[0]);
+    }
+    if (ponto) {
+      ponto.setAttribute('cx', p[0]);
+      ponto.setAttribute('cy', p[1]);
+    }
+    dica.innerHTML =
+      '<b>Fim de ' +
+      _mpWebRotuloMes(s) +
+      (i === serie.length - 1 ? ' (hoje)' : '') +
+      '</b>' +
+      '<span>Total <em class="mpw-oculta" style="font-style:normal">' +
+      fmt(s.total) +
+      '</em></span>' +
+      '<span>Contas <em class="mpw-oculta" style="font-style:normal">' +
+      fmt(s.caixa) +
+      '</em></span>' +
+      '<span>Investido <em class="mpw-oculta" style="font-style:normal">' +
+      fmt(s.investido) +
+      '</em></span>' +
+      '<span>Bens <em class="mpw-oculta" style="font-style:normal">' +
+      fmt(s.bens) +
+      '</em></span>';
+    const px = (p[0] / g.W) * r.width;
+    dica.style.left = Math.min(Math.max(0, px + 12), r.width - 170) + 'px';
+  });
+  caixa.addEventListener('pointerleave', () => {
+    caixa.classList.remove('ativo');
+    const u = g.pts[g.pts.length - 1];
+    if (ponto) {
+      ponto.setAttribute('cx', u[0]);
+      ponto.setAttribute('cy', u[1]);
+    }
+  });
+}
+
+/** O balanço: o que você tem, o que você deve, e o líquido. */
+function mpRenderBalancoWeb(d) {
+  const el = document.getElementById('mpwBalanco');
+  if (!el || !d) return;
+  const k = d.kpis;
+  const partes = [
+    ['Saldo em conta', k.saldo, 'var(--cor-primaria)'],
+    ['Investimentos', k.investido, 'var(--cor-patrimonio)'],
+    ['Imóveis', k.imoveis, '#f59e0b'],
+    ['Veículos e outros bens', k.veiculos, '#64748b'],
+  ].filter((p) => Math.abs(p[1]) > 0.005);
+  if (!partes.length && !(d.dividas.total > 0)) {
+    el.innerHTML =
+      '<h3 style="margin:0 0 6px;font-size:14px">Do que ele é feito</h3><p class="mpw-vazio">Cadastre uma conta, um investimento ou um bem para ver o balanço.</p>';
+    return;
+  }
+  const positivo = partes.reduce((a, p) => a + Math.max(0, p[1]), 0);
+  const barra = partes
+    .filter((p) => p[1] > 0)
+    .map(
+      (p) =>
+        // Largura em CSS com ponto: vírgula invalida o style e o segmento some.
+        '<span style="width:' +
+        ((p[1] / (positivo || 1)) * 100).toFixed(2) +
+        '%;background:' +
+        p[2] +
+        '" title="' +
+        mpEsc(p[0]) +
+        '"></span>'
+    )
+    .join('');
+  const linha = (nome, v, cor, pct, neg) =>
+    '<div class="mpw-lin' +
+    (pct == null ? ' sem-pct' : '') +
+    (neg ? ' neg' : '') +
+    '"><i style="background:' +
+    cor +
+    '"></i><span>' +
+    mpEsc(nome) +
+    '</span><span class="mpw-num mpw-oculta">' +
+    (neg ? '−' : '') +
+    mpEsc(mpFmtBRL(Math.abs(v))) +
+    '</span>' +
+    (pct == null ? '' : '<span class="mpw-pct">' + mpPctBR(pct) + '</span>') +
+    '</div>';
+  let html =
+    '<h3 style="margin:0;font-size:14px">Do que ele é feito</h3><div class="mpw-barra" aria-hidden="true">' +
+    barra +
+    '</div>' +
+    '<div class="mpw-grupo"><span>O que você tem</span><b class="mpw-oculta">' +
+    mpEsc(mpFmtBRL(k.total)) +
+    '</b></div>' +
+    partes.map((p) => linha(p[0], p[1], p[2], mpFatiaDoTotal(p[1], k.total), false)).join('');
+  if (d.dividas.total > 0.005) {
+    html +=
+      '<div class="mpw-grupo"><span>O que você deve</span><b class="mpw-oculta">' +
+      mpEsc(mpFmtBRL(d.dividas.total)) +
+      '</b></div>' +
+      d.dividas.bens.map((x) => linha(x.nome, x.valor, 'var(--cor-erro)', null, true)).join('') +
+      d.dividas.cartoes
+        .map((x) => linha('Fatura · ' + x.nome, x.valor, 'var(--cor-erro)', null, true))
+        .join('');
+  }
+  html +=
+    '<div class="mpw-total"><span>' +
+    (d.dividas.total > 0.005 ? 'Patrimônio líquido' : 'Total') +
+    '</span><span class="mpw-num mpw-oculta">' +
+    mpEsc(mpFmtBRL(k.total - d.dividas.total)) +
+    '</span></div>';
+  el.innerHTML = html;
+}
+
+/** Por que mudou: a variação do último mês, parcela por parcela. */
+function mpRenderMudouWeb(d) {
+  const el = document.getElementById('mpwMudou');
+  if (!el) return;
+  const m = mpMudancaDoMes(d && d.serie);
+  if (!m) {
+    el.innerHTML =
+      '<h3 style="margin:0 0 6px;font-size:14px">Por que mudou</h3><p class="mpw-vazio">A partir do segundo mês, mostramos aqui quanto veio do que sobrou nas contas e quanto veio da valorização.</p>';
+    return;
+  }
+  const num = (v) => {
+    const cls = Math.abs(v) < 0.005 ? '' : v > 0 ? ' pos' : ' neg';
+    return (
+      '<span class="mpw-num mpw-oculta' +
+      cls +
+      '">' +
+      (v > 0.005 ? '+' : v < -0.005 ? '−' : '') +
+      mpEsc(mpFmtBRL(Math.abs(v))) +
+      '</span>'
+    );
+  };
+  const linhas = [
+    [
+      'Sobrou nas contas',
+      'o que entrou menos o que saiu, sem contar o que foi investido',
+      m.contas,
+    ],
+    [
+      'Valorização dos investimentos',
+      m.aportes > 0.005 ? 'além dos ' + mpFmtBRL(m.aportes) + ' aplicados' : 'sem contar aportes',
+      m.valorizacao,
+    ],
+    ['Bens', 'nova avaliação, compra ou venda', m.bens],
+  ];
+  el.innerHTML =
+    '<h3 style="margin:0 0 4px;font-size:14px">Por que mudou</h3>' +
+    '<span class="mpw-sub">De ' +
+    _mpWebRotuloMes(m.de) +
+    ' até hoje</span>' +
+    linhas
+      .map(
+        (l) =>
+          '<div class="mpw-mud"><span>' +
+          l[0] +
+          '</span>' +
+          num(l[2]) +
+          '<small>' +
+          mpEsc(l[1]) +
+          '</small></div>'
+      )
+      .join('') +
+    '<div class="mpw-total"><span>Variação</span>' +
+    num(m.total) +
+    '</div>';
+}
+
+/** Investimentos por classe, em lista: valor, fatia e quanto rendeu. */
+function mpRenderClassesWeb(consolidado) {
+  const wrap = document.getElementById('mp-classes-lista');
+  if (!wrap) return;
+  const porCat = (consolidado && consolidado.porCategoriaExibicao) || {};
+  const itens = Object.keys(porCat)
+    .map((cat) => ({ cat, investido: porCat[cat].investido, atual: porCat[cat].atual }))
+    .filter((it) => it.atual > 0.01)
+    .sort((a, b) => b.atual - a.atual);
+  if (!itens.length) {
+    wrap.innerHTML =
+      '<p class="mpw-vazio">Nenhum investimento ainda. Registre um aporte em Meus investimentos.</p>';
+    return;
+  }
+  const total = itens.reduce((a, it) => a + it.atual, 0);
+  wrap.innerHTML = itens
+    .map((it) => {
+      const pct = (it.atual / total) * 100;
+      const r = it.investido > 0 ? ((it.atual - it.investido) / it.investido) * 100 : null;
+      // Rendimento só aparece quando há o que dizer: "0,0%" sem histórico
+      // parecia resultado.
+      const rend =
+        r != null && Math.abs(r) >= 0.05
+          ? '<small class="' +
+            (r > 0 ? 'pos' : 'neg') +
+            '">' +
+            mpFmtPct(r) +
+            ' sobre o que foi aplicado</small>'
+          : '';
+      return (
+        '<div class="mpw-classe"><div class="mpw-classe-topo"><span>' +
+        mpEsc(MP_LABELS[it.cat] || it.cat) +
+        ' <span class="mpw-sub">' +
+        mpPctBR(pct) +
+        '</span></span><span class="mpw-num mpw-oculta">' +
+        mpEsc(mpFmtBRL(it.atual)) +
+        '</span></div>' +
+        '<div class="mpw-classe-trilho"><span style="width:' +
+        pct.toFixed(1) +
+        '%;background:' +
+        mpCorCategoria(it.cat) +
+        '"></span></div>' +
+        rend +
+        '</div>'
+      );
+    })
+    .join('');
+}
+
+/** Fôlego: liquidez, reserva em meses e proventos previstos. */
+function mpRenderFolegoWeb(d) {
+  const el = document.getElementById('mpwFolego');
+  if (!el || !d) return;
+  const f = d.folego;
+  const blocos = [];
+  blocos.push(
+    '<div class="mpw-fol"><div class="mpw-fol-topo"><b>Disponível em até 1 dia</b><span class="mpw-num mpw-oculta">' +
+      mpEsc(mpFmtBRL(f.disponivel)) +
+      '</span></div>' +
+      '<div class="mpw-classe-trilho"><span style="width:' +
+      (f.pctDisponivel || 0).toFixed(1) +
+      '%;background:var(--cor-primaria)"></span></div>' +
+      '<small>' +
+      (f.pctDisponivel == null
+        ? 'Saldo em conta, ações, FIIs e reserva de emergência.'
+        : mpPctBR(f.pctDisponivel) +
+          ' do que você tem: saldo em conta, ações, FIIs e reserva. Renda fixa e previdência dependem do prazo de resgate.') +
+      '</small></div>'
+  );
+  blocos.push(
+    '<div class="mpw-fol"><div class="mpw-fol-topo"><b>Reserva cobre</b><span class="mpw-num">' +
+      (f.reservaMeses == null ? '—' : f.reservaMeses.toFixed(1).replace('.', ',') + ' meses') +
+      '</span></div>' +
+      '<small>' +
+      (f.reservaMeses == null
+        ? 'Lance seus gastos no Controle para calcularmos quantos meses o saldo em conta cobre.'
+        : 'o saldo em conta dividido pelo seu gasto médio de <span class="mpw-oculta">' +
+          mpEsc(mpFmtBRL(f.custoMedio)) +
+          '</span> por mês') +
+      '</small></div>'
+  );
+  if (f.proventos)
+    blocos.push(
+      '<div class="mpw-fol"><div class="mpw-fol-topo"><b>Proventos previstos 12 meses</b><span class="mpw-num mpw-oculta">' +
+        mpEsc(mpFmtBRL(f.proventos.total)) +
+        '</span></div>' +
+        '<small>em média <span class="mpw-oculta">' +
+        mpEsc(mpFmtBRL(f.proventos.mediaMensal)) +
+        '</span> por mês, pelo que os seus ativos pagaram nos últimos 12 meses</small></div>'
+    );
+  el.innerHTML = '<h3 style="margin:0 0 2px;font-size:14px">Fôlego</h3>' + blocos.join('');
+}
+
 async function renderMeuPatrimonio(skipFetch) {
   if (typeof aplicarTemaChartJs === 'function') aplicarTemaChartJs();
   if (typeof normalizarDespesasProgramadas === 'function') normalizarDespesasProgramadas();
@@ -1329,11 +1742,32 @@ async function renderMeuPatrimonio(skipFetch) {
   // Resumo consolidado por instituição (banco/corretora), com o detalhe das
   // classes que cada uma guarda — o coração da foto.
   mpRenderInstituicoes(consolidado);
-  // Somatória de cada tipo de investimento (= KPI Total investido) — gráfico de barras.
-  mpRenderClasses(consolidado);
+  // Somatória de cada tipo de investimento (= KPI Total investido), em lista.
+  mpRenderClassesWeb(consolidado);
   if (typeof renderMinhasContas === 'function') renderMinhasContas();
   if (typeof renderMeusBens === 'function') renderMeusBens();
   if (!skipFetch && typeof bemAtualizarFipeAuto === 'function') bemAtualizarFipeAuto();
+  const dividas = mpDividas(new Date());
+  // A série percorre meses de lançamentos e operações; calculada uma vez e
+  // usada pelo web e pelo celular.
+  let serie = [];
+  try {
+    serie = mpSerieMensalPatrimonio();
+  } catch (e) {
+    serie = [];
+  }
+  const web = {
+    kpis: kpis,
+    dividas: dividas,
+    serie: serie,
+    posicaoMs: janela.fimMs,
+    folego: mpFolego(kpis, consolidado),
+  };
+  mpEstado._web = web;
+  mpRenderHeroiWeb(web);
+  mpRenderBalancoWeb(web);
+  mpRenderMudouWeb(web);
+  mpRenderFolegoWeb(web);
   // No celular a foto tem formato próprio (appliquei-mobile.js), com os
   // números que os blocos acima acabaram de calcular.
   if (typeof mobRenderPatrimonio === 'function')
@@ -1341,9 +1775,13 @@ async function renderMeuPatrimonio(skipFetch) {
       kpis: kpis,
       instituicoes: mpEstado._instituicoes || [],
       porClasse: consolidado.porCategoriaExibicao || {},
-      divida: typeof totalDividaBens === 'function' ? totalDividaBens() : 0,
+      divida: dividas.total,
+      dividas: dividas,
+      folego: web.folego,
       posicaoMs: janela.fimMs,
-      serie: mpSerieMensalPatrimonio,
+      serie: function () {
+        return serie;
+      },
     });
 }
 
@@ -1371,8 +1809,10 @@ function mpSerieMensalPatrimonio() {
     if (periodoAntes !== null) periodoEvolucao = periodoAntes;
   }
   const mercadoPorMes = {};
+  const custoPorMes = {};
   (inv.meses || []).forEach((d, i) => {
     mercadoPorMes[d.getFullYear() + '-' + d.getMonth()] = inv.mercado[i] || 0;
+    custoPorMes[d.getFullYear() + '-' + d.getMonth()] = (inv.investido || [])[i] || 0;
   });
 
   // Começo: o mais antigo entre o primeiro investimento, o primeiro
@@ -1401,6 +1841,9 @@ function mpSerieMensalPatrimonio() {
     const fim = Math.min(new Date(ano, mes + 1, 0, 23, 59, 59, 999).getTime(), agora);
     const caixa = mpCalcularSaldoTotal(fim);
     const investido = mercadoPorMes[ano + '-' + mes] || 0;
+    // Quanto foi aplicado até o fim do mês (custo). A diferença entre dois
+    // meses é o aporte líquido — o que separa aporte de valorização.
+    const custo = custoPorMes[ano + '-' + mes] || 0;
     const bens =
       typeof rmBensAteFimDoMes === 'function' ? rmBensAteFimDoMes(mes, ano).total || 0 : 0;
     pontos.push({
@@ -1409,6 +1852,7 @@ function mpSerieMensalPatrimonio() {
       ms: fim,
       caixa,
       investido,
+      custo,
       bens,
       total: caixa + investido + bens,
     });
