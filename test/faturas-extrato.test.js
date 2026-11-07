@@ -296,7 +296,11 @@ test('origem: cartão, conta, banco digitado ou sem conta', () => {
 test('a tela tem Faturas, ordem, conta/cartão e o rodapé do filtro', () => {
   assert.match(HTML, /id="telaFaturas"/);
   assert.match(HTML, /onclick="abrirFaturas\(\)"/, 'botão Faturas no cabeçalho do Controle');
-  assert.match(HTML, /id="faturasBtnAtual"[^>]*onclick="faturasIrParaAtual\(\)"/);
+  assert.match(
+    HTML,
+    /class="fat-btn-cartoes" onclick="faturasAbrirCartoes\(\)"/,
+    'atalho Cartões no topo'
+  );
   assert.match(HTML, /id="extratoOrdem"[^>]*onchange="mudarOrdemExtrato\(this\.value\)"/);
   assert.match(HTML, /id="extratoOrigem"[^>]*onchange="filtrarExtratoPorOrigem\(this\.value\)"/);
   assert.match(HTML, /id="extratoRodape"/);
@@ -395,4 +399,57 @@ test('atalhos do cabeçalho: ícone no centro, sem o espaço da palavra escondid
   assert.match(HTML, /<span class="btn-rotulo">Faturas<\/span>/);
   assert.match(HTML, /#controle \.page-actions \.btn-rotulo \{ display: none; \}/);
   assert.match(HTML, /#controle \.page-actions > \.btn-config \{ gap: 0 !important; \}/);
+});
+
+// ---------------------------------------------------------------------------
+// Tela da fatura: parcela, limite e o que já está comprometido
+// ---------------------------------------------------------------------------
+
+test('parcela sai da descrição "(N/M)"; compra à vista não tem parcela', () => {
+  const s = mundo();
+  assert.deepEqual(JSON.parse(JSON.stringify(s.faturaParcelaDe({ descricao: 'TV Sala (2/5)' }))), {
+    base: 'TV Sala',
+    n: 2,
+    m: 5,
+  });
+  assert.equal(s.faturaParcelaDe({ descricao: 'Mercado' }).m, 0);
+  assert.equal(s.faturaParcelaDe({ descricao: 'Mercado' }).base, 'Mercado');
+});
+
+test('limite em uso conta tudo o que falta pagar, inclusive as próximas faturas', () => {
+  const s = mundo();
+  compra(s, '2026-10-15', 400);
+  compra(s, '2026-11-15', 300, { descricao: 'TV (1/2)' });
+  compra(s, '2026-12-15', 300, { descricao: 'TV (2/2)' });
+  compra(s, '2026-09-15', 999, { pago: true, pagoEm: '2026-09-14' });
+  const ciclos = s.faturasDoCartao('card_nu', HOJE);
+  const uso = s.faturaUsoDoLimite(s.cartoes[0], ciclos);
+  assert.equal(uso.usado, 1000);
+  assert.equal(uso.disponivel, 4000);
+  assert.equal(uso.pct, 20);
+  assert.equal(s.faturaUsoDoLimite({ limite: 0 }, ciclos), null);
+
+  const depois = s.faturaComprometidoDepois(ciclos, '2026-10-15');
+  assert.deepEqual(
+    depois.map((c) => c.vencimento),
+    ['2026-11-15', '2026-12-15']
+  );
+});
+
+test('a tela desenha resumo, compras com parcela e o comprometido', () => {
+  const s = mundo();
+  compra(s, '2026-11-15', 300, { id: 'tv1', descricao: 'TV (1/2)' });
+  compra(s, '2026-12-15', 300, { id: 'tv2', descricao: 'TV (2/2)' });
+  const corpo = { innerHTML: '', querySelector: () => null };
+  const modal = { style: {} };
+  s.document.getElementById = (id) =>
+    id === 'faturasCorpo' ? corpo : id === 'telaFaturas' ? modal : null;
+  s.abrirFaturas('card_nu', '2026-11-15');
+  assert.match(corpo.innerHTML, /class="fat-heroi/);
+  assert.match(corpo.innerHTML, /data-id="tv1"/);
+  assert.match(corpo.innerHTML, /parcela 1 de 2/);
+  assert.match(corpo.innerHTML, /% do limite de/);
+  assert.match(corpo.innerHTML, /Já comprometido nas próximas faturas/);
+  assert.match(corpo.innerHTML, /faturasIrPara\('2026-12-15'\)/);
+  assert.match(corpo.innerHTML, /class="fat-lado"/, 'lista lateral da web');
 });
