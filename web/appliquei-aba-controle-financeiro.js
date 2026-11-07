@@ -2795,6 +2795,20 @@ function renderDreBarras(d) {
 }
 
 /** O resumo de um mês da projeção, com os números que a tabela trazia. */
+/** Categorias de gasto que aparecem na janela da DRE, da maior soma para a menor. */
+function dreCategoriasOrdenadas(meses) {
+  const soma = {};
+  (meses || []).forEach((m) => {
+    Object.keys(m.categorias || {}).forEach((k) => {
+      soma[k] = (soma[k] || 0) + (Number(m.categorias[k]) || 0);
+    });
+  });
+  return Object.keys(soma)
+    .filter((k) => soma[k] > 0.005)
+    .map((k) => ({ slug: k, total: soma[k] }))
+    .sort((a, b) => b.total - a.total);
+}
+
 function ctrlDreDetalheHtml(d, i) {
   const m = d.meses[i] || {};
   const n = (v) => Number(v) || 0;
@@ -2838,6 +2852,104 @@ function ctrlDreDetalheHtml(d, i) {
     formatarMoeda(acumulada) +
     '</b></div></div></div></div>'
   );
+}
+
+/** Celular: mostra/esconde a tabela mês a mês completa abaixo dos cartões. */
+/**
+ * O mês por tipo: Receitas, Despesas (fixas e variáveis), Cartão,
+ * Investimentos e Sonhos — cada um com o total e quanto pesa no que entrou.
+ * Tocar num deles abre o extrato já filtrado por aquele tipo. `r` é o
+ * resultado de calcularResumoMes (os mesmos números da tabela).
+ */
+function ctlTiposDoMes(r) {
+  const n = (v) => Number(v) || 0;
+  const entrou = n(r.receita) + n(r.resgate);
+  return [
+    { tipo: 'receita', rot: 'Receitas', v: entrou, cls: 'rec', icone: 'ph-arrow-down-left' },
+    {
+      tipo: 'despesa',
+      rot: 'Despesas',
+      v: n(r.despFixa) + n(r.despVar),
+      cls: 'desp',
+      icone: 'ph-receipt',
+    },
+    { tipo: 'cartao', rot: 'Cartão', v: n(r.cartao), cls: 'cart', icone: 'ph-credit-card' },
+    {
+      tipo: 'investimento',
+      rot: 'Investimentos',
+      v: n(r.invFixo) + n(r.invVar),
+      cls: 'inv',
+      icone: 'ph-trend-up',
+    },
+    { tipo: 'sonho', rot: 'Sonhos', v: n(r.sonho), cls: 'son', icone: 'ph-star' },
+  ].map((x) =>
+    Object.assign(x, {
+      pct: x.tipo !== 'receita' && entrou > 0 ? Math.round((x.v / entrou) * 100) : null,
+    })
+  );
+}
+
+function ctlTiposHtml(r) {
+  return (
+    '<div class="ctl-tipos-grade">' +
+    ctlTiposDoMes(r)
+      .map(
+        (x) =>
+          '<button type="button" class="ctl-tipo ' +
+          x.cls +
+          '" onclick="ctlIrParaTipo(\'' +
+          x.tipo +
+          '\')"><span class="ctl-tipo-rot"><i class="ph ' +
+          x.icone +
+          '" aria-hidden="true"></i>' +
+          x.rot +
+          '</span><b class="valor-mascarado">' +
+          formatarMoeda(x.v) +
+          '</b><small>' +
+          (x.pct != null ? x.pct + '% do que entrou' : 'entrou no mês') +
+          '</small></button>'
+      )
+      .join('') +
+    '</div>'
+  );
+}
+
+/** Abre o extrato filtrado por um tipo (no celular, troca para a aba Extrato). */
+function ctlIrParaTipo(tipo) {
+  const aba = Array.from(document.querySelectorAll('.ext-tab')).find((b) =>
+    (b.getAttribute('onclick') || '').includes("'" + tipo + "'")
+  );
+  if (typeof mobEhCelular === 'function' && mobEhCelular() && typeof mobSegControle === 'function')
+    mobSegControle('extrato');
+  if (aba) aba.click();
+  else if (typeof filtrarExtrato === 'function') filtrarExtrato(null, tipo);
+  const alvo = document.querySelector('.ctl-linha-extrato');
+  if (
+    alvo &&
+    typeof alvo.scrollIntoView === 'function' &&
+    !(typeof mobEhCelular === 'function' && mobEhCelular())
+  ) {
+    try {
+      alvo.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    } catch (_e) {}
+  }
+}
+
+function ctlAlternarTabelaMesAMes() {
+  const sec = document.getElementById('controle');
+  if (!sec) return;
+  const aberta = sec.classList.toggle('ctl-mm-aberta');
+  const btn = document.getElementById('btnTabelaMesAMes');
+  if (btn) {
+    btn.setAttribute('aria-expanded', aberta ? 'true' : 'false');
+    btn.textContent = aberta ? 'Esconder tabela' : 'Ver tabela mês a mês';
+  }
+  const card = document.getElementById('cardTabelaDRE');
+  if (aberta && card && typeof card.scrollIntoView === 'function') {
+    try {
+      card.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    } catch (_e) {}
+  }
 }
 
 function ctrlDreSelecionar(i) {
@@ -5174,13 +5286,19 @@ function atualizarTelaControle() {
       invExterno: r.invExterno || 0,
       sonho: r.sonho,
       despesas: despesas,
+      despFixa: r.despFixa,
+      despVar: r.despVar,
+      cartao: r.cartao,
+      // Despesas consumidas abertas por categoria de gasto (fixas, variáveis e
+      // cartão juntos, como o usuário pensa o mês).
+      categorias: calcularDespesasPorCategoria(m, a),
       saldoAcumulado: resultadoMes,
       saldoCarregado: saldoCarregadoMes,
     });
     labelsMeses.push(`${nomeMeses[m]}/${a.toString().slice(-2)}`);
   }
 
-  let htmlThead = `<tr><th class="coluna-fixa" style="min-width: 190px;">Demonstrativo contábil</th>`;
+  let htmlThead = `<tr><th class="coluna-fixa" style="min-width: 240px;">Demonstrativo contábil</th>`;
   labelsMeses.forEach((lbl, index) => {
     htmlThead += `<th style="text-align: right; min-width: 120px; ${index === indiceMesAtual ? 'background-color: var(--cor-bg-info);' : ''}">${lbl}</th>`;
   });
@@ -5188,25 +5306,25 @@ function atualizarTelaControle() {
   theadDRE.innerHTML = htmlThead;
 
   let htmlLinhas = '';
-  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Receita Total</td>`;
+  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Receita total</td>`;
   dreDados.forEach((d, i) => {
     htmlLinhas += `<td style="text-align: right; color: var(--tinta-verde); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${formatarMoeda(d.receita)}</td>`;
   });
   htmlLinhas += `</tr>`;
 
-  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Resgates (Venda de Ativos)</td>`;
+  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Resgates (venda de ativos)</td>`;
   dreDados.forEach((d, i) => {
     htmlLinhas += `<td style="text-align: right; color: var(--tinta-verde); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${formatarMoeda(d.resgate)}</td>`;
   });
   htmlLinhas += `</tr>`;
 
-  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Investimento (Renda Fixa)</td>`;
+  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Investimento (renda fixa)</td>`;
   dreDados.forEach((d, i) => {
     htmlLinhas += `<td style="text-align: right; color: var(--tinta-azul); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${d.invFixo > 0 ? '-' + formatarMoeda(d.invFixo) : 'R$ 0,00'}</td>`;
   });
   htmlLinhas += `</tr>`;
 
-  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Investimento (Renda Variável)</td>`;
+  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Investimento (renda variável)</td>`;
   dreDados.forEach((d, i) => {
     htmlLinhas += `<td style="text-align: right; color: var(--tinta-azul); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${d.invVar > 0 ? '-' + formatarMoeda(d.invVar) : 'R$ 0,00'}</td>`;
   });
@@ -5231,11 +5349,23 @@ function atualizarTelaControle() {
   });
   htmlLinhas += `</tr>`;
 
-  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Despesas Consumidas</td>`;
+  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Despesas consumidas</td>`;
   dreDados.forEach((d, i) => {
     htmlLinhas += `<td style="text-align: right; color: var(--tinta-vermelho); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${d.despesas > 0 ? '-' + formatarMoeda(d.despesas) : 'R$ 0,00'}</td>`;
   });
   htmlLinhas += `</tr>`;
+
+  // As despesas abertas por categoria, todas — da que mais pesa no período
+  // para a que menos pesa. A soma das linhas fecha com "Despesas consumidas".
+  dreCategoriasOrdenadas(dreDados).forEach((c) => {
+    const rot = c.slug === '__sem_categoria__' ? 'Sem categoria' : rotuloCategoriaDespesa(c.slug);
+    htmlLinhas += `<tr class="dre-cat"><td class="coluna-fixa">↳ ${escaparHtmlAtivo(rot)}</td>`;
+    dreDados.forEach((d, i) => {
+      const v = Number((d.categorias || {})[c.slug]) || 0;
+      htmlLinhas += `<td style="text-align: right; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${v > 0.005 ? '-' + formatarMoeda(v) : '—'}</td>`;
+    });
+    htmlLinhas += `</tr>`;
+  });
 
   // Linha fixa: saldo do mês anterior carregado automaticamente (running balance).
   // Cor própria (roxo) p/ destacar que é herdado, não gerado no mês. O lápis no
@@ -5344,8 +5474,11 @@ function atualizarTelaControle() {
   pintarAvisosNaSaude();
 
   // Início no celular (appliquei-mobile.js): os mesmos totais dos cards.
+  const elTipos = document.getElementById('ctlTipos');
+  if (elTipos) elTipos.innerHTML = ctlTiposHtml(rPizza);
   if (typeof mobRenderInicio === 'function')
     mobRenderInicio({
+      tipos: rPizza,
       mes: visaoMes,
       ano: visaoAno,
       saldoLivre: saldoLivre,

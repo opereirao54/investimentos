@@ -276,23 +276,11 @@ function mobRenderDRE(d) {
     })
     .join('');
 
-  // Cartões: só as linhas com movimento naquele mês.
-  const linha = (rot, v, cls, sinal) =>
-    Math.abs(v) < 0.005
-      ? ''
-      : '<div class="mdre-linha"><span>' +
-        rot +
-        '</span><span class="mdre-v ' +
-        cls +
-        '">' +
-        (sinal === '-' ? '−' : sinal === '+' ? '+' : '') +
-        fmt(Math.abs(v)) +
-        '</span></div>';
+  // Um cartão por mês, no formato da tabela mês a mês.
   const cartoes = meses
     .map((m, i) => {
       const v = resultados[i];
       const atual = i === d.indiceAtual;
-      const inv = (m.invFixo || 0) + (m.invVar || 0);
       const acum = d.acumulado ? d.acumulado[i] : 0;
       const antes = i === 0 ? d.acumuladoInicial || 0 : d.acumulado[i - 1];
       const deltaAcum = acum - antes;
@@ -303,24 +291,62 @@ function mobRenderDRE(d) {
           m.ano +
           ')"><i class="ph ph-pencil-simple"></i></button>'
         : '';
-      const herdado =
-        Math.abs(m.saldoCarregado || 0) < 0.005
-          ? ''
-          : '<div class="mdre-linha herdado"><span>Saldo anterior' +
-            lapis +
-            '</span><span class="mdre-v ' +
-            (m.saldoCarregado < 0 ? 'neg' : 'roxo') +
-            '">' +
-            fmt(m.saldoCarregado) +
-            '</span></div>';
+      // O mês no formato da tabela: todas as linhas, mesmo as zeradas, e as
+      // despesas abertas por categoria logo abaixo do total delas.
+      const lin = (rot, v, cls, sinal, extra) =>
+        '<div class="mdre-linha' +
+        (extra || '') +
+        '"><span>' +
+        rot +
+        '</span><span class="mdre-v ' +
+        cls +
+        '">' +
+        (sinal === '-' && v > 0.005 ? '−' : '') +
+        fmt(Math.abs(v)) +
+        '</span></div>';
+      const cats = Object.keys(m.categorias || {})
+        .map((k) => ({ k, v: Number(m.categorias[k]) || 0 }))
+        .filter((c) => c.v > 0.005)
+        .sort((a, b) => b.v - a.v);
+      const catsHtml = cats
+        .map(
+          (c) =>
+            '<div class="mdre-linha mdre-cat"><span>' +
+            _mobEsc(
+              c.k === '__sem_categoria__'
+                ? 'Sem categoria'
+                : typeof rotuloCategoriaDespesa === 'function'
+                  ? rotuloCategoriaDespesa(c.k)
+                  : c.k
+            ) +
+            '</span><span class="mdre-v vermelho">−' +
+            fmt(c.v) +
+            '</span></div>'
+        )
+        .join('');
       const corpo =
-        linha('Receita', m.receita, 'verde', '+') +
-        linha('Resgates', m.resgate, 'verde', '+') +
-        linha('Despesas', m.despesas, 'vermelho', '-') +
-        linha('Investimentos', inv, 'azul', '-') +
-        linha('Aporte externo', m.invExterno, 'mudo', '') +
-        linha('Sonhos', m.sonho, 'roxo', '-') +
-        herdado;
+        lin('Receita total', m.receita || 0, 'verde') +
+        lin('Resgates (venda de ativos)', m.resgate || 0, 'verde') +
+        lin('Investimento (renda fixa)', m.invFixo || 0, 'azul', '-') +
+        lin('Investimento (renda variável)', m.invVar || 0, 'azul', '-') +
+        (Math.abs(m.invExterno || 0) > 0.005
+          ? lin('Aporte externo (fora do caixa)', m.invExterno, 'mudo')
+          : '') +
+        lin('Sonhos (separado p/ metas)', m.sonho || 0, 'roxo', '-') +
+        lin('Despesas consumidas', m.despesas || 0, 'vermelho', '-', ' mdre-desp') +
+        catsHtml +
+        '<div class="mdre-linha herdado"><span>↳ Saldo do mês anterior' +
+        lapis +
+        '</span><span class="mdre-v ' +
+        ((m.saldoCarregado || 0) < 0 ? 'neg' : 'roxo') +
+        '">' +
+        (Math.abs(m.saldoCarregado || 0) < 0.005 ? '—' : fmt(m.saldoCarregado)) +
+        '</span></div>' +
+        '<div class="mdre-linha mdre-total"><span>Resultado do mês</span><span class="mdre-v ' +
+        _mobDreClasse(v, d) +
+        '">' +
+        fmt(v) +
+        '</span></div>';
       return (
         '<article class="mdre-card' +
         (atual ? ' atual' : '') +
@@ -1329,7 +1355,13 @@ function mobRenderInicio(d) {
     '</section>' +
     '<nav class="mi-atalhos" aria-label="Atalhos">' +
     atalhos +
-    '</nav>';
+    '</nav>' +
+    // Receitas, despesas, cartão, investimentos e sonhos do mês.
+    (d.tipos && typeof ctlTiposHtml === 'function'
+      ? '<section class="mi-tipos" aria-label="O mês por tipo">' +
+        ctlTiposHtml(d.tipos) +
+        '</section>'
+      : '');
 
   // "Para onde foi" entrou no cartão do topo (_mobDestinoNoCartao); a
   // projeção mora na aba Projeção. Ordem do canvas: O que notamos, Falta
