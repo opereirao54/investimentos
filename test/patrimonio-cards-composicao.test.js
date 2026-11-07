@@ -247,3 +247,39 @@ test('a barra do balanço usa ponto no CSS', () => {
   assert.match(corpo, /toFixed\(2\)\s*\+\s*'%;background:'/);
   assert.ok(!/mpPctBR\([^)]*\) \+ '%;background/.test(corpo));
 });
+
+test('painel da instituição: filtros do extrato e caixa no fim de cada mês', () => {
+  const s = carregarApp({}, ORDEM_BASE);
+  const agora = new Date(2026, 10, 7, 12).getTime();
+  const ts = (m, d) => new Date(2026, m, d, 12).getTime();
+  const movs = [
+    { ts: ts(0, 1), desc: 'Saldo inicial', valor: 1000, abertura: true, saldoApos: 1000 },
+    { ts: ts(8, 5), desc: 'Salário', valor: 500, saldoApos: 1500 },
+    { ts: ts(10, 3), desc: 'Mercado', valor: -200, saldoApos: 1300 },
+    { ts: ts(10, 5), desc: 'Salário', valor: 500, saldoApos: 1800 },
+  ];
+  const mes = s.mpFiltrarExtratoPainel(movs, 'mes', 'todos', agora);
+  assert.deepEqual(
+    mes.map((m) => m.valor),
+    [-200, 500],
+    'este mês: só novembro, sem a abertura'
+  );
+  assert.equal(s.mpFiltrarExtratoPainel(movs, '3m', 'todos', agora).length, 3, 'set a nov');
+  assert.equal(
+    s.mpFiltrarExtratoPainel(movs, 'tudo', 'todos', agora).length,
+    4,
+    'tudo inclui a abertura'
+  );
+  assert.deepEqual(
+    s.mpFiltrarExtratoPainel(movs, 'tudo', 'saidas', agora).map((m) => m.desc),
+    ['Mercado']
+  );
+  assert.ok(
+    s.mpFiltrarExtratoPainel(movs, 'tudo', 'entradas', agora).every((m) => m.valor > 0),
+    'entradas só com valor positivo'
+  );
+  // O caixa de cada mês é o saldo do último movimento até o fim dele.
+  const barras = s.mpCaixaFimDeMes(movs, 6);
+  assert.equal(barras.length, 6);
+  assert.equal(barras[barras.length - 1].atual, true, 'a última barra é o mês corrente');
+});

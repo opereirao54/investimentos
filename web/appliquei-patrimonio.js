@@ -967,7 +967,7 @@ function mpRenderInstituicoes(consolidado) {
         // O ⋯ abre as ações da conta. Antes elas ficavam numa segunda lista
         // ("Minhas Contas") que repetia as mesmas instituições.
         const acoes = [
-          `<button type="button" onclick="mpToggleExtrato(${i})"><i class="ph ph-receipt"></i> ${aberto ? 'Fechar extrato' : 'Ver extrato'}</button>`,
+          `<button type="button" onclick="mpAbrirPainelInst(${i})"><i class="ph ph-receipt"></i> Ver extrato</button>`,
           `<button type="button" onclick="abrirTransferenciaModal()"><i class="ph ph-arrows-left-right"></i> Transferir</button>`,
         ];
         if (ehConta)
@@ -986,7 +986,7 @@ function mpRenderInstituicoes(consolidado) {
             : '<span class="mpd-num mpd-traco">—</span>';
         return `
             <div class="mpd-inst${aberto ? ' aberto' : ''}">
-                <div class="mpd-inst-lin" onclick="if (!event.target.closest('button')) mpToggleExtrato(${i})" title="Ver extrato">
+                <div class="mpd-inst-lin" onclick="if (!event.target.closest('button')) mpAbrirPainelInst(${i})" title="Ver extrato e ações">
                     <span class="mpd-inst-av" style="background:${accent};">${x.reconciliar ? '<i class="ph ph-warning"></i>' : mpEsc(mpIniciaisInstituicao(x.nome))}</span>
                     <span class="mpd-inst-nome"><b>${mpEsc(x.nome)}</b><small>${mpEsc(sub)}</small><span class="mpd-inst-trilho"><span style="width:${Math.max(2, Math.min(100, pct)).toFixed(1)}%;background:${accent};"></span></span></span>
                     ${num(x.caixa, true)}
@@ -1011,6 +1011,341 @@ function mpdMenuInstituicao(i) {
   if (key == null) return;
   mpEstado.menuAberto = mpEstado.menuAberto === key ? null : key;
   if (mpEstado._ultimoConsolidado) mpRenderInstituicoes(mpEstado._ultimoConsolidado);
+}
+
+// ============================================================
+// === Painel da instituição: saldo, ações, gráfico e extrato ===
+// ============================================================
+// Abre ao clicar numa instituição. No web é um painel à direita (como o do
+// Novo lançamento); no celular, a folha que sobe de baixo (mobFolhaAbrir).
+// O conteúdo é o mesmo nos dois.
+
+var mpPainel = { key: null, periodo: 'mes', tipo: 'todos', limite: 40 };
+
+var MP_MESES_CURTOS = [
+  'jan',
+  'fev',
+  'mar',
+  'abr',
+  'mai',
+  'jun',
+  'jul',
+  'ago',
+  'set',
+  'out',
+  'nov',
+  'dez',
+];
+
+function _mpPainelInst() {
+  return (mpEstado._instituicoes || []).filter((x) => x.key === mpPainel.key)[0] || null;
+}
+
+/** Abre o painel da i-ésima instituição da lista. */
+function mpAbrirPainelInst(i) {
+  const x = (mpEstado._instituicoes || [])[i];
+  if (!x) return;
+  if (mpPainel.key !== x.key) {
+    mpPainel.periodo = 'mes';
+    mpPainel.tipo = 'todos';
+    mpPainel.limite = 40;
+  }
+  mpPainel.key = x.key;
+  mpEstado.menuAberto = null;
+  mpDesenharPainelInst();
+}
+
+function mpFecharPainelInst() {
+  mpPainel.key = null;
+  const p = document.getElementById('mpdPainel');
+  if (p) {
+    p.hidden = true;
+    p.innerHTML = '';
+  }
+  document.body.classList.remove('mpd-painel-aberto');
+}
+
+function mpPainelFiltro(campo, valor) {
+  if (campo === 'periodo' || campo === 'tipo') mpPainel[campo] = valor;
+  mpPainel.limite = 40;
+  mpDesenharPainelInst();
+}
+
+function mpPainelMais() {
+  mpPainel.limite += 60;
+  mpDesenharPainelInst();
+}
+
+function mpDesenharPainelInst() {
+  const x = _mpPainelInst();
+  if (!x) return;
+  const html = mpPainelInstHtml(x);
+  // Um painel só: à direita no web, subindo de baixo no celular (CSS).
+  const p = document.getElementById('mpdPainel');
+  if (!p) return;
+  p.innerHTML = '<div class="mpx">' + html + '</div>';
+  p.hidden = false;
+  document.body.classList.add('mpd-painel-aberto');
+}
+
+/** Caixa da instituição no fim de cada um dos últimos `n` meses. */
+function mpCaixaFimDeMes(movs, n) {
+  const hoje = new Date();
+  const out = [];
+  for (let k = n - 1; k >= 0; k--) {
+    const fim =
+      k === 0
+        ? Date.now()
+        : new Date(hoje.getFullYear(), hoje.getMonth() - k + 1, 0, 23, 59, 59, 999).getTime();
+    let saldo = 0;
+    for (let j = 0; j < movs.length; j++) {
+      if (movs[j].ts > fim) break;
+      saldo = movs[j].saldoApos;
+    }
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - k, 1);
+    out.push({ rot: MP_MESES_CURTOS[d.getMonth()], valor: saldo, atual: k === 0 });
+  }
+  return out;
+}
+
+/** Filtra o extrato pelo período e tipo do painel (pura, testável). */
+function mpFiltrarExtratoPainel(movs, periodo, tipo, agoraMs) {
+  const agora = new Date(agoraMs || Date.now());
+  let ini = -Infinity;
+  if (periodo === 'mes') ini = new Date(agora.getFullYear(), agora.getMonth(), 1).getTime();
+  else if (periodo === '3m') ini = new Date(agora.getFullYear(), agora.getMonth() - 2, 1).getTime();
+  return movs.filter((m) => {
+    if (m.abertura && periodo !== 'tudo') return false;
+    if (m.ts < ini) return false;
+    if (tipo === 'entradas') return m.valor > 0;
+    if (tipo === 'saidas') return m.valor < 0;
+    return true;
+  });
+}
+
+function mpPainelInstHtml(x) {
+  const e = mpEsc;
+  const tipo = mpTipoInstituicao(x.key);
+  const conta = !x.reconciliar && typeof obterConta === 'function' ? obterConta(x.key) : null;
+  const totalGeral = (mpEstado._instituicoes || []).reduce((a, y) => a + y.total, 0);
+  const pct = totalGeral ? (x.total / totalGeral) * 100 : 0;
+  const movs = mpExtratoInstituicao(x.key, Date.now());
+  const idEsc = e(x.key);
+
+  // Cabeçalho e saldo
+  let html =
+    '<header class="mpx-cab"><span class="mpd-inst-av" style="background:' +
+    mpCorInstituicao(x.key, x.reconciliar) +
+    '">' +
+    (x.reconciliar ? '<i class="ph ph-warning"></i>' : e(mpIniciaisInstituicao(x.nome))) +
+    '</span><div class="mpx-tit"><h2>' +
+    e(x.nome) +
+    '</h2><small>' +
+    e(
+      [
+        tipo ? tipo.label : null,
+        conta && conta.dataSaldoInicial
+          ? 'desde ' + new Date(conta.dataSaldoInicial + 'T12:00:00').toLocaleDateString('pt-BR')
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' · ') || 'Instituição'
+    ) +
+    '</small></div><button type="button" class="mpx-fechar" aria-label="Fechar" onclick="mpFecharPainelInst()"><i class="ph ph-x"></i></button></header>' +
+    '<section class="mpx-saldo"><span class="mpd-rotulo">Saldo hoje</span><div class="mpx-valor mpd-oculta">' +
+    e(mpFmtBRL(x.total)) +
+    '</div><span class="mpd-sub">Caixa <b class="mpd-oculta">' +
+    e(mpFmtBRL(x.caixa)) +
+    '</b> · Investido <b class="mpd-oculta">' +
+    e(mpFmtBRL(x.investido)) +
+    '</b> · ' +
+    mpPctBR(pct) +
+    ' do seu dinheiro</span></section>';
+
+  // Ações
+  const acoes = [['abrirTransferenciaModal()', 'ph-arrows-left-right', 'Transferir', '']];
+  if (conta) {
+    acoes.push(
+      ['conferirAbrir(this.dataset.conta)', 'ph-check-circle', 'Conferir', ''],
+      ['editarContaForm(this.dataset.conta)', 'ph-pencil-simple', 'Editar', ''],
+      ['fundirContaPrompt(this.dataset.conta)', 'ph-arrows-merge', 'Fundir', ''],
+      ['arquivarContaUI(this.dataset.conta)', 'ph-archive', 'Arquivar', ' perigo']
+    );
+  }
+  html +=
+    '<nav class="mpx-acoes" aria-label="Ações da conta">' +
+    acoes
+      .map(
+        (a) =>
+          '<button type="button" class="mpx-acao' +
+          a[3] +
+          '" data-conta="' +
+          idEsc +
+          '" onclick="' +
+          a[0] +
+          '"><span><i class="ph ' +
+          a[1] +
+          '"></i></span>' +
+          a[2] +
+          '</button>'
+      )
+      .join('') +
+    '</nav>';
+  if (conta && typeof conferirAvisoHtml === 'function') html += conferirAvisoHtml(x.key, x.caixa);
+
+  // O que tem dentro (classes de investimento)
+  const classes = Object.keys(x.classes || {})
+    .filter((cl) => x.classes[cl] > 0.01)
+    .sort((a, b) => x.classes[b] - x.classes[a]);
+  if (classes.length)
+    html +=
+      '<div class="mpx-classes">' +
+      classes
+        .map(
+          (cl) =>
+            '<span><i style="background:' +
+            mpCorCategoria(cl) +
+            '"></i>' +
+            e(MP_LABELS[cl] || cl) +
+            ' <b class="mpd-oculta">' +
+            e(mpFmtBRL(x.classes[cl])) +
+            '</b></span>'
+        )
+        .join('') +
+      '</div>';
+
+  // Caixa no fim de cada mês
+  if (movs.length) {
+    const barras = mpCaixaFimDeMes(movs, 6);
+    const max = Math.max(1, ...barras.map((b) => Math.abs(b.valor)));
+    html +=
+      '<section class="mpx-graf"><div class="mpd-topo"><b>Caixa no fim de cada mês</b><span class="mpd-sub">6 meses</span></div><div class="mpx-barras">' +
+      barras
+        .map(
+          (b) =>
+            '<div class="mpx-col' +
+            (b.atual ? ' atual' : '') +
+            (b.valor < 0 ? ' neg' : '') +
+            '" title="' +
+            e(b.rot + ': ' + mpFmtBRL(b.valor)) +
+            '"><span style="height:' +
+            Math.max(3, (Math.abs(b.valor) / max) * 70).toFixed(0) +
+            'px"></span><small>' +
+            b.rot +
+            '</small></div>'
+        )
+        .join('') +
+      '</div></section>';
+  }
+
+  // Extrato
+  const filtrados = mpFiltrarExtratoPainel(movs, mpPainel.periodo, mpPainel.tipo);
+  const entrou = filtrados
+    .filter((m) => !m.abertura && m.valor > 0)
+    .reduce((a, m) => a + m.valor, 0);
+  const saiu = filtrados.filter((m) => m.valor < 0).reduce((a, m) => a - m.valor, 0);
+  const chip = (campo, valor, rot) =>
+    '<button type="button" aria-pressed="' +
+    (mpPainel[campo] === valor) +
+    '" onclick="mpPainelFiltro(\'' +
+    campo +
+    "','" +
+    valor +
+    '\')">' +
+    rot +
+    '</button>';
+  html +=
+    '<section class="mpx-extrato"><div class="mpd-topo"><h3>Extrato da conta</h3>' +
+    (typeof ppNavegarPara === 'function'
+      ? '<button type="button" class="mpd-link" onclick="mpFecharPainelInst();ppNavegarPara(\'controle\')">No Controle <i class="ph ph-arrow-right"></i></button>'
+      : '') +
+    '</div><div class="mpx-filtros"><div class="mpd-seg" role="group" aria-label="Período">' +
+    chip('periodo', 'mes', 'Este mês') +
+    chip('periodo', '3m', '3 meses') +
+    chip('periodo', 'tudo', 'Tudo') +
+    '</div><div class="mpd-seg" role="group" aria-label="Tipo">' +
+    chip('tipo', 'todos', 'Todos') +
+    chip('tipo', 'entradas', 'Entradas') +
+    chip('tipo', 'saidas', 'Saídas') +
+    '</div></div>' +
+    '<div class="mpx-resumo"><span>Entrou <b class="mpd-oculta pos">+' +
+    e(mpFmtBRL(entrou)) +
+    '</b></span><span>Saiu <b class="mpd-oculta neg">−' +
+    e(mpFmtBRL(saiu)) +
+    '</b></span></div>';
+
+  if (!filtrados.length) {
+    html +=
+      '<p class="mpd-vazio">' +
+      (movs.length
+        ? 'Nada neste período. Tente "Tudo".'
+        : 'Sem movimentações de caixa nesta instituição.') +
+      '</p></section>';
+    return html;
+  }
+  const recentes = filtrados.slice().reverse();
+  const visiveis = recentes.slice(0, mpPainel.limite);
+  const hoje = new Date();
+  const ontem = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - 1);
+  const mesmoDia = (a, b) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+  const rotDia = (ts) => {
+    if (!ts) return 'Sem data';
+    const d = new Date(ts);
+    const base =
+      d.getDate() +
+      ' ' +
+      MP_MESES_CURTOS[d.getMonth()] +
+      (d.getFullYear() !== hoje.getFullYear() ? ' ' + d.getFullYear() : '');
+    if (mesmoDia(d, hoje)) return 'Hoje · ' + base;
+    if (mesmoDia(d, ontem)) return 'Ontem · ' + base;
+    return base;
+  };
+  let diaAtual = null;
+  let corpo = '';
+  visiveis.forEach((m) => {
+    const dia = rotDia(m.ts);
+    if (dia !== diaAtual) {
+      diaAtual = dia;
+      corpo +=
+        '<div class="mpx-dia"><span>' +
+        e(dia) +
+        '</span><span>saldo <b class="mpd-oculta">' +
+        e(mpFmtBRL(m.saldoApos)) +
+        '</b></span></div>';
+    }
+    const ti = mpTipoMovInfo(m.categoria, m.abertura);
+    const pos = m.valor >= 0;
+    corpo +=
+      '<div class="mpx-mov"><span class="mpx-mov-ic ' +
+      (m.abertura ? 'neu' : pos ? 'pos' : 'neg') +
+      '"><i class="ph ' +
+      (m.abertura ? 'ph-flag' : pos ? 'ph-arrow-down-left' : 'ph-arrow-up-right') +
+      '"></i></span><span class="mpx-mov-txt"><b>' +
+      e(m.desc) +
+      '</b><small>' +
+      e(ti ? ti.label : m.abertura ? 'Abertura' : mpCategoriaLabelMov(m.categoria)) +
+      '</small></span><span class="mpx-mov-val"><b class="mpd-oculta ' +
+      (m.abertura ? '' : pos ? 'pos' : 'neg') +
+      '">' +
+      (m.abertura ? '' : pos ? '+' : '−') +
+      e(mpFmtBRL(Math.abs(m.valor))) +
+      '</b>' +
+      mpAcaoExtratoHtml(m) +
+      '</span></div>';
+  });
+  html += '<div class="mpx-lista">' + corpo + '</div>';
+  if (recentes.length > visiveis.length)
+    html +=
+      '<button type="button" class="mpx-mais" onclick="mpPainelMais()">Mostrar mais ' +
+      Math.min(60, recentes.length - visiveis.length) +
+      ' de ' +
+      (recentes.length - visiveis.length) +
+      '</button>';
+  html += '</section>';
+  return html;
 }
 
 // Cor estável (determinística) para o avatar de uma instituição, derivada da
@@ -1791,6 +2126,13 @@ async function renderMeuPatrimonio(skipFetch) {
     folego: mpFolego(kpis, consolidado),
   };
   mpEstado._web = web;
+  // Painel da instituição aberto: redesenha com os números novos (um
+  // lançamento, uma conferência ou um arquivamento feitos a partir dele).
+  const painelWeb = document.getElementById('mpdPainel');
+  if (mpPainel.key && painelWeb && !painelWeb.hidden) {
+    if (_mpPainelInst()) mpDesenharPainelInst();
+    else mpFecharPainelInst();
+  }
   mpRenderHeroiWeb(web);
   mpRenderBalancoWeb(web);
   mpRenderMudouWeb(web);

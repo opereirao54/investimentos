@@ -2372,14 +2372,11 @@ function mobPatrimonioRedesenharCarteiras() {
             partes.push([(typeof MP_LABELS !== 'undefined' && MP_LABELS[cl]) || cl, x.classes[cl]]);
         });
         partes.sort((a, b) => b[1] - a[1]);
-        const extratoAberto = !!(mpEstado.extratoAberto && mpEstado.extratoAberto[x.key]);
         const acoes = [
           ['abrirTransferenciaModal()', 'ph-arrows-left-right', 'Transferir'],
-          [
-            'mpToggleExtrato(' + i + ')',
-            'ph-receipt',
-            extratoAberto ? 'Fechar extrato' : 'Extrato',
-          ],
+          // O extrato abre no painel da instituição (folha), com filtros e o
+          // saldo de cada dia — o mesmo do web.
+          ['mpAbrirPainelInst(' + i + ')', 'ph-receipt', 'Extrato'],
         ];
         if (conta)
           acoes.push(["conferirAbrir('" + _mobEsc(conta.id) + "')", 'ph-check-circle', 'Conferir']);
