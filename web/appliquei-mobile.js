@@ -1320,17 +1320,21 @@ function mobRenderInicio(d) {
   // que entrou. Ler isso como orçamento diário levava a gastar dinheiro que
   // não existe (feedback de 23/10/2026). Agora o rótulo diz o que o
   // número é, e a linha de baixo diz de onde ele vem.
-  const livre = Number(d.saldoLivre) || 0;
-  const acumula = Math.abs(Number(d.carregado) || 0) >= 0.005 || !!d.carregadoManual;
-  const rotulo = acumula ? 'Sobra acumulada' : 'Sobra do mês';
+  //
+  // Desde a reorganização de nov/2026 o número grande é a sobra DO MÊS, a
+  // mesma do web: a acumulada só cresce e escondia um mês ruim atrás de meses
+  // bons. Ela continua no cartão, na linha de baixo (_mobLinhaCarregado).
+  const livre = (Number(d.saldoLivre) || 0) - (Number(d.carregado) || 0);
+  const nomeMes = new Date(d.ano, d.mes, 1).toLocaleDateString('pt-BR', { month: 'long' });
+  const rotulo = 'Sobra de ' + nomeMes;
   const origem =
     livre < 0
       ? 'Saiu mais do que entrou.'
       : Math.abs(livre) < 0.005
         ? 'Tudo o que entrou já tem destino.'
-        : acumula
-          ? 'O que entrou menos o que saiu, somando a sobra dos meses anteriores.'
-          : 'O que entrou menos o que saiu' + (noMes ? ' neste mês.' : ' no mês.');
+        : 'O que entrou menos o que sai' +
+          (noMes ? ' neste mês' : ' no mês') +
+          ', já contando o que falta pagar.';
 
   const scoreEl = document.getElementById('termChipScore');
   const rotEl = document.getElementById('termChipRotulo');
@@ -1634,12 +1638,12 @@ function _mobLinhaCarregado(d) {
     d.ano +
     ')"><i class="ph ph-arrow-elbow-down-right"></i><span>' +
     (d.carregadoManual
-      ? 'Saldo de ' + ant + ' ajustado para '
-      : 'Inclui o que sobrou de ' + ant + ': ') +
+      ? 'Com o saldo de ' + ant + ' ajustado, acumulada '
+      : 'Acumulada com o que sobrou até ' + ant + ': ') +
     '<b class="valor-mascarado' +
-    (v < 0 ? ' neg' : '') +
+    ((Number(d.saldoLivre) || 0) < 0 ? ' neg' : '') +
     '">' +
-    _mobEsc(_mobDreFmt(v)) +
+    _mobEsc(_mobDreFmt(Number(d.saldoLivre) || 0)) +
     '</b></span>' +
     (d.carregadoManual
       ? '<span class="mi-carregado-tag">Manual</span>'

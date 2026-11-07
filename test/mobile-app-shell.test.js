@@ -231,7 +231,15 @@ test('o Início do celular usa o mesmo saldo livre e as mesmas barras do desktop
     CF,
     /const saldoLivre = totRec - totDesp - totCartao - totInv - totSonho \+ saldoCarregado;/
   );
-  assert.match(CF, /kpiSaldo\.innerText = formatarMoeda\(saldoLivre\)/);
+  // O card mostra a sobra DO MÊS (saldo livre sem o carregado); a acumulada
+  // (o próprio saldo livre) vai no selo. O celular faz a mesma subtração.
+  assert.match(CF, /const sobraMes = saldoLivre - saldoCarregado;/);
+  assert.match(CF, /kpiSaldo\.innerText = formatarMoeda\(sobraMes\)/);
+  assert.match(CF, /Acumulada \$\{formatarMoeda\(saldoLivre\)\}/);
+  assert.match(
+    MOB,
+    /const livre = \(Number\(d\.saldoLivre\) \|\| 0\) - \(Number\(d\.carregado\) \|\| 0\);/
+  );
   assert.match(
     CF,
     /mobRenderInicio\(\{[\s\S]*saldoLivre: saldoLivre[\s\S]*composicao: \{ modo: agrupamentoComposicao, itens: dadosComposicao \}/

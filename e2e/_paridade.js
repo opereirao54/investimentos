@@ -110,6 +110,8 @@ const OVERLAYS = [
  * que ninguém use esta lista para silenciar uma perda de verdade.
  */
 const EQUIVALENTES = {
+  'fn:alternarTabelaDreWeb':
+    'tabela mês a mês da projeção no web; no celular é "Ver tabela completa" na aba Projeção (mobDreAlternarTabela)',
   'fn:mpWebAlternarLiquido':
     'Líquido/Bruto do Patrimônio no web; no celular é o mesmo seletor no topo da foto (mobPatAlternarLiquido)',
   'fn:mpWebPeriodo':

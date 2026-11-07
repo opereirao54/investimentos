@@ -2492,6 +2492,151 @@ function setAgrupamentoComposicao(tipo) {
 
 // Soma as despesas do mês agrupadas pela categoria de despesa (campo
 // categoriaDespesa). Lançamentos sem categoria caem em '__sem_categoria__'.
+/**
+ * Gastos por categoria do mês contra a média dos 3 meses anteriores (só os
+ * meses que tiveram gasto entram na média). Pura: devolve as linhas ordenadas
+ * da maior para a menor. `alerta` marca o que passou 1,5× a média e mais de
+ * R$ 100 acima dela — o mesmo tipo de desvio que o "O que notamos" aponta.
+ */
+function gastosPorCategoriaComMedia(mes, ano) {
+  const atual = calcularDespesasPorCategoria(mes, ano);
+  const somas = {};
+  let mesesComGasto = 0;
+  for (let k = 1; k <= 3; k++) {
+    const d = new Date(ano, mes - k, 1);
+    const m = calcularDespesasPorCategoria(d.getMonth(), d.getFullYear());
+    const chaves = Object.keys(m);
+    if (!chaves.length) continue;
+    mesesComGasto++;
+    chaves.forEach((c) => {
+      somas[c] = (somas[c] || 0) + m[c];
+    });
+  }
+  const chaves = new Set(Object.keys(atual).concat(Object.keys(somas)));
+  const linhas = [];
+  chaves.forEach((c) => {
+    const valor = Number(atual[c]) || 0;
+    const media = mesesComGasto ? (Number(somas[c]) || 0) / mesesComGasto : null;
+    if (valor <= 0.005 && !(media > 0.005)) return;
+    linhas.push({
+      slug: c,
+      rotulo: c === '__sem_categoria__' ? 'Sem categoria' : rotuloCategoriaDespesa(c),
+      valor,
+      media,
+      alerta: media != null && media > 0 && valor > media * 1.5 && valor - media > 100,
+    });
+  });
+  linhas.sort((a, b) => b.valor - a.valor);
+  return linhas;
+}
+
+function renderGastosPorCategoria(mes, ano) {
+  const el = document.getElementById('ctrlCategorias');
+  if (!el) return;
+  const linhas = gastosPorCategoriaComMedia(mes, ano).filter((l) => l.valor > 0.005);
+  if (!linhas.length) {
+    el.innerHTML = '<p class="ctrl-cat-vazio">Nenhum gasto lançado neste mês.</p>';
+    return;
+  }
+  const max = linhas.reduce((a, l) => Math.max(a, l.valor, l.media || 0), 0) || 1;
+  const esc = (v) =>
+    String(v == null ? '' : v)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/"/g, '&quot;');
+  el.innerHTML = linhas
+    .slice(0, 8)
+    .map(
+      (l) =>
+        '<button type="button" class="ctrl-cat' +
+        (l.alerta ? ' alerta' : '') +
+        '" data-cat="' +
+        esc(l.slug === '__sem_categoria__' ? '' : l.slug) +
+        '" onclick="filtrarExtratoPorCategoria(this.dataset.cat)" title="' +
+        (l.media != null
+          ? 'Média dos 3 meses anteriores: ' + esc(formatarMoeda(l.media))
+          : 'Sem histórico') +
+        '"><span class="ctrl-cat-nome">' +
+        esc(l.rotulo) +
+        '</span><span class="ctrl-cat-trilho"><span style="width:' +
+        ((l.valor / max) * 100).toFixed(1) +
+        '%"></span>' +
+        (l.media != null
+          ? '<em style="left:' + ((l.media / max) * 100).toFixed(1) + '%"></em>'
+          : '') +
+        '</span><b class="valor-mascarado">' +
+        esc(formatarMoeda(l.valor)) +
+        '</b></button>'
+    )
+    .join('');
+}
+
+/** Projeção no web: o acumulado de cada mês em barras, tabela atrás de um toque. */
+function renderDreBarras(d) {
+  const el = document.getElementById('ctrlDreBarras');
+  if (!el || !d || !Array.isArray(d.meses) || !d.meses.length) return;
+  const vals = d.meses.map((m) => Number(m.saldoAcumulado) || 0);
+  const maxAbs = Math.max(1, ...vals.map((v) => Math.abs(v)));
+  const iNeg = vals.findIndex((v) => v < 0);
+  let menor = 0;
+  vals.forEach((v, i) => {
+    if (v < vals[menor]) menor = i;
+  });
+  const msg =
+    iNeg > -1
+      ? '<div class="ctrl-dre-msg neg">Em <strong>' +
+        d.rotulos[iNeg] +
+        '</strong> o caixa fica negativo: <strong>' +
+        formatarMoeda(vals[iNeg]) +
+        '</strong>.</div>'
+      : '<div class="ctrl-dre-msg ok">Nenhum mês negativo até ' +
+        d.rotulos[d.rotulos.length - 1] +
+        '. O menor resultado é <strong>' +
+        formatarMoeda(vals[menor]) +
+        '</strong>, em ' +
+        d.rotulos[menor] +
+        '.</div>';
+  const cols = vals
+    .map(
+      (v, i) =>
+        '<div class="ctrl-dre-col' +
+        (i === d.indiceAtual ? ' atual' : '') +
+        (v < 0 ? ' neg' : '') +
+        '" title="' +
+        d.rotulos[i] +
+        ': ' +
+        formatarMoeda(v) +
+        '"><span style="height:' +
+        Math.max(2, (Math.abs(v) / maxAbs) * 120).toFixed(0) +
+        'px"></span><small>' +
+        d.rotulos[i] +
+        '</small></div>'
+    )
+    .join('');
+  const tabela = document.getElementById('cardTabelaDRE');
+  const recolhida = !tabela || tabela.getAttribute('data-recolhida') === '1';
+  el.innerHTML =
+    msg +
+    '<div class="ctrl-dre-graf" role="img" aria-label="Resultado acumulado previsto por mês">' +
+    cols +
+    '</div><div class="ctrl-dre-rodape"><button type="button" class="btn-secundario" onclick="alternarTabelaDreWeb()">' +
+    (recolhida ? 'Ver tabela mês a mês' : 'Esconder tabela') +
+    '</button></div>';
+}
+
+function alternarTabelaDreWeb() {
+  const t = document.getElementById('cardTabelaDRE');
+  if (!t) return;
+  t.setAttribute('data-recolhida', t.getAttribute('data-recolhida') === '1' ? '0' : '1');
+  if (typeof _mobDreUltimo !== 'undefined' && _mobDreUltimo) {
+    renderDreBarras({
+      meses: _mobDreUltimo.meses,
+      rotulos: _mobDreUltimo.rotulos,
+      indiceAtual: _mobDreUltimo.indiceAtual,
+    });
+  }
+}
+
 function calcularDespesasPorCategoria(mesAlvo, anoAlvo) {
   const mapa = {};
   transacoes.forEach((t) => {
@@ -2941,7 +3086,7 @@ function atualizarDestinoDoMes(entradas) {
     rodape =
       'Sobrou <strong>' +
       ctrlPctBR(pctLivre) +
-      '</strong> de tudo o que entrou (' +
+      '</strong> do que entrou no mês (' +
       formatarMoeda(d.base) +
       ')';
   }
@@ -2983,6 +3128,17 @@ function atualizarContextoMiniKpis(mes, ano) {
   ['receita', 'despesas', 'cartao', 'investimentos', 'sonhos'].forEach(function (chave) {
     const card = document.querySelector('.kpi-mini[data-tipo="' + chave + '"]');
     if (!card) return;
+
+    // Cartão, aportes e sonhos sem nenhum valor em 6 meses saem da grade: três
+    // "R$ 0,00" para quem não usa cartão nem guarda para sonhos são ruído.
+    // Receita e despesas ficam sempre (zero ali é informação).
+    if (chave !== 'receita' && chave !== 'despesas') {
+      const semUso = serie.every(function (m) {
+        return !(Math.abs(Number(m[chave]) || 0) > 0.005);
+      });
+      if (semUso) card.setAttribute('data-vazio', '1');
+      else card.removeAttribute('data-vazio');
+    }
 
     // Fatia da receita. Não vale para o próprio card de receita (seria sempre
     // 100%) nem quando não entrou nada — 0% de nada não é informação.
@@ -3767,6 +3923,45 @@ function termChipGeometria(score, comprimentoArco) {
 // funções que o Relatório mensal usa. Recalcular por conta própria aqui faria
 // o chip e o relatório discordarem no dia em que a régua dos 5 critérios
 // mudasse, e o chip é justamente o convite para abrir o relatório.
+// O card "Saúde do mês" mostra os critérios do MESMO termômetro do chip do
+// cabeçalho (e do Relatório mensal). Antes o card só tinha a Regra dos 60%, e
+// o mês podia aparecer "sob controle" no card e "Atenção" no chip.
+function pintarSaudeDoMes(t) {
+  const lista = document.getElementById('saudeCriterios');
+  const nota = document.getElementById('saudeScore');
+  if (!t) {
+    if (lista) lista.innerHTML = '';
+    if (nota) nota.hidden = true;
+    return;
+  }
+  if (nota) {
+    nota.hidden = false;
+    nota.setAttribute('data-faixa', t.statusGeral);
+    nota.textContent = t.score + ' · ' + (t.faixa ? t.faixa.rotulo : '');
+    nota.title = 'Ver o Relatório mensal completo';
+  }
+  if (!lista) return;
+  const cor = { verde: '#10b981', amarelo: '#f59e0b', vermelho: '#ef4444', cinza: '#94a3b8' };
+  const esc = (v) =>
+    String(v == null ? '' : v)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;');
+  lista.innerHTML = t.criterios
+    .map(
+      (c) =>
+        '<div class="saude-crit"><i style="background:' +
+        (cor[c.status] || cor.cinza) +
+        '"></i><span>' +
+        esc(c.label) +
+        '<small>meta ' +
+        esc(c.meta) +
+        '</small></span><b>' +
+        esc(c.valor) +
+        '</b></div>'
+    )
+    .join('');
+}
+
 function atualizarTermometroControle(mes, ano) {
   const chip = document.getElementById('termometroControle');
   if (!chip) return;
@@ -3786,6 +3981,7 @@ function atualizarTermometroControle(mes, ano) {
     // Mês sem nada lançado: o score seria 40 ("Atenção") só porque quatro dos
     // cinco critérios são neutros — um diagnóstico sobre dado nenhum.
     if (!rep.hasData) {
+      pintarSaudeDoMes(null);
       chip.setAttribute('data-faixa', 'vazio');
       const g = termChipGeometria(0);
       if (arco) arco.setAttribute('stroke-dashoffset', String(g.offset));
@@ -3797,6 +3993,7 @@ function atualizarTermometroControle(mes, ano) {
     }
 
     const t = rmCalcularTermometro(rep);
+    pintarSaudeDoMes(t);
     const g = termChipGeometria(t.score);
     chip.setAttribute('data-faixa', t.statusGeral);
     if (arco) arco.setAttribute('stroke-dashoffset', String(g.offset));
@@ -4233,15 +4430,26 @@ function atualizarTelaControle() {
   // livre subiria pelo valor guardado no mês — o app diria que sobrou o que
   // já foi reservado para a meta.
   const saldoLivre = totRec - totDesp - totCartao - totInv - totSonho + saldoCarregado;
+  // O número grande é a sobra do MÊS (o que entrou menos o que sai nele). A
+  // acumulada — com o que sobrou dos meses anteriores — vira o selo ao lado:
+  // ela só cresce e escondia um mês ruim atrás de meses bons. É o mesmo
+  // número que o celular chama de "Sobra acumulada".
+  const sobraMes = saldoLivre - saldoCarregado;
   if (kpiSaldo) {
-    kpiSaldo.innerText = formatarMoeda(saldoLivre);
-    kpiSaldo.style.color = saldoLivre >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)';
+    kpiSaldo.innerText = formatarMoeda(sobraMes);
+    kpiSaldo.style.color = sobraMes >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)';
+  }
+  const rotSobra = document.getElementById('kpiSobraRotulo');
+  if (rotSobra) {
+    const nomeMes = new Date(visaoAno, visaoMes, 1).toLocaleDateString('pt-BR', { month: 'long' });
+    rotSobra.innerText = 'Sobra de ' + nomeMes;
   }
   if (lblCarregado) {
     if (saldoCarregado !== 0) {
-      const sinal = saldoCarregado > 0 ? '+' : '';
       lblCarregado.style.display = 'inline';
-      lblCarregado.innerText = `${sinal}${formatarMoeda(saldoCarregado)} do mês anterior`;
+      lblCarregado.innerText = `Acumulada ${formatarMoeda(saldoLivre)}`;
+      lblCarregado.title =
+        'Com ' + formatarMoeda(saldoCarregado) + ' que sobraram até o mês anterior';
     } else {
       lblCarregado.style.display = 'none';
     }
@@ -4250,9 +4458,12 @@ function atualizarTelaControle() {
   // Os mesmos totais que os cards acabaram de imprimir viram a barra de
   // destino. Passar os números daqui, em vez de recalculá-los lá dentro,
   // garante que a barra e os cards nunca contem histórias diferentes.
+  // A barra fala do dinheiro que entrou NESTE mês — a mesma base do "Para
+  // onde foi" do celular. Com o carregado dentro, o web dizia "sobrou 85%"
+  // e o celular "56%" para o mesmo mês.
   atualizarDestinoDoMes({
     receita: totRec,
-    carregado: saldoCarregado,
+    carregado: 0,
     despesas: totDesp,
     cartao: totCartao,
     investimentos: totInv,
@@ -4284,7 +4495,9 @@ function atualizarTelaControle() {
     if (alertaCartao) alertaCartao.style.display = 'none';
   }
 
-  // GRÁFICO BARRAS
+  renderGastosPorCategoria(visaoMes, visaoAno);
+
+  // GRÁFICO BARRAS (escondido no web; alimenta o "Para onde foi" do celular)
   let rPizza = calcularResumoMes(visaoMes, visaoAno);
   if (chartComposicao) chartComposicao.destroy();
   let vSobra =
@@ -4629,6 +4842,12 @@ function atualizarTelaControle() {
   htmlLinhas += `</tr>`;
 
   tbodyDRE.innerHTML = htmlLinhas;
+
+  renderDreBarras({
+    meses: dreDados,
+    rotulos: labelsMeses,
+    indiceAtual: indiceMesAtual,
+  });
 
   // No celular a mesma DRE vira gráfico + cartões por mês (appliquei-mobile.js).
   // Recebe os números já calculados acima: nada é recalculado lá.
