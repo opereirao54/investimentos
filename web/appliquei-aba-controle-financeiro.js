@@ -2571,11 +2571,26 @@ function renderGastosPorCategoria(mes, ano) {
     .join('');
 }
 
-/** Projeção no web: o acumulado de cada mês em barras, tabela atrás de um toque. */
+/**
+ * Projeção no web: o acumulado de cada mês em barras. Clicar numa barra mostra
+ * logo abaixo o resumo daquele mês (o que entra, o que sai, a sobra do mês e a
+ * acumulada), como o cartão do celular. A tabela mês a mês saiu da tela.
+ */
+var ctrlDre = { dados: null, sel: null };
+
 function renderDreBarras(d) {
   const el = document.getElementById('ctrlDreBarras');
   if (!el || !d || !Array.isArray(d.meses) || !d.meses.length) return;
+  // Mudou o horizonte ou o mês em visão: volta a mostrar o mês atual.
+  if (!ctrlDre.dados || ctrlDre.dados.rotulos.join() !== d.rotulos.join()) ctrlDre.sel = null;
+  ctrlDre.dados = d;
   const vals = d.meses.map((m) => Number(m.saldoAcumulado) || 0);
+  const sel =
+    ctrlDre.sel != null && ctrlDre.sel < vals.length
+      ? ctrlDre.sel
+      : d.indiceAtual >= 0 && d.indiceAtual < vals.length
+        ? d.indiceAtual
+        : 0;
   const maxAbs = Math.max(1, ...vals.map((v) => Math.abs(v)));
   const iNeg = vals.findIndex((v) => v < 0);
   let menor = 0;
@@ -2584,11 +2599,13 @@ function renderDreBarras(d) {
   });
   const msg =
     iNeg > -1
-      ? '<div class="ctrl-dre-msg neg">Em <strong>' +
+      ? '<button type="button" class="ctrl-dre-msg neg" onclick="ctrlDreSelecionar(' +
+        iNeg +
+        ')">Em <strong>' +
         d.rotulos[iNeg] +
         '</strong> o caixa fica negativo: <strong>' +
         formatarMoeda(vals[iNeg]) +
-        '</strong>.</div>'
+        '</strong>. Ver o mês</button>'
       : '<div class="ctrl-dre-msg ok">Nenhum mês negativo até ' +
         d.rotulos[d.rotulos.length - 1] +
         '. O menor resultado é <strong>' +
@@ -2599,42 +2616,78 @@ function renderDreBarras(d) {
   const cols = vals
     .map(
       (v, i) =>
-        '<div class="ctrl-dre-col' +
+        '<button type="button" class="ctrl-dre-col' +
+        (i === sel ? ' sel' : '') +
         (i === d.indiceAtual ? ' atual' : '') +
         (v < 0 ? ' neg' : '') +
-        '" title="' +
+        '" aria-pressed="' +
+        (i === sel) +
+        '" aria-label="' +
         d.rotulos[i] +
         ': ' +
         formatarMoeda(v) +
-        '"><span style="height:' +
+        '" onclick="ctrlDreSelecionar(' +
+        i +
+        ')"><span style="height:' +
         Math.max(2, (Math.abs(v) / maxAbs) * 120).toFixed(0) +
         'px"></span><small>' +
         d.rotulos[i] +
-        '</small></div>'
+        '</small></button>'
     )
     .join('');
-  const tabela = document.getElementById('cardTabelaDRE');
-  const recolhida = !tabela || tabela.getAttribute('data-recolhida') === '1';
-  el.innerHTML =
-    msg +
-    '<div class="ctrl-dre-graf" role="img" aria-label="Resultado acumulado previsto por mês">' +
-    cols +
-    '</div><div class="ctrl-dre-rodape"><button type="button" class="btn-secundario" onclick="alternarTabelaDreWeb()">' +
-    (recolhida ? 'Ver tabela mês a mês' : 'Esconder tabela') +
-    '</button></div>';
+  el.innerHTML = msg + '<div class="ctrl-dre-graf">' + cols + '</div>' + ctrlDreDetalheHtml(d, sel);
 }
 
-function alternarTabelaDreWeb() {
-  const t = document.getElementById('cardTabelaDRE');
-  if (!t) return;
-  t.setAttribute('data-recolhida', t.getAttribute('data-recolhida') === '1' ? '0' : '1');
-  if (typeof _mobDreUltimo !== 'undefined' && _mobDreUltimo) {
-    renderDreBarras({
-      meses: _mobDreUltimo.meses,
-      rotulos: _mobDreUltimo.rotulos,
-      indiceAtual: _mobDreUltimo.indiceAtual,
-    });
-  }
+/** O resumo de um mês da projeção, com os números que a tabela trazia. */
+function ctrlDreDetalheHtml(d, i) {
+  const m = d.meses[i] || {};
+  const n = (v) => Number(v) || 0;
+  const entra = n(m.receita) + n(m.resgate);
+  const investido = n(m.invFixo) + n(m.invVar);
+  const acumulada = n(m.saldoAcumulado);
+  const carregado = n(m.saldoCarregado);
+  const sobraMes = acumulada - carregado;
+  const lin = (rot, v, cls, sinal) =>
+    '<div class="ctrl-dre-det-l"><span>' +
+    rot +
+    '</span><b class="valor-mascarado ' +
+    (cls || '') +
+    '">' +
+    (sinal && v > 0.005 ? sinal : '') +
+    formatarMoeda(v) +
+    '</b></div>';
+  const linhas = [lin('Entra', entra, 'pos', '+'), lin('Gastos', n(m.despesas), 'neg', '−')];
+  if (investido > 0.005) linhas.push(lin('Investimentos', investido, 'info', '−'));
+  if (n(m.sonho) > 0.005) linhas.push(lin('Guardado para sonhos', n(m.sonho), 'roxo', '−'));
+  return (
+    '<div class="ctrl-dre-det"><div class="ctrl-dre-det-tit">' +
+    d.rotulos[i] +
+    (i === d.indiceAtual ? ' <span>mês em foco</span>' : '') +
+    '</div><div class="ctrl-dre-det-grade"><div>' +
+    linhas.join('') +
+    '</div><div>' +
+    '<div class="ctrl-dre-det-l forte"><span>Sobra do mês</span><b class="valor-mascarado ' +
+    (sobraMes < 0 ? 'neg' : '') +
+    '">' +
+    formatarMoeda(sobraMes) +
+    '</b></div>' +
+    (Math.abs(carregado) > 0.005
+      ? '<div class="ctrl-dre-det-l"><span>Com o que sobrou antes</span><b class="valor-mascarado">' +
+        formatarMoeda(carregado) +
+        '</b></div>'
+      : '') +
+    '<div class="ctrl-dre-det-l forte"><span>Sobra acumulada</span><b class="valor-mascarado ' +
+    (acumulada < 0 ? 'neg' : '') +
+    '">' +
+    formatarMoeda(acumulada) +
+    '</b></div></div></div></div>'
+  );
+}
+
+function ctrlDreSelecionar(i) {
+  if (!ctrlDre.dados) return;
+  ctrlDre.sel = i;
+  renderDreBarras(ctrlDre.dados);
 }
 
 function calcularDespesasPorCategoria(mesAlvo, anoAlvo) {

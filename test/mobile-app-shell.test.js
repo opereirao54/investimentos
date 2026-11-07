@@ -148,31 +148,17 @@ test('a DRE do celular recebe os números prontos da tabela', () => {
   assert.doesNotMatch(fn, /calcularResumoMes|obterSaldoCarregadoParaMes/);
 });
 
-test('a tabela completa da DRE vira mês a mês no celular, com todas as linhas', () => {
+test('a projeção mostra barras e o resumo do mês, sem a tabela mês a mês', () => {
+  // A tabela (e o "mês a mês" do celular) saiu da tela a pedido do fundador
+  // (07/11/2026): no web as barras abrem o resumo do mês clicado; no celular,
+  // o cartão de cada mês. A tabela segue no DOM porque é ela que calcula.
   assert.match(HTML, /id="mobDRE"[^>]*data-mob-aba="projecao"/);
-  assert.match(HTML, /id="cardTabelaDRE"/);
-  assert.match(HTML, /#controle #cardTabelaDRE \{ display: none !important; \}/);
-  assert.match(MOB, /function mobDreAlternarTabela[\s\S]*_mobDreRedesenharMM\(\)/);
-  // Cada linha da tabela do desktop existe no detalhe do mês.
-  const det = MOB.slice(
-    MOB.indexOf('function _mobDreDetalhe'),
-    MOB.indexOf('function _mobDreRedesenharMM')
-  );
-  for (const rot of [
-    'Receita total',
-    'Resgates',
-    'Investimento (renda fixa)',
-    'Investimento (renda variável)',
-    'Aporte externo',
-    'Sonhos',
-    'Despesas consumidas',
-    'Saldo do mês anterior',
-    'Resultado do mês',
-    'Investimento acumulado',
-  ])
-    assert.ok(det.includes(rot), rot);
-  assert.match(det, /editarSaldoMesAnterior\(/);
-  assert.doesNotMatch(det, /calcularResumoMes|obterSaldoCarregadoParaMes/);
+  assert.match(HTML, /id="ctrlDreBarras"/);
+  assert.match(HTML, /#cardTabelaDRE\[data-recolhida="1"\] \{ display: none; \}/);
+  assert.doesNotMatch(MOB, /mobDreAlternarTabela|Ver tabela completa/);
+  const CF = fs.readFileSync(path.join(ROOT, 'web/appliquei-aba-controle-financeiro.js'), 'utf8');
+  assert.match(CF, /function ctrlDreSelecionar/);
+  assert.doesNotMatch(CF, /Ver tabela mês a mês/);
 });
 
 test('o topo do extrato no celular usa os totais que a tela já somou', () => {

@@ -1297,12 +1297,29 @@
         .ctrl-dre-msg.neg { background: #fef2f2; color: #991b1b; }
         body.dark .ctrl-dre-msg.neg { background: rgba(248,113,113,.14); color: #fca5a5; }
         .ctrl-dre-graf { display: flex; align-items: flex-end; gap: 4px; height: 150px; }
-        .ctrl-dre-col { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; gap: 4px; }
-        .ctrl-dre-col span { display: block; border-radius: 5px 5px 2px 2px; background: color-mix(in srgb, var(--cor-primaria) 45%, transparent); min-height: 2px; }
-        .ctrl-dre-col.atual span { background: var(--cor-primaria); }
-        .ctrl-dre-col.neg span { background: var(--cor-erro); }
+        .ctrl-dre-col { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; gap: 4px; border: 0; background: none; padding: 0; cursor: pointer; font: inherit; }
+        .ctrl-dre-col span { display: block; border-radius: 5px 5px 2px 2px; background: color-mix(in srgb, var(--cor-primaria) 40%, transparent); min-height: 2px; transition: background .15s; }
+        .ctrl-dre-col:hover span { background: color-mix(in srgb, var(--cor-primaria) 65%, transparent); }
+        .ctrl-dre-col.sel span { background: var(--cor-primaria); }
+        .ctrl-dre-col.neg span { background: color-mix(in srgb, var(--cor-erro) 55%, transparent); }
+        .ctrl-dre-col.neg.sel span { background: var(--cor-erro); }
         .ctrl-dre-col small { text-align: center; font-size: 10.5px; color: var(--cor-texto-mutado); white-space: nowrap; overflow: hidden; }
-        .ctrl-dre-rodape { display: flex; justify-content: flex-end; margin-top: 10px; }
+        .ctrl-dre-col.sel small { color: var(--cor-texto-principal); font-weight: 700; }
+        .ctrl-dre-col:focus-visible { outline: 2px solid var(--cor-primaria); outline-offset: 2px; border-radius: 6px; }
+        button.ctrl-dre-msg { display: block; width: 100%; border: 0; text-align: left; font: inherit; cursor: pointer; }
+        .ctrl-dre-det { margin-top: 16px; border: 1px solid var(--cor-borda); border-radius: 12px; padding: 14px 16px; }
+        .ctrl-dre-det-tit { font-weight: 700; font-size: 14px; margin-bottom: 8px; }
+        .ctrl-dre-det-tit span { font-size: 11px; font-weight: 700; color: var(--cor-txt-primaria); background: var(--cor-bg-primaria); border-radius: 99px; padding: 2px 8px; margin-left: 6px; }
+        .ctrl-dre-det-grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; }
+        .ctrl-dre-det-l { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--cor-borda); font-size: 13.5px; }
+        .ctrl-dre-det-grade > div > .ctrl-dre-det-l:last-child { border-bottom: 0; }
+        .ctrl-dre-det-l b { font-family: 'DM Mono', monospace; font-weight: 500; }
+        .ctrl-dre-det-l b.pos { color: var(--tinta-verde); } .ctrl-dre-det-l b.neg { color: var(--cor-erro); }
+        .ctrl-dre-det-l b.info { color: var(--cor-info); } .ctrl-dre-det-l b.roxo { color: var(--cor-patrimonio); }
+        .ctrl-dre-det-l.forte { font-weight: 700; }
+        @media (max-width: 900px) { .ctrl-dre-det-grade { grid-template-columns: 1fr; } }
+        /* A tabela mês a mês segue no DOM (é ela que calcula a projeção que as
+           barras e o celular mostram), mas fora da tela no web. */
         #cardTabelaDRE[data-recolhida="1"] { display: none; }
         .ext-totais-dup[hidden] { display: none !important; }
 
@@ -11723,8 +11740,8 @@
             /* --- DRE no celular (mobRenderDRE) --- */
             #mobDRE { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
             #controle:not([data-mob-aba-ativa="projecao"]) #mobDRE { display: none !important; }
-            /* A tabela do desktop não aparece no celular: "Ver tabela completa"
-               abre a versão mês a mês (mobDreAlternarTabela), com as mesmas linhas. */
+            /* A tabela não aparece: o cartão de cada mês traz o resumo dele. As
+               barras do web (#ctrlDreBarras) também ficam de fora no celular. */
             #controle #cardTabelaDRE { display: none !important; }
             #controle #ctrlDreBarras { display: none !important; }
             .mdre-alerta {
@@ -11812,12 +11829,6 @@
             .mdre-card footer strong { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 14px; color: var(--tinta-azul, #1d4ed8); }
             .mdre-card footer em { font-style: normal; font-size: 11.5px; color: var(--tinta-verde, #047857); font-family: 'DM Mono', monospace; }
             .mdre-card footer em.neg { color: var(--tinta-vermelho, #b91c1c); }
-            .mdre-tabela-btn {
-                align-self: center; display: inline-flex; align-items: center; gap: 8px;
-                min-height: 44px; padding: 0 16px; border-radius: 12px;
-                border: 1px solid var(--cor-borda); background: var(--cor-branco);
-                font-family: inherit; font-size: 14px; font-weight: 600; color: var(--cor-texto-secundario); cursor: pointer;
-            }
 
             /* --- Novo lançamento (bottom sheet) --- */
             /* Valor primeiro: é o que a pessoa tem na cabeça quando abre o
@@ -11833,9 +11844,7 @@
         /* ============================================================ */
         body.valores-ocultos #mobDRE .mdre-res,
         body.valores-ocultos #mobDRE .mdre-v,
-        body.valores-ocultos #mobDRE .mdre-mm-v,
-        body.valores-ocultos #mobDRE footer strong,
-        body.valores-ocultos #mobDRE .mdre-mm-total strong { filter: blur(6px); user-select: none; }
+        body.valores-ocultos #mobDRE footer strong { filter: blur(6px); user-select: none; }
         @media (max-width: 768px) {
             /* --- Extrato: a lista é a tela, sem a caixa em volta --- */
             #controle .card-container[data-mob-aba="extrato"] {
@@ -11935,72 +11944,6 @@
             #extratoUnificado .extrato-item:not([data-ext-tipo="receita"]) .valor::before { content: '−'; }
             #extratoUnificado .extrato-item .valor::after { font-size: 14px !important; margin-top: 2px !important; opacity: .7; }
 
-            /* --- Projeção: tabela completa mês a mês (mobDreAlternarTabela) --- */
-            .mdre-mm {
-                background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 20px;
-                padding: 16px 0 6px; margin-top: 4px;
-            }
-            .mdre-mm > header { padding: 0 16px; display: flex; flex-direction: column; gap: 2px; }
-            .mdre-mm > header strong { font-size: 16px; }
-            .mdre-mm > header span { font-size: 12.5px; color: var(--cor-texto-mutado); }
-            .mdre-mm-chips {
-                display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 12px 16px 6px;
-            }
-            .mdre-mm-chips::-webkit-scrollbar { display: none; }
-            .mdre-mm-chips button {
-                flex: 0 0 auto; min-height: 34px; padding: 0 14px; border-radius: 99px; border: none;
-                background: var(--cor-superficie); color: var(--cor-texto-secundario);
-                font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
-            }
-            .mdre-mm-chips button[aria-selected="true"] { background: var(--cor-texto-principal); color: var(--cor-branco); }
-            .mdre-mm-lista { display: flex; flex-direction: column; }
-            .mdre-mm-mes + .mdre-mm-mes { border-top: 1px solid var(--cor-borda); }
-            .mdre-mm-mes.atual { background: color-mix(in srgb, var(--cor-bg-primaria) 60%, transparent); }
-            .mdre-mm-linha {
-                display: grid; grid-template-columns: 64px minmax(0, 1fr) auto 18px; align-items: center; gap: 10px;
-                width: 100%; min-height: 52px; padding: 8px 16px; box-sizing: border-box;
-                background: none; border: none; font-family: inherit; text-align: left; cursor: pointer; color: inherit;
-            }
-            .mdre-mm-rot { font-size: 14px; font-weight: 600; display: flex; flex-direction: column; line-height: 1.2; }
-            .mdre-mm-rot em { font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--tinta-verde, #047857); text-transform: uppercase; letter-spacing: .4px; }
-            .mdre-mm-barra { height: 8px; border-radius: 99px; background: var(--cor-superficie); overflow: hidden; }
-            .mdre-mm-barra i { display: block; height: 100%; border-radius: 99px; background: #10b981; }
-            .mdre-mm-barra i.verde, .mdre-mm-barra i.ok { background: #10b981; }
-            .mdre-mm-barra i.neutro { background: #64748b; }
-            .mdre-mm-barra i.baixo { background: #f59e0b; }
-            .mdre-mm-barra i.vermelho, .mdre-mm-barra i.neg { background: #ef4444; }
-            .mdre-mm-barra i.azul { background: #3b82f6; }
-            .mdre-mm-barra i.roxo { background: #8b5cf6; }
-            .mdre-mm-v { font-family: 'DM Mono', monospace; font-size: 14px; white-space: nowrap; text-align: right; }
-            .mdre-mm-v.verde, .mdre-mm-v.ok { color: var(--tinta-verde, #047857); }
-            .mdre-mm-v.vermelho, .mdre-mm-v.neg { color: var(--tinta-vermelho, #b91c1c); }
-            .mdre-mm-v.baixo { color: #b45309; }
-            .mdre-mm-v.azul { color: var(--tinta-azul, #1d4ed8); }
-            .mdre-mm-v.roxo { color: var(--tinta-roxo, #7c3aed); }
-            .mdre-mm-seta { color: var(--cor-texto-mutado); transition: transform .2s; }
-            .mdre-mm-mes.aberto .mdre-mm-seta { transform: rotate(180deg); }
-            .mdre-mm-det { margin: 0 16px 12px; padding: 4px 12px; border-radius: 14px; background: var(--cor-superficie); }
-            .mdre-mm-det-l {
-                display: flex; justify-content: space-between; align-items: center; gap: 10px;
-                min-height: 38px; font-size: 13px; color: var(--cor-texto-secundario);
-            }
-            .mdre-mm-det-l + .mdre-mm-det-l { border-top: 1px solid var(--cor-borda); }
-            .mdre-mm-det-l .mdre-v { font-family: 'DM Mono', monospace; font-size: 13px; white-space: nowrap; }
-            .mdre-mm-det-l.herdado > span:first-child { color: var(--tinta-roxo, #7c3aed); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
-            .mdre-mm-det-l.forte { font-weight: 700; color: var(--cor-texto-principal); }
-            .mdre-mm-det-l.forte .mdre-v { font-weight: 600; font-size: 14px; }
-            .mdre-mm-det-l.acum em { font-style: normal; font-size: 11px; color: var(--tinta-verde, #047857); }
-            .mdre-mm-det-l.acum em.neg { color: var(--tinta-vermelho, #b91c1c); }
-            .mdre-neg-tag { font-family: 'Figtree', sans-serif; font-size: 9.5px; background: #dc2626; color: #fff; padding: 2px 5px; border-radius: 4px; margin-left: 4px; }
-            .mdre-mm-total {
-                display: flex; justify-content: space-between; align-items: center;
-                padding: 12px 16px 8px; border-top: 1px solid var(--cor-borda); font-size: 13px; color: var(--cor-texto-secundario);
-            }
-            .mdre-mm-total strong { font-family: 'DM Mono', monospace; font-weight: 600; font-size: 14px; }
-            .mdre-mm-total .verde { color: var(--tinta-verde, #047857); }
-            .mdre-mm-total .vermelho { color: var(--tinta-vermelho, #b91c1c); }
-            .mdre-mm-total .azul { color: var(--tinta-azul, #1d4ed8); }
-            .mdre-mm-total .roxo { color: var(--tinta-roxo, #7c3aed); }
         }
 
         /* ============================================================ */
@@ -15232,7 +15175,7 @@
                  continua sendo a DRE do desktop e fica a um toque no celular. -->
             <div id="mobDRE" class="mob-dre" data-mob-aba="projecao"></div>
             <!-- Web: o resultado acumulado de cada mês em barras (os números
-                 de mobRenderDRE), com a tabela mês a mês recolhida abaixo. -->
+                 de mobRenderDRE); clicar numa barra abre o resumo do mês. -->
             <div class="card-container ctrl-dre-barras" id="ctrlDreBarras" data-mob-aba="projecao"></div>
             <div class="card-container" id="cardTabelaDRE" data-mob-aba="projecao" data-recolhida="1" style="padding:0;overflow:hidden;margin-bottom:40px;">
                 <div style="overflow-x:auto;max-width:100%;">

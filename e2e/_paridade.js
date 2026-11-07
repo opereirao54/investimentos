@@ -51,7 +51,6 @@ const ESTADOS_MOB = {
     "mobSegControle('resumo')",
     "mobSegControle('extrato')",
     "mobSegControle('projecao')",
-    "mobSegControle('projecao'); mobDreAlternarTabela()",
     // Os avisos de "O que notamos" abrem em tela cheia, com o cartão do desktop.
     "mobSegControle('resumo'); mobStoryAbrir(0)",
     // "Hoje" só aparece fora do mês corrente (no mês corrente não faria nada).
@@ -110,8 +109,8 @@ const OVERLAYS = [
  * que ninguém use esta lista para silenciar uma perda de verdade.
  */
 const EQUIVALENTES = {
-  'fn:alternarTabelaDreWeb':
-    'tabela mês a mês da projeção no web; no celular é "Ver tabela completa" na aba Projeção (mobDreAlternarTabela)',
+  'fn:ctrlDreSelecionar':
+    'barra de um mês da projeção no web; no celular é tocar na barra ou no cartão do mês (mobDreIrPara)',
   'fn:mpWebAlternarLiquido':
     'Líquido/Bruto do Patrimônio no web; no celular é o mesmo seletor no topo da foto (mobPatAlternarLiquido)',
   'fn:mpWebPeriodo':
