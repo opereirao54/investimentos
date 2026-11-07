@@ -376,6 +376,111 @@ function resolverCategoriaDespesaSelecionada(categoriaContabil) {
 // v da categoria aguardando confirmação de exclusão (linha expandida na lista).
 var categoriaConfigExcluindo = null;
 
+// Limite por mês de uma categoria. Mora no mesmo array de ajustes
+// ({ v, limite }) — sem chave nova para sync, backup e "Recomeçar do zero".
+function obterLimiteCategoria(v) {
+  if (!v) return 0;
+  const a = obterCategoriasDespesaCustom().find((x) => x && x.v === v);
+  const n = a ? Number(a.limite) : 0;
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function definirLimiteCategoria(v, valor) {
+  if (!v) return;
+  const n = Number(valor);
+  const ajustes = obterCategoriasDespesaCustom();
+  let a = ajustes.find((x) => x && x.v === v);
+  if (n > 0) {
+    if (!a) {
+      a = { v };
+      ajustes.push(a);
+    }
+    a.limite = Math.round(n * 100) / 100;
+  } else if (a) {
+    delete a.limite;
+    // Padrão sem rótulo próprio nem oculta: o ajuste só existia pelo limite.
+    if (ehCategoriaDespesaPadrao(v) && !a.label && !a.oculta) ajustes.splice(ajustes.indexOf(a), 1);
+  }
+  salvarCategoriasDespesaCustom(ajustes);
+}
+
+/** Situação do limite: null sem limite; senão { limite, pct, estado }
+ *  com estado 'ok' | 'perto' (80% ou mais) | 'passou'. */
+function situacaoLimiteCategoria(valor, limite) {
+  if (!(limite > 0)) return null;
+  const pct = Math.round(((Number(valor) || 0) / limite) * 100);
+  return { limite, pct, estado: pct > 100 ? 'passou' : pct >= 80 ? 'perto' : 'ok' };
+}
+
+/** Frase para o aviso de "lançamento salvo" quando ele leva a categoria
+ *  a 80% do limite ou além. Vazio quando não há o que avisar. */
+function complementoLimiteCategoria(novos) {
+  const vistos = new Set();
+  const frases = [];
+  (novos || []).forEach((t) => {
+    if (!t || !t.categoriaDespesa || !categoriaDespesaUsada(t.categoria)) return;
+    const chave = t.categoriaDespesa + '|' + t.mes + '|' + t.ano;
+    if (vistos.has(chave)) return;
+    vistos.add(chave);
+    const lim = obterLimiteCategoria(t.categoriaDespesa);
+    if (!lim) return;
+    const gasto = Number(calcularDespesasPorCategoria(t.mes, t.ano)[t.categoriaDespesa]) || 0;
+    const sit = situacaoLimiteCategoria(gasto, lim);
+    const nome = rotuloCategoriaDespesa(t.categoriaDespesa);
+    if (sit.estado === 'passou')
+      frases.push(
+        nome + ' passou do limite: ' + formatarMoeda(gasto) + ' de ' + formatarMoeda(lim) + '.'
+      );
+    else if (sit.estado === 'perto') frases.push(nome + ' chegou a ' + sit.pct + '% do limite.');
+  });
+  return frases.length ? ' ' + frases.slice(0, 2).join(' ') : '';
+}
+
+var categoriaConfigLimite = null;
+
+/** Média dos 3 meses anteriores de uma categoria (sugestão de limite). */
+function mediaCategoriaTresMeses(v) {
+  const h = new Date();
+  const linha = gastosPorCategoriaComMedia(h.getMonth(), h.getFullYear()).find((l) => l.slug === v);
+  return linha && linha.media > 0 ? linha.media : 0;
+}
+
+function abrirLimiteCategoriaConfig(v) {
+  cancelarCategoriaConfig();
+  categoriaConfigExcluindo = null;
+  categoriaConfigLimite = v;
+  renderizarListaCategoriasConfig();
+  const campo = document.getElementById('categoriaLimiteValor');
+  if (campo) campo.focus();
+}
+
+function cancelarLimiteCategoriaConfig() {
+  categoriaConfigLimite = null;
+  renderizarListaCategoriasConfig();
+}
+
+/** modo: 'sem' | 'media' | 'valor' (lê o campo). */
+function salvarLimiteCategoriaConfig(v, modo) {
+  let valor = 0;
+  if (modo === 'media') valor = Math.round(mediaCategoriaTresMeses(v));
+  else if (modo === 'valor') {
+    const campo = document.getElementById('categoriaLimiteValor');
+    valor = campo ? parseBRL(campo.value) : NaN;
+    if (!Number.isFinite(valor) || valor <= 0)
+      return mostrarToast('Informe o limite por mês (ou escolha "Sem limite").', 'erro');
+  }
+  definirLimiteCategoria(v, valor);
+  categoriaConfigLimite = null;
+  renderizarListaCategoriasConfig();
+  atualizarTelaControle();
+  mostrarToast(
+    valor > 0
+      ? rotuloCategoriaDespesa(v) + ': limite de ' + formatarMoeda(valor) + ' por mês.'
+      : rotuloCategoriaDespesa(v) + ' sem limite.',
+    'sucesso'
+  );
+}
+
 function renderizarListaCategoriasConfig() {
   const container = document.getElementById('listaCategoriasConfig');
   if (!container) return;
@@ -393,8 +498,9 @@ function renderizarListaCategoriasConfig() {
       <div style="display:flex;align-items:center;gap:10px;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:9px;padding:10px 12px;">
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:600;color:var(--cor-texto-principal);">${c.label}</div>
-          <div style="font-size:11px;color:var(--cor-texto-mutado);">${tipoTxt} • ${usoTxt}</div>
+          <div style="font-size:11px;color:var(--cor-texto-mutado);">${tipoTxt} • ${usoTxt}${obterLimiteCategoria(c.v) ? ' • limite ' + formatarMoeda(obterLimiteCategoria(c.v)) + '/mês' : ''}</div>
         </div>
+        <button class="btn-secundario cat-cfg-limite" onclick="abrirLimiteCategoriaConfig('${c.v}')" title="Limite por mês">Limite</button>
         <button class="btn-secundario" style="padding:4px 8px;font-size:11px;color:var(--cor-info);border-color:var(--cor-info);" onclick="editarCategoriaConfig('${c.v}')" title="Renomear"><i class="ph ph-pencil-simple"></i></button>
         <button class="btn-secundario" style="padding:4px 8px;font-size:11px;color:var(--cor-erro);border-color:var(--cor-erro);" onclick="pedirExclusaoCategoriaConfig('${c.v}')" title="${acaoTitulo}"><i class="ph ${acaoIcone}"></i></button>
       </div>`;
@@ -451,6 +557,32 @@ function renderizarListaCategoriasConfig() {
   if (categoriaConfigExcluindo) {
     container.innerHTML = blocoConfirmacao(categoriaConfigExcluindo);
     return;
+  }
+  if (categoriaConfigLimite) {
+    const v = categoriaConfigLimite;
+    const cat = visiveis.find((c) => c.v === v);
+    if (cat) {
+      const atual = obterLimiteCategoria(v);
+      const media = mediaCategoriaTresMeses(v);
+      container.innerHTML = `
+      <div class="cat-lim">
+        <b>Limite para ${cat.label}</b>
+        <div class="cat-lim-ops">
+          <button type="button" class="btn-secundario${atual ? '' : ' on'}" onclick="salvarLimiteCategoriaConfig('${v}','sem')">Sem limite</button>
+          ${media > 0 ? `<button type="button" class="btn-secundario" onclick="salvarLimiteCategoriaConfig('${v}','media')">Sua média (${formatarMoeda(Math.round(media))})</button>` : ''}
+        </div>
+        <label class="cat-lim-campo">Outro valor por mês
+          <span><span>R$</span><input id="categoriaLimiteValor" type="text" inputmode="decimal" value="${atual ? formatarBRLInput(atual) : ''}" oninput="aplicarMascaraBRL(this)" onkeydown="if(event.key==='Enter')salvarLimiteCategoriaConfig('${v}','valor')"></span>
+        </label>
+        <span class="cat-lim-nota">Avisamos quando chegar a 80% e quando passar.</span>
+        <div class="cat-lim-botoes">
+          <button type="button" class="btn-secundario" onclick="cancelarLimiteCategoriaConfig()">Cancelar</button>
+          <button type="button" class="btn-acao" onclick="salvarLimiteCategoriaConfig('${v}','valor')">Salvar limite</button>
+        </div>
+      </div>`;
+      return;
+    }
+    categoriaConfigLimite = null;
   }
   container.innerHTML = visiveis.map(linhaVisivel).join('') + ocultas.map(linhaOculta).join('');
 }
@@ -550,12 +682,14 @@ function salvarCategoriaConfig() {
 
 function pedirExclusaoCategoriaConfig(v) {
   cancelarCategoriaConfig();
+  categoriaConfigLimite = null;
   categoriaConfigExcluindo = v;
   renderizarListaCategoriasConfig();
 }
 
 function cancelarExclusaoCategoriaConfig() {
   categoriaConfigExcluindo = null;
+  categoriaConfigLimite = null;
   renderizarListaCategoriasConfig();
 }
 
@@ -598,7 +732,7 @@ function restaurarCategoriaConfig(v) {
   const ajustes = obterCategoriasDespesaCustom();
   const a = ajustes.find((x) => x && x.v === v);
   if (!a) return;
-  if (ehCategoriaDespesaPadrao(v) && !a.label) {
+  if (ehCategoriaDespesaPadrao(v) && !a.label && !a.limite) {
     // Sem rótulo próprio, o ajuste só existia para esconder — some junto.
     ajustes.splice(ajustes.indexOf(a), 1);
   } else {
@@ -2383,7 +2517,8 @@ function executarInsercao() {
   if (typeof lancUiReiniciar === 'function') lancUiReiniciar();
   mostrarToast(
     mensagemLancamentoSalvo(categoria, dataVencInput, mesesGerar) +
-      complementoLancamentoSalvo(novos, dados),
+      complementoLancamentoSalvo(novos, dados) +
+      complementoLimiteCategoria(novos),
     'sucesso',
     6000
   );
@@ -2518,12 +2653,19 @@ function gastosPorCategoriaComMedia(mes, ano) {
     const valor = Number(atual[c]) || 0;
     const media = mesesComGasto ? (Number(somas[c]) || 0) / mesesComGasto : null;
     if (valor <= 0.005 && !(media > 0.005)) return;
+    const limite = c === '__sem_categoria__' ? 0 : obterLimiteCategoria(c);
+    const sit = situacaoLimiteCategoria(valor, limite);
     linhas.push({
       slug: c,
       rotulo: c === '__sem_categoria__' ? 'Sem categoria' : rotuloCategoriaDespesa(c),
       valor,
       media,
-      alerta: media != null && media > 0 && valor > media * 1.5 && valor - media > 100,
+      limite,
+      limiteEstado: sit ? sit.estado : null,
+      limitePct: sit ? sit.pct : null,
+      alerta:
+        (sit && sit.estado === 'passou') ||
+        (media != null && media > 0 && valor > media * 1.5 && valor - media > 100),
     });
   });
   linhas.sort((a, b) => b.valor - a.valor);
@@ -2538,7 +2680,7 @@ function renderGastosPorCategoria(mes, ano) {
     el.innerHTML = '<p class="ctrl-cat-vazio">Nenhum gasto lançado neste mês.</p>';
     return;
   }
-  const max = linhas.reduce((a, l) => Math.max(a, l.valor, l.media || 0), 0) || 1;
+  const max = linhas.reduce((a, l) => Math.max(a, l.valor, l.media || 0, l.limite || 0), 0) || 1;
   const esc = (v) =>
     String(v == null ? '' : v)
       .replace(/&/g, '&amp;')
@@ -2550,6 +2692,7 @@ function renderGastosPorCategoria(mes, ano) {
       (l) =>
         '<button type="button" class="ctrl-cat' +
         (l.alerta ? ' alerta' : '') +
+        (l.limiteEstado ? ' lim-' + l.limiteEstado : '') +
         '" data-cat="' +
         esc(l.slug === '__sem_categoria__' ? '' : l.slug) +
         '" onclick="filtrarExtratoPorCategoria(this.dataset.cat)" title="' +
@@ -2564,11 +2707,24 @@ function renderGastosPorCategoria(mes, ano) {
         (l.media != null
           ? '<em style="left:' + ((l.media / max) * 100).toFixed(1) + '%"></em>'
           : '') +
+        (l.limite
+          ? '<i class="ctrl-cat-lim" style="left:' + ((l.limite / max) * 100).toFixed(1) + '%"></i>'
+          : '') +
         '</span><b class="valor-mascarado">' +
         esc(formatarMoeda(l.valor)) +
+        (l.limite
+          ? '<small class="ctrl-cat-limtxt">' + esc(ctrlCatLimiteTexto(l)) + '</small>'
+          : '') +
         '</b></button>'
     )
     .join('');
+}
+
+/** "de R$ 280 · 85%" / "passou R$ 40" — a linha de baixo do valor. */
+function ctrlCatLimiteTexto(l) {
+  if (!l || !l.limite) return '';
+  if (l.limiteEstado === 'passou') return 'passou ' + formatarMoeda(l.valor - l.limite);
+  return 'de ' + formatarMoeda(l.limite) + ' · ' + l.limitePct + '%';
 }
 
 /**

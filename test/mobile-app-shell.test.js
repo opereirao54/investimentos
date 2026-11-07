@@ -181,11 +181,23 @@ test('as ações do extrato no celular são os botões originais', () => {
       new RegExp(`\\[id\\^="acao-pagar-list-"\\] > button\\[onclick\\^="${fn}"\\]`)
     );
   }
-  assert.doesNotMatch(MOB, /deletarTransacao\(|prepararPagamento\(/);
-  // Editar: o toque na linha do extrato clica o próprio lápis da linha; só as
-  // Movimentações do Início (que não têm botões) chamam a edição de sempre.
-  assert.equal((MOB.match(/prepararEdicao\(/g) || []).length, 1);
+  // Toque na linha: a folha do lançamento (mobLancFolha) usa as MESMAS funções
+  // do extrato — pagar por confirmarPagamento, editar por prepararEdicao,
+  // excluir por deletarTransacao/executarDelecao, adiar por adiarLancamentoUmMes.
   assert.match(MOB, /querySelector\('button\[onclick\^="prepararEdicao"\]'\)/);
+  const i = MOB.indexOf('function mobLancFolha');
+  const folha = MOB.slice(i, MOB.indexOf('function mobBaixarConta'));
+  for (const fn of [
+    'confirmarPagamento(',
+    "prepararEdicao('",
+    "deletarTransacao('",
+    'executarDelecao(',
+    'adiarLancamentoUmMes(',
+    'reverterPagamento(',
+  ]) {
+    assert.ok(folha.includes(fn), 'folha do lançamento usa ' + fn);
+  }
+  assert.doesNotMatch(MOB, /prepararPagamento\(/);
 });
 
 test('a faixa do Simulador lê o resultado do próprio herói', () => {

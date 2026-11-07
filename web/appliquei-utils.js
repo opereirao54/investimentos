@@ -282,6 +282,8 @@ function exportarDados() {
     limiteCartao: localStorage.getItem('futurorico_limiteCartao'),
     metaVerde: localStorage.getItem('futurorico_metaVerde'),
     metaVermelha: localStorage.getItem('futurorico_metaVermelha'),
+    metaGastoPct: localStorage.getItem('futurorico_metaGastoPct'),
+    metaInvestirPct: localStorage.getItem('futurorico_metaInvestirPct'),
   };
   const json = JSON.stringify(dados, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
@@ -339,6 +341,9 @@ function confirmarImportacao(dadosStr) {
     if (dados.limiteCartao) localStorage.setItem('futurorico_limiteCartao', dados.limiteCartao);
     if (dados.metaVerde) localStorage.setItem('futurorico_metaVerde', dados.metaVerde);
     if (dados.metaVermelha) localStorage.setItem('futurorico_metaVermelha', dados.metaVermelha);
+    if (dados.metaGastoPct) localStorage.setItem('futurorico_metaGastoPct', dados.metaGastoPct);
+    if (dados.metaInvestirPct)
+      localStorage.setItem('futurorico_metaInvestirPct', dados.metaInvestirPct);
 
     historicoCompras = JSON.parse(localStorage.getItem('futurorico_compras') || '[]');
     transacoes = JSON.parse(localStorage.getItem('futurorico_transacoes') || '[]');

@@ -1187,7 +1187,10 @@ function _mobCategorias(mes, ano) {
   if (typeof gastosPorCategoriaComMedia !== 'function') return '';
   const linhas = gastosPorCategoriaComMedia(mes, ano).filter((l) => l.valor > 0.005);
   if (!linhas.length) return '';
-  const max = linhas.reduce((a, l) => Math.max(a, l.valor, l.media || 0), 0) || 1;
+  const max = linhas.reduce((a, l) => Math.max(a, l.valor, l.media || 0, l.limite || 0), 0) || 1;
+  // Quem passou (ou está perto) do limite sobe para as três que aparecem.
+  const peso = (l) => (l.limiteEstado === 'passou' ? 2 : l.limiteEstado === 'perto' ? 1 : 0);
+  linhas.sort((a, b) => peso(b) - peso(a) || b.valor - a.valor);
   return (
     '<section class="mi-cats"><div class="mi-tit-linha"><h2 class="mi-h2">Por categoria</h2>' +
     '<button type="button" class="mi-link" onclick="mobSegControle(\'extrato\')">Todas <i class="ph ph-caret-right"></i></button></div>' +
@@ -1198,6 +1201,7 @@ function _mobCategorias(mes, ano) {
         (l) =>
           '<button type="button" class="ctrl-cat' +
           (l.alerta ? ' alerta' : '') +
+          (l.limiteEstado ? ' lim-' + l.limiteEstado : '') +
           '" data-cat="' +
           _mobEsc(l.slug === '__sem_categoria__' ? '' : l.slug) +
           '" onclick="filtrarExtratoPorCategoria(this.dataset.cat);mobSegControle(\'extrato\')"><span class="ctrl-cat-nome">' +
@@ -1208,12 +1212,22 @@ function _mobCategorias(mes, ano) {
           (l.media != null
             ? '<em style="left:' + ((l.media / max) * 100).toFixed(1) + '%"></em>'
             : '') +
+          (l.limite
+            ? '<i class="ctrl-cat-lim" style="left:' +
+              ((l.limite / max) * 100).toFixed(1) +
+              '%"></i>'
+            : '') +
           '</span><b class="valor-mascarado">' +
           _mobEsc(_mobDreFmt(l.valor)) +
+          (l.limite && typeof ctrlCatLimiteTexto === 'function'
+            ? '<small class="ctrl-cat-limtxt">' + _mobEsc(ctrlCatLimiteTexto(l)) + '</small>'
+            : '') +
           '</b></button>'
       )
       .join('') +
-    '<small class="mi-cats-nota">traço = sua média dos 3 meses anteriores</small></div></section>'
+    '<small class="mi-cats-nota">traço = sua média dos 3 meses anteriores' +
+    (linhas.some((l) => l.limite) ? ' · marca laranja = seu limite' : '') +
+    '</small></div></section>'
   );
 }
 

@@ -1379,6 +1379,34 @@
         .ctrl-cat.alerta .ctrl-cat-trilho > span { background: var(--cor-erro); }
         .ctrl-cat-trilho > em { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--cor-texto-principal); opacity: .55; border-radius: 1px; }
         .ctrl-cat b { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 12.5px; text-align: right; }
+        /* Limite por categoria: marca laranja no trilho e a linha "de R$ X · 85%". */
+        .ctrl-cat-lim { position: absolute; top: -5px; bottom: -5px; width: 3px; margin-left: -1px; background: var(--cor-cartao); border-radius: 2px; }
+        .ctrl-cat-limtxt { display: block; font: 500 10.5px 'Figtree', sans-serif; color: var(--cor-texto-mutado); }
+        .ctrl-cat.lim-perto .ctrl-cat-trilho > span { background: var(--cor-cartao); }
+        .ctrl-cat.lim-perto .ctrl-cat-limtxt { color: var(--cor-txt-amber); font-weight: 700; }
+        .ctrl-cat.lim-passou .ctrl-cat-limtxt { color: var(--cor-erro); font-weight: 700; }
+        /* Configurações › Categorias: botão "Limite" e o editor. */
+        .cat-cfg-limite { padding: 4px 8px !important; font-size: 11px !important; color: var(--cor-txt-amber) !important; border-color: var(--cor-borda-amber, var(--cor-borda)) !important; }
+        .cat-lim { display: flex; flex-direction: column; gap: 10px; background: var(--cor-superficie); border: 1px solid var(--cor-borda); border-radius: 12px; padding: 14px; }
+        .cat-lim > b { font-size: 14px; color: var(--cor-texto-principal); }
+        .cat-lim-ops { display: flex; gap: 8px; flex-wrap: wrap; }
+        .cat-lim-ops .btn-secundario { width: auto; margin: 0; min-height: 40px; padding: 0 14px; border-radius: 99px; font-size: 13px; }
+        .cat-lim-ops .btn-secundario.on { border-color: var(--cor-primaria); background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); }
+        .cat-lim-campo { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: var(--cor-texto-secundario); }
+        .cat-lim-campo > span { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border: 1.5px solid var(--cor-borda); border-radius: 10px; background: var(--cor-branco); }
+        .cat-lim-campo > span > span { color: var(--cor-texto-mutado); font-size: 14px; }
+        .cat-lim-campo input { flex: 1; min-width: 0; border: 0 !important; outline: none; background: none !important; box-shadow: none !important; padding: 0 !important; font: 500 17px 'DM Mono', monospace !important; color: var(--cor-texto-principal); }
+        .cat-lim-nota { font-size: 12px; color: var(--cor-texto-mutado); }
+        .cat-lim-botoes { display: flex; gap: 8px; }
+        .cat-lim-botoes > * { flex: 1; justify-content: center; margin: 0; min-height: 42px; }
+        /* Configurações › Metas do mês: as duas réguas em % */
+        .cfg-meta-pct { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; margin-bottom: 10px; border: 1px solid var(--cor-borda); border-radius: 14px; background: var(--cor-branco); }
+        .cfg-meta-pct-cab { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+        .cfg-meta-pct-cab label { font-weight: 700; font-size: 14px; color: var(--cor-texto-principal); margin: 0; }
+        .cfg-meta-pct-cab b { font-size: 14px; color: var(--cor-txt-primaria); }
+        .cfg-meta-pct input[type="range"] { width: 100%; accent-color: var(--cor-primaria); min-height: 32px; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+        .cfg-meta-pct small { font-size: 12.5px; color: var(--cor-texto-mutado); line-height: 1.45; }
+        .cfg-metas-sub { margin-top: 6px !important; }
         .ctrl-cat-vazio { font-size: 13px; color: var(--cor-texto-mutado); padding: 12px 0; }
         .ctrl-dre-barras { margin-bottom: 12px; }
         .ctrl-dre-msg { font-size: 13px; border-radius: 10px; padding: 9px 12px; margin-bottom: 12px; }
@@ -14088,7 +14116,7 @@
                     <div class="cfg-lista">
                         <button type="button" class="cfg-item" data-painel="cartoes" onclick="cfgAbrirPainel('cartoes')"><span class="cfg-ic verde"><i class="ph ph-credit-card"></i></span><span class="cfg-item-txt"><b>Cartões de crédito</b><small>Limite, fechamento e conta que paga</small></span><i class="ph ph-caret-right cfg-seta"></i></button>
                         <button type="button" class="cfg-item" data-painel="categorias" onclick="cfgAbrirPainel('categorias')"><span class="cfg-ic ambar"><i class="ph ph-tag"></i></span><span class="cfg-item-txt"><b>Categorias de despesa</b><small>Nomes e emojis dos seus gastos</small></span><i class="ph ph-caret-right cfg-seta"></i></button>
-                        <button type="button" class="cfg-item" data-painel="metas" onclick="cfgAbrirPainel('metas')"><span class="cfg-ic azul"><i class="ph ph-target"></i></span><span class="cfg-item-txt"><b>Metas de saldo</b><small>Quando o mês fica verde ou vermelho</small></span><i class="ph ph-caret-right cfg-seta"></i></button>
+                        <button type="button" class="cfg-item" data-painel="metas" onclick="cfgAbrirPainel('metas')"><span class="cfg-ic azul"><i class="ph ph-target"></i></span><span class="cfg-item-txt"><b>Metas do mês</b><small>Quanto gastar, investir e guardar</small></span><i class="ph ph-caret-right cfg-seta"></i></button>
                     </div>
                     <span class="cfg-grupo">Integrações e ajuda</span>
                     <div class="cfg-lista">
@@ -14143,8 +14171,19 @@
                     </section>
 
                     <section class="cfg-painel" id="cfgPainelMetas" data-painel="metas" aria-labelledby="cfgTitMetas">
-                        <h3 class="cfg-painel-tit" id="cfgTitMetas">Metas de saldo</h3>
-                        <p class="cfg-painel-desc">O saldo acumulado do mês fica <b class="cfg-verde">verde</b> acima da meta e <b class="cfg-vermelho">vermelho</b> abaixo do alerta, no Controle e no Relatório mensal. Os valores são salvos ao sair do campo.</p>
+                        <h3 class="cfg-painel-tit" id="cfgTitMetas">Metas do mês</h3>
+                        <p class="cfg-painel-desc">São os critérios da Saúde do mês, no Controle e no Relatório mensal.</p>
+                        <div class="cfg-meta-pct">
+                            <div class="cfg-meta-pct-cab"><label for="metaGastoPct">Gastar até</label><b id="metaGastoPctVal">60% do que entra</b></div>
+                            <input type="range" id="metaGastoPct" min="40" max="80" step="5" value="60" oninput="cfgMetaPctMudou(false)" onchange="cfgMetaPctMudou(true)">
+                            <small id="metaGastoPctTxt"></small>
+                        </div>
+                        <div class="cfg-meta-pct">
+                            <div class="cfg-meta-pct-cab"><label for="metaInvestirPct">Investir pelo menos</label><b id="metaInvestirPctVal">30% do que entra</b></div>
+                            <input type="range" id="metaInvestirPct" min="0" max="50" step="5" value="30" oninput="cfgMetaPctMudou(false)" onchange="cfgMetaPctMudou(true)">
+                            <small id="metaInvestirPctTxt"></small>
+                        </div>
+                        <p class="cfg-painel-desc cfg-metas-sub">Saldo acumulado: fica <b class="cfg-verde">verde</b> acima da meta e <b class="cfg-vermelho">vermelho</b> abaixo do alerta. Os valores são salvos ao sair do campo.</p>
                         <div class="cfg-metas">
                             <div class="form-group" style="margin-bottom:0;"><label for="metaVerde">Meta verde (saldo ideal)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVerde" value="3.000,00" placeholder="Saldo ideal" oninput="aplicarMascaraBRL(this)" onchange="cfgSalvarMetasAuto()"></span></div>
                             <div class="form-group" style="margin-bottom:0;"><label for="metaVermelha">Alerta vermelho (saldo crítico)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVermelha" value="1.000,00" placeholder="Saldo crítico" oninput="aplicarMascaraBRL(this)" onchange="cfgSalvarMetasAuto()"></span></div>
