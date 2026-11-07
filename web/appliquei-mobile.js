@@ -494,7 +494,20 @@ function _mobLigarExtrato() {
       item.classList.remove('mob-acoes');
       return;
     }
+    // Toque na linha abre a folha do lançamento (pagar, outro valor, adiar,
+    // editar, excluir) — canvas "Detalhe do lançamento".
     const editar = item.querySelector('button[onclick^="prepararEdicao"]');
+    const idLinha =
+      editar && (editar.getAttribute('onclick').match(/prepararEdicao\('([^']+)'\)/) || [])[1];
+    if (
+      idLinha &&
+      typeof transacoes !== 'undefined' &&
+      transacoes.some((x) => String(x.id) === idLinha)
+    ) {
+      _mobExtFecharTodos(null);
+      mobLancFolha(idLinha);
+      return;
+    }
     if (editar) {
       _mobExtFecharTodos(null);
       editar.click();
@@ -1837,6 +1850,313 @@ function _mobProximos(itens, hojeStr) {
       : '') +
     '</div></section>'
   );
+}
+
+// ------------------------------------------------------------
+// Folha do lançamento (toque numa linha do extrato)
+// ------------------------------------------------------------
+// Tudo o que se faz com UM lançamento num lugar só, na zona do polegar:
+// marcar como pago hoje, "paguei outro valor" (só este mês muda), adiar para
+// o mês seguinte, editar e excluir — esta perguntando "só este mês" ou "este e
+// os próximos" quando é conta fixa ou parcelada. As ações são as do extrato
+// (confirmarPagamento, adiarLancamentoUmMes, prepararEdicao, executarDelecao).
+
+var _mobLancMeses = [
+  'janeiro',
+  'fevereiro',
+  'março',
+  'abril',
+  'maio',
+  'junho',
+  'julho',
+  'agosto',
+  'setembro',
+  'outubro',
+  'novembro',
+  'dezembro',
+];
+
+function _mobLancDdMm(ymd) {
+  return ymd && /^\d{4}-\d{2}-\d{2}/.test(ymd) ? ymd.slice(8, 10) + '/' + ymd.slice(5, 7) : '';
+}
+
+/** O selo do topo: "A pagar · vence 10/11", "Atrasado · venceu 05/11", "Pago em 03/11". */
+function mobLancStatus(t, hojeYmd) {
+  const hoje = hojeYmd || (typeof hojeYmdLocal === 'function' ? hojeYmdLocal() : '');
+  if (t.categoria === 'receita' || t.categoria === 'dividendo')
+    return {
+      classe: 'ok',
+      txt: 'Entrada' + (t.dataVencimento ? ' · ' + _mobLancDdMm(t.dataVencimento) : ''),
+    };
+  if (t.pago) {
+    const dia = typeof appliqueiDiaDoPagamento === 'function' ? appliqueiDiaDoPagamento(t) : null;
+    return { classe: 'ok', txt: 'Pago' + (dia ? ' em ' + _mobLancDdMm(dia) : '') };
+  }
+  if (t.dataVencimento && t.dataVencimento < hoje)
+    return { classe: 'atraso', txt: 'Atrasado · venceu ' + _mobLancDdMm(t.dataVencimento) };
+  if (t.dataVencimento === hoje) return { classe: 'atraso', txt: 'A pagar · vence hoje' };
+  return {
+    classe: 'pendente',
+    txt: 'A pagar' + (t.dataVencimento ? ' · vence ' + _mobLancDdMm(t.dataVencimento) : ''),
+  };
+}
+
+/** "Moradia · sai do Itaú · todo mês" */
+function mobLancMeta(t) {
+  const partes = [];
+  if (t.categoriaDespesa && typeof rotuloCategoriaDespesa === 'function')
+    partes.push(rotuloCategoriaDespesa(t.categoriaDespesa));
+  const origem = typeof extratoOrigemDe === 'function' ? extratoOrigemDe(t) : null;
+  if (origem && origem.chave !== 'sem') {
+    const entrada = t.categoria === 'receita' || t.categoria === 'dividendo';
+    partes.push(
+      (entrada ? 'entra no ' : t.categoria === 'cartao_credito' ? 'no ' : 'sai do ') + origem.rotulo
+    );
+  }
+  const p = String(t.descricao || '').match(/\((\d+)\/(\d+)\)\s*$/);
+  if (p) partes.push('parcela ' + p[1] + ' de ' + p[2]);
+  else if (t.groupId && t.categoria === 'despesa_fixa') partes.push('todo mês');
+  return partes.join(' · ');
+}
+
+function _mobLancMesNome(t, mais) {
+  const d = new Date(t.ano, t.mes + (mais || 0), 1);
+  return _mobLancMeses[d.getMonth()];
+}
+
+/** Pode ir para o mês seguinte? Conta a pagar comum; cartão e sonho têm regra própria. */
+function mobLancPodeAdiar(t) {
+  return (
+    !!t &&
+    !t.pago &&
+    (t.categoria === 'despesa_fixa' || t.categoria === 'despesa_variavel') &&
+    !t.sonhoId &&
+    !t.compromissoId
+  );
+}
+
+function mobLancPodePagar(t) {
+  return !!t && !t.pago && t.categoria !== 'receita' && t.categoria !== 'dividendo';
+}
+
+/** vista: '' (ações), 'valor', 'excluir', 'pago'. */
+function mobLancFolha(id, vista) {
+  if (typeof transacoes === 'undefined') return;
+  const t = transacoes.find((x) => String(x.id) === String(id));
+  if (!t) return mobFolhaFechar();
+  const idEsc = _mobEsc(String(t.id));
+  const st = mobLancStatus(t);
+  const meta = mobLancMeta(t);
+  const hoje = typeof hojeYmdLocal === 'function' ? hojeYmdLocal() : '';
+  const fmt = (v) => (typeof formatarMoeda === 'function' ? formatarMoeda(v) : String(v));
+  const mes = _mobLancMesNome(t, 0);
+  const prox = _mobLancMesNome(t, 1);
+  const serie = !!t.groupId;
+
+  let html =
+    '<div class="ml-cab"><div class="ml-cab-txt"><span class="ml-st ' +
+    st.classe +
+    '">' +
+    _mobEsc(st.txt) +
+    '</span><h3 class="mf-tit">' +
+    _mobEsc(t.descricao || 'Lançamento') +
+    '</h3>' +
+    (meta ? '<span class="ml-meta">' + _mobEsc(meta) + '</span>' : '') +
+    '</div><b class="ml-valor valor-mascarado">' +
+    _mobEsc(fmt(t.valor)) +
+    '</b></div>';
+
+  const linha = (onclick, txt, extra) =>
+    '<button type="button" class="ml-linha' +
+    (extra || '') +
+    '" onclick="' +
+    onclick +
+    '"><span>' +
+    txt +
+    '</span><i class="ph ph-caret-right" aria-hidden="true"></i></button>';
+
+  if (vista === 'valor') {
+    html +=
+      '<label class="mf-campo" for="input-pago-' +
+      idEsc +
+      '">Quanto você pagou?<span class="mf-campo-caixa"><span>R$</span><input type="text" inputmode="decimal" id="input-pago-' +
+      idEsc +
+      '" value="' +
+      _mobEsc(
+        typeof formatarBRLInput === 'function' ? formatarBRLInput(t.valor) : String(t.valor)
+      ) +
+      '" oninput="aplicarMascaraBRL(this);mobLancValorAviso(\'' +
+      idEsc +
+      '\')"></span></label>' +
+      '<label class="mf-campo" for="input-pago-dia-' +
+      idEsc +
+      '">Pago em<span class="mf-campo-caixa ml-dia"><input type="date" id="input-pago-dia-' +
+      idEsc +
+      '" value="' +
+      _mobEsc(hoje) +
+      '" max="' +
+      _mobEsc(hoje) +
+      '"></span></label>' +
+      '<div class="mf-info" id="mlValorAviso"><i class="ph ph-info"></i><span>' +
+      (serie
+        ? 'Só ' +
+          _mobEsc(mes) +
+          ' muda. ' +
+          _mobEsc(prox.charAt(0).toUpperCase() + prox.slice(1)) +
+          ' em diante continua ' +
+          _mobEsc(fmt(t.valor)) +
+          '.'
+        : 'O valor do lançamento passa a ser o que você pagou.') +
+      '</span></div>' +
+      '<button type="button" class="mf-btn1" onclick="mobLancPagar(\'' +
+      idEsc +
+      '\')">Marcar como pago</button>' +
+      '<button type="button" class="mf-btn2" onclick="mobLancFolha(\'' +
+      idEsc +
+      '\')">Voltar</button>';
+  } else if (vista === 'excluir') {
+    html +=
+      '<b class="ml-perg">Excluir ' +
+      _mobEsc(String(t.descricao || 'o lançamento').replace(/\s*\(\d+\/\d+\)\s*$/, '')) +
+      ' de quais meses?</b>' +
+      '<button type="button" class="ml-escolha" onclick="mobLancExcluir(\'' +
+      idEsc +
+      "','unica')\"><b>Só " +
+      _mobEsc(mes) +
+      '</b><span>Some deste mês; ' +
+      _mobEsc(prox) +
+      ' em diante continua.</span></button>' +
+      '<button type="button" class="ml-escolha perigo" onclick="mobLancExcluir(\'' +
+      idEsc +
+      "','todas')\"><b>" +
+      _mobEsc(mes.charAt(0).toUpperCase() + mes.slice(1)) +
+      ' e os próximos</b><span>Os meses anteriores ficam no histórico.</span></button>' +
+      '<button type="button" class="mf-btn2" onclick="mobLancFolha(\'' +
+      idEsc +
+      '\')">Voltar</button>';
+  } else if (vista === 'pago') {
+    const origem = typeof extratoOrigemDe === 'function' ? extratoOrigemDe(t) : null;
+    html +=
+      '<div class="ml-feito" role="status"><i class="ph-bold ph-check" aria-hidden="true"></i><span>' +
+      _mobEsc(String(t.descricao || 'Lançamento').replace(/\s*\(\d+\/\d+\)\s*$/, '')) +
+      ' pago' +
+      (origem && origem.chave !== 'sem' ? ' · saiu do ' + _mobEsc(origem.rotulo) : '') +
+      '</span>' +
+      (typeof controlePodeReverterPagamento === 'function' && controlePodeReverterPagamento(t)
+        ? '<button type="button" onclick="mobLancDesfazer(\'' + idEsc + '\')">Desfazer</button>'
+        : '') +
+      '</div><button type="button" class="mf-btn2" onclick="mobFolhaFechar()">Fechar</button>';
+  } else {
+    if (mobLancPodePagar(t)) {
+      // Campos escondidos: confirmarPagamento lê o valor e o dia pelo id.
+      html +=
+        '<input type="hidden" id="input-pago-' +
+        idEsc +
+        '" value="' +
+        _mobEsc(
+          typeof formatarBRLInput === 'function' ? formatarBRLInput(t.valor) : String(t.valor)
+        ) +
+        '"><input type="hidden" id="input-pago-dia-' +
+        idEsc +
+        '" value="' +
+        _mobEsc(hoje) +
+        '">' +
+        '<button type="button" class="mf-btn1" onclick="mobLancPagar(\'' +
+        idEsc +
+        '\')">Marcar como pago hoje</button>';
+    }
+    html += '<div class="ml-linhas">';
+    if (mobLancPodePagar(t))
+      html += linha("mobLancFolha('" + idEsc + "','valor')", 'Paguei outro valor');
+    if (typeof controlePodePularSonho === 'function' && controlePodePularSonho(t))
+      html += linha(
+        "mobFolhaFechar();pularParcelaSonho('" + idEsc + "')",
+        'Não vou guardar este mês'
+      );
+    if (mobLancPodeAdiar(t))
+      html += linha("mobLancAdiar('" + idEsc + "')", 'Adiar para ' + _mobEsc(prox));
+    if (typeof controlePodeReverterPagamento === 'function' && controlePodeReverterPagamento(t))
+      html += linha("mobLancDesfazer('" + idEsc + "')", 'Voltar para a pagar');
+    html += linha("mobFolhaFechar();prepararEdicao('" + idEsc + "')", 'Editar');
+    html += linha(
+      serie
+        ? "mobLancFolha('" + idEsc + "','excluir')"
+        : "mobFolhaFechar();deletarTransacao('" + idEsc + "')",
+      'Excluir',
+      ' perigo'
+    );
+    html += '</div>';
+  }
+  mobFolhaAbrir(html, t.descricao || 'Lançamento');
+  // A folha foca o primeiro campo; nas ações não há campo de verdade.
+  if (vista !== 'valor') {
+    const f = document.getElementById('mobFolha');
+    const b = f && f.querySelector('.mf-btn1, .ml-linha');
+    if (b) setTimeout(() => b.focus({ preventScroll: true }), 260);
+  }
+}
+
+/** "Só novembro fica R$ 2.230. Dezembro em diante continua R$ 2.150." */
+function mobLancValorAviso(id) {
+  const t = transacoes.find((x) => String(x.id) === String(id));
+  const el = document.querySelector('#mlValorAviso span');
+  const campo = document.getElementById('input-pago-' + id);
+  if (!t || !el || !campo || !t.groupId) return;
+  const v = typeof parseBRL === 'function' ? parseBRL(campo.value) : NaN;
+  if (!Number.isFinite(v)) return;
+  const prox = _mobLancMesNome(t, 1);
+  el.textContent =
+    'Só ' +
+    _mobLancMesNome(t, 0) +
+    ' fica ' +
+    formatarMoeda(v) +
+    '. ' +
+    prox.charAt(0).toUpperCase() +
+    prox.slice(1) +
+    ' em diante continua ' +
+    formatarMoeda(t.valor) +
+    '.';
+}
+
+function mobLancPagar(id) {
+  const campo = document.getElementById('input-pago-' + id);
+  const v = typeof parseBRL === 'function' && campo ? parseBRL(campo.value) : NaN;
+  if (!Number.isFinite(v) || v < 0) {
+    if (typeof mostrarToast === 'function')
+      mostrarToast('Por favor, informe um valor válido.', 'erro');
+    return;
+  }
+  const dia = document.getElementById('input-pago-dia-' + id);
+  if (dia && dia.value && typeof hojeYmdLocal === 'function' && dia.value > hojeYmdLocal()) {
+    if (typeof mostrarToast === 'function')
+      mostrarToast('A data do pagamento não pode ser no futuro.', 'erro');
+    return;
+  }
+  confirmarPagamento(id);
+  const t = transacoes.find((x) => String(x.id) === String(id));
+  // R$ 0 abre a pergunta "não pagou?" no modal: a folha sai da frente.
+  if (t && t.pago) mobLancFolha(id, 'pago');
+  else mobFolhaFechar();
+}
+
+function mobLancDesfazer(id) {
+  mobFolhaFechar();
+  if (typeof reverterPagamento === 'function') reverterPagamento(id);
+}
+
+function mobLancAdiar(id) {
+  mobFolhaFechar();
+  if (typeof adiarLancamentoUmMes === 'function') adiarLancamentoUmMes(id);
+}
+
+/** Excluir com a escolha já feita na folha — sem o segundo modal. */
+function mobLancExcluir(id, modo) {
+  const t = transacoes.find((x) => String(x.id) === String(id));
+  mobFolhaFechar();
+  if (!t) return;
+  if (t.sonhoId || typeof executarDelecao !== 'function') return deletarTransacao(id);
+  itemParaDeletar = t;
+  executarDelecao(modo === 'todas' ? 'todas' : 'unica');
 }
 
 /** "Baixar": folha com o valor editável e de qual conta o dinheiro sai. */
