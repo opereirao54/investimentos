@@ -8086,78 +8086,78 @@
         /* ===== Meu patrimônio · web (mpRenderHeroiWeb e vizinhos) =====
            Linhas de cards em flex com quebra: a principal leva 2 partes, a
            lateral 1. Abaixo de ~900px cada card ocupa a linha inteira. */
-        .mpw-acoes { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
-        .mpw-acoes .btn-secundario { padding:7px 12px; font-size:12.5px; border-radius:10px; }
-        .mpw-linha { display:flex; flex-wrap:wrap; gap:16px; align-items:stretch; margin-bottom:16px; }
-        .mpw-linha > .card-container { margin:0 !important; min-width:0; }
-        .mpw-heroi, .mpw-onde { flex: 2 1 520px; }
-        .mpw-balanco, .mpw-mudou { flex: 1 1 300px; }
-        .mpw-tres > .card-container { flex: 1 1 280px; }
+        .mpd-acoes { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+        .mpd-acoes .btn-secundario { padding:7px 12px; font-size:12.5px; border-radius:10px; }
+        .mpd-linha { display:flex; flex-wrap:wrap; gap:16px; align-items:stretch; margin-bottom:16px; }
+        .mpd-linha > .card-container { margin:0 !important; min-width:0; }
+        .mpd-heroi, .mpd-onde { flex: 2 1 520px; }
+        .mpd-balanco, .mpd-mudou { flex: 1 1 300px; }
+        .mpd-tres > .card-container { flex: 1 1 280px; }
         /* A linha de cada bem precisa da largura toda (nome, valor, financiamento
            e ações em grade); em um terço da tela ela se sobrepunha. */
-        .mpw-tres > .mp-bens-card { flex-basis: 100%; order: 3; }
-        .mpw-rotulo { font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--cor-texto-mutado); font-weight:700; }
-        .mpw-topo { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
-        .mpw-seg { display:inline-flex; background:var(--cor-superficie); border-radius:10px; padding:3px; }
-        .mpw-seg button { border:0; background:transparent; color:var(--cor-texto-mutado); font:600 12px 'Figtree',sans-serif; padding:5px 12px; border-radius:8px; cursor:pointer; }
-        .mpw-seg button[aria-pressed="true"] { background:var(--cor-branco); color:var(--cor-texto-principal); box-shadow:0 1px 2px rgba(0,0,0,.08); }
-        .mpw-valor-heroi { font-family:'DM Mono',monospace; font-size:clamp(28px,3.2vw,38px); font-weight:500; letter-spacing:-.02em; margin:6px 0 2px; color:var(--cor-texto-principal); }
-        .mpw-delta { font-size:13.5px; font-weight:600; }
-        .mpw-delta.pos { color:var(--tinta-verde); } .mpw-delta.neg { color:var(--cor-erro); } .mpw-delta.neu { color:var(--cor-texto-mutado); }
-        .mpw-delta b { font-family:'DM Mono',monospace; font-weight:500; }
-        .mpw-sub { font-size:12px; color:var(--cor-texto-mutado); }
-        .mpw-periodos { display:flex; gap:2px; }
-        .mpw-periodos button { border:0; background:transparent; color:var(--cor-texto-mutado); font:600 12px 'Figtree',sans-serif; padding:6px 10px; border-radius:8px; cursor:pointer; }
-        .mpw-periodos button[aria-pressed="true"] { background:color-mix(in srgb, var(--cor-primaria) 14%, transparent); color:var(--tinta-verde); font-weight:700; }
-        .mpw-graf { position:relative; margin-top:10px; }
-        .mpw-graf svg { display:block; width:100%; height:auto; overflow:visible; }
-        .mpw-graf text { font-family:'DM Mono',monospace; font-size:10px; fill:var(--cor-texto-mutado); }
-        .mpw-graf .mpw-grade { stroke:var(--cor-borda); }
-        .mpw-graf .mpw-linha-g { fill:none; stroke:var(--cor-primaria); stroke-width:2.4; stroke-linejoin:round; stroke-linecap:round; }
-        .mpw-graf .mpw-cursor { stroke:var(--cor-texto-mutado); stroke-dasharray:3 3; opacity:0; }
-        .mpw-graf.ativo .mpw-cursor { opacity:1; }
-        .mpw-dica { position:absolute; top:0; pointer-events:none; background:var(--cor-branco); border:1px solid var(--cor-borda); border-radius:10px; padding:8px 10px; font-size:12px; box-shadow:0 6px 18px rgba(0,0,0,.08); display:none; min-width:150px; }
-        .mpw-graf.ativo .mpw-dica { display:block; }
-        .mpw-dica b { display:block; font-size:12.5px; margin-bottom:2px; }
-        .mpw-dica span { display:flex; justify-content:space-between; gap:10px; font-family:'DM Mono',monospace; color:var(--cor-texto-secundario); }
-        .mpw-vazio { font-size:13px; color:var(--cor-texto-mutado); padding:18px 0 6px; }
-        .mpw-barra { display:flex; gap:2px; height:10px; border-radius:6px; overflow:hidden; margin:8px 0 12px; background:var(--cor-superficie); }
-        .mpw-barra span { display:block; height:100%; }
-        .mpw-grupo { display:flex; justify-content:space-between; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--cor-texto-mutado); font-weight:700; margin:10px 0 2px; }
-        .mpw-grupo b { font-family:'DM Mono',monospace; font-weight:500; letter-spacing:0; }
-        .mpw-lin { display:grid; grid-template-columns:10px minmax(0,1fr) auto 38px; gap:8px; align-items:center; font-size:13px; padding:5px 0; }
-        .mpw-lin.sem-pct { grid-template-columns:10px minmax(0,1fr) auto; }
-        .mpw-lin i { width:8px; height:8px; border-radius:3px; display:block; }
-        .mpw-lin .mpw-num { font-family:'DM Mono',monospace; font-size:12.5px; text-align:right; }
-        .mpw-lin .mpw-pct { color:var(--cor-texto-mutado); font-size:11.5px; text-align:right; }
-        .mpw-lin.neg .mpw-num { color:var(--cor-erro); }
-        .mpw-total { display:flex; justify-content:space-between; border-top:1px dashed var(--cor-borda); margin-top:8px; padding-top:10px; font-weight:700; font-size:14px; }
-        .mpw-total .mpw-num { font-family:'DM Mono',monospace; font-weight:500; }
-        .mpw-mud { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2px 10px; padding:8px 0; border-bottom:1px solid var(--cor-borda); font-size:13px; }
-        .mpw-mud:last-of-type { border-bottom:0; }
-        .mpw-mud small { grid-column:1; font-size:11.5px; color:var(--cor-texto-mutado); }
-        .mpw-mud .mpw-num { font-family:'DM Mono',monospace; text-align:right; }
-        .mpw-mud .mpw-num.pos { color:var(--tinta-verde); } .mpw-mud .mpw-num.neg { color:var(--cor-erro); }
-        .mpw-link { border:0; background:transparent; color:var(--tinta-verde); font:600 12.5px 'Figtree',sans-serif; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:4px 0; }
-        .mpw-classe { padding:6px 0; font-size:13px; }
-        .mpw-classe-topo { display:flex; justify-content:space-between; gap:10px; }
-        .mpw-classe-topo .mpw-num { font-family:'DM Mono',monospace; }
-        .mpw-classe-trilho { height:6px; background:var(--cor-superficie); border-radius:4px; margin:5px 0 4px; overflow:hidden; }
-        .mpw-classe-trilho span { display:block; height:100%; border-radius:4px; }
-        .mpw-classe small { font-size:11.5px; color:var(--cor-texto-mutado); }
-        .mpw-classe small.pos { color:var(--tinta-verde); } .mpw-classe small.neg { color:var(--cor-erro); }
-        .mpw-fol { padding:10px 0; border-bottom:1px solid var(--cor-borda); }
-        .mpw-fol:last-child { border-bottom:0; }
-        .mpw-fol-topo { display:flex; justify-content:space-between; gap:10px; align-items:baseline; font-size:13px; }
-        .mpw-fol-topo .mpw-num { font-family:'DM Mono',monospace; font-size:15px; }
-        .mpw-fol small { display:block; font-size:11.5px; color:var(--cor-texto-mutado); margin-top:3px; line-height:1.4; }
-        .mpw-gerenciar { margin-top:12px; border-top:1px solid var(--cor-borda); padding-top:10px; }
-        .mpw-gerenciar summary { cursor:pointer; font-size:12.5px; font-weight:600; color:var(--cor-texto-secundario); display:flex; align-items:center; gap:6px; min-height:32px; }
-        .mpw-gerenciar[open] summary { margin-bottom:8px; }
-        .mpw-acoes-conta { display:flex; flex-wrap:wrap; gap:6px; margin-left:auto; }
-        .mpw-acoes-conta button { border:1px solid var(--cor-borda); background:var(--cor-branco); color:var(--cor-texto-principal); border-radius:8px; padding:4px 9px; font:600 11.5px 'Figtree',sans-serif; cursor:pointer; display:inline-flex; gap:4px; align-items:center; }
-        .mpw-acoes-conta button.perigo { color:var(--cor-erro); }
-        body.valores-ocultos #meu_patrimonio .mpw-oculta { filter: blur(6px); }
+        .mpd-tres > .mp-bens-card { flex-basis: 100%; order: 3; }
+        .mpd-rotulo { font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--cor-texto-mutado); font-weight:700; }
+        .mpd-topo { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+        .mpd-seg { display:inline-flex; background:var(--cor-superficie); border-radius:10px; padding:3px; }
+        .mpd-seg button { border:0; background:transparent; color:var(--cor-texto-mutado); font:600 12px 'Figtree',sans-serif; padding:5px 12px; border-radius:8px; cursor:pointer; }
+        .mpd-seg button[aria-pressed="true"] { background:var(--cor-branco); color:var(--cor-texto-principal); box-shadow:0 1px 2px rgba(0,0,0,.08); }
+        .mpd-valor-heroi { font-family:'DM Mono',monospace; font-size:clamp(28px,3.2vw,38px); font-weight:500; letter-spacing:-.02em; margin:6px 0 2px; color:var(--cor-texto-principal); }
+        .mpd-delta { font-size:13.5px; font-weight:600; }
+        .mpd-delta.pos { color:var(--tinta-verde); } .mpd-delta.neg { color:var(--cor-erro); } .mpd-delta.neu { color:var(--cor-texto-mutado); }
+        .mpd-delta b { font-family:'DM Mono',monospace; font-weight:500; }
+        .mpd-sub { font-size:12px; color:var(--cor-texto-mutado); }
+        .mpd-periodos { display:flex; gap:2px; }
+        .mpd-periodos button { border:0; background:transparent; color:var(--cor-texto-mutado); font:600 12px 'Figtree',sans-serif; padding:6px 10px; border-radius:8px; cursor:pointer; }
+        .mpd-periodos button[aria-pressed="true"] { background:color-mix(in srgb, var(--cor-primaria) 14%, transparent); color:var(--tinta-verde); font-weight:700; }
+        .mpd-graf { position:relative; margin-top:10px; }
+        .mpd-graf svg { display:block; width:100%; height:auto; overflow:visible; }
+        .mpd-graf text { font-family:'DM Mono',monospace; font-size:10px; fill:var(--cor-texto-mutado); }
+        .mpd-graf .mpd-grade { stroke:var(--cor-borda); }
+        .mpd-graf .mpd-linha-g { fill:none; stroke:var(--cor-primaria); stroke-width:2.4; stroke-linejoin:round; stroke-linecap:round; }
+        .mpd-graf .mpd-cursor { stroke:var(--cor-texto-mutado); stroke-dasharray:3 3; opacity:0; }
+        .mpd-graf.ativo .mpd-cursor { opacity:1; }
+        .mpd-dica { position:absolute; top:0; pointer-events:none; background:var(--cor-branco); border:1px solid var(--cor-borda); border-radius:10px; padding:8px 10px; font-size:12px; box-shadow:0 6px 18px rgba(0,0,0,.08); display:none; min-width:150px; }
+        .mpd-graf.ativo .mpd-dica { display:block; }
+        .mpd-dica b { display:block; font-size:12.5px; margin-bottom:2px; }
+        .mpd-dica span { display:flex; justify-content:space-between; gap:10px; font-family:'DM Mono',monospace; color:var(--cor-texto-secundario); }
+        .mpd-vazio { font-size:13px; color:var(--cor-texto-mutado); padding:18px 0 6px; }
+        .mpd-barra { display:flex; gap:2px; height:10px; border-radius:6px; overflow:hidden; margin:8px 0 12px; background:var(--cor-superficie); }
+        .mpd-barra span { display:block; height:100%; }
+        .mpd-grupo { display:flex; justify-content:space-between; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--cor-texto-mutado); font-weight:700; margin:10px 0 2px; }
+        .mpd-grupo b { font-family:'DM Mono',monospace; font-weight:500; letter-spacing:0; }
+        .mpd-lin { display:grid; grid-template-columns:10px minmax(0,1fr) auto 38px; gap:8px; align-items:center; font-size:13px; padding:5px 0; }
+        .mpd-lin.sem-pct { grid-template-columns:10px minmax(0,1fr) auto; }
+        .mpd-lin i { width:8px; height:8px; border-radius:3px; display:block; }
+        .mpd-lin .mpd-num { font-family:'DM Mono',monospace; font-size:12.5px; text-align:right; }
+        .mpd-lin .mpd-pct { color:var(--cor-texto-mutado); font-size:11.5px; text-align:right; }
+        .mpd-lin.neg .mpd-num { color:var(--cor-erro); }
+        .mpd-total { display:flex; justify-content:space-between; border-top:1px dashed var(--cor-borda); margin-top:8px; padding-top:10px; font-weight:700; font-size:14px; }
+        .mpd-total .mpd-num { font-family:'DM Mono',monospace; font-weight:500; }
+        .mpd-mud { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2px 10px; padding:8px 0; border-bottom:1px solid var(--cor-borda); font-size:13px; }
+        .mpd-mud:last-of-type { border-bottom:0; }
+        .mpd-mud small { grid-column:1; font-size:11.5px; color:var(--cor-texto-mutado); }
+        .mpd-mud .mpd-num { font-family:'DM Mono',monospace; text-align:right; }
+        .mpd-mud .mpd-num.pos { color:var(--tinta-verde); } .mpd-mud .mpd-num.neg { color:var(--cor-erro); }
+        .mpd-link { border:0; background:transparent; color:var(--tinta-verde); font:600 12.5px 'Figtree',sans-serif; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:4px 0; }
+        .mpd-classe { padding:6px 0; font-size:13px; }
+        .mpd-classe-topo { display:flex; justify-content:space-between; gap:10px; }
+        .mpd-classe-topo .mpd-num { font-family:'DM Mono',monospace; }
+        .mpd-classe-trilho { height:6px; background:var(--cor-superficie); border-radius:4px; margin:5px 0 4px; overflow:hidden; }
+        .mpd-classe-trilho span { display:block; height:100%; border-radius:4px; }
+        .mpd-classe small { font-size:11.5px; color:var(--cor-texto-mutado); }
+        .mpd-classe small.pos { color:var(--tinta-verde); } .mpd-classe small.neg { color:var(--cor-erro); }
+        .mpd-fol { padding:10px 0; border-bottom:1px solid var(--cor-borda); }
+        .mpd-fol:last-child { border-bottom:0; }
+        .mpd-fol-topo { display:flex; justify-content:space-between; gap:10px; align-items:baseline; font-size:13px; }
+        .mpd-fol-topo .mpd-num { font-family:'DM Mono',monospace; font-size:15px; }
+        .mpd-fol small { display:block; font-size:11.5px; color:var(--cor-texto-mutado); margin-top:3px; line-height:1.4; }
+        .mpd-gerenciar { margin-top:12px; border-top:1px solid var(--cor-borda); padding-top:10px; }
+        .mpd-gerenciar summary { cursor:pointer; font-size:12.5px; font-weight:600; color:var(--cor-texto-secundario); display:flex; align-items:center; gap:6px; min-height:32px; }
+        .mpd-gerenciar[open] summary { margin-bottom:8px; }
+        .mpd-acoes-conta { display:flex; flex-wrap:wrap; gap:6px; margin-left:auto; }
+        .mpd-acoes-conta button { border:1px solid var(--cor-borda); background:var(--cor-branco); color:var(--cor-texto-principal); border-radius:8px; padding:4px 9px; font:600 11.5px 'Figtree',sans-serif; cursor:pointer; display:inline-flex; gap:4px; align-items:center; }
+        .mpd-acoes-conta button.perigo { color:var(--cor-erro); }
+        body.valores-ocultos #meu_patrimonio .mpd-oculta { filter: blur(6px); }
 
         .mp-kpis { display:grid; grid-template-columns: repeat(2, 1fr); gap:14px; margin-bottom:20px; }
         .mp-kpis-hero { display:block; margin-bottom:18px; }
@@ -12448,15 +12448,15 @@
         /* MEU PATRIMÔNIO NO CELULAR (appliquei-mobile.js)               */
         /* ============================================================ */
         @media (max-width: 768px) {
-            #meu_patrimonio .mpw-web,
-            #meu_patrimonio .mpw-acoes,
-            #meu_patrimonio .mpw-gerenciar,
+            #meu_patrimonio .mpd-web,
+            #meu_patrimonio .mpd-acoes,
+            #meu_patrimonio .mpd-gerenciar,
             #meu_patrimonio .mp-onde-head,
             #meu_patrimonio #mp-lista-inst,
             #meu_patrimonio .mp-contas-separador,
             #meu_patrimonio .mp-classes-card { display: none !important; }
             .mob-pat { margin-bottom: 22px; }
-            #meu_patrimonio .mpw-linha { display: block; margin: 0; }
+            #meu_patrimonio .mpd-linha { display: block; margin: 0; }
 
             .mpm-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 4px; }
             .mpm-tit { margin: 0; font-size: 15px; font-weight: 700; color: var(--cor-texto-mutado); }
@@ -12506,42 +12506,59 @@
             .mpm-chip-txt small { font-size: 12.5px; font-weight: 600; color: var(--cor-texto-mutado); }
             .mpm-chip-txt b { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; overflow-wrap: anywhere; }
 
-            /* Cartões de banco/corretora, empilhados como numa carteira. */
+            /* Bancos e corretoras: uma linha cada, como a lista de contas do app
+               do banco. Os cartões empilhados escondiam caixa e investido até
+               o toque e, com muitas contas, viravam uma pilha só de nomes. */
             #mpMobCarteiras .mi-tit-linha { margin-bottom: 10px; }
-            .mpw-pilha { display: flex; flex-direction: column; }
-            .mpw {
-                position: relative; border-radius: 20px; padding: 0 18px; color: #fff;
-                background: linear-gradient(135deg, var(--mpw-cor), color-mix(in srgb, var(--mpw-cor) 62%, #000));
-                box-shadow: 0 -2px 10px rgba(16, 30, 19, 0.12);
-            }
-            .mpw + .mpw { margin-top: -14px; }
-            .mpw.aberta { padding-bottom: 16px; z-index: 1; }
-            .mpw.aberta + .mpw, .mpw-extrato + .mpw { margin-top: 10px; }
+            .mpw-pilha { display: flex; flex-direction: column; background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 18px; overflow: hidden; }
+            .mpw { position: relative; padding: 0 16px; color: var(--cor-texto-principal); border-bottom: 1px solid var(--cor-borda); }
+            .mpw:last-child { border-bottom: 0; }
+            .mpw.aberta { background: var(--cor-fundo); padding-bottom: 14px; }
             .mpw-cab {
-                display: flex; align-items: center; gap: 10px; width: 100%; min-height: 72px; padding: 16px 0 26px;
+                display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 12px 0;
                 background: none; border: 0; color: inherit; font-family: inherit; text-align: left; cursor: pointer;
             }
-            .mpw:last-child .mpw-cab, .mpw.aberta .mpw-cab { padding-bottom: 16px; }
             .mpw-logo {
-                width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-                background: rgba(255, 255, 255, 0.18); font-size: 13px; font-weight: 800; letter-spacing: 0.3px;
+                width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+                background: var(--mpw-cor); color: #fff; font-size: 12.5px; font-weight: 800; letter-spacing: 0.3px;
             }
-            .mpw-nome { flex: 1; min-width: 0; font-size: 16px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-            .mpw-total { font-family: 'DM Mono', monospace; font-size: 17px; font-weight: 500; white-space: nowrap; }
+            .mpw-nome { min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 15px; font-weight: 700; }
+            .mpw-nome small { font-size: 12px; font-weight: 500; color: var(--cor-texto-mutado); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .mpw-total { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; white-space: nowrap; }
             .mpw-partes { display: flex; flex-direction: column; gap: 8px; padding-top: 2px; }
-            .mpw-partes > span { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; opacity: 0.95; }
-            .mpw-partes b { font-family: 'DM Mono', monospace; font-weight: 500; }
-            .mpw-acoes { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; margin-top: 16px; }
-            .mpw .conf-aviso { margin: 0 0 14px; }
+            .mpw-partes > span { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; color: var(--cor-texto-secundario); }
+            .mpw-partes b { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--cor-texto-principal); }
+            .mpw-acoes { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; margin-top: 14px; }
+            .mpw .conf-aviso { margin: 0 0 12px; }
             .mpw-acoes button {
                 display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 64px;
-                background: none; border: 0; color: #fff; font: 600 12px 'Figtree', sans-serif; cursor: pointer;
+                background: none; border: 0; color: var(--cor-texto-principal); font: 600 12px 'Figtree', sans-serif; cursor: pointer;
             }
             .mpw-acoes button > span {
                 width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
-                background: rgba(255, 255, 255, 0.16); font-size: 19px;
+                background: var(--cor-branco); border: 1px solid var(--cor-borda); color: var(--tinta-verde); font-size: 19px;
             }
-            .mpw-aviso { margin: 10px 0 0; font-size: 12.5px; opacity: 0.9; }
+            .mpw-aviso { margin: 10px 0 0; font-size: 12.5px; color: var(--cor-texto-mutado); }
+            .mpw-pilha > .mpw-extrato { margin: 0 12px 12px; }
+
+            /* Por que mudou, fôlego, dívida na composição, gerenciar contas */
+            .mpm-chip-divida .mpm-chip-txt b { color: var(--cor-erro); }
+            .mpm-mudou { margin-top: 22px; }
+            .mpm-mudou .mi-tit-linha { margin-bottom: 8px; align-items: baseline; }
+            .mpm-mudou-tot { font-size: 12.5px; color: var(--cor-texto-mutado); }
+            .mpm-mudou-lista { padding: 2px 16px; }
+            .mpm-mudou-lista > div { display: flex; justify-content: space-between; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--cor-borda); font-size: 14px; }
+            .mpm-mudou-lista > div:last-child { border-bottom: 0; }
+            .mpm-mudou b { font-family: 'DM Mono', monospace; font-weight: 500; }
+            .mpm-mudou b.pos { color: var(--tinta-verde); } .mpm-mudou b.neg { color: var(--cor-erro); }
+            .mpm-folego { display: flex; gap: 10px; overflow-x: auto; margin: 18px -16px 0; padding: 0 16px 4px; scrollbar-width: none; }
+            .mpm-fol { flex: 0 0 148px; background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 14px; padding: 11px 13px; display: flex; flex-direction: column; gap: 3px; }
+            .mpm-fol small { font-size: 12px; color: var(--cor-texto-secundario); font-weight: 600; }
+            .mpm-fol b { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 17px; }
+            .mpm-fol span { font-size: 11.5px; color: var(--cor-texto-mutado); }
+            .mpm-gerenciar > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; min-height: 44px; font-weight: 700; font-size: 14px; color: var(--cor-texto-secundario); }
+            .mpm-gerenciar > summary::-webkit-details-marker { display: none; }
+            .mpm-gerenciar[open] > summary { margin-bottom: 8px; }
             .mpw-extrato {
                 margin-top: 10px; padding: 8px 14px; background: var(--cor-branco); border: 1px solid var(--cor-borda);
                 border-radius: 18px; max-height: 360px; overflow-y: auto;
@@ -15973,7 +15990,7 @@
                 </div>
                 <!-- As ações de criar moram no cabeçalho, como no Controle: antes
                      ficavam no meio da página, no card "Minhas Contas". -->
-                <div class="mpw-acoes">
+                <div class="mpd-acoes">
                     <button type="button" class="btn-secundario" onclick="abrirTransferenciaModal()"><i class="ph ph-arrows-left-right"></i> Transferir</button>
                     <button type="button" class="btn-secundario" onclick="abrirNovaContaForm()"><i class="ph ph-plus"></i> Conta</button>
                     <button type="button" class="btn-secundario" onclick="abrirNovoBemForm()"><i class="ph ph-plus"></i> Bem</button>
@@ -15991,9 +16008,9 @@
                  cards de componente que existiam aqui repetiam a legenda da
                  composição; o balanço diz o mesmo uma vez só, com as dívidas.
                  Desenhados por mpRenderHeroiWeb / mpRenderBalancoWeb. -->
-            <div class="mpw-linha mpw-web">
-                <section class="card-container mpw-heroi" id="mpwHeroi" aria-label="Patrimônio"></section>
-                <section class="card-container mpw-balanco" id="mpwBalanco" aria-label="Do que ele é feito"></section>
+            <div class="mpd-linha mpd-web">
+                <section class="card-container mpd-heroi" id="mpwHeroi" aria-label="Patrimônio"></section>
+                <section class="card-container mpd-balanco" id="mpwBalanco" aria-label="Do que ele é feito"></section>
             </div>
 
             <div id="mpMobCarteiras" class="mob-inicio mob-pat"></div>
@@ -16007,8 +16024,8 @@
                  próprio extrato. A lista "Minhas Contas" repetia as mesmas
                  instituições logo abaixo; ela vira "Gerenciar contas", recolhida,
                  para o que não aparece em cima (conta zerada, arquivada, fundir). -->
-            <div class="mpw-linha">
-            <div class="card-container mp-onde-card mpw-onde">
+            <div class="mpd-linha">
+            <div class="card-container mp-onde-card mpd-onde">
                 <div class="mp-section-head mp-onde-head">
                     <div class="mp-onde-titulo">
                         <h3><i class="ph-fill ph-buildings mp-onde-ic"></i> Onde está o seu dinheiro</h3>
@@ -16041,25 +16058,25 @@
                         <button class="btn-acao" style="background:var(--cor-primaria);" onclick="salvarFormConta()"><i class="ph ph-check"></i> Salvar</button>
                     </div>
                 </div>
-                <details class="mpw-gerenciar">
-                    <summary><i class="ph ph-gear-six"></i> Gerenciar contas <span id="mpwQtdContas"></span></summary>
+                <details class="mpd-gerenciar">
+                    <summary><i class="ph ph-gear-six"></i> Gerenciar contas</summary>
                     <div class="mp-lista-inst" id="listaContas"><div class="mp-empty"><i class="ph ph-bank"></i>—</div></div>
                 </details>
             </div>
 
             <!-- Por que mudou: a variação do mês, parcela por parcela, somando
                  exatamente a diferença do gráfico (mpMudancaDoMes). -->
-            <section class="card-container mpw-mudou mpw-web" id="mpwMudou" aria-label="Por que mudou"></section>
+            <section class="card-container mpd-mudou mpd-web" id="mpwMudou" aria-label="Por que mudou"></section>
             </div>
 
-            <div class="mpw-linha mpw-tres">
+            <div class="mpd-linha mpd-tres">
             <!-- Investimentos por classe: lista compacta. O gráfico de barras com
                  a tabela embaixo gastava um card inteiro para duas ou três
                  classes; o detalhe completo está em Meus investimentos. -->
-            <section class="card-container mp-classes-card mpw-web" aria-label="Investimentos por classe">
+            <section class="card-container mp-classes-card mpd-web" aria-label="Investimentos por classe">
                 <div class="mp-section-head">
                     <h3>Investimentos por classe</h3>
-                    <button type="button" class="mpw-link" onclick="mobIrPara('patrimonio')">Ver carteira <i class="ph ph-arrow-right"></i></button>
+                    <button type="button" class="mpd-link" onclick="mobIrPara('patrimonio')">Ver carteira <i class="ph ph-arrow-right"></i></button>
                 </div>
                 <div id="mp-classes-lista"></div>
             </section>
@@ -16075,7 +16092,7 @@
 
             <!-- Fôlego: quanto dá para usar logo, quantos meses a reserva cobre e
                  os proventos previstos (mpRenderFolegoWeb). -->
-            <section class="card-container mpw-folego mpw-web" id="mpwFolego" aria-label="Fôlego"></section>
+            <section class="card-container mpd-folego mpd-web" id="mpwFolego" aria-label="Fôlego"></section>
             </div>
 
             <!-- CADASTRO DE BEM — modal em passos.

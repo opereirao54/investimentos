@@ -2022,9 +2022,11 @@ function mobConfirmarBaixa(id) {
 // calculados; a série mensal vem de mpSerieMensalPatrimonio. Os blocos de
 // gestão (Minhas contas, Meus bens) seguem os do desktop, logo abaixo.
 
-var _mobPat = { dados: null, serie: null, liquido: false, periodo: 12, aberta: null };
+// liquido: null até o primeiro desenho — abre em Líquido quando há dívida.
+var _mobPat = { dados: null, serie: null, liquido: null, periodo: 12, aberta: null };
 var MOB_PAT_CORES = ['#047857', '#1d4ed8', '#6d28d9', '#b45309', '#0e7490', '#be185d'];
 var MOB_PAT_PERIODOS = [
+  [1, '1M'],
   [6, '6M'],
   [12, '1A'],
   [24, '2A'],
@@ -2037,7 +2039,9 @@ function _mobPatFmt(v) {
 
 function _mobPatSerieVisivel() {
   const s = _mobPat.serie || [];
-  return _mobPat.periodo > 0 ? s.slice(-_mobPat.periodo) : s;
+  // N meses = N+1 pontos (o fim do mês de partida e os N seguintes), igual
+  // ao web; com um ponto só o 1M não desenharia linha nenhuma.
+  return _mobPat.periodo > 0 ? s.slice(-(_mobPat.periodo + 1)) : s;
 }
 
 function mobRenderPatrimonio(d) {
@@ -2172,6 +2176,7 @@ function _mobPatDesenharTopo() {
   if (!topo || !d) return;
   const k = d.kpis;
   const divida = Math.max(0, Number(d.divida) || 0);
+  if (_mobPat.liquido === null) _mobPat.liquido = divida > 0;
   const liquido = _mobPat.liquido && divida > 0;
   const total = k.total - (liquido ? divida : 0);
   const serie = _mobPatSerieVisivel();
@@ -2180,22 +2185,26 @@ function _mobPatDesenharTopo() {
   const base = serie.length > 1 ? serie[0] : null;
   // O gráfico é sempre o bruto: não há histórico do saldo devedor dos
   // financiamentos, e descontar a dívida de hoje do passado inventaria números.
-  const delta = base && !liquido ? _mobPatDelta(k.total, base.total, _mobPatRotuloMes(base)) : null;
+  // Por isso, no Líquido, a variação diz que é a do que você TEM.
+  const delta = base ? _mobPatDelta(k.total, base.total, _mobPatRotuloMes(base)) : null;
+  if (delta && liquido) delta.html += ' no que você tem';
 
   const seg =
     divida > 0
       ? '<div class="mpm-seg" role="tablist" aria-label="Como somar">' +
         '<button type="button" role="tab" aria-selected="' +
-        !liquido +
-        '" onclick="mobPatAlternarLiquido(false)">Bruto</button>' +
-        '<button type="button" role="tab" aria-selected="' +
         liquido +
-        '" onclick="mobPatAlternarLiquido(true)">Líquido</button></div>'
+        '" onclick="mobPatAlternarLiquido(true)">Líquido</button>' +
+        '<button type="button" role="tab" aria-selected="' +
+        !liquido +
+        '" onclick="mobPatAlternarLiquido(false)">Bruto</button></div>'
       : '';
   const nota = liquido
-    ? '<p class="mpm-nota">Descontados <b class="valor-mascarado">' +
+    ? '<p class="mpm-nota">Você tem <b class="valor-mascarado">' +
+      _mobEsc(_mobPatFmt(k.total)) +
+      '</b> e deve <b class="valor-mascarado">' +
       _mobEsc(_mobPatFmt(divida)) +
-      '</b> de financiamentos. O gráfico mostra o bruto.</p>'
+      '</b> (financiamentos e faturas em aberto). O gráfico mostra o que você tem.</p>'
     : '';
   const periodos = MOB_PAT_PERIODOS.map(
     (p) =>
@@ -2215,6 +2224,14 @@ function _mobPatDesenharTopo() {
     ['Imóveis', k.imoveis, 'var(--cor-cartao)', 'listaBens'],
     ['Veículos', k.veiculos, '#64748b', 'listaBens'],
   ].filter((p) => Math.abs(p[1]) > 0.005);
+  // Dívida é linha da composição, em vermelho: fica à vista sem precisar
+  // trocar para Líquido. Fora da barra (a barra é só o que você tem).
+  const chipDivida =
+    divida > 0
+      ? '<button type="button" class="mpm-chip mpm-chip-divida" onclick="mobPatIrPara(\'mpMobBens\')"><span class="mpm-chip-dot" style="background:var(--cor-erro)"></span><span class="mpm-chip-txt"><small>Dívidas</small><b class="valor-mascarado">−' +
+        _mobEsc(_mobPatFmt(divida)) +
+        '</b></span></button>'
+      : '';
   const soma = partes.reduce((a, p) => a + Math.max(0, p[1]), 0);
   const barra = partes
     .filter((p) => p[1] > 0)
@@ -2227,21 +2244,22 @@ function _mobPatDesenharTopo() {
         '%"></span>'
     )
     .join('');
-  const chips = partes
-    .map(
-      (p) =>
-        '<button type="button" class="mpm-chip" onclick="mobPatIrPara(\'' +
-        p[3] +
-        '\')"><span class="mpm-chip-dot" style="background:' +
-        p[2] +
-        '"></span><span class="mpm-chip-txt"><small>' +
-        p[0] +
-        (soma > 0 ? ' · ' + Math.round((Math.max(0, p[1]) / soma) * 100) + '%' : '') +
-        '</small><b class="valor-mascarado">' +
-        _mobEsc(_mobPatFmt(p[1])) +
-        '</b></span></button>'
-    )
-    .join('');
+  const chips =
+    partes
+      .map(
+        (p) =>
+          '<button type="button" class="mpm-chip" onclick="mobPatIrPara(\'' +
+          p[3] +
+          '\')"><span class="mpm-chip-dot" style="background:' +
+          p[2] +
+          '"></span><span class="mpm-chip-txt"><small>' +
+          p[0] +
+          (soma > 0 ? ' · ' + Math.round((Math.max(0, p[1]) / soma) * 100) + '%' : '') +
+          '</small><b class="valor-mascarado">' +
+          _mobEsc(_mobPatFmt(p[1])) +
+          '</b></span></button>'
+      )
+      .join('') + chipDivida;
 
   topo.innerHTML =
     '<div class="mpm-cab"><p class="mpm-tit">Patrimônio ' +
@@ -2268,7 +2286,9 @@ function _mobPatDesenharTopo() {
         '</div><div class="mpm-chips">' +
         chips +
         '</div></section>'
-      : '');
+      : '') +
+    _mobPatMudouHtml() +
+    _mobPatFolegoHtml(d.folego);
   _mobPatTitulo(total, quando, delta);
   if (g.svg) _mobPatLigarScrub(serie, g, total, quando, delta);
 }
@@ -2326,21 +2346,100 @@ function _mobPatLigarScrub(serie, g, total, quando, delta) {
   caixa.addEventListener('pointerleave', soltar);
 }
 
+/** Por que mudou, em três linhas: contas, valorização e bens (mpMudancaDoMes). */
+function _mobPatMudouHtml() {
+  const m = typeof mpMudancaDoMes === 'function' ? mpMudancaDoMes(_mobPat.serie) : null;
+  if (!m) return '';
+  const num = (v) =>
+    '<b class="valor-mascarado ' +
+    (Math.abs(v) < 0.005 ? 'neu' : v > 0 ? 'pos' : 'neg') +
+    '">' +
+    (v > 0.005 ? '+' : v < -0.005 ? '−' : '') +
+    _mobEsc(_mobPatFmt(Math.abs(v))) +
+    '</b>';
+  const linhas = [
+    ['Sobrou nas contas', m.contas],
+    ['Valorização dos investimentos', m.valorizacao],
+    ['Bens', m.bens],
+  ].filter((l, i) => i === 0 || Math.abs(l[1]) > 0.005);
+  return (
+    '<section class="mpm-mudou"><div class="mi-tit-linha"><h2 class="mi-h2">Por que mudou</h2><span class="mpm-mudou-tot">' +
+    num(m.total) +
+    ' desde ' +
+    _mobEsc(_mobPatRotuloMes(m.de)) +
+    '</span></div><div class="mi-card mpm-mudou-lista">' +
+    linhas.map((l) => '<div><span>' + l[0] + '</span>' + num(l[1]) + '</div>').join('') +
+    '</div></section>'
+  );
+}
+
+/** Fôlego em faixa que desliza: liquidez, reserva em meses e proventos. */
+function _mobPatFolegoHtml(f) {
+  if (!f) return '';
+  const cartoes = [
+    [
+      'Disponível em 1 dia',
+      '<b class="valor-mascarado">' + _mobEsc(_mobPatFmt(f.disponivel)) + '</b>',
+      f.pctDisponivel == null
+        ? 'contas, ações e FIIs'
+        : Math.round(f.pctDisponivel) + '% do que você tem',
+    ],
+  ];
+  if (f.reservaMeses != null)
+    cartoes.push([
+      'Reserva cobre',
+      '<b>' + f.reservaMeses.toFixed(1).replace('.', ',') + ' meses</b>',
+      'do seu gasto médio',
+    ]);
+  if (f.proventos)
+    cartoes.push([
+      'Proventos 12 meses',
+      '<b class="valor-mascarado">' + _mobEsc(_mobPatFmt(f.proventos.total)) + '</b>',
+      'previstos',
+    ]);
+  return (
+    '<section class="mpm-folego" aria-label="Fôlego">' +
+    cartoes
+      .map(
+        (c) =>
+          '<div class="mpm-fol"><small>' +
+          c[0] +
+          '</small>' +
+          c[1] +
+          '<span>' +
+          c[2] +
+          '</span></div>'
+      )
+      .join('') +
+    '</section>'
+  );
+}
+
 function mobPatIrPara(id) {
   const el = document.getElementById(id);
   if (el && typeof el.scrollIntoView === 'function')
     el.scrollIntoView({ block: 'start', behavior: 'smooth' });
 }
 
-/** Cartões de banco/corretora. Também chamada por mpToggleExtrato. */
+/** "Caixa R$ X · Investido R$ Y" — o que antes só aparecia ao abrir o cartão. */
+function _mobPatSubInst(x) {
+  if (x.reconciliar) return 'sem instituição no lançamento';
+  const p = [];
+  if (Math.abs(x.caixa) > 0.01) p.push('Caixa ' + _mobPatFmt(x.caixa));
+  if (Math.abs(x.investido) > 0.01) p.push('Investido ' + _mobPatFmt(x.investido));
+  return p.join(' · ');
+}
+
+/** Lista de bancos/corretoras, uma linha cada. Também chamada por mpToggleExtrato. */
 function mobPatrimonioRedesenharCarteiras() {
   const wrap = document.getElementById('mpMobCarteiras');
   const d = _mobPat.dados;
   if (!wrap || !d) return;
   const lista = (typeof mpEstado !== 'undefined' && mpEstado._instituicoes) || d.instituicoes || [];
   const cab =
-    '<div class="mi-tit-linha"><h2 class="mi-h2">Onde está o dinheiro</h2>' +
-    '<button type="button" class="mi-link" onclick="abrirNovaContaForm()"><i class="ph ph-plus"></i> Conta</button></div>';
+    '<div class="mi-tit-linha"><h2 class="mi-h2">Onde está o dinheiro</h2><span class="mpl-botoes">' +
+    '<button type="button" class="mi-link" onclick="abrirTransferenciaModal()"><i class="ph ph-arrows-left-right"></i> Transferir</button>' +
+    '<button type="button" class="mi-link" onclick="abrirNovaContaForm()"><i class="ph ph-plus"></i> Conta</button></span></div>';
   if (!lista.length) {
     wrap.innerHTML =
       cab +
@@ -2434,7 +2533,9 @@ function mobPatrimonioRedesenharCarteiras() {
         _mobEsc(sigla) +
         '</span><span class="mpw-nome">' +
         _mobEsc(x.nome) +
-        '</span><b class="mpw-total valor-mascarado">' +
+        '<small>' +
+        _mobEsc(_mobPatSubInst(x)) +
+        '</small></span><b class="mpw-total valor-mascarado">' +
         _mobEsc(_mobPatFmt(x.total)) +
         '</b></button>' +
         (conta && typeof conferirAvisoHtml === 'function'
@@ -2477,9 +2578,7 @@ function _mobPatDesenharClasses() {
   const total = itens.reduce((a, x) => a + x.atual, 0);
   const maior = itens[0].atual;
   wrap.innerHTML =
-    '<div class="mi-tit-linha"><h2 class="mi-h2">Investido por classe</h2><span class="mc-total"><b class="valor-mascarado">' +
-    _mobEsc(_mobPatFmt(total)) +
-    '</b></span></div><div class="mi-card mpc">' +
+    '<div class="mi-tit-linha"><h2 class="mi-h2">Investido por classe</h2><button type="button" class="mi-link" onclick="mobIrPara(\'patrimonio\')">Ver carteira <i class="ph ph-caret-right"></i></button></div><div class="mi-card mpc">' +
     itens
       .map((x) => {
         const cor =
@@ -2497,7 +2596,8 @@ function _mobPatDesenharClasses() {
           ';width:' +
           Math.max(2, (x.atual / maior) * 100).toFixed(1) +
           '%"></span></div>' +
-          (rent != null
+          // "↑ 0%" sem histórico de cotação parecia resultado: só com o que dizer.
+          (rent != null && Math.abs(rent) >= 0.05
             ? '<small class="mpc-rent ' +
               (rent >= 0 ? 'pos' : 'neg') +
               '">' +
@@ -3175,18 +3275,21 @@ function mobRenderContas() {
     tipos[t.v] = t.label.replace(/^[^\wÀ-ú]+\s*/, '');
   });
   const icones = { banco: 'ph-bank', corretora: 'ph-chart-line-up', carteira: 'ph-wallet' };
-  const cab =
-    '<div class="mi-tit-linha"><h2 class="mi-h2">Contas</h2><span class="mpl-botoes">' +
-    '<button type="button" class="mi-link" onclick="abrirTransferenciaModal()"><i class="ph ph-arrows-left-right"></i> Transferir</button>' +
-    '<button type="button" class="mi-link" onclick="abrirNovaContaForm()"><i class="ph ph-plus"></i> Conta</button></span></div>';
+  // As contas já aparecem uma a uma em "Onde está o dinheiro", com saldo e
+  // ações. Aqui fica o cadastro (saldo de partida, fundir, arquivar,
+  // restaurar), recolhido para não repetir a mesma lista logo abaixo.
   if (!ordem.length) {
     el.innerHTML =
-      cab +
       '<p class="mi-vazio">Nenhuma conta cadastrada. Não é preciso para lançar: o nome do banco no lançamento já basta. Cadastre para informar o saldo que já tem.</p>';
     return;
   }
+  const aberto = el.querySelector && el.querySelector('details[open]') ? ' open' : '';
   el.innerHTML =
-    cab +
+    '<details class="mpm-gerenciar"' +
+    aberto +
+    '><summary><i class="ph ph-gear-six"></i> Gerenciar contas (' +
+    ordem.length +
+    ')</summary>' +
     '<div class="mi-card mpl">' +
     ordem
       .map((c) => {
@@ -3224,7 +3327,7 @@ function mobRenderContas() {
         );
       })
       .join('') +
-    '</div>';
+    '</div></details>';
 }
 
 function mobRenderBens() {

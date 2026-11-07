@@ -989,7 +989,7 @@ function mpRenderInstituicoes(consolidado) {
       // segunda lista ("Minhas Contas") que repetia as mesmas instituições.
       const idEsc = String(x.key).replace(/"/g, '&quot;');
       const acoesConta = ehConta
-        ? `<span class="mpw-acoes-conta"><button type="button" data-conta="${idEsc}" onclick="editarContaForm(this.dataset.conta)"><i class="ph ph-pencil-simple"></i> Editar</button><button type="button" data-conta="${idEsc}" onclick="fundirContaPrompt(this.dataset.conta)"><i class="ph ph-arrows-merge"></i> Fundir</button><button type="button" class="perigo" data-conta="${idEsc}" onclick="arquivarContaUI(this.dataset.conta)"><i class="ph ph-archive"></i> Arquivar</button></span>`
+        ? `<span class="mpd-acoes-conta"><button type="button" data-conta="${idEsc}" onclick="editarContaForm(this.dataset.conta)"><i class="ph ph-pencil-simple"></i> Editar</button><button type="button" data-conta="${idEsc}" onclick="fundirContaPrompt(this.dataset.conta)"><i class="ph ph-arrows-merge"></i> Fundir</button><button type="button" class="perigo" data-conta="${idEsc}" onclick="arquivarContaUI(this.dataset.conta)"><i class="ph ph-archive"></i> Arquivar</button></span>`
         : '';
       const tituloExtrato = `<i class="ph ph-receipt"></i> Extrato — movimentações de caixa${btnConferir}${acoesConta}`;
       return `
@@ -1296,7 +1296,7 @@ function mpGraficoWebSvg(serie) {
     '<defs><linearGradient id="mpwGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--cor-primaria)" stop-opacity=".24"></stop><stop offset="1" stop-color="var(--cor-primaria)" stop-opacity="0"></stop></linearGradient></defs>';
   ticks.forEach((t) => {
     svg +=
-      '<line class="mpw-grade" x1="' +
+      '<line class="mpd-grade" x1="' +
       pl +
       '" x2="' +
       (W - pr) +
@@ -1309,14 +1309,14 @@ function mpGraficoWebSvg(serie) {
       (pl - 8) +
       '" y="' +
       (y(t) + 3).toFixed(1) +
-      '" text-anchor="end" class="mpw-oculta">' +
+      '" text-anchor="end" class="mpd-oculta">' +
       mpEsc(mpFmtCompacto(t)) +
       '</text>';
   });
   svg +=
     '<path d="' +
     area +
-    '" fill="url(#mpwGrad)"></path><path class="mpw-linha-g" d="' +
+    '" fill="url(#mpwGrad)"></path><path class="mpd-linha-g" d="' +
     linha +
     '"></path>';
   serie.forEach((p, i) => {
@@ -1335,7 +1335,7 @@ function mpGraficoWebSvg(serie) {
   });
   const u = pts[pts.length - 1];
   svg +=
-    '<line class="mpw-cursor" x1="' +
+    '<line class="mpd-cursor" x1="' +
     u[0] +
     '" x2="' +
     u[0] +
@@ -1344,7 +1344,7 @@ function mpGraficoWebSvg(serie) {
     '" y2="' +
     (H - pb) +
     '"></line>' +
-    '<circle class="mpw-ponto" cx="' +
+    '<circle class="mpd-ponto" cx="' +
     u[0].toFixed(1) +
     '" cy="' +
     u[1].toFixed(1) +
@@ -1381,11 +1381,11 @@ function mpRenderHeroiWeb(d) {
     const pct = base.total ? (dif / Math.abs(base.total)) * 100 : null;
     const cls = Math.abs(dif) < 0.005 ? 'neu' : dif > 0 ? 'pos' : 'neg';
     delta =
-      '<span class="mpw-delta ' +
+      '<span class="mpd-delta ' +
       cls +
       '">' +
       (cls === 'neu' ? '' : dif > 0 ? '↑ ' : '↓ ') +
-      '<b class="mpw-oculta">' +
+      '<b class="mpd-oculta">' +
       mpEsc(mpFmtBRL(Math.abs(dif))) +
       '</b>' +
       (pct != null ? ' (' + mpPctBR(Math.abs(pct)) + ')' : '') +
@@ -1395,7 +1395,7 @@ function mpRenderHeroiWeb(d) {
       '</span>';
   }
   const seg = temDivida
-    ? '<div class="mpw-seg" role="group" aria-label="Como somar">' +
+    ? '<div class="mpd-seg" role="group" aria-label="Como somar">' +
       '<button type="button" aria-pressed="' +
       liquido +
       '" onclick="mpWebAlternarLiquido(true)">Líquido</button>' +
@@ -1415,37 +1415,37 @@ function mpRenderHeroiWeb(d) {
   ).join('');
   const quando = 'Posição de ' + new Date(d.posicaoMs || Date.now()).toLocaleDateString('pt-BR');
   el.innerHTML =
-    '<div class="mpw-topo"><span class="mpw-rotulo">' +
+    '<div class="mpd-topo"><span class="mpd-rotulo">' +
     (liquido ? 'Patrimônio líquido' : temDivida ? 'Patrimônio bruto' : 'Patrimônio total') +
     '</span>' +
     seg +
     '</div>' +
-    '<div class="mpw-valor-heroi mpw-oculta">' +
+    '<div class="mpd-valor-heroi mpd-oculta">' +
     mpEsc(mpFmtBRL(valor)) +
     '</div>' +
     (liquido
-      ? '<div class="mpw-sub">Você tem <b class="mpw-oculta">' +
+      ? '<div class="mpd-sub">Você tem <b class="mpd-oculta">' +
         mpEsc(mpFmtBRL(k.total)) +
-        '</b> e deve <b class="mpw-oculta">' +
+        '</b> e deve <b class="mpd-oculta">' +
         mpEsc(mpFmtBRL(d.dividas.total)) +
         '</b></div>'
       : '') +
-    '<div class="mpw-topo" style="margin-top:6px"><div style="display:flex;flex-direction:column;gap:2px">' +
+    '<div class="mpd-topo" style="margin-top:6px"><div style="display:flex;flex-direction:column;gap:2px">' +
     delta +
-    '<span class="mpw-sub">' +
+    '<span class="mpd-sub">' +
     quando +
     '</span></div>' +
     (serieTodo.length > 1
-      ? '<div class="mpw-periodos" role="group" aria-label="Período do gráfico">' +
+      ? '<div class="mpd-periodos" role="group" aria-label="Período do gráfico">' +
         periodos +
         '</div>'
       : '') +
     '</div>' +
     (g
-      ? '<div class="mpw-graf" id="mpwGraf">' +
+      ? '<div class="mpd-graf" id="mpwGraf">' +
         g.svg +
-        '<div class="mpw-dica" id="mpwDica"></div></div>'
-      : '<p class="mpw-vazio">A linha do tempo aparece a partir do segundo mês de uso.</p>');
+        '<div class="mpd-dica" id="mpwDica"></div></div>'
+      : '<p class="mpd-vazio">A linha do tempo aparece a partir do segundo mês de uso.</p>');
   if (g) _mpWebLigarDica(serie, g);
 }
 
@@ -1453,8 +1453,8 @@ function _mpWebLigarDica(serie, g) {
   const caixa = document.getElementById('mpwGraf');
   const dica = document.getElementById('mpwDica');
   if (!caixa || !dica) return;
-  const cursor = caixa.querySelector('.mpw-cursor');
-  const ponto = caixa.querySelector('.mpw-ponto');
+  const cursor = caixa.querySelector('.mpd-cursor');
+  const ponto = caixa.querySelector('.mpd-ponto');
   const fmt = (v) => mpEsc(mpFmtBRL(v));
   caixa.addEventListener('pointermove', (ev) => {
     const r = caixa.getBoundingClientRect();
@@ -1485,16 +1485,16 @@ function _mpWebLigarDica(serie, g) {
       _mpWebRotuloMes(s) +
       (i === serie.length - 1 ? ' (hoje)' : '') +
       '</b>' +
-      '<span>Total <em class="mpw-oculta" style="font-style:normal">' +
+      '<span>Total <em class="mpd-oculta" style="font-style:normal">' +
       fmt(s.total) +
       '</em></span>' +
-      '<span>Contas <em class="mpw-oculta" style="font-style:normal">' +
+      '<span>Contas <em class="mpd-oculta" style="font-style:normal">' +
       fmt(s.caixa) +
       '</em></span>' +
-      '<span>Investido <em class="mpw-oculta" style="font-style:normal">' +
+      '<span>Investido <em class="mpd-oculta" style="font-style:normal">' +
       fmt(s.investido) +
       '</em></span>' +
-      '<span>Bens <em class="mpw-oculta" style="font-style:normal">' +
+      '<span>Bens <em class="mpd-oculta" style="font-style:normal">' +
       fmt(s.bens) +
       '</em></span>';
     const px = (p[0] / g.W) * r.width;
@@ -1523,7 +1523,7 @@ function mpRenderBalancoWeb(d) {
   ].filter((p) => Math.abs(p[1]) > 0.005);
   if (!partes.length && !(d.dividas.total > 0)) {
     el.innerHTML =
-      '<h3 style="margin:0 0 6px;font-size:14px">Do que ele é feito</h3><p class="mpw-vazio">Cadastre uma conta, um investimento ou um bem para ver o balanço.</p>';
+      '<h3 style="margin:0 0 6px;font-size:14px">Do que ele é feito</h3><p class="mpd-vazio">Cadastre uma conta, um investimento ou um bem para ver o balanço.</p>';
     return;
   }
   const positivo = partes.reduce((a, p) => a + Math.max(0, p[1]), 0);
@@ -1542,30 +1542,30 @@ function mpRenderBalancoWeb(d) {
     )
     .join('');
   const linha = (nome, v, cor, pct, neg) =>
-    '<div class="mpw-lin' +
+    '<div class="mpd-lin' +
     (pct == null ? ' sem-pct' : '') +
     (neg ? ' neg' : '') +
     '"><i style="background:' +
     cor +
     '"></i><span>' +
     mpEsc(nome) +
-    '</span><span class="mpw-num mpw-oculta">' +
+    '</span><span class="mpd-num mpd-oculta">' +
     (neg ? '−' : '') +
     mpEsc(mpFmtBRL(Math.abs(v))) +
     '</span>' +
-    (pct == null ? '' : '<span class="mpw-pct">' + mpPctBR(pct) + '</span>') +
+    (pct == null ? '' : '<span class="mpd-pct">' + mpPctBR(pct) + '</span>') +
     '</div>';
   let html =
-    '<h3 style="margin:0;font-size:14px">Do que ele é feito</h3><div class="mpw-barra" aria-hidden="true">' +
+    '<h3 style="margin:0;font-size:14px">Do que ele é feito</h3><div class="mpd-barra" aria-hidden="true">' +
     barra +
     '</div>' +
-    '<div class="mpw-grupo"><span>O que você tem</span><b class="mpw-oculta">' +
+    '<div class="mpd-grupo"><span>O que você tem</span><b class="mpd-oculta">' +
     mpEsc(mpFmtBRL(k.total)) +
     '</b></div>' +
     partes.map((p) => linha(p[0], p[1], p[2], mpFatiaDoTotal(p[1], k.total), false)).join('');
   if (d.dividas.total > 0.005) {
     html +=
-      '<div class="mpw-grupo"><span>O que você deve</span><b class="mpw-oculta">' +
+      '<div class="mpd-grupo"><span>O que você deve</span><b class="mpd-oculta">' +
       mpEsc(mpFmtBRL(d.dividas.total)) +
       '</b></div>' +
       d.dividas.bens.map((x) => linha(x.nome, x.valor, 'var(--cor-erro)', null, true)).join('') +
@@ -1574,9 +1574,9 @@ function mpRenderBalancoWeb(d) {
         .join('');
   }
   html +=
-    '<div class="mpw-total"><span>' +
+    '<div class="mpd-total"><span>' +
     (d.dividas.total > 0.005 ? 'Patrimônio líquido' : 'Total') +
-    '</span><span class="mpw-num mpw-oculta">' +
+    '</span><span class="mpd-num mpd-oculta">' +
     mpEsc(mpFmtBRL(k.total - d.dividas.total)) +
     '</span></div>';
   el.innerHTML = html;
@@ -1589,13 +1589,13 @@ function mpRenderMudouWeb(d) {
   const m = mpMudancaDoMes(d && d.serie);
   if (!m) {
     el.innerHTML =
-      '<h3 style="margin:0 0 6px;font-size:14px">Por que mudou</h3><p class="mpw-vazio">A partir do segundo mês, mostramos aqui quanto veio do que sobrou nas contas e quanto veio da valorização.</p>';
+      '<h3 style="margin:0 0 6px;font-size:14px">Por que mudou</h3><p class="mpd-vazio">A partir do segundo mês, mostramos aqui quanto veio do que sobrou nas contas e quanto veio da valorização.</p>';
     return;
   }
   const num = (v) => {
     const cls = Math.abs(v) < 0.005 ? '' : v > 0 ? ' pos' : ' neg';
     return (
-      '<span class="mpw-num mpw-oculta' +
+      '<span class="mpd-num mpd-oculta' +
       cls +
       '">' +
       (v > 0.005 ? '+' : v < -0.005 ? '−' : '') +
@@ -1618,13 +1618,13 @@ function mpRenderMudouWeb(d) {
   ];
   el.innerHTML =
     '<h3 style="margin:0 0 4px;font-size:14px">Por que mudou</h3>' +
-    '<span class="mpw-sub">De ' +
+    '<span class="mpd-sub">De ' +
     _mpWebRotuloMes(m.de) +
     ' até hoje</span>' +
     linhas
       .map(
         (l) =>
-          '<div class="mpw-mud"><span>' +
+          '<div class="mpd-mud"><span>' +
           l[0] +
           '</span>' +
           num(l[2]) +
@@ -1633,7 +1633,7 @@ function mpRenderMudouWeb(d) {
           '</small></div>'
       )
       .join('') +
-    '<div class="mpw-total"><span>Variação</span>' +
+    '<div class="mpd-total"><span>Variação</span>' +
     num(m.total) +
     '</div>';
 }
@@ -1649,7 +1649,7 @@ function mpRenderClassesWeb(consolidado) {
     .sort((a, b) => b.atual - a.atual);
   if (!itens.length) {
     wrap.innerHTML =
-      '<p class="mpw-vazio">Nenhum investimento ainda. Registre um aporte em Meus investimentos.</p>';
+      '<p class="mpd-vazio">Nenhum investimento ainda. Registre um aporte em Meus investimentos.</p>';
     return;
   }
   const total = itens.reduce((a, it) => a + it.atual, 0);
@@ -1668,14 +1668,14 @@ function mpRenderClassesWeb(consolidado) {
             ' sobre o que foi aplicado</small>'
           : '';
       return (
-        '<div class="mpw-classe"><div class="mpw-classe-topo"><span>' +
+        '<div class="mpd-classe"><div class="mpd-classe-topo"><span>' +
         mpEsc(MP_LABELS[it.cat] || it.cat) +
-        ' <span class="mpw-sub">' +
+        ' <span class="mpd-sub">' +
         mpPctBR(pct) +
-        '</span></span><span class="mpw-num mpw-oculta">' +
+        '</span></span><span class="mpd-num mpd-oculta">' +
         mpEsc(mpFmtBRL(it.atual)) +
         '</span></div>' +
-        '<div class="mpw-classe-trilho"><span style="width:' +
+        '<div class="mpd-classe-trilho"><span style="width:' +
         pct.toFixed(1) +
         '%;background:' +
         mpCorCategoria(it.cat) +
@@ -1694,10 +1694,10 @@ function mpRenderFolegoWeb(d) {
   const f = d.folego;
   const blocos = [];
   blocos.push(
-    '<div class="mpw-fol"><div class="mpw-fol-topo"><b>Disponível em até 1 dia</b><span class="mpw-num mpw-oculta">' +
+    '<div class="mpd-fol"><div class="mpd-fol-topo"><b>Disponível em até 1 dia</b><span class="mpd-num mpd-oculta">' +
       mpEsc(mpFmtBRL(f.disponivel)) +
       '</span></div>' +
-      '<div class="mpw-classe-trilho"><span style="width:' +
+      '<div class="mpd-classe-trilho"><span style="width:' +
       (f.pctDisponivel || 0).toFixed(1) +
       '%;background:var(--cor-primaria)"></span></div>' +
       '<small>' +
@@ -1708,23 +1708,23 @@ function mpRenderFolegoWeb(d) {
       '</small></div>'
   );
   blocos.push(
-    '<div class="mpw-fol"><div class="mpw-fol-topo"><b>Reserva cobre</b><span class="mpw-num">' +
+    '<div class="mpd-fol"><div class="mpd-fol-topo"><b>Reserva cobre</b><span class="mpd-num">' +
       (f.reservaMeses == null ? '—' : f.reservaMeses.toFixed(1).replace('.', ',') + ' meses') +
       '</span></div>' +
       '<small>' +
       (f.reservaMeses == null
         ? 'Lance seus gastos no Controle para calcularmos quantos meses o saldo em conta cobre.'
-        : 'o saldo em conta dividido pelo seu gasto médio de <span class="mpw-oculta">' +
+        : 'o saldo em conta dividido pelo seu gasto médio de <span class="mpd-oculta">' +
           mpEsc(mpFmtBRL(f.custoMedio)) +
           '</span> por mês') +
       '</small></div>'
   );
   if (f.proventos)
     blocos.push(
-      '<div class="mpw-fol"><div class="mpw-fol-topo"><b>Proventos previstos 12 meses</b><span class="mpw-num mpw-oculta">' +
+      '<div class="mpd-fol"><div class="mpd-fol-topo"><b>Proventos previstos 12 meses</b><span class="mpd-num mpd-oculta">' +
         mpEsc(mpFmtBRL(f.proventos.total)) +
         '</span></div>' +
-        '<small>em média <span class="mpw-oculta">' +
+        '<small>em média <span class="mpd-oculta">' +
         mpEsc(mpFmtBRL(f.proventos.mediaMensal)) +
         '</span> por mês, pelo que os seus ativos pagaram nos últimos 12 meses</small></div>'
     );

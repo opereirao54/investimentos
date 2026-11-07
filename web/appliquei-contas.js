@@ -793,8 +793,13 @@ function renderMinhasContas() {
     return c.arquivada;
   });
   const ordem = ativas.concat(arquivadas);
-  const qtd = document.getElementById('mpwQtdContas');
-  if (qtd) qtd.textContent = ordem.length ? '(' + ordem.length + ')' : '';
+  // Mesmo texto do celular (mobRenderContas): "Gerenciar contas (N)".
+  // Sem id no <summary>: a trava de paridade compara pelo texto, igual ao celular.
+  const resumo = document.querySelector('#meu_patrimonio .mpd-gerenciar > summary');
+  if (resumo)
+    resumo.innerHTML =
+      '<i class="ph ph-gear-six"></i> Gerenciar contas' +
+      (ordem.length ? ' (' + ordem.length + ')' : '');
   if (!ordem.length) {
     // O texto antigo ("crie uma para registrar de onde o dinheiro entra e
     // sai") lia-se como pré-requisito e foi metade da confusão do primeiro

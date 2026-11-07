@@ -110,6 +110,10 @@ const OVERLAYS = [
  * que ninguém use esta lista para silenciar uma perda de verdade.
  */
 const EQUIVALENTES = {
+  'fn:mpWebAlternarLiquido':
+    'Líquido/Bruto do Patrimônio no web; no celular é o mesmo seletor no topo da foto (mobPatAlternarLiquido)',
+  'fn:mpWebPeriodo':
+    'período do gráfico do Patrimônio no web (1M…Tudo); no celular são os mesmos botões abaixo do gráfico (mobPatPeriodo)',
   'fn:abrirPainelLancamento':
     'no celular o "Novo lançamento" largo sai do Controle; o "+" da barra inferior abre o menu de cadastro → Despesa/Receita/Cartão (cadastrarEm → abrirPainelLancamento, já no tipo)',
   'fn:abrirTransferenciaModal':

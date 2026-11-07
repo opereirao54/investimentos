@@ -221,9 +221,9 @@ test('os ganchos do web existem, somem no celular e borram em "ocultar valores"'
     assert.ok(secao.includes('id="' + id + '"'), `falta o gancho #${id}`);
   }
   assert.ok(!secao.includes('mp-kpi-saldo-fatia'), 'os cards de componente saíram');
-  assert.match(HTML, /#meu_patrimonio \.mpw-web,/, 'os blocos do web somem no celular');
+  assert.match(HTML, /#meu_patrimonio \.mpd-web,/, 'os blocos do web somem no celular');
   assert.ok(
-    HTML.includes('body.valores-ocultos #meu_patrimonio .mpw-oculta'),
+    HTML.includes('body.valores-ocultos #meu_patrimonio .mpd-oculta'),
     'valores do web têm de sumir no modo "ocultar valores"'
   );
   // Cada função de desenho é chamada no render.
@@ -244,6 +244,6 @@ test('os ganchos do web existem, somem no celular e borram em "ocultar valores"'
 test('a barra do balanço usa ponto no CSS', () => {
   const ini = PATR.indexOf('function mpRenderBalancoWeb');
   const corpo = PATR.slice(ini, PATR.indexOf('function mpRenderMudouWeb'));
-  assert.match(corpo, /toFixed\(2\) \+ '%;background:'/);
+  assert.match(corpo, /toFixed\(2\)\s*\+\s*'%;background:'/);
   assert.ok(!/mpPctBR\([^)]*\) \+ '%;background/.test(corpo));
 });
