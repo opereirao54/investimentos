@@ -1379,6 +1379,7 @@
         .ctrl-cat.alerta .ctrl-cat-trilho > span { background: var(--cor-erro); }
         .ctrl-cat-trilho > em { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--cor-texto-principal); opacity: .55; border-radius: 1px; }
         .ctrl-cat b { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 12.5px; text-align: right; }
+        .ctrl-cat-mais { width: 100%; margin-top: 8px; min-height: 40px; border: 0; border-radius: 12px; background: var(--cor-superficie); font: 700 13px 'Figtree', sans-serif; color: var(--cor-txt-primaria); cursor: pointer; }
         /* Limite por categoria: marca laranja no trilho e a linha "de R$ X · 85%". */
         .ctrl-cat-lim { position: absolute; top: -5px; bottom: -5px; width: 3px; margin-left: -1px; background: var(--cor-cartao); border-radius: 2px; }
         .ctrl-cat-limtxt { display: block; font: 500 10.5px 'Figtree', sans-serif; color: var(--cor-texto-mutado); }
@@ -1438,6 +1439,46 @@
         /* A tabela mês a mês segue no DOM (é ela que calcula a projeção que as
            barras e o celular mostram), mas fora da tela no web. */
         #cardTabelaDRE[data-recolhida="1"] { display: none; }
+        .ctl-mm-sec { margin: 20px 0 40px; }
+        /* O mês por tipo: lista vertical (web e celular). */
+        .ctl-tipos { margin-bottom: 20px; padding: 20px 22px !important; border-radius: 16px !important; }
+        .ctl-tipos .ctl-topo h3 { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
+        .ctl-tp-lista { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+        .ctl-tp { display: grid; grid-template-columns: 34px minmax(0, 1fr); grid-template-areas: "ic txt" "spark spark" "v v"; gap: 6px 10px; align-items: center; padding: 12px 14px; border: 1px solid var(--cor-borda); border-radius: 14px; background: var(--cor-branco); cursor: pointer; text-align: left; font-family: 'Figtree', sans-serif; min-width: 0; }
+        .ctl-tp:hover { background: var(--cor-superficie); }
+        .ctl-tp-ic { grid-area: ic; width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; font-size: 17px; }
+        .ctl-tp-txt { grid-area: txt; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+        .ctl-tp-txt b { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--cor-texto-secundario); }
+        .ctl-tp-txt small { font-size: 12px; color: var(--cor-texto-mutado); line-height: 1.35; }
+        .ctl-tp-spark { grid-area: spark; display: block; height: 24px; }
+        .ctl-tp-spark svg { width: 100%; height: 24px; display: block; }
+        .ctl-tp-v { grid-area: v; font: 500 18px 'DM Mono', monospace; color: var(--cor-texto-principal); white-space: nowrap; }
+        .ctl-tp.rec  { --rm-kpi-stroke: #10b981; --rm-kpi-fill-from: rgba(16,185,129,0.22); --rm-kpi-fill-to: rgba(16,185,129,0); }
+        .ctl-tp.desp { --rm-kpi-stroke: #ef4444; --rm-kpi-fill-from: rgba(239,68,68,0.20); --rm-kpi-fill-to: rgba(239,68,68,0); }
+        .ctl-tp.cart { --rm-kpi-stroke: #f59e0b; --rm-kpi-fill-from: rgba(245,158,11,0.22); --rm-kpi-fill-to: rgba(245,158,11,0); }
+        .ctl-tp.inv  { --rm-kpi-stroke: #2563eb; --rm-kpi-fill-from: rgba(37,99,235,0.20); --rm-kpi-fill-to: rgba(37,99,235,0); }
+        .ctl-tp.son  { --rm-kpi-stroke: #7c3aed; --rm-kpi-fill-from: rgba(124,58,237,0.20); --rm-kpi-fill-to: rgba(124,58,237,0); }
+        .ctl-tp-var.bom { color: var(--tinta-verde, #047857); font-weight: 700; }
+        .ctl-tp-var.ruim { color: var(--tinta-vermelho, #b91c1c); font-weight: 700; }
+        .ctl-tp.rec .ctl-tp-ic { background: var(--cor-bg-primaria); color: var(--cor-primaria); } .ctl-tp.rec .ctl-tp-v { color: var(--tinta-verde, #047857); }
+        .ctl-tp.desp .ctl-tp-ic { background: var(--cor-bg-erro); color: var(--cor-erro); } .ctl-tp.desp .ctl-tp-v { color: var(--tinta-vermelho, #b91c1c); }
+        .ctl-tp.cart .ctl-tp-ic { background: var(--cor-bg-amber); color: var(--cor-cartao); }
+        .ctl-tp.inv .ctl-tp-ic { background: var(--cor-bg-info); color: var(--cor-info); }
+        .ctl-tp.son .ctl-tp-ic { background: color-mix(in srgb, var(--tinta-roxo, #7c3aed) 12%, transparent); color: var(--tinta-roxo, #7c3aed); }
+        @media (max-width: 768px) {
+            .mi-tipos { padding: 16px 16px 6px; margin-bottom: 16px; }
+            .mi-tipos .ctl-tp-lista { display: flex; flex-direction: column; gap: 0; }
+            .mi-tipos .ctl-tp { grid-template-columns: 38px minmax(0, 1fr) 64px auto; grid-template-areas: "ic txt spark v"; gap: 10px; padding: 12px 0; border: 0; border-top: 1px solid var(--cor-borda); border-radius: 0; background: none; }
+            .mi-tipos .ctl-tp:first-child { border-top: 0; }
+            .mi-tipos .ctl-tp-ic { width: 38px; height: 38px; }
+            .mi-tipos .ctl-tp-txt b { font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--cor-texto-principal); }
+            .mi-tipos .ctl-tp-v { font-size: 15px; text-align: right; }
+            .mi-tipos .ctl-tp-spark, .mi-tipos .ctl-tp-spark svg { height: 22px; }
+            .mc-lim { font-size: 11.5px; color: var(--cor-texto-mutado); }
+            .mc-lim.perto { color: var(--cor-txt-amber); font-weight: 700; }
+            .mc-lim.passou { color: var(--cor-erro); font-weight: 700; }
+        }
+        .ctl-mm-tit { margin: 0 0 10px; font-size: 15px; font-weight: 700; color: var(--cor-texto-principal); }
         .ext-totais-dup[hidden] { display: none !important; }
 
         .kpi-hero {
@@ -12189,6 +12230,7 @@
             /* A tabela não aparece: o cartão de cada mês traz o resumo dele. As
                barras do web (#ctrlDreBarras) também ficam de fora no celular. */
             #controle #cardTabelaDRE { display: none !important; }
+            #controle .ctl-mm-sec { display: none !important; }
             #controle #ctrlDreBarras { display: none !important; }
             #controle .ctl-linha { display: block; margin: 0; }
             #controle .ctl-web { display: none !important; }
@@ -12233,6 +12275,32 @@
             .mdre-barra.sel .mdre-col { box-shadow: 0 0 0 2px var(--cor-primaria); }
             .mdre-rot { font-size: 10px; font-weight: 600; color: var(--cor-texto-mutado); text-align: center; height: 12px; white-space: nowrap; }
             .mdre-barra.atual .mdre-rot { color: var(--cor-primaria); font-weight: 800; }
+            /* Mês a mês: lista vertical; o mês aberto mostra as linhas da tabela. */
+            .mdre-mm { display: flex; flex-direction: column; gap: 8px; }
+            .mdre-mm-tit { margin: 6px 0 0; font-size: 17px; font-weight: 800; color: var(--cor-texto-principal); }
+            .mdre-mm-lista { display: flex; flex-direction: column; background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 18px; overflow: hidden; }
+            .mdre-mes-item { border-top: 1px solid var(--cor-borda); }
+            .mdre-mes-item:first-child { border-top: 0; }
+            .mdre-mes-cab { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 54px; padding: 0 16px; border: 0; background: none; font-family: 'Figtree', sans-serif; cursor: pointer; text-align: left; }
+            .mdre-mes-rot { flex: 1; font-size: 15px; font-weight: 700; color: var(--cor-texto-principal); display: inline-flex; align-items: center; gap: 8px; text-transform: capitalize; }
+            .mdre-mes-rot em { font-style: normal; font-size: 11px; font-weight: 700; color: var(--cor-primaria); background: var(--cor-bg-primaria); padding: 2px 8px; border-radius: 99px; text-transform: none; }
+            .mdre-mes-v { font: 500 15px 'DM Mono', monospace; color: var(--cor-texto-principal); }
+            .mdre-mes-v.ok { color: var(--tinta-verde, #047857); }
+            .mdre-mes-v.neg, .mdre-mes-v.baixo { color: var(--tinta-vermelho, #b91c1c); }
+            .mdre-mes-seta { color: var(--cor-texto-mutado); transition: transform .15s; }
+            .mdre-mes-item.aberto .mdre-mes-seta { transform: rotate(180deg); }
+            .mdre-mes-item.atual > .mdre-mes-cab { background: color-mix(in srgb, var(--cor-primaria) 6%, transparent); }
+            .mdre-tab { margin: 0 12px 14px; padding: 4px 16px; background: var(--cor-superficie); border-radius: 16px; }
+            .mdre-tab-l { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 46px; border-bottom: 1px solid var(--cor-borda); font-size: 14.5px; color: var(--cor-texto-secundario); }
+            .mdre-tab-l > span:first-child { display: inline-flex; align-items: center; gap: 6px; }
+            .mdre-tab-l .mdre-v { font-size: 15px; }
+            .mdre-tab-l.herdado .mdre-tab-herd { color: var(--tinta-roxo, #6d28d9); font-weight: 700; }
+            .mdre-tab-l.total > span:first-child { font-weight: 800; color: var(--cor-texto-principal); }
+            .mdre-tab-l.total .mdre-v { font-weight: 600; font-size: 16px; color: var(--cor-texto-principal); }
+            .mdre-tab-l.total .mdre-v.ok { color: var(--tinta-verde, #047857); }
+            .mdre-tab-l.total .mdre-v.neg, .mdre-tab-l.total .mdre-v.baixo { color: var(--tinta-vermelho, #b91c1c); }
+            .mdre-tab-l.acum { border-bottom: 0; font-size: 13px; }
+            .mdre-tab-l.acum .mdre-v { font-size: 13.5px; }
             .mdre-cards {
                 display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory;
                 overscroll-behavior-x: contain; scrollbar-width: none;
@@ -15362,6 +15430,9 @@
                  composição) fica abaixo. Antes o extrato começava a ~1.500 px do
                  topo (avaliação de cliques, 11/2026). No celular cada bloco mora na
                  sua aba (data-mob-aba), e a ordem aqui não muda nada lá. -->
+            <!-- O mês por tipo (ctlTiposHtml): Receitas, Despesas, Cartão,
+                 Investimentos e Sonhos em lista, com a variação e a mini-linha. -->
+            <section id="ctlTipos" class="card-container ctl-tipos ctl-web" aria-label="O mês por tipo"></section>
             <div class="ctl-linha ctl-linha-extrato" style="margin-bottom:20px;">
 
                 <div class="card-container" data-mob-aba="extrato" style="margin-bottom:0;display:flex;flex-direction:column; min-width: 0;">
@@ -15719,16 +15790,23 @@
             <!-- Web: o resultado acumulado de cada mês em barras (os números
                  de mobRenderDRE); clicar numa barra abre o resumo do mês. -->
             <div class="ctrl-dre-barras" id="ctrlDreBarras" data-mob-aba="projecao"></div>
-            <div class="card-container" id="cardTabelaDRE" data-mob-aba="projecao" data-recolhida="1" style="padding:0;overflow:hidden;margin-bottom:40px;">
+            </div>
+                </section>
+            </div>
+            <!-- Mês a mês (web): a tabela do demonstrativo em largura inteira —
+                 receita total, resgates, investimentos, sonhos, despesas
+                 consumidas, saldo do mês anterior e resultado. No celular o
+                 mesmo conteúdo é a lista de meses de mobRenderDRE. -->
+            <section class="ctl-mm-sec" data-mob-aba="projecao" aria-label="Mês a mês">
+                <h3 class="ctl-mm-tit">Mês a mês</h3>
+            <div class="card-container" id="cardTabelaDRE" data-mob-aba="projecao" style="padding:0;overflow:hidden;margin-bottom:0;">
                 <div style="overflow-x:auto;max-width:100%;">
                     <table class="tabela-dashboard" style="min-width:1100px;">
                         <thead id="cabecalhoDRE"></thead>
                         <tbody id="corpoTabelaDRE"></tbody>
                     </table>
                 </div>
-            </div>
-                </section>
-            </div>
+            </section>
         </section>
 
         <section id="aulas" class="section">

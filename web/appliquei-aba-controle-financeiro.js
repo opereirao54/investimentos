@@ -2672,6 +2672,13 @@ function gastosPorCategoriaComMedia(mes, ano) {
   return linhas;
 }
 
+var ctrlCatTodas = false;
+
+function ctrlCatAlternarTodas() {
+  ctrlCatTodas = !ctrlCatTodas;
+  if (typeof atualizarTelaControle === 'function') atualizarTelaControle();
+}
+
 function renderGastosPorCategoria(mes, ano) {
   const el = document.getElementById('ctrlCategorias');
   if (!el) return;
@@ -2686,38 +2693,48 @@ function renderGastosPorCategoria(mes, ano) {
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/"/g, '&quot;');
-  el.innerHTML = linhas
-    .slice(0, 8)
-    .map(
-      (l) =>
-        '<button type="button" class="ctrl-cat' +
-        (l.alerta ? ' alerta' : '') +
-        (l.limiteEstado ? ' lim-' + l.limiteEstado : '') +
-        '" data-cat="' +
-        esc(l.slug === '__sem_categoria__' ? '' : l.slug) +
-        '" onclick="filtrarExtratoPorCategoria(this.dataset.cat)" title="' +
-        (l.media != null
-          ? 'Média dos 3 meses anteriores: ' + esc(formatarMoeda(l.media))
-          : 'Sem histórico') +
-        '"><span class="ctrl-cat-nome">' +
-        esc(l.rotulo) +
-        '</span><span class="ctrl-cat-trilho"><span style="width:' +
-        ((l.valor / max) * 100).toFixed(1) +
-        '%"></span>' +
-        (l.media != null
-          ? '<em style="left:' + ((l.media / max) * 100).toFixed(1) + '%"></em>'
-          : '') +
-        (l.limite
-          ? '<i class="ctrl-cat-lim" style="left:' + ((l.limite / max) * 100).toFixed(1) + '%"></i>'
-          : '') +
-        '</span><b class="valor-mascarado">' +
-        esc(formatarMoeda(l.valor)) +
-        (l.limite
-          ? '<small class="ctrl-cat-limtxt">' + esc(ctrlCatLimiteTexto(l)) + '</small>'
-          : '') +
-        '</b></button>'
-    )
-    .join('');
+  // Todas as categorias do mês; acima de 8, as demais ficam atrás de "Ver todas".
+  const visiveis = ctrlCatTodas ? linhas : linhas.slice(0, 8);
+  const mais =
+    linhas.length > 8
+      ? '<button type="button" class="ctrl-cat-mais" onclick="ctrlCatAlternarTodas()">' +
+        (ctrlCatTodas ? 'Mostrar menos' : 'Ver todas (' + linhas.length + ')') +
+        '</button>'
+      : '';
+  el.innerHTML =
+    visiveis
+      .map(
+        (l) =>
+          '<button type="button" class="ctrl-cat' +
+          (l.alerta ? ' alerta' : '') +
+          (l.limiteEstado ? ' lim-' + l.limiteEstado : '') +
+          '" data-cat="' +
+          esc(l.slug === '__sem_categoria__' ? '' : l.slug) +
+          '" onclick="filtrarExtratoPorCategoria(this.dataset.cat)" title="' +
+          (l.media != null
+            ? 'Média dos 3 meses anteriores: ' + esc(formatarMoeda(l.media))
+            : 'Sem histórico') +
+          '"><span class="ctrl-cat-nome">' +
+          esc(l.rotulo) +
+          '</span><span class="ctrl-cat-trilho"><span style="width:' +
+          ((l.valor / max) * 100).toFixed(1) +
+          '%"></span>' +
+          (l.media != null
+            ? '<em style="left:' + ((l.media / max) * 100).toFixed(1) + '%"></em>'
+            : '') +
+          (l.limite
+            ? '<i class="ctrl-cat-lim" style="left:' +
+              ((l.limite / max) * 100).toFixed(1) +
+              '%"></i>'
+            : '') +
+          '</span><b class="valor-mascarado">' +
+          esc(formatarMoeda(l.valor)) +
+          (l.limite
+            ? '<small class="ctrl-cat-limtxt">' + esc(ctrlCatLimiteTexto(l)) + '</small>'
+            : '') +
+          '</b></button>'
+      )
+      .join('') + mais;
 }
 
 /** "de R$ 280 · 85%" / "passou R$ 40" — a linha de baixo do valor. */
@@ -3483,6 +3500,136 @@ function atualizarCabecalhoVencimentos(estado) {
 }
 
 // Nome curto do mês, para os rótulos de comparação ("vs. ago").
+/**
+ * O mês por tipo — Receitas, Despesas, Cartão, Investimentos e Sonhos — em
+ * lista vertical (antes eram cinco cartões para arrastar de lado). Cada linha:
+ * o total, quanto pesa na receita, a variação contra o mês anterior e a
+ * mini-linha dos últimos 6 meses. Tocar abre o extrato filtrado pelo tipo.
+ * Os números são os de totaisDoResumo, os mesmos da Projeção.
+ */
+var CTL_TIPOS = [
+  {
+    k: 'receita',
+    rot: 'Receitas',
+    filtro: 'receita',
+    icone: 'ph-arrow-down-left',
+    cls: 'rec',
+    sobeBom: true,
+  },
+  {
+    k: 'despesas',
+    rot: 'Despesas',
+    filtro: 'despesa',
+    icone: 'ph-arrow-up-right',
+    cls: 'desp',
+    sobeBom: false,
+  },
+  {
+    k: 'cartao',
+    rot: 'Cartão',
+    filtro: 'cartao',
+    icone: 'ph-credit-card',
+    cls: 'cart',
+    sobeBom: false,
+  },
+  {
+    k: 'investimentos',
+    rot: 'Investimentos',
+    filtro: 'investimento',
+    icone: 'ph-trend-up',
+    cls: 'inv',
+    sobeBom: true,
+  },
+  { k: 'sonhos', rot: 'Sonhos', filtro: 'sonho', icone: 'ph-star', cls: 'son', sobeBom: true },
+];
+
+function ctlTiposDados(mes, ano) {
+  const serie = serieTotaisMeses(mes, ano, 6);
+  const atual = serie[serie.length - 1];
+  const anterior = serie.length > 1 ? serie[serie.length - 2] : null;
+  const dAnt = new Date(ano, mes - 1, 1);
+  const rotAnt = ctrlMesCurto(dAnt.getMonth(), dAnt.getFullYear());
+  return CTL_TIPOS.map((t) => {
+    const v = atual[t.k];
+    const varia = anterior ? variacaoMensal(v, anterior[t.k]) : null;
+    return {
+      k: t.k,
+      rot: t.rot,
+      filtro: t.filtro,
+      icone: t.icone,
+      cls: t.cls,
+      valor: v,
+      fatia: t.k !== 'receita' && atual.receita > 0 ? (v / atual.receita) * 100 : null,
+      variacao: varia,
+      bom: varia == null || Math.abs(varia) <= 0.05 ? null : varia > 0 === t.sobeBom,
+      rotAnterior: rotAnt,
+      serie: serie.map((m) => m[t.k]),
+    };
+  });
+}
+
+function ctlTiposHtml(mes, ano) {
+  const linhas = ctlTiposDados(mes, ano)
+    .map((x) => {
+      const sub = [];
+      if (x.fatia != null && x.valor > 0.005) sub.push(ctrlPctBR(x.fatia) + ' da receita');
+      if (!(x.valor > 0.005) && x.k !== 'receita') sub.push('nada neste mês');
+      if (x.variacao != null && Math.abs(x.variacao) <= 0.05) sub.push('igual a ' + x.rotAnterior);
+      else if (x.variacao != null)
+        sub.push(
+          '<span class="ctl-tp-var ' +
+            (x.bom == null ? 'igual' : x.bom ? 'bom' : 'ruim') +
+            '">' +
+            (x.variacao > 0.05 ? '↑' : x.variacao < -0.05 ? '↓' : '·') +
+            ' ' +
+            ctrlPctBR(Math.abs(x.variacao)) +
+            '</span> vs. ' +
+            x.rotAnterior
+        );
+      const temMov = x.serie.some((v) => Math.abs(v) > 0.005);
+      const spark =
+        temMov && typeof rmSparklineSvg === 'function'
+          ? rmSparklineSvg(x.serie, { width: 72, height: 24 })
+          : '';
+      return (
+        '<button type="button" class="ctl-tp ' +
+        x.cls +
+        '" onclick="ctlIrParaTipo(\'' +
+        x.filtro +
+        '\')"><span class="ctl-tp-ic"><i class="ph ' +
+        x.icone +
+        '" aria-hidden="true"></i></span><span class="ctl-tp-txt"><b>' +
+        x.rot +
+        '</b><small>' +
+        (sub.join(' · ') || '&nbsp;') +
+        '</small></span><span class="ctl-tp-spark" aria-hidden="true">' +
+        spark +
+        '</span><span class="ctl-tp-v valor-mascarado">' +
+        formatarMoeda(x.valor) +
+        '</span></button>'
+      );
+    })
+    .join('');
+  return '<div class="ctl-tp-lista">' + linhas + '</div>';
+}
+
+/** Abre o extrato filtrado por um tipo (no celular, troca para a aba Extrato). */
+function ctlIrParaTipo(tipo) {
+  const celular = typeof mobEhCelular === 'function' && mobEhCelular();
+  if (celular && typeof mobSegControle === 'function') mobSegControle('extrato');
+  const aba = Array.from(document.querySelectorAll('.ext-tab')).find((b) =>
+    (b.getAttribute('onclick') || '').includes("'" + tipo + "'")
+  );
+  if (aba) aba.click();
+  else if (typeof filtrarExtrato === 'function') filtrarExtrato(null, tipo);
+  const alvo = document.querySelector('.ctl-linha-extrato');
+  if (!celular && alvo && typeof alvo.scrollIntoView === 'function') {
+    try {
+      alvo.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    } catch (_e) {}
+  }
+}
+
 function ctrlMesCurto(mes, ano) {
   return new Date(ano, mes, 1)
     .toLocaleDateString('pt-BR', { month: 'short' })
@@ -5180,7 +5327,7 @@ function atualizarTelaControle() {
     labelsMeses.push(`${nomeMeses[m]}/${a.toString().slice(-2)}`);
   }
 
-  let htmlThead = `<tr><th class="coluna-fixa" style="min-width: 190px;">Demonstrativo contábil</th>`;
+  let htmlThead = `<tr><th class="coluna-fixa" style="min-width: 240px;">Demonstrativo contábil</th>`;
   labelsMeses.forEach((lbl, index) => {
     htmlThead += `<th style="text-align: right; min-width: 120px; ${index === indiceMesAtual ? 'background-color: var(--cor-bg-info);' : ''}">${lbl}</th>`;
   });
@@ -5188,25 +5335,25 @@ function atualizarTelaControle() {
   theadDRE.innerHTML = htmlThead;
 
   let htmlLinhas = '';
-  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Receita Total</td>`;
+  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Receita total</td>`;
   dreDados.forEach((d, i) => {
     htmlLinhas += `<td style="text-align: right; color: var(--tinta-verde); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${formatarMoeda(d.receita)}</td>`;
   });
   htmlLinhas += `</tr>`;
 
-  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Resgates (Venda de Ativos)</td>`;
+  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Resgates (venda de ativos)</td>`;
   dreDados.forEach((d, i) => {
     htmlLinhas += `<td style="text-align: right; color: var(--tinta-verde); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${formatarMoeda(d.resgate)}</td>`;
   });
   htmlLinhas += `</tr>`;
 
-  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Investimento (Renda Fixa)</td>`;
+  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Investimento (renda fixa)</td>`;
   dreDados.forEach((d, i) => {
     htmlLinhas += `<td style="text-align: right; color: var(--tinta-azul); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${d.invFixo > 0 ? '-' + formatarMoeda(d.invFixo) : 'R$ 0,00'}</td>`;
   });
   htmlLinhas += `</tr>`;
 
-  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Investimento (Renda Variável)</td>`;
+  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Investimento (renda variável)</td>`;
   dreDados.forEach((d, i) => {
     htmlLinhas += `<td style="text-align: right; color: var(--tinta-azul); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${d.invVar > 0 ? '-' + formatarMoeda(d.invVar) : 'R$ 0,00'}</td>`;
   });
@@ -5231,7 +5378,7 @@ function atualizarTelaControle() {
   });
   htmlLinhas += `</tr>`;
 
-  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Despesas Consumidas</td>`;
+  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Despesas consumidas</td>`;
   dreDados.forEach((d, i) => {
     htmlLinhas += `<td style="text-align: right; color: var(--tinta-vermelho); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${d.despesas > 0 ? '-' + formatarMoeda(d.despesas) : 'R$ 0,00'}</td>`;
   });
@@ -5344,8 +5491,14 @@ function atualizarTelaControle() {
   pintarAvisosNaSaude();
 
   // Início no celular (appliquei-mobile.js): os mesmos totais dos cards.
+  // O mês por tipo (Receitas, Despesas, Cartão, Investimentos, Sonhos).
+  const elTipos = document.getElementById('ctlTipos');
+  if (elTipos)
+    elTipos.innerHTML =
+      '<div class="ctl-topo"><h3>O mês por tipo</h3></div>' + ctlTiposHtml(visaoMes, visaoAno);
   if (typeof mobRenderInicio === 'function')
     mobRenderInicio({
+      tiposHtml: ctlTiposHtml(visaoMes, visaoAno),
       mes: visaoMes,
       ano: visaoAno,
       saldoLivre: saldoLivre,

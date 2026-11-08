@@ -276,145 +276,126 @@ function mobRenderDRE(d) {
     })
     .join('');
 
-  // Cartões: só as linhas com movimento naquele mês.
-  const linha = (rot, v, cls, sinal) =>
-    Math.abs(v) < 0.005
-      ? ''
-      : '<div class="mdre-linha"><span>' +
-        rot +
-        '</span><span class="mdre-v ' +
-        cls +
-        '">' +
-        (sinal === '-' ? '−' : sinal === '+' ? '+' : '') +
-        fmt(Math.abs(v)) +
-        '</span></div>';
-  const cartoes = meses
-    .map((m, i) => {
-      const v = resultados[i];
-      const atual = i === d.indiceAtual;
-      const inv = (m.invFixo || 0) + (m.invVar || 0);
-      const acum = d.acumulado ? d.acumulado[i] : 0;
-      const antes = i === 0 ? d.acumuladoInicial || 0 : d.acumulado[i - 1];
-      const deltaAcum = acum - antes;
-      const lapis = atual
-        ? ' <button type="button" class="mdre-lapis" aria-label="Ajustar saldo trazido" onclick="editarSaldoMesAnterior(' +
-          m.mes +
-          ',' +
-          m.ano +
-          ')"><i class="ph ph-pencil-simple"></i></button>'
-        : '';
-      const herdado =
-        Math.abs(m.saldoCarregado || 0) < 0.005
-          ? ''
-          : '<div class="mdre-linha herdado"><span>Saldo anterior' +
-            lapis +
-            '</span><span class="mdre-v ' +
-            (m.saldoCarregado < 0 ? 'neg' : 'roxo') +
-            '">' +
-            fmt(m.saldoCarregado) +
-            '</span></div>';
-      const corpo =
-        linha('Receita', m.receita, 'verde', '+') +
-        linha('Resgates', m.resgate, 'verde', '+') +
-        linha('Despesas', m.despesas, 'vermelho', '-') +
-        linha('Investimentos', inv, 'azul', '-') +
-        linha('Aporte externo', m.invExterno, 'mudo', '') +
-        linha('Sonhos', m.sonho, 'roxo', '-') +
-        herdado;
-      return (
-        '<article class="mdre-card' +
-        (atual ? ' atual' : '') +
-        '" id="mdreCard' +
-        i +
-        '" data-i="' +
-        i +
-        '"><header><span class="mdre-mes">' +
-        d.rotulos[i] +
-        '</span>' +
-        (atual ? '<span class="mdre-tag">mês em foco</span>' : '') +
-        '</header><div class="mdre-res-rot">Resultado do mês</div><div class="mdre-res ' +
-        _mobDreClasse(v, d) +
-        '">' +
-        fmt(v) +
-        '</div><div class="mdre-linhas">' +
-        (corpo || '<div class="mdre-vazio">Sem movimentos neste mês.</div>') +
-        '</div><footer><span>Investimento acumulado</span><span><strong>' +
-        fmt(acum) +
-        '</strong>' +
-        (Math.abs(deltaAcum) < 0.005
-          ? ''
-          : ' <em class="' +
-            (deltaAcum < 0 ? 'neg' : '') +
-            '">' +
-            (deltaAcum > 0 ? '+' : '−') +
-            fmt(Math.abs(deltaAcum)).replace('R$', '').trim() +
-            '</em>') +
-        '</span></footer></article>'
-      );
-    })
-    .join('');
-
+  // Mês a mês: uma lista vertical (nada de arrastar de lado). Cada mês mostra
+  // o resultado; tocar abre as linhas no formato da tabela — receita total,
+  // resgates, investimentos, sonhos, despesas consumidas, saldo do mês
+  // anterior e resultado do mês. O mês em foco já vem aberto.
+  if (_mobDreAberto == null || _mobDreAberto >= meses.length) _mobDreAberto = d.indiceAtual;
   alvo.innerHTML =
     alerta +
     '<div class="mdre-grafico" style="--mdre-zero:' +
     (fracPos * 100).toFixed(1) +
     '%">' +
     barras +
-    '</div><div class="mdre-cards" id="mdreCards">' +
-    cartoes +
-    '</div>';
-
-  // Abre no mês em foco (sem animação) e acende a barra dele.
-  const foco = Math.max(0, Math.min(meses.length - 1, d.indiceAtual));
-  mobDreIrPara(foco, true);
-  _mobDreLigarRolagem();
+    '</div><section class="mdre-mm" aria-label="Mês a mês"><h3 class="mdre-mm-tit">Mês a mês</h3><div class="mdre-mm-lista" id="mdreLista">' +
+    _mobDreLista(d) +
+    '</div></section>';
+  _mobDreAcender(_mobDreAberto);
 }
 
-/** Leva o carrossel ao cartão do mês i e acende a barra correspondente. */
-function mobDreIrPara(i, instantaneo) {
-  const trilho = document.getElementById('mdreCards');
-  const card = document.getElementById('mdreCard' + i);
-  if (trilho && card) {
-    trilho.scrollTo({
-      left: card.offsetLeft - trilho.offsetLeft - 16,
-      behavior: instantaneo ? 'auto' : 'smooth',
-    });
-  }
+var _mobDreAberto = null;
+
+function _mobDreLista(d) {
+  const fmt = _mobDreFmt;
+  return d.meses
+    .map((m, i) => {
+      const v = m.saldoAcumulado || 0;
+      const atual = i === d.indiceAtual;
+      const aberto = i === _mobDreAberto;
+      return (
+        '<div class="mdre-mes-item' +
+        (atual ? ' atual' : '') +
+        (aberto ? ' aberto' : '') +
+        '" id="mdreMes' +
+        i +
+        '"><button type="button" class="mdre-mes-cab" aria-expanded="' +
+        aberto +
+        '" onclick="mobDreIrPara(' +
+        i +
+        ', true)"><span class="mdre-mes-rot">' +
+        d.rotulos[i] +
+        (atual ? '<em>agora</em>' : '') +
+        '</span><span class="mdre-mes-v ' +
+        _mobDreClasse(v, d) +
+        '">' +
+        fmt(v) +
+        '</span><i class="ph ph-caret-down mdre-mes-seta" aria-hidden="true"></i></button>' +
+        (aberto ? _mobDreDetalheMes(d, i) : '') +
+        '</div>'
+      );
+    })
+    .join('');
+}
+
+/** As linhas do mês i, no formato da tabela (as mesmas do web, na mesma ordem). */
+function _mobDreDetalheMes(d, i) {
+  const fmt = _mobDreFmt;
+  const m = d.meses[i];
+  const saida = (v) => (v > 0.005 ? '-' + fmt(v) : fmt(0));
+  const lin = (rot, valor, cls, extra) =>
+    '<div class="mdre-tab-l' +
+    (extra || '') +
+    '"><span>' +
+    rot +
+    '</span><span class="mdre-v ' +
+    cls +
+    '">' +
+    valor +
+    '</span></div>';
+  const lapis =
+    i === d.indiceAtual
+      ? ' <button type="button" class="mdre-lapis" aria-label="Ajustar saldo do mês anterior" onclick="editarSaldoMesAnterior(' +
+        m.mes +
+        ',' +
+        m.ano +
+        ')"><i class="ph ph-pencil-simple"></i></button>'
+      : '';
+  const carregado = Number(m.saldoCarregado) || 0;
+  const v = m.saldoAcumulado || 0;
+  const acum = d.acumulado ? d.acumulado[i] : null;
+  return (
+    '<div class="mdre-tab">' +
+    lin('Receita total', fmt(m.receita || 0), 'verde') +
+    lin('Resgates (venda de ativos)', fmt(m.resgate || 0), 'verde') +
+    lin('Investimento (renda fixa)', saida(m.invFixo || 0), 'azul') +
+    lin('Investimento (renda variável)', saida(m.invVar || 0), 'azul') +
+    (Math.abs(m.invExterno || 0) > 0.005
+      ? lin('Aporte externo (fora do caixa)', fmt(m.invExterno), 'mudo')
+      : '') +
+    lin('Sonhos (separado p/ metas)', saida(m.sonho || 0), 'roxo') +
+    lin('Despesas consumidas', saida(m.despesas || 0), 'vermelho') +
+    lin(
+      '<span class="mdre-tab-herd">↳ Saldo do mês anterior</span>' + lapis,
+      Math.abs(carregado) > 0.005 ? fmt(carregado) : '—',
+      carregado < 0 ? 'neg' : 'roxo',
+      ' herdado'
+    ) +
+    lin('Resultado do mês', fmt(v), _mobDreClasse(v, d), ' total') +
+    (acum != null ? lin('Investimento acumulado', fmt(acum), 'azul', ' acum') : '') +
+    '</div>'
+  );
+}
+
+/** Abre o mês i na lista (tocar na barra ou no mês) e acende a barra dele. */
+function mobDreIrPara(i, alternar) {
+  const d = _mobDreUltimo;
+  if (!d) return;
+  _mobDreAberto = alternar && _mobDreAberto === i ? -1 : i;
+  const lista = document.getElementById('mdreLista');
+  if (lista) lista.innerHTML = _mobDreLista(d);
   _mobDreAcender(i);
+  const el = document.getElementById('mdreMes' + i);
+  if (el && _mobDreAberto === i && typeof el.scrollIntoView === 'function') {
+    try {
+      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    } catch (_e) {}
+  }
 }
 
 function _mobDreAcender(i) {
   document.querySelectorAll('#mobDRE .mdre-barra').forEach((b) => {
     b.classList.toggle('sel', Number(b.dataset.i) === i);
   });
-}
-
-// Deslizar os cartões também move o destaque nas barras.
-function _mobDreLigarRolagem() {
-  const trilho = document.getElementById('mdreCards');
-  if (!trilho || trilho.dataset.ligado) return;
-  trilho.dataset.ligado = '1';
-  let t = null;
-  trilho.addEventListener(
-    'scroll',
-    () => {
-      clearTimeout(t);
-      t = setTimeout(() => {
-        const cards = trilho.querySelectorAll('.mdre-card');
-        let melhor = 0;
-        let dist = Infinity;
-        cards.forEach((c) => {
-          const dd = Math.abs(c.offsetLeft - trilho.offsetLeft - 16 - trilho.scrollLeft);
-          if (dd < dist) {
-            dist = dd;
-            melhor = Number(c.dataset.i);
-          }
-        });
-        _mobDreAcender(melhor);
-      }, 80);
-    },
-    { passive: true }
-  );
 }
 
 // ------------------------------------------------------------
@@ -1182,55 +1163,6 @@ function _mobNotamosCartao() {
   );
 }
 
-/** Por categoria: as três maiores do mês, com o traço da média de 3 meses. */
-function _mobCategorias(mes, ano) {
-  if (typeof gastosPorCategoriaComMedia !== 'function') return '';
-  const linhas = gastosPorCategoriaComMedia(mes, ano).filter((l) => l.valor > 0.005);
-  if (!linhas.length) return '';
-  const max = linhas.reduce((a, l) => Math.max(a, l.valor, l.media || 0, l.limite || 0), 0) || 1;
-  // Quem passou (ou está perto) do limite sobe para as três que aparecem.
-  const peso = (l) => (l.limiteEstado === 'passou' ? 2 : l.limiteEstado === 'perto' ? 1 : 0);
-  linhas.sort((a, b) => peso(b) - peso(a) || b.valor - a.valor);
-  return (
-    '<section class="mi-cats"><div class="mi-tit-linha"><h2 class="mi-h2">Por categoria</h2>' +
-    '<button type="button" class="mi-link" onclick="mobSegControle(\'extrato\')">Todas <i class="ph ph-caret-right"></i></button></div>' +
-    '<div class="mi-card mi-cats-lista">' +
-    linhas
-      .slice(0, 3)
-      .map(
-        (l) =>
-          '<button type="button" class="ctrl-cat' +
-          (l.alerta ? ' alerta' : '') +
-          (l.limiteEstado ? ' lim-' + l.limiteEstado : '') +
-          '" data-cat="' +
-          _mobEsc(l.slug === '__sem_categoria__' ? '' : l.slug) +
-          '" onclick="filtrarExtratoPorCategoria(this.dataset.cat);mobSegControle(\'extrato\')"><span class="ctrl-cat-nome">' +
-          _mobEsc(l.rotulo) +
-          '</span><span class="ctrl-cat-trilho"><span style="width:' +
-          ((l.valor / max) * 100).toFixed(1) +
-          '%"></span>' +
-          (l.media != null
-            ? '<em style="left:' + ((l.media / max) * 100).toFixed(1) + '%"></em>'
-            : '') +
-          (l.limite
-            ? '<i class="ctrl-cat-lim" style="left:' +
-              ((l.limite / max) * 100).toFixed(1) +
-              '%"></i>'
-            : '') +
-          '</span><b class="valor-mascarado">' +
-          _mobEsc(_mobDreFmt(l.valor)) +
-          (l.limite && typeof ctrlCatLimiteTexto === 'function'
-            ? '<small class="ctrl-cat-limtxt">' + _mobEsc(ctrlCatLimiteTexto(l)) + '</small>'
-            : '') +
-          '</b></button>'
-      )
-      .join('') +
-    '<small class="mi-cats-nota">traço = sua média dos 3 meses anteriores' +
-    (linhas.some((l) => l.limite) ? ' · marca laranja = seu limite' : '') +
-    '</small></div></section>'
-  );
-}
-
 function mobRenderInicio(d) {
   const topo = document.getElementById('mobInicio');
   const fim = document.getElementById('mobInicioFim');
@@ -1329,7 +1261,13 @@ function mobRenderInicio(d) {
     '</section>' +
     '<nav class="mi-atalhos" aria-label="Atalhos">' +
     atalhos +
-    '</nav>';
+    '</nav>' +
+    // Receitas, despesas, cartão, investimentos e sonhos: lista vertical.
+    (d.tiposHtml
+      ? '<section class="mi-card mi-tipos" aria-label="O mês por tipo"><div class="mi-tit-linha"><h2 class="mi-h2">O mês por tipo</h2></div>' +
+        d.tiposHtml +
+        '</section>'
+      : '');
 
   // "Para onde foi" entrou no cartão do topo (_mobDestinoNoCartao); a
   // projeção mora na aba Projeção. Ordem do canvas: O que notamos, Falta
@@ -1339,7 +1277,11 @@ function mobRenderInicio(d) {
   const prox = document.getElementById('mobProximos');
   if (prox)
     prox.innerHTML =
-      _mobNotamosCartao() + _mobProximos(d.vencimentos, d.hojeStr) + _mobCategorias(d.mes, d.ano);
+      _mobNotamosCartao() +
+      _mobProximos(d.vencimentos, d.hojeStr) +
+      // "Para onde foi" completo (todas as categorias, com "Ver todas"), como
+      // era antes; "Destino do dinheiro" mostra fixas, variáveis, cartão etc.
+      _mobComposicao(d.composicao);
 
   const movs = _mobMovimentos(d.mes, d.ano);
   fim.innerHTML =
@@ -1690,6 +1632,25 @@ function _mobComposicao(c) {
           ? x.slug
           : null
         : x.tipo || null;
+      // Categoria com limite por mês: "de R$ 280 · 85%" / "passou R$ 40".
+      const lim =
+        despesa && x.slug && typeof obterLimiteCategoria === 'function'
+          ? obterLimiteCategoria(x.slug)
+          : 0;
+      const limTxt =
+        lim > 0
+          ? '<small class="mc-lim' +
+            (x.valor > lim ? ' passou' : x.valor >= lim * 0.8 ? ' perto' : '') +
+            '">' +
+            (x.valor > lim
+              ? 'passou ' + _mobEsc(_mobDreFmt(x.valor - lim)) + ' do limite'
+              : 'de ' +
+                _mobEsc(_mobDreFmt(lim)) +
+                ' · ' +
+                Math.round((x.valor / lim) * 100) +
+                '%') +
+            '</small>'
+          : '';
       const corpo =
         '<span class="mc-dot" style="background:' +
         x.cor +
@@ -1701,7 +1662,9 @@ function _mobComposicao(c) {
         x.cor +
         ';width:' +
         Math.max(2, (Math.abs(x.valor) / maior) * 100).toFixed(1) +
-        '%"></span></span></span><span class="mc-pct">' +
+        '%"></span></span>' +
+        limTxt +
+        '</span><span class="mc-pct">' +
         pct +
         '</span>';
       return alvo
