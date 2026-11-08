@@ -2759,58 +2759,62 @@ function renderDreBarras(d) {
   // Mudou o horizonte ou o mês em visão: volta a mostrar o mês atual.
   if (!ctrlDre.dados || ctrlDre.dados.rotulos.join() !== d.rotulos.join()) ctrlDre.sel = null;
   ctrlDre.dados = d;
-  const vals = d.meses.map((m) => Number(m.saldoAcumulado) || 0);
+  if (typeof projPreparar !== 'function') return;
+  // Projeção do caixa (appliquei-projecao-caixa.js): o resumo e a linha à
+  // esquerda, alertas e "o que muda" à direita, e o mês a mês embaixo.
+  const p = projPreparar(Object.assign({}, d, { web: true }));
   const sel =
-    ctrlDre.sel != null && ctrlDre.sel < vals.length
+    ctrlDre.sel != null && ctrlDre.sel < d.meses.length
       ? ctrlDre.sel
-      : d.indiceAtual >= 0 && d.indiceAtual < vals.length
+      : d.indiceAtual >= 0 && d.indiceAtual < d.meses.length
         ? d.indiceAtual
         : 0;
-  const maxAbs = Math.max(1, ...vals.map((v) => Math.abs(v)));
-  const iNeg = vals.findIndex((v) => v < 0);
-  let menor = 0;
-  vals.forEach((v, i) => {
-    if (v < vals[menor]) menor = i;
-  });
-  const msg =
-    iNeg > -1
-      ? '<button type="button" class="ctrl-dre-msg neg" onclick="ctrlDreSelecionar(' +
-        iNeg +
-        ')">Em <strong>' +
-        d.rotulos[iNeg] +
-        '</strong> o caixa fica negativo: <strong>' +
-        formatarMoeda(vals[iNeg]) +
-        '</strong>. Ver o mês</button>'
-      : '<div class="ctrl-dre-msg ok">Nenhum mês negativo até ' +
-        d.rotulos[d.rotulos.length - 1] +
-        '. O menor resultado é <strong>' +
-        formatarMoeda(vals[menor]) +
-        '</strong>, em ' +
-        d.rotulos[menor] +
-        '.</div>';
-  const cols = vals
-    .map(
-      (v, i) =>
-        '<button type="button" class="ctrl-dre-col' +
+  const faixa = d.meses
+    .map((m, i) => {
+      const v = Number(m.saldoAcumulado) || 0;
+      const comp = projComprometido(m);
+      return (
+        '<button type="button" class="pj-faixa-mes' +
         (i === sel ? ' sel' : '') +
-        (i === d.indiceAtual ? ' atual' : '') +
         (v < 0 ? ' neg' : '') +
+        (i === p.idxHoje ? ' hoje' : '') +
         '" aria-pressed="' +
         (i === sel) +
-        '" aria-label="' +
-        d.rotulos[i] +
-        ': ' +
-        formatarMoeda(v) +
         '" onclick="ctrlDreSelecionar(' +
         i +
-        ')"><span style="height:' +
-        Math.max(2, (Math.abs(v) / maxAbs) * 120).toFixed(0) +
-        'px"></span><small>' +
+        ')"><small>' +
         d.rotulos[i] +
-        '</small></button>'
-    )
+        '</small><b class="valor-mascarado">' +
+        _projFmtCurto(v).replace('R$ ', '') +
+        '</b><span class="pj-comp" title="' +
+        Math.min(comp, 100) +
+        '% do que entra já tem destino"><i style="width:' +
+        Math.min(100, comp) +
+        '%"></i></span></button>'
+      );
+    })
     .join('');
-  el.innerHTML = msg + '<div class="ctrl-dre-graf">' + cols + '</div>' + ctrlDreDetalheHtml(d, sel);
+  el.innerHTML =
+    '<div class="pj-web">' +
+    '<div class="pj-web-esq">' +
+    projHtmlTopo(p) +
+    projHtmlEntraSai(p) +
+    '</div><div class="pj-web-dir">' +
+    '<button type="button" class="pj-btn1 pj-simular" onclick="projSimAbrir()"><i class="ph ph-plus" aria-hidden="true"></i> E se…? Simular uma compra ou entrada</button>' +
+    projHtmlAlertas(p) +
+    projHtmlOQueMuda(p) +
+    '</div></div>' +
+    '<section class="pj-card pj-faixa-card" aria-label="Mês a mês"><div class="pj-card-cab"><b>Mês a mês</b><small>clique num mês para ver as linhas</small></div>' +
+    '<div class="pj-faixa" style="grid-template-columns: repeat(' +
+    Math.min(d.meses.length, 12) +
+    ', minmax(0, 1fr))">' +
+    faixa +
+    '</div><div id="pjMesDetalhe" class="pj-mes-web"><div class="pj-mes-tit">' +
+    d.rotulos[sel] +
+    (sel === d.indiceAtual ? ' <span>mês em foco</span>' : '') +
+    '</div>' +
+    projHtmlMes(p, sel) +
+    '</div></section>';
 }
 
 /** O resumo de um mês da projeção, com os números que a tabela trazia. */

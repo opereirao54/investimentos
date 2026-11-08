@@ -44,6 +44,7 @@ const LOAD_ORDER = [
   'web/appliquei-ir.js',
   'web/appliquei-insights.js',
   'web/appliquei-aba-controle-financeiro.js',
+  'web/appliquei-projecao-caixa.js',
   'web/appliquei-faturas.js',
   'web/appliquei-categorias-palavras.js',
   'web/appliquei-importar-fatura.js',

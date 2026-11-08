@@ -158,10 +158,8 @@ test('a projeção mostra as barras e as linhas do mês só ao abrir o mês', ()
   assert.match(HTML, /id="cardTabelaDRE"[^>]*data-recolhida="1"/);
   const CF = fs.readFileSync(path.join(ROOT, 'web/appliquei-aba-controle-financeiro.js'), 'utf8');
   assert.match(CF, /function ctrlDreSelecionar/);
-  const det = MOB.slice(
-    MOB.indexOf('function _mobDreDetalheMes'),
-    MOB.indexOf('function mobDreIrPara')
-  );
+  const PJ = fs.readFileSync(path.join(ROOT, 'web/appliquei-projecao-caixa.js'), 'utf8');
+  const det = PJ.slice(PJ.indexOf('function projHtmlMes'), PJ.indexOf('function projAbrirMes'));
   for (const rot of [
     'Receita total',
     'Resgates (venda de ativos)',

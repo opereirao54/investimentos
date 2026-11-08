@@ -213,99 +213,39 @@ function mobRenderDRE(d) {
   const alvo = document.getElementById('mobDRE');
   if (!alvo || !d || !Array.isArray(d.meses) || !d.meses.length) return;
   _mobDreUltimo = d;
-  const meses = d.meses;
-  const fmt = _mobDreFmt;
-  const resultados = meses.map((m) => m.saldoAcumulado || 0);
-  const maxAbs = Math.max(1, ...resultados.map((v) => Math.abs(v)));
-  const temNeg = resultados.some((v) => v < 0);
-  const maxPos = Math.max(0, ...resultados);
-  const maxNeg = Math.max(0, ...resultados.map((v) => -v));
-  // Linha do zero proporcional ao que existe acima e abaixo dela.
-  const fracPos = temNeg ? maxPos / (maxPos + maxNeg || 1) : 1;
-
-  // Alerta: o primeiro mês do horizonte em que o resultado fica negativo.
-  const iNeg = resultados.findIndex((v) => v < 0);
-  let alerta = '';
-  if (iNeg > -1) {
-    alerta =
-      '<button type="button" class="mdre-alerta" onclick="mobDreIrPara(' +
-      iNeg +
-      ')"><i class="ph-fill ph-warning-circle"></i><span>Em <strong>' +
-      d.rotulos[iNeg] +
-      '</strong> o caixa fica negativo: <strong>' +
-      fmt(resultados[iNeg]) +
-      '</strong></span><i class="ph ph-caret-right"></i></button>';
-  } else {
-    const iMin = resultados.indexOf(Math.min(...resultados));
-    alerta =
-      '<div class="mdre-alerta ok"><i class="ph-fill ph-check-circle"></i><span>Sem mês negativo no período. O menor resultado é <strong>' +
-      fmt(resultados[iMin]) +
-      '</strong>, em ' +
-      d.rotulos[iMin] +
-      '.</span></div>';
-  }
-
-  // Barras: uma por mês; rótulo a cada N para não encavalar.
-  const passo = meses.length > 24 ? 6 : meses.length > 12 ? 3 : 1;
-  const barras = meses
-    .map((m, i) => {
-      const v = resultados[i];
-      const h = Math.max(2, Math.round((Math.abs(v) / maxAbs) * 100));
-      const cls = _mobDreClasse(v, d);
-      const rot = i % passo === 0 || i === d.indiceAtual ? d.rotulos[i].split('/')[0] : '';
-      return (
-        '<button type="button" class="mdre-barra ' +
-        cls +
-        (i === d.indiceAtual ? ' atual' : '') +
-        '" data-i="' +
-        i +
-        '" onclick="mobDreIrPara(' +
-        i +
-        ')" aria-label="' +
-        d.rotulos[i] +
-        ': ' +
-        fmt(v) +
-        '"><span class="mdre-col"><span class="mdre-pos"' +
-        (v >= 0 ? ' style="height:' + h + '%"' : '') +
-        '></span><span class="mdre-neg"' +
-        (v < 0 ? ' style="height:' + h + '%"' : '') +
-        '></span></span><span class="mdre-rot">' +
-        rot +
-        '</span></button>'
-      );
-    })
-    .join('');
-
-  // Mês a mês: uma lista vertical (nada de arrastar de lado). Cada mês mostra
-  // o resultado; tocar abre as linhas no formato da tabela — receita total,
-  // resgates, investimentos, sonhos, despesas consumidas, saldo do mês
-  // anterior e resultado do mês. O mês em foco já vem aberto.
-  if (_mobDreAberto == null || _mobDreAberto >= meses.length) _mobDreAberto = d.indiceAtual;
+  if (typeof projPreparar !== 'function') return;
+  // Projeção do caixa (appliquei-projecao-caixa.js): resposta primeiro, a
+  // linha da sobra acumulada, os alertas com o motivo, entra × sai, o que
+  // muda, o "E se…?" e o mês a mês — tudo numa coluna, sem arrastar de lado.
+  const p = projPreparar(d);
+  if (_mobDreAberto == null || _mobDreAberto >= d.meses.length) _mobDreAberto = d.indiceAtual;
   alvo.innerHTML =
-    alerta +
-    '<div class="mdre-grafico" style="--mdre-zero:' +
-    (fracPos * 100).toFixed(1) +
-    '%">' +
-    barras +
-    '</div><section class="mdre-mm" aria-label="Mês a mês"><h3 class="mdre-mm-tit">Mês a mês</h3><div class="mdre-mm-lista" id="mdreLista">' +
+    projHtmlTopo(p) +
+    projHtmlAlertas(p) +
+    projHtmlEntraSai(p) +
+    projHtmlOQueMuda(p) +
+    '<button type="button" class="pj-btn2 pj-simular" onclick="projSimAbrir()"><i class="ph ph-plus" aria-hidden="true"></i> E se…? Simular uma compra ou entrada</button>' +
+    '<section class="mdre-mm" aria-label="Mês a mês"><h3 class="mdre-mm-tit">Mês a mês</h3><div class="mdre-mm-lista" id="mdreLista">' +
     _mobDreLista(d) +
-    '</div></section>';
-  _mobDreAcender(_mobDreAberto);
+    '</div><p class="pj-nota">A barrinha de cada mês é quanto do que entra já tem destino. Vermelha: sai mais do que entra.</p></section>';
 }
 
 var _mobDreAberto = null;
 
 function _mobDreLista(d) {
   const fmt = _mobDreFmt;
+  const p = typeof projUltimo !== 'undefined' && projUltimo ? projUltimo : d;
   return d.meses
     .map((m, i) => {
       const v = m.saldoAcumulado || 0;
       const atual = i === d.indiceAtual;
       const aberto = i === _mobDreAberto;
+      const comp = typeof projComprometido === 'function' ? projComprometido(m) : 0;
       return (
         '<div class="mdre-mes-item' +
         (atual ? ' atual' : '') +
         (aberto ? ' aberto' : '') +
+        (v < 0 ? ' neg' : '') +
         '" id="mdreMes' +
         i +
         '"><button type="button" class="mdre-mes-cab" aria-expanded="' +
@@ -315,65 +255,20 @@ function _mobDreLista(d) {
         ', true)"><span class="mdre-mes-rot">' +
         d.rotulos[i] +
         (atual ? '<em>agora</em>' : '') +
-        '</span><span class="mdre-mes-v ' +
+        '</span><span class="pj-comp' +
+        (comp > 100 ? ' estourou' : '') +
+        '" aria-hidden="true"><i style="width:' +
+        Math.min(100, comp) +
+        '%"></i></span><span class="mdre-mes-v valor-mascarado ' +
         _mobDreClasse(v, d) +
         '">' +
         fmt(v) +
         '</span><i class="ph ph-caret-down mdre-mes-seta" aria-hidden="true"></i></button>' +
-        (aberto ? _mobDreDetalheMes(d, i) : '') +
+        (aberto && typeof projHtmlMes === 'function' ? projHtmlMes(p, i) : '') +
         '</div>'
       );
     })
     .join('');
-}
-
-/** As linhas do mês i, no formato da tabela (as mesmas do web, na mesma ordem). */
-function _mobDreDetalheMes(d, i) {
-  const fmt = _mobDreFmt;
-  const m = d.meses[i];
-  const saida = (v) => (v > 0.005 ? '-' + fmt(v) : fmt(0));
-  const lin = (rot, valor, cls, extra) =>
-    '<div class="mdre-tab-l' +
-    (extra || '') +
-    '"><span>' +
-    rot +
-    '</span><span class="mdre-v ' +
-    cls +
-    '">' +
-    valor +
-    '</span></div>';
-  const lapis =
-    i === d.indiceAtual
-      ? ' <button type="button" class="mdre-lapis" aria-label="Ajustar saldo do mês anterior" onclick="editarSaldoMesAnterior(' +
-        m.mes +
-        ',' +
-        m.ano +
-        ')"><i class="ph ph-pencil-simple"></i></button>'
-      : '';
-  const carregado = Number(m.saldoCarregado) || 0;
-  const v = m.saldoAcumulado || 0;
-  const acum = d.acumulado ? d.acumulado[i] : null;
-  return (
-    '<div class="mdre-tab">' +
-    lin('Receita total', fmt(m.receita || 0), 'verde') +
-    lin('Resgates (venda de ativos)', fmt(m.resgate || 0), 'verde') +
-    lin('Investimento (renda fixa)', saida(m.invFixo || 0), 'azul') +
-    lin('Investimento (renda variável)', saida(m.invVar || 0), 'azul') +
-    (Math.abs(m.invExterno || 0) > 0.005
-      ? lin('Aporte externo (fora do caixa)', fmt(m.invExterno), 'mudo')
-      : '') +
-    lin('Sonhos (separado p/ metas)', saida(m.sonho || 0), 'roxo') +
-    lin('Despesas consumidas', saida(m.despesas || 0), 'vermelho') +
-    lin(
-      '<span class="mdre-tab-herd">↳ Saldo do mês anterior</span>' + lapis,
-      Math.abs(carregado) > 0.005 ? fmt(carregado) : '—',
-      carregado < 0 ? 'neg' : 'roxo',
-      ' herdado'
-    ) +
-    lin('Resultado do mês', fmt(v), _mobDreClasse(v, d), ' total') +
-    (acum != null ? lin('Investimento acumulado', fmt(acum), 'azul', ' acum') : '') +
-    '</div>'
-  );
 }
 
 /** Abre o mês i na lista (tocar na barra ou no mês) e acende a barra dele. */

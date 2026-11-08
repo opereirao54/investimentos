@@ -99,6 +99,10 @@ O código está pronto (26/10/2026); o resto é painel. Passo a passo completo e
   "quanto já é seu", financiamento e registro de antecipação — que também
   corrige as parcelas do Controle (prazo menor tira as do fim, parcela menor
   muda o valor), com Desfazer.
+- 08/11/2026 · mesma branch — Projeção nova: resumo (quanto terá, menor
+  ponto, sobra média), linha da sobra acumulada, alerta do mês negativo com
+  o motivo, aviso de receita não lançada, entra × sai, "o que muda", mês a
+  mês com o comprometido e o "E se…?" para testar uma compra ou entrada.
 - 07/11/2026 · branch `claude/intelligent-ritchie-6o5r6m` — Patrimônio: web com
   líquido/bruto, linha do tempo, balanço tem/deve, "por que mudou", fôlego,
   classes em lista, contas sem lista duplicada; celular com lista de
