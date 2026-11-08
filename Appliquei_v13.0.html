@@ -1405,9 +1405,21 @@
             #mobDRE .pj-topo-nums { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
             #mobDRE .pj-num-principal { grid-column: 1 / -1; }
             #mobDRE .pj-num > span:last-child { font-size: 15px; }
-            .pj-mes { display: flex; flex-direction: column; gap: 12px; margin: 0 12px 14px; }
+            /* No celular o mês aberto ocupa a largura toda (sem o align-items:start do web). */
+            .pj-mes { display: flex; flex-direction: column; align-items: stretch; gap: 12px; margin: 0 12px 14px; }
+            .pj-mes > .pj-trio { max-width: none; }
+            .pj-trio b { font-size: 13.5px; }
+            .pj-dem { padding: 2px 12px; }
+            .pj-dem-l { font-size: 13px; gap: 8px; }
+            .pj-dem-l > span:first-child { min-width: 0; flex-wrap: wrap; }
+            .pj-dem-l > span:last-child { flex: none; }
+            .pj-saida-l > span:first-child { min-width: 0; }
             .pj-mes-acoes > button { flex: 1; }
-            .mdre-mes-cab { display: grid !important; grid-template-columns: 70px minmax(0, 1fr) auto 18px; }
+            /* Cabeçalho do mês: rótulo (com "agora") | barrinha | valor | seta. */
+            .mdre-mes-cab { display: grid !important; grid-template-columns: auto minmax(28px, 1fr) auto 16px; gap: 10px; }
+            .mdre-mes-rot { flex: none; white-space: nowrap; }
+            .mdre-mes-cab .pj-comp { min-width: 28px; }
+            .mdre-mes-v { white-space: nowrap; font-size: 14px; }
             .mdre-mes-item.neg > .mdre-mes-cab { background: var(--cor-bg-erro); }
             .pj-sim-ov:not([hidden]) { align-items: stretch; }
             .pj-sim { width: 100%; max-width: none; max-height: none; height: 100%; border-radius: 0; padding: calc(14px + env(safe-area-inset-top, 0px)) 16px calc(20px + env(safe-area-inset-bottom, 0px)); }
