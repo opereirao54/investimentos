@@ -1691,13 +1691,6 @@ function _mobComposicao(c) {
     '<b class="valor-mascarado">' +
     _mobEsc(_mobDreFmt(total)) +
     '</b></span></div>' +
-    '<div class="mc-seg" role="tablist" aria-label="Agrupar">' +
-    '<button type="button" role="tab" aria-selected="' +
-    !despesa +
-    '" onclick="setAgrupamentoComposicao(\'contabil\')">Destino do dinheiro</button>' +
-    '<button type="button" role="tab" aria-selected="' +
-    despesa +
-    '" onclick="setAgrupamentoComposicao(\'despesa\')">Tipo de gasto</button></div>' +
     '<div class="mc-barra" aria-hidden="true">' +
     barra +
     '</div><div class="mc-lista">' +

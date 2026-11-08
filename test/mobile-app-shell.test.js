@@ -148,13 +148,14 @@ test('a DRE do celular recebe os números prontos da tabela', () => {
   assert.doesNotMatch(fn, /calcularResumoMes|obterSaldoCarregadoParaMes/);
 });
 
-test('a projeção mostra barras e o mês a mês no formato da tabela', () => {
-  // 08/11/2026: o fundador pediu o mês a mês no formato do demonstrativo. No
-  // web a tabela fica à vista (sem data-recolhida); no celular é uma lista
-  // vertical de meses, e o mês aberto mostra as mesmas linhas.
+test('a projeção mostra as barras e as linhas do mês só ao abrir o mês', () => {
+  // 08/11/2026: sem a tabela à vista (nem no web nem no celular). As linhas
+  // do demonstrativo aparecem ao abrir um mês: no celular, na lista de meses;
+  // no web, no detalhe da barra clicada. A tabela segue no DOM, escondida,
+  // porque é ela que calcula.
   assert.match(HTML, /id="mobDRE"[^>]*data-mob-aba="projecao"/);
   assert.match(HTML, /id="ctrlDreBarras"/);
-  assert.doesNotMatch(HTML, /id="cardTabelaDRE"[^>]*data-recolhida="1"/);
+  assert.match(HTML, /id="cardTabelaDRE"[^>]*data-recolhida="1"/);
   const CF = fs.readFileSync(path.join(ROOT, 'web/appliquei-aba-controle-financeiro.js'), 'utf8');
   assert.match(CF, /function ctrlDreSelecionar/);
   const det = MOB.slice(

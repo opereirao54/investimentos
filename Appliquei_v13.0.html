@@ -1433,13 +1433,17 @@
         .ctrl-dre-det-grade > div > .ctrl-dre-det-l:last-child { border-bottom: 0; }
         .ctrl-dre-det-l b { font-family: 'DM Mono', monospace; font-weight: 500; }
         .ctrl-dre-det-l b.pos { color: var(--tinta-verde); } .ctrl-dre-det-l b.neg { color: var(--cor-erro); }
+        .ctrl-dre-det-l b.info { color: var(--tinta-azul, #1d4ed8); } .ctrl-dre-det-l b.roxo { color: var(--tinta-roxo, #6d28d9); }
+        .ctrl-dre-det-l > span:first-child { display: inline-flex; align-items: center; gap: 4px; }
+        .ctrl-dre-herd { color: var(--tinta-roxo, #6d28d9); font-weight: 700; }
+        .ctrl-dre-det-l.forte span, .ctrl-dre-det-l.forte b { font-weight: 800; }
+        .ctrl-dre-lapis { border: 0; background: none; color: var(--tinta-roxo, #6d28d9); cursor: pointer; padding: 2px 4px; font-size: 14px; }
         .ctrl-dre-det-l b.info { color: var(--cor-info); } .ctrl-dre-det-l b.roxo { color: var(--cor-patrimonio); }
         .ctrl-dre-det-l.forte { font-weight: 700; }
         @media (max-width: 900px) { .ctrl-dre-det-grade { grid-template-columns: 1fr; } }
         /* A tabela mês a mês segue no DOM (é ela que calcula a projeção que as
            barras e o celular mostram), mas fora da tela no web. */
         #cardTabelaDRE[data-recolhida="1"] { display: none; }
-        .ctl-mm-sec { margin: 20px 0 40px; }
         /* O mês por tipo: lista vertical (web e celular). */
         .ctl-tipos { margin-bottom: 20px; padding: 20px 22px !important; border-radius: 16px !important; }
         .ctl-tipos .ctl-topo h3 { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
@@ -1478,7 +1482,6 @@
             .mc-lim.perto { color: var(--cor-txt-amber); font-weight: 700; }
             .mc-lim.passou { color: var(--cor-erro); font-weight: 700; }
         }
-        .ctl-mm-tit { margin: 0 0 10px; font-size: 15px; font-weight: 700; color: var(--cor-texto-principal); }
         .ext-totais-dup[hidden] { display: none !important; }
 
         .kpi-hero {
@@ -12230,7 +12233,6 @@
             /* A tabela não aparece: o cartão de cada mês traz o resumo dele. As
                barras do web (#ctrlDreBarras) também ficam de fora no celular. */
             #controle #cardTabelaDRE { display: none !important; }
-            #controle .ctl-mm-sec { display: none !important; }
             #controle #ctrlDreBarras { display: none !important; }
             #controle .ctl-linha { display: block; margin: 0; }
             #controle .ctl-web { display: none !important; }
@@ -15790,23 +15792,16 @@
             <!-- Web: o resultado acumulado de cada mês em barras (os números
                  de mobRenderDRE); clicar numa barra abre o resumo do mês. -->
             <div class="ctrl-dre-barras" id="ctrlDreBarras" data-mob-aba="projecao"></div>
-            </div>
-                </section>
-            </div>
-            <!-- Mês a mês (web): a tabela do demonstrativo em largura inteira —
-                 receita total, resgates, investimentos, sonhos, despesas
-                 consumidas, saldo do mês anterior e resultado. No celular o
-                 mesmo conteúdo é a lista de meses de mobRenderDRE. -->
-            <section class="ctl-mm-sec" data-mob-aba="projecao" aria-label="Mês a mês">
-                <h3 class="ctl-mm-tit">Mês a mês</h3>
-            <div class="card-container" id="cardTabelaDRE" data-mob-aba="projecao" style="padding:0;overflow:hidden;margin-bottom:0;">
+            <div class="card-container" id="cardTabelaDRE" data-mob-aba="projecao" data-recolhida="1" style="padding:0;overflow:hidden;margin-bottom:40px;">
                 <div style="overflow-x:auto;max-width:100%;">
                     <table class="tabela-dashboard" style="min-width:1100px;">
                         <thead id="cabecalhoDRE"></thead>
                         <tbody id="corpoTabelaDRE"></tbody>
                     </table>
                 </div>
-            </section>
+            </div>
+                </section>
+            </div>
         </section>
 
         <section id="aulas" class="section">

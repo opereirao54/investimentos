@@ -2600,7 +2600,9 @@ function aporteLiquidoAcumuladoAte(mesAlvo, anoAlvo) {
 // 'contabil' = barras por classificação contábil (Receita, Cartão, Fixa...).
 // 'despesa'  = despesas (fixa + variável + cartão) quebradas por categoria
 //              de despesa (Alimentação, Transporte...), mantendo Receita/Sobra.
-var agrupamentoComposicao = 'contabil';
+// "Para onde foi" mostra as categorias de gasto; o destino do dinheiro
+// (fixas, variáveis, sobra) já está no cartão do topo.
+var agrupamentoComposicao = 'despesa';
 
 // Paleta cíclica para as barras de categoria de despesa.
 var PALETA_CATEGORIA_DESPESA = [
@@ -2812,48 +2814,57 @@ function renderDreBarras(d) {
 }
 
 /** O resumo de um mês da projeção, com os números que a tabela trazia. */
+/** O mês clicado nas barras, com as linhas do demonstrativo — as mesmas do
+ *  mês aberto no celular (_mobDreDetalheMes). */
 function ctrlDreDetalheHtml(d, i) {
   const m = d.meses[i] || {};
   const n = (v) => Number(v) || 0;
-  const entra = n(m.receita) + n(m.resgate);
-  const investido = n(m.invFixo) + n(m.invVar);
-  const acumulada = n(m.saldoAcumulado);
-  const carregado = n(m.saldoCarregado);
-  const sobraMes = acumulada - carregado;
-  const lin = (rot, v, cls, sinal) =>
-    '<div class="ctrl-dre-det-l"><span>' +
+  const saida = (v) => (n(v) > 0.005 ? '-' + formatarMoeda(n(v)) : formatarMoeda(0));
+  const lin = (rot, valor, cls, extra) =>
+    '<div class="ctrl-dre-det-l' +
+    (extra || '') +
+    '"><span>' +
     rot +
     '</span><b class="valor-mascarado ' +
     (cls || '') +
     '">' +
-    (sinal && v > 0.005 ? sinal : '') +
-    formatarMoeda(v) +
+    valor +
     '</b></div>';
-  const linhas = [lin('Entra', entra, 'pos', '+'), lin('Gastos', n(m.despesas), 'neg', '−')];
-  if (investido > 0.005) linhas.push(lin('Investimentos', investido, 'info', '−'));
-  if (n(m.sonho) > 0.005) linhas.push(lin('Guardado para sonhos', n(m.sonho), 'roxo', '−'));
+  const carregado = n(m.saldoCarregado);
+  const resultado = n(m.saldoAcumulado);
+  const lapis =
+    i === d.indiceAtual
+      ? ' <button type="button" class="ctrl-dre-lapis" aria-label="Ajustar saldo do mês anterior" onclick="editarSaldoMesAnterior(' +
+        m.mes +
+        ',' +
+        m.ano +
+        ')"><i class="ph ph-pencil-simple"></i></button>'
+      : '';
+  const esquerda =
+    lin('Receita total', formatarMoeda(n(m.receita)), 'pos') +
+    lin('Resgates (venda de ativos)', formatarMoeda(n(m.resgate)), 'pos') +
+    lin('Investimento (renda fixa)', saida(m.invFixo), 'info') +
+    lin('Investimento (renda variável)', saida(m.invVar), 'info') +
+    (n(m.invExterno) > 0.005
+      ? lin('Aporte externo (fora do caixa)', formatarMoeda(n(m.invExterno)), '')
+      : '') +
+    lin('Sonhos (separado p/ metas)', saida(m.sonho), 'roxo') +
+    lin('Despesas consumidas', saida(m.despesas), 'neg');
+  const direita =
+    lin(
+      '<span class="ctrl-dre-herd">↳ Saldo do mês anterior</span>' + lapis,
+      Math.abs(carregado) > 0.005 ? formatarMoeda(carregado) : '—',
+      carregado < 0 ? 'neg' : 'roxo'
+    ) + lin('Resultado do mês', formatarMoeda(resultado), resultado < 0 ? 'neg' : 'pos', ' forte');
   return (
     '<div class="ctrl-dre-det"><div class="ctrl-dre-det-tit">' +
     d.rotulos[i] +
     (i === d.indiceAtual ? ' <span>mês em foco</span>' : '') +
     '</div><div class="ctrl-dre-det-grade"><div>' +
-    linhas.join('') +
+    esquerda +
     '</div><div>' +
-    '<div class="ctrl-dre-det-l forte"><span>Sobra do mês</span><b class="valor-mascarado ' +
-    (sobraMes < 0 ? 'neg' : '') +
-    '">' +
-    formatarMoeda(sobraMes) +
-    '</b></div>' +
-    (Math.abs(carregado) > 0.005
-      ? '<div class="ctrl-dre-det-l"><span>Com o que sobrou antes</span><b class="valor-mascarado">' +
-        formatarMoeda(carregado) +
-        '</b></div>'
-      : '') +
-    '<div class="ctrl-dre-det-l forte"><span>Sobra acumulada</span><b class="valor-mascarado ' +
-    (acumulada < 0 ? 'neg' : '') +
-    '">' +
-    formatarMoeda(acumulada) +
-    '</b></div></div></div></div>'
+    direita +
+    '</div></div></div>'
   );
 }
 
