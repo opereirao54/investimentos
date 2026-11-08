@@ -1438,32 +1438,6 @@
         /* A tabela mês a mês segue no DOM (é ela que calcula a projeção que as
            barras e o celular mostram), mas fora da tela no web. */
         #cardTabelaDRE[data-recolhida="1"] { display: none; }
-        .ctl-tipos { margin-bottom: 20px; }
-        .ctl-tipos-grade { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
-        .ctl-tipo { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px 16px; border-radius: 16px; border: 1px solid var(--cor-borda); background: var(--cor-branco); cursor: pointer; text-align: left; font-family: 'Figtree', sans-serif; min-width: 0; border-top-width: 4px; }
-        .ctl-tipo:hover { background: var(--cor-superficie); }
-        .ctl-tipo-rot { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--cor-texto-mutado); }
-        .ctl-tipo b { font: 500 18px 'DM Mono', monospace; color: var(--cor-texto-principal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-        .ctl-tipo small { font-size: 11.5px; color: var(--cor-texto-mutado); }
-        .ctl-tipo.rec { border-top-color: var(--cor-primaria); } .ctl-tipo.rec i { color: var(--cor-primaria); }
-        .ctl-tipo.desp { border-top-color: var(--cor-erro); } .ctl-tipo.desp i { color: var(--cor-erro); }
-        .ctl-tipo.cart { border-top-color: var(--cor-cartao); } .ctl-tipo.cart i { color: var(--cor-cartao); }
-        .ctl-tipo.inv { border-top-color: var(--cor-info); } .ctl-tipo.inv i { color: var(--cor-info); }
-        .ctl-tipo.son { border-top-color: var(--tinta-roxo, #7c3aed); } .ctl-tipo.son i { color: var(--tinta-roxo, #7c3aed); }
-        @media (max-width: 768px) {
-            .mi-tipos { margin: 0 0 16px; }
-            .mi-tipos .ctl-tipos-grade { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; touch-action: pan-x pan-y; }
-            .mi-tipos .ctl-tipos-grade::-webkit-scrollbar { display: none; }
-            .mi-tipos .ctl-tipo { flex: 0 0 136px; padding: 12px; border-radius: 14px; }
-            .mi-tipos .ctl-tipo b { font-size: 15.5px; }
-        }
-        .ctl-mm-sec { margin-top: 20px; }
-        .ctl-mm-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 10px; }
-        .ctl-mm-cab h3 { margin: 0; font-size: 15px; font-weight: 700; color: var(--cor-texto-principal); }
-        .ctl-mm-btn { display: none; min-height: 40px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--cor-borda); background: var(--cor-branco); font: 600 13px 'Figtree', sans-serif; color: var(--cor-txt-primaria); cursor: pointer; align-items: center; }
-        /* Despesas por categoria dentro da tabela: recuadas e um tom abaixo. */
-        .tabela-dashboard tr.dre-cat td { font-size: 12.5px; color: var(--cor-texto-secundario); padding-top: 7px; padding-bottom: 7px; }
-        .tabela-dashboard tr.dre-cat td.coluna-fixa { padding-left: 26px; font-weight: 500; }
         .ext-totais-dup[hidden] { display: none !important; }
 
         .kpi-hero {
@@ -12214,14 +12188,7 @@
             #controle:not([data-mob-aba-ativa="projecao"]) #mobDRE { display: none !important; }
             /* A tabela não aparece: o cartão de cada mês traz o resumo dele. As
                barras do web (#ctrlDreBarras) também ficam de fora no celular. */
-            #controle:not(.ctl-mm-aberta) #cardTabelaDRE { display: none !important; }
-            #controle.ctl-mm-aberta:not([data-mob-aba-ativa="projecao"]) #cardTabelaDRE { display: none !important; }
-            #controle #cardTabelaDRE { border-radius: 16px !important; margin-bottom: 20px !important; }
-            #controle #cardTabelaDRE .tabela-dashboard { min-width: 0 !important; font-size: 12.5px; }
-            #controle #cardTabelaDRE .tabela-dashboard th, #controle #cardTabelaDRE .tabela-dashboard td { padding: 10px 12px; white-space: nowrap; }
-            #controle #cardTabelaDRE .coluna-fixa { min-width: 150px !important; max-width: 170px; white-space: normal !important; }
-            .ctl-mm-btn { display: inline-flex !important; }
-            #controle:not([data-mob-aba-ativa="projecao"]) .ctl-mm-cab { display: none !important; }
+            #controle #cardTabelaDRE { display: none !important; }
             #controle #ctrlDreBarras { display: none !important; }
             #controle .ctl-linha { display: block; margin: 0; }
             #controle .ctl-web { display: none !important; }
@@ -12299,15 +12266,6 @@
             .mdre-v.azul { color: var(--tinta-azul, #1d4ed8); }
             .mdre-v.roxo { color: var(--tinta-roxo, #6d28d9); }
             .mdre-v.mudo { color: var(--cor-texto-mutado); }
-            /* Formato da tabela: categorias recuadas sob as despesas; resultado no fim. */
-            .mdre-card { align-self: flex-start; }
-            .mdre-linha.mdre-cat { min-height: 32px; font-size: 12.5px; padding-left: 14px; border-bottom-style: dashed; }
-            .mdre-linha.mdre-cat .mdre-v { font-size: 12.5px; }
-            .mdre-linha.mdre-total { border-bottom: 0; min-height: 44px; }
-            .mdre-linha.mdre-total > span:first-child { font-weight: 800; color: var(--cor-texto-principal); }
-            .mdre-linha.mdre-total .mdre-v { font-size: 15.5px; font-weight: 600; }
-            .mdre-linha.mdre-total .mdre-v.ok { color: var(--tinta-verde, #047857); }
-            .mdre-linha.mdre-total .mdre-v.baixo { color: var(--tinta-vermelho, #b91c1c); }
             .mdre-lapis {
                 width: 36px; height: 36px; margin: -6px 0; border: 0; border-radius: 10px;
                 background: transparent; color: var(--tinta-roxo, #6d28d9); font-size: 16px; cursor: pointer;
@@ -15404,9 +15362,6 @@
                  composição) fica abaixo. Antes o extrato começava a ~1.500 px do
                  topo (avaliação de cliques, 11/2026). No celular cada bloco mora na
                  sua aba (data-mob-aba), e a ordem aqui não muda nada lá. -->
-            <!-- O mês por tipo (ctlTiposHtml): Receitas, Despesas, Cartão,
-                 Investimentos e Sonhos; cada um abre o extrato filtrado. -->
-            <section id="ctlTipos" class="ctl-tipos ctl-web" aria-label="O mês por tipo"></section>
             <div class="ctl-linha ctl-linha-extrato" style="margin-bottom:20px;">
 
                 <div class="card-container" data-mob-aba="extrato" style="margin-bottom:0;display:flex;flex-direction:column; min-width: 0;">
@@ -15764,17 +15719,7 @@
             <!-- Web: o resultado acumulado de cada mês em barras (os números
                  de mobRenderDRE); clicar numa barra abre o resumo do mês. -->
             <div class="ctrl-dre-barras" id="ctrlDreBarras" data-mob-aba="projecao"></div>
-                </section>
-            </div>
-            <section class="ctl-mm-sec" data-mob-aba="projecao" aria-label="Mês a mês">
-            <!-- Mês a mês: a tabela completa (receitas, resgates, investimentos,
-                 sonhos, despesas abertas por categoria, saldo anterior e
-                 resultado). No web fica à vista; no celular, a um toque. -->
-            <div class="ctl-mm-cab" data-mob-aba="projecao">
-                <h3>Mês a mês</h3>
-                <button type="button" class="ctl-mm-btn" id="btnTabelaMesAMes" onclick="ctlAlternarTabelaMesAMes()" aria-expanded="false" aria-controls="cardTabelaDRE">Ver tabela mês a mês</button>
-            </div>
-            <div class="card-container" id="cardTabelaDRE" data-mob-aba="projecao" style="padding:0;overflow:hidden;margin-bottom:40px;">
+            <div class="card-container" id="cardTabelaDRE" data-mob-aba="projecao" data-recolhida="1" style="padding:0;overflow:hidden;margin-bottom:40px;">
                 <div style="overflow-x:auto;max-width:100%;">
                     <table class="tabela-dashboard" style="min-width:1100px;">
                         <thead id="cabecalhoDRE"></thead>
@@ -15782,7 +15727,8 @@
                     </table>
                 </div>
             </div>
-            </section>
+                </section>
+            </div>
         </section>
 
         <section id="aulas" class="section">

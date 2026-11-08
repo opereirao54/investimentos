@@ -148,31 +148,17 @@ test('a DRE do celular recebe os números prontos da tabela', () => {
   assert.doesNotMatch(fn, /calcularResumoMes|obterSaldoCarregadoParaMes/);
 });
 
-test('a projeção mostra barras, o resumo do mês e a tabela mês a mês com as categorias', () => {
-  // 07/11/2026: a tabela voltou a pedido do fundador, no formato do
-  // demonstrativo (receita, resgates, investimentos, sonhos, despesas abertas
-  // por categoria, saldo anterior, resultado). No web fica à vista; no celular
-  // os cartões de cada mês usam o mesmo formato e a tabela abre a um toque.
+test('a projeção mostra barras e o resumo do mês, sem a tabela mês a mês', () => {
+  // A tabela (e o "mês a mês" do celular) saiu da tela a pedido do fundador
+  // (07/11/2026): no web as barras abrem o resumo do mês clicado; no celular,
+  // o cartão de cada mês. A tabela segue no DOM porque é ela que calcula.
   assert.match(HTML, /id="mobDRE"[^>]*data-mob-aba="projecao"/);
   assert.match(HTML, /id="ctrlDreBarras"/);
-  assert.doesNotMatch(HTML, /id="cardTabelaDRE"[^>]*data-recolhida="1"/);
-  assert.match(HTML, /onclick="ctlAlternarTabelaMesAMes\(\)"/);
+  assert.match(HTML, /#cardTabelaDRE\[data-recolhida="1"\] \{ display: none; \}/);
+  assert.doesNotMatch(MOB, /mobDreAlternarTabela|Ver tabela completa/);
   const CF = fs.readFileSync(path.join(ROOT, 'web/appliquei-aba-controle-financeiro.js'), 'utf8');
   assert.match(CF, /function ctrlDreSelecionar/);
-  assert.match(CF, /categorias: calcularDespesasPorCategoria\(m, a\)/);
-  assert.match(CF, /dreCategoriasOrdenadas\(dreDados\)/);
-  for (const rot of [
-    'Receita total',
-    'Resgates (venda de ativos)',
-    'Investimento (renda fixa)',
-    'Investimento (renda variável)',
-    'Sonhos (separado p/ metas)',
-    'Despesas consumidas',
-    'Saldo do mês anterior',
-    'Resultado do mês',
-  ]) {
-    assert.ok(MOB.includes(rot), 'cartão do mês no celular tem "' + rot + '"');
-  }
+  assert.doesNotMatch(CF, /Ver tabela mês a mês/);
 });
 
 test('o topo do extrato no celular usa os totais que a tela já somou', () => {
