@@ -193,8 +193,6 @@ function mobSegControle(aba) {
 //
 // Os números chegam prontos de atualizarTelaControle: nada é recalculado.
 
-var _mobDreTabela = false;
-
 function _mobDreClasse(v, d) {
   if (v < 0) return 'neg';
   if (v < d.metaVermelha) return 'baixo';
@@ -215,412 +213,84 @@ function mobRenderDRE(d) {
   const alvo = document.getElementById('mobDRE');
   if (!alvo || !d || !Array.isArray(d.meses) || !d.meses.length) return;
   _mobDreUltimo = d;
-  const meses = d.meses;
+  if (typeof projPreparar !== 'function') return;
+  // Projeção do caixa (appliquei-projecao-caixa.js): resposta primeiro, a
+  // linha da sobra acumulada, os alertas com o motivo, entra × sai, o que
+  // muda, o "E se…?" e o mês a mês — tudo numa coluna, sem arrastar de lado.
+  const p = projPreparar(d);
+  if (_mobDreAberto == null || _mobDreAberto >= d.meses.length) _mobDreAberto = d.indiceAtual;
+  alvo.innerHTML =
+    projHtmlTopo(p) +
+    projHtmlAlertas(p) +
+    projHtmlEntraSai(p) +
+    projHtmlOQueMuda(p) +
+    '<button type="button" class="pj-btn2 pj-simular" onclick="projSimAbrir()"><i class="ph ph-plus" aria-hidden="true"></i> E se…? Simular uma compra ou entrada</button>' +
+    '<section class="mdre-mm" aria-label="Mês a mês"><h3 class="mdre-mm-tit">Mês a mês</h3><div class="mdre-mm-lista" id="mdreLista">' +
+    _mobDreLista(d) +
+    '</div><p class="pj-nota">A barrinha de cada mês é quanto do que entra já tem destino. Vermelha: sai mais do que entra.</p></section>';
+}
+
+var _mobDreAberto = null;
+
+function _mobDreLista(d) {
   const fmt = _mobDreFmt;
-  const resultados = meses.map((m) => m.saldoAcumulado || 0);
-  const maxAbs = Math.max(1, ...resultados.map((v) => Math.abs(v)));
-  const temNeg = resultados.some((v) => v < 0);
-  const maxPos = Math.max(0, ...resultados);
-  const maxNeg = Math.max(0, ...resultados.map((v) => -v));
-  // Linha do zero proporcional ao que existe acima e abaixo dela.
-  const fracPos = temNeg ? maxPos / (maxPos + maxNeg || 1) : 1;
-
-  // Alerta: o primeiro mês do horizonte em que o resultado fica negativo.
-  const iNeg = resultados.findIndex((v) => v < 0);
-  let alerta = '';
-  if (iNeg > -1) {
-    alerta =
-      '<button type="button" class="mdre-alerta" onclick="mobDreIrPara(' +
-      iNeg +
-      ')"><i class="ph-fill ph-warning-circle"></i><span>Em <strong>' +
-      d.rotulos[iNeg] +
-      '</strong> o caixa fica negativo: <strong>' +
-      fmt(resultados[iNeg]) +
-      '</strong></span><i class="ph ph-caret-right"></i></button>';
-  } else {
-    const iMin = resultados.indexOf(Math.min(...resultados));
-    alerta =
-      '<div class="mdre-alerta ok"><i class="ph-fill ph-check-circle"></i><span>Sem mês negativo no período. O menor resultado é <strong>' +
-      fmt(resultados[iMin]) +
-      '</strong>, em ' +
-      d.rotulos[iMin] +
-      '.</span></div>';
-  }
-
-  // Barras: uma por mês; rótulo a cada N para não encavalar.
-  const passo = meses.length > 24 ? 6 : meses.length > 12 ? 3 : 1;
-  const barras = meses
+  const p = typeof projUltimo !== 'undefined' && projUltimo ? projUltimo : d;
+  return d.meses
     .map((m, i) => {
-      const v = resultados[i];
-      const h = Math.max(2, Math.round((Math.abs(v) / maxAbs) * 100));
-      const cls = _mobDreClasse(v, d);
-      const rot = i % passo === 0 || i === d.indiceAtual ? d.rotulos[i].split('/')[0] : '';
+      const v = m.saldoAcumulado || 0;
+      const atual = i === d.indiceAtual;
+      const aberto = i === _mobDreAberto;
+      const comp = typeof projComprometido === 'function' ? projComprometido(m) : 0;
       return (
-        '<button type="button" class="mdre-barra ' +
-        cls +
-        (i === d.indiceAtual ? ' atual' : '') +
-        '" data-i="' +
+        '<div class="mdre-mes-item' +
+        (atual ? ' atual' : '') +
+        (aberto ? ' aberto' : '') +
+        (v < 0 ? ' neg' : '') +
+        '" id="mdreMes' +
         i +
+        '"><button type="button" class="mdre-mes-cab" aria-expanded="' +
+        aberto +
         '" onclick="mobDreIrPara(' +
         i +
-        ')" aria-label="' +
+        ', true)"><span class="mdre-mes-rot">' +
         d.rotulos[i] +
-        ': ' +
-        fmt(v) +
-        '"><span class="mdre-col"><span class="mdre-pos"' +
-        (v >= 0 ? ' style="height:' + h + '%"' : '') +
-        '></span><span class="mdre-neg"' +
-        (v < 0 ? ' style="height:' + h + '%"' : '') +
-        '></span></span><span class="mdre-rot">' +
-        rot +
-        '</span></button>'
-      );
-    })
-    .join('');
-
-  // Cartões: só as linhas com movimento naquele mês.
-  const linha = (rot, v, cls, sinal) =>
-    Math.abs(v) < 0.005
-      ? ''
-      : '<div class="mdre-linha"><span>' +
-        rot +
-        '</span><span class="mdre-v ' +
-        cls +
-        '">' +
-        (sinal === '-' ? '−' : sinal === '+' ? '+' : '') +
-        fmt(Math.abs(v)) +
-        '</span></div>';
-  const cartoes = meses
-    .map((m, i) => {
-      const v = resultados[i];
-      const atual = i === d.indiceAtual;
-      const inv = (m.invFixo || 0) + (m.invVar || 0);
-      const acum = d.acumulado ? d.acumulado[i] : 0;
-      const antes = i === 0 ? d.acumuladoInicial || 0 : d.acumulado[i - 1];
-      const deltaAcum = acum - antes;
-      const lapis = atual
-        ? ' <button type="button" class="mdre-lapis" aria-label="Ajustar saldo trazido" onclick="editarSaldoMesAnterior(' +
-          m.mes +
-          ',' +
-          m.ano +
-          ')"><i class="ph ph-pencil-simple"></i></button>'
-        : '';
-      const herdado =
-        Math.abs(m.saldoCarregado || 0) < 0.005
-          ? ''
-          : '<div class="mdre-linha herdado"><span>Saldo anterior' +
-            lapis +
-            '</span><span class="mdre-v ' +
-            (m.saldoCarregado < 0 ? 'neg' : 'roxo') +
-            '">' +
-            fmt(m.saldoCarregado) +
-            '</span></div>';
-      const corpo =
-        linha('Receita', m.receita, 'verde', '+') +
-        linha('Resgates', m.resgate, 'verde', '+') +
-        linha('Despesas', m.despesas, 'vermelho', '-') +
-        linha('Investimentos', inv, 'azul', '-') +
-        linha('Aporte externo', m.invExterno, 'mudo', '') +
-        linha('Sonhos', m.sonho, 'roxo', '-') +
-        herdado;
-      return (
-        '<article class="mdre-card' +
-        (atual ? ' atual' : '') +
-        '" id="mdreCard' +
-        i +
-        '" data-i="' +
-        i +
-        '"><header><span class="mdre-mes">' +
-        d.rotulos[i] +
-        '</span>' +
-        (atual ? '<span class="mdre-tag">mês em foco</span>' : '') +
-        '</header><div class="mdre-res-rot">Resultado do mês</div><div class="mdre-res ' +
+        (atual ? '<em>agora</em>' : '') +
+        '</span><span class="pj-comp' +
+        (comp > 100 ? ' estourou' : '') +
+        '" aria-hidden="true"><i style="width:' +
+        Math.min(100, comp) +
+        '%"></i></span><span class="mdre-mes-v valor-mascarado ' +
         _mobDreClasse(v, d) +
         '">' +
         fmt(v) +
-        '</div><div class="mdre-linhas">' +
-        (corpo || '<div class="mdre-vazio">Sem movimentos neste mês.</div>') +
-        '</div><footer><span>Investimento acumulado</span><span><strong>' +
-        fmt(acum) +
-        '</strong>' +
-        (Math.abs(deltaAcum) < 0.005
-          ? ''
-          : ' <em class="' +
-            (deltaAcum < 0 ? 'neg' : '') +
-            '">' +
-            (deltaAcum > 0 ? '+' : '−') +
-            fmt(Math.abs(deltaAcum)).replace('R$', '').trim() +
-            '</em>') +
-        '</span></footer></article>'
+        '</span><i class="ph ph-caret-down mdre-mes-seta" aria-hidden="true"></i></button>' +
+        (aberto && typeof projHtmlMes === 'function' ? projHtmlMes(p, i) : '') +
+        '</div>'
       );
     })
     .join('');
-
-  alvo.innerHTML =
-    alerta +
-    '<div class="mdre-grafico" style="--mdre-zero:' +
-    (fracPos * 100).toFixed(1) +
-    '%">' +
-    barras +
-    '</div><div class="mdre-cards" id="mdreCards">' +
-    cartoes +
-    '</div><button type="button" class="mdre-tabela-btn" onclick="mobDreAlternarTabela()" aria-expanded="' +
-    (_mobDreTabela ? 'true' : 'false') +
-    '"><i class="ph ph-table"></i> ' +
-    (_mobDreTabela ? 'Esconder tabela completa' : 'Ver tabela completa') +
-    '</button><div id="mdreMM">' +
-    (_mobDreTabela ? _mobDreMesAMes(d) : '') +
-    '</div>';
-
-  // Abre no mês em foco (sem animação) e acende a barra dele.
-  const foco = Math.max(0, Math.min(meses.length - 1, d.indiceAtual));
-  mobDreIrPara(foco, true);
-  _mobDreLigarRolagem();
 }
 
-/** Leva o carrossel ao cartão do mês i e acende a barra correspondente. */
-function mobDreIrPara(i, instantaneo) {
-  const trilho = document.getElementById('mdreCards');
-  const card = document.getElementById('mdreCard' + i);
-  if (trilho && card) {
-    trilho.scrollTo({
-      left: card.offsetLeft - trilho.offsetLeft - 16,
-      behavior: instantaneo ? 'auto' : 'smooth',
-    });
-  }
+/** Abre o mês i na lista (tocar na barra ou no mês) e acende a barra dele. */
+function mobDreIrPara(i, alternar) {
+  const d = _mobDreUltimo;
+  if (!d) return;
+  _mobDreAberto = alternar && _mobDreAberto === i ? -1 : i;
+  const lista = document.getElementById('mdreLista');
+  if (lista) lista.innerHTML = _mobDreLista(d);
   _mobDreAcender(i);
+  const el = document.getElementById('mdreMes' + i);
+  if (el && _mobDreAberto === i && typeof el.scrollIntoView === 'function') {
+    try {
+      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    } catch (_e) {}
+  }
 }
 
 function _mobDreAcender(i) {
   document.querySelectorAll('#mobDRE .mdre-barra').forEach((b) => {
     b.classList.toggle('sel', Number(b.dataset.i) === i);
   });
-}
-
-// Deslizar os cartões também move o destaque nas barras.
-function _mobDreLigarRolagem() {
-  const trilho = document.getElementById('mdreCards');
-  if (!trilho || trilho.dataset.ligado) return;
-  trilho.dataset.ligado = '1';
-  let t = null;
-  trilho.addEventListener(
-    'scroll',
-    () => {
-      clearTimeout(t);
-      t = setTimeout(() => {
-        const cards = trilho.querySelectorAll('.mdre-card');
-        let melhor = 0;
-        let dist = Infinity;
-        cards.forEach((c) => {
-          const dd = Math.abs(c.offsetLeft - trilho.offsetLeft - 16 - trilho.scrollLeft);
-          if (dd < dist) {
-            dist = dd;
-            melhor = Number(c.dataset.i);
-          }
-        });
-        _mobDreAcender(melhor);
-      }, 80);
-    },
-    { passive: true }
-  );
-}
-
-function mobDreAlternarTabela() {
-  _mobDreTabela = !_mobDreTabela;
-  const sec = document.getElementById('controle');
-  if (sec) sec.classList.toggle('mob-dre-tabela', _mobDreTabela);
-  const btn = document.querySelector('#mobDRE .mdre-tabela-btn');
-  if (btn) {
-    btn.setAttribute('aria-expanded', _mobDreTabela ? 'true' : 'false');
-    btn.innerHTML =
-      '<i class="ph ph-table"></i> ' +
-      (_mobDreTabela ? 'Esconder tabela completa' : 'Ver tabela completa');
-  }
-  _mobDreRedesenharMM();
-}
-
-// ------------------------------------------------------------
-// Tabela completa no celular: mês a mês
-// ------------------------------------------------------------
-// A tabela do desktop é uma linha por conta e uma coluna por mês: no
-// celular isso é rolar de lado e perder o rótulo da linha. Aqui ela vira a
-// lista que os apps de banco usam: um mês por linha, de cima para baixo,
-// com a conta escolhida num chip (resultado, receita, despesas…) e uma
-// barra para comparar os meses de relance. Tocar no mês abre TODAS as
-// linhas da tabela daquele mês, na mesma ordem e com os mesmos sinais —
-// nada da tabela fica só no desktop. Os números são os de mobRenderDRE.
-
-var MOB_DRE_LINHAS = [
-  { k: 'resultado', rot: 'Resultado', v: (m) => m.saldoAcumulado || 0 },
-  { k: 'receita', rot: 'Entradas', cls: 'verde', v: (m) => (m.receita || 0) + (m.resgate || 0) },
-  { k: 'despesas', rot: 'Despesas', cls: 'vermelho', v: (m) => m.despesas || 0 },
-  { k: 'investido', rot: 'Investido', cls: 'azul', v: (m) => (m.invFixo || 0) + (m.invVar || 0) },
-  { k: 'sonhos', rot: 'Sonhos', cls: 'roxo', v: (m) => m.sonho || 0 },
-  {
-    k: 'acumulado',
-    rot: 'Inv. acumulado',
-    cls: 'azul',
-    v: (m, i, d) => (d.acumulado ? d.acumulado[i] : 0),
-  },
-];
-var _mobDreLinha = 'resultado';
-var _mobDreAberto = -1;
-
-function _mobDreMesAMes(d) {
-  const fmt = _mobDreFmt;
-  const def = MOB_DRE_LINHAS.find((l) => l.k === _mobDreLinha) || MOB_DRE_LINHAS[0];
-  const vals = d.meses.map((m, i) => def.v(m, i, d));
-  const max = Math.max(1, ...vals.map((v) => Math.abs(v)));
-  const total = vals.reduce((a, v) => a + v, 0);
-  const chips = MOB_DRE_LINHAS.map(
-    (l) =>
-      '<button type="button" role="tab" aria-selected="' +
-      (l.k === def.k ? 'true' : 'false') +
-      '" onclick="mobDreLinha(\'' +
-      l.k +
-      '\')">' +
-      l.rot +
-      '</button>'
-  ).join('');
-  const linhas = d.meses
-    .map((m, i) => {
-      const v = vals[i];
-      const cls = def.k === 'resultado' ? _mobDreClasse(v, d) : def.cls;
-      const larg = Math.max(2, Math.round((Math.abs(v) / max) * 100));
-      const atual = i === d.indiceAtual;
-      const aberto = i === _mobDreAberto;
-      return (
-        '<div class="mdre-mm-mes' +
-        (atual ? ' atual' : '') +
-        (aberto ? ' aberto' : '') +
-        '"><button type="button" class="mdre-mm-linha" aria-expanded="' +
-        (aberto ? 'true' : 'false') +
-        '" onclick="mobDreAbrirMes(' +
-        i +
-        ')"><span class="mdre-mm-rot">' +
-        d.rotulos[i] +
-        (atual ? '<em>agora</em>' : '') +
-        '</span><span class="mdre-mm-barra"><i class="' +
-        cls +
-        (v < 0 ? ' neg' : '') +
-        '" style="width:' +
-        larg +
-        '%"></i></span><span class="mdre-mm-v ' +
-        cls +
-        '">' +
-        fmt(v) +
-        '</span><i class="ph ph-caret-down mdre-mm-seta"></i></button>' +
-        (aberto ? _mobDreDetalhe(d, i) : '') +
-        '</div>'
-      );
-    })
-    .join('');
-  const rodape =
-    def.k === 'resultado' || def.k === 'acumulado'
-      ? ''
-      : '<div class="mdre-mm-total"><span>Total no período</span><strong class="' +
-        def.cls +
-        '">' +
-        fmt(total) +
-        '</strong></div>';
-  return (
-    '<section class="mdre-mm" aria-label="Tabela mês a mês"><header><strong>Mês a mês</strong><span>Toque num mês para ver todas as linhas</span></header><div class="mdre-mm-chips" role="tablist">' +
-    chips +
-    '</div><div class="mdre-mm-lista">' +
-    linhas +
-    '</div>' +
-    rodape +
-    '</section>'
-  );
-}
-
-/** Todas as linhas da tabela do desktop para o mês i, na mesma ordem. */
-function _mobDreDetalhe(d, i) {
-  const fmt = _mobDreFmt;
-  const m = d.meses[i];
-  const algumExterno = d.meses.some((x) => (x.invExterno || 0) > 0.005);
-  const algumCarregado = d.meses.some((x) => Math.abs(x.saldoCarregado || 0) > 0.005);
-  const saida = (v) => (v > 0 ? '−' + fmt(v) : fmt(0));
-  const lin = (rot, valor, cls, extra) =>
-    '<div class="mdre-mm-det-l' +
-    (extra || '') +
-    '"><span>' +
-    rot +
-    '</span><span class="mdre-v ' +
-    cls +
-    '">' +
-    valor +
-    '</span></div>';
-  const acum = d.acumulado ? d.acumulado[i] : 0;
-  const antes = i === 0 ? d.acumuladoInicial || 0 : d.acumulado[i - 1];
-  const delta = acum - antes;
-  const lapis =
-    i === d.indiceAtual
-      ? ' <button type="button" class="mdre-lapis" aria-label="Ajustar saldo trazido" onclick="editarSaldoMesAnterior(' +
-        m.mes +
-        ',' +
-        m.ano +
-        ')"><i class="ph ph-pencil-simple"></i></button>'
-      : '';
-  return (
-    '<div class="mdre-mm-det">' +
-    lin('Receita total', fmt(m.receita || 0), 'verde') +
-    lin('Resgates (venda de ativos)', fmt(m.resgate || 0), 'verde') +
-    lin('Investimento (renda fixa)', saida(m.invFixo || 0), 'azul') +
-    lin('Investimento (renda variável)', saida(m.invVar || 0), 'azul') +
-    (algumExterno ? lin('Aporte externo (fora do caixa)', fmt(m.invExterno || 0), 'mudo') : '') +
-    lin('Sonhos (separado p/ metas)', saida(m.sonho || 0), 'roxo') +
-    lin('Despesas consumidas', saida(m.despesas || 0), 'vermelho') +
-    (algumCarregado
-      ? lin(
-          '↳ Saldo do mês anterior' + lapis,
-          Math.abs(m.saldoCarregado || 0) > 0.005 ? fmt(m.saldoCarregado) : '—',
-          (m.saldoCarregado || 0) < 0 ? 'vermelho' : 'roxo',
-          ' herdado'
-        )
-      : '') +
-    lin(
-      'Resultado do mês',
-      fmt(m.saldoAcumulado || 0) +
-        ((m.saldoAcumulado || 0) < 0 ? ' <b class="mdre-neg-tag">NEGATIVO</b>' : ''),
-      _mobDreClasse(m.saldoAcumulado || 0, d),
-      ' forte'
-    ) +
-    lin(
-      'Investimento acumulado',
-      fmt(acum) +
-        (Math.abs(delta) < 0.005
-          ? ''
-          : ' <em class="' +
-            (delta < 0 ? 'neg' : '') +
-            '">' +
-            (delta > 0 ? '+' : '−') +
-            fmt(Math.abs(delta)).replace('R$', '').trim() +
-            '</em>'),
-      'azul',
-      ' acum'
-    ) +
-    '</div>'
-  );
-}
-
-function _mobDreRedesenharMM() {
-  const alvo = document.getElementById('mdreMM');
-  if (!alvo) return;
-  alvo.innerHTML = _mobDreTabela && _mobDreUltimo ? _mobDreMesAMes(_mobDreUltimo) : '';
-}
-
-/** Chip: qual linha da tabela a lista compara entre os meses. */
-function mobDreLinha(k) {
-  if (!MOB_DRE_LINHAS.some((l) => l.k === k)) return;
-  _mobDreLinha = k;
-  _mobDreRedesenharMM();
-}
-
-/** Abre (ou fecha) todas as linhas de um mês. */
-function mobDreAbrirMes(i) {
-  _mobDreAberto = _mobDreAberto === i ? -1 : i;
-  _mobDreRedesenharMM();
 }
 
 // ------------------------------------------------------------
@@ -700,7 +370,20 @@ function _mobLigarExtrato() {
       item.classList.remove('mob-acoes');
       return;
     }
+    // Toque na linha abre a folha do lançamento (pagar, outro valor, adiar,
+    // editar, excluir) — canvas "Detalhe do lançamento".
     const editar = item.querySelector('button[onclick^="prepararEdicao"]');
+    const idLinha =
+      editar && (editar.getAttribute('onclick').match(/prepararEdicao\('([^']+)'\)/) || [])[1];
+    if (
+      idLinha &&
+      typeof transacoes !== 'undefined' &&
+      transacoes.some((x) => String(x.id) === idLinha)
+    ) {
+      _mobExtFecharTodos(null);
+      mobLancFolha(idLinha);
+      return;
+    }
     if (editar) {
       _mobExtFecharTodos(null);
       editar.click();
@@ -1300,6 +983,81 @@ function _mobCartaoProjecao() {
  * Desenha o topo e o fim do Início no celular. `d` vem de
  * atualizarTelaControle com os totais do mês já calculados.
  */
+/**
+ * "Para onde foi" dentro do cartão do topo (canvas): a barra do mês e uma
+ * linha por destino com valor e fatia do que entrou. Os números são os do
+ * resumo que o Controle já calculou (d.resumo = calcularResumoMes).
+ */
+function _mobDestinoNoCartao(d) {
+  const r = d && d.resumo;
+  if (!r) return '';
+  const n = (v) => Number(v) || 0;
+  const entrou = n(r.receita) + n(r.resgate);
+  const partes = [
+    ['Fixas', n(r.despFixa), '#f97316'],
+    ['Variáveis', n(r.despVar), '#e11d48'],
+    ['Cartão', n(r.cartao), '#f59e0b'],
+    ['Investido', n(r.invFixo) + n(r.invVar), '#2563eb'],
+    ['Sonhos', n(r.sonho), '#7c3aed'],
+  ];
+  const saiu = partes.reduce((a, p) => a + p[1], 0);
+  partes.push(['Sobra', Math.max(0, entrou - saiu), '#10b981']);
+  const visiveis = partes.filter((p) => p[1] > 0.005);
+  if (!visiveis.length) return '';
+  const base = Math.max(entrou, saiu) || 1;
+  const aPagar = typeof saidasAPagarDoMes === 'function' ? saidasAPagarDoMes(d.mes, d.ano) : 0;
+  return (
+    (aPagar > 0.005
+      ? '<p class="mi-falta">falta pagar <b class="valor-mascarado">' +
+        _mobEsc(_mobDreFmt(aPagar)) +
+        '</b> este mês</p>'
+      : '') +
+    '<div class="mc-barra mi-destino-barra" aria-hidden="true">' +
+    visiveis
+      .map(
+        (p) =>
+          '<span style="background:' +
+          p[2] +
+          ';width:' +
+          ((p[1] / base) * 100).toFixed(2) +
+          '%"></span>'
+      )
+      .join('') +
+    '</div><div class="mi-destino">' +
+    visiveis
+      .map(
+        (p) =>
+          '<div><i style="background:' +
+          p[2] +
+          '"></i><span>' +
+          p[0] +
+          '</span><b class="valor-mascarado">' +
+          _mobEsc(_mobDreFmt(p[1])) +
+          '</b><small>' +
+          (entrou > 0 ? Math.round((p[1] / entrou) * 100) + '%' : '') +
+          '</small></div>'
+      )
+      .join('') +
+    '</div>'
+  );
+}
+
+/** "O que notamos" em cartão: o primeiro aviso, com o valor e o normal. */
+function _mobNotamosCartao() {
+  const lista = _mobInsights();
+  if (!lista.length || typeof insightsUiApresentar !== 'function') return '';
+  const ap = insightsUiApresentar(lista[0]) || {};
+  return (
+    '<section class="mi-card mi-notamos"><span class="mi-notamos-rot">O que notamos' +
+    (lista.length > 1 ? ' · 1 de ' + lista.length : '') +
+    '</span><b>' +
+    _mobEsc(ap.titulo || '') +
+    '</b>' +
+    (ap.frase ? '<p>' + ap.frase + '</p>' : '') +
+    '<button type="button" class="mi-link" onclick="mobStoryAbrir(0)">Ver detalhes <i class="ph ph-caret-right"></i></button></section>'
+  );
+}
+
 function mobRenderInicio(d) {
   const topo = document.getElementById('mobInicio');
   const fim = document.getElementById('mobInicioFim');
@@ -1320,17 +1078,21 @@ function mobRenderInicio(d) {
   // que entrou. Ler isso como orçamento diário levava a gastar dinheiro que
   // não existe (feedback de 23/10/2026). Agora o rótulo diz o que o
   // número é, e a linha de baixo diz de onde ele vem.
-  const livre = Number(d.saldoLivre) || 0;
-  const acumula = Math.abs(Number(d.carregado) || 0) >= 0.005 || !!d.carregadoManual;
-  const rotulo = acumula ? 'Sobra acumulada' : 'Sobra do mês';
+  //
+  // Desde a reorganização de nov/2026 o número grande é a sobra DO MÊS, a
+  // mesma do web: a acumulada só cresce e escondia um mês ruim atrás de meses
+  // bons. Ela continua no cartão, na linha de baixo (_mobLinhaCarregado).
+  const livre = (Number(d.saldoLivre) || 0) - (Number(d.carregado) || 0);
+  const nomeMes = new Date(d.ano, d.mes, 1).toLocaleDateString('pt-BR', { month: 'long' });
+  const rotulo = 'Sobra de ' + nomeMes;
   const origem =
     livre < 0
       ? 'Saiu mais do que entrou.'
       : Math.abs(livre) < 0.005
         ? 'Tudo o que entrou já tem destino.'
-        : acumula
-          ? 'O que entrou menos o que saiu, somando a sobra dos meses anteriores.'
-          : 'O que entrou menos o que saiu' + (noMes ? ' neste mês.' : ' no mês.');
+        : 'O que entrou menos o que sai' +
+          (noMes ? ' neste mês' : ' no mês') +
+          ', já contando o que falta pagar.';
 
   const scoreEl = document.getElementById('termChipScore');
   const rotEl = document.getElementById('termChipRotulo');
@@ -1341,26 +1103,6 @@ function mobRenderInicio(d) {
     '<span class="mi-termo-chip"><i class="ph ph-thermometer"></i> ' +
     _mobEsc(score && score !== '—' ? score + ' · ' + rot : rot || '—') +
     '</span><span class="mi-termo-txt">Relatório do mês</span><i class="ph ph-caret-right"></i></button>';
-
-  const a = _mobAneis(d);
-  const leg = MOB_ANEIS.map(
-    (x) =>
-      '<button type="button" class="mi-leg" data-anel="' +
-      x.k +
-      '" aria-pressed="' +
-      (_mobAnelRealce === x.k ? 'true' : 'false') +
-      '" onclick="mobAnelRealcar(\'' +
-      x.k +
-      '\')"><span class="mi-leg-dot" style="background:' +
-      (x.k === 'gastos' && a.gastos.alerta ? 'var(--cor-erro)' : x.cor) +
-      '"></span><span class="mi-leg-txt"><b>' +
-      x.nome +
-      '</b><small>' +
-      _mobEsc(a[x.k].sub) +
-      '</small></span><span class="mi-leg-val">' +
-      _mobEsc(a[x.k].val) +
-      '</span></button>'
-  ).join('');
 
   const conta =
     d.saldoConta == null
@@ -1407,25 +1149,37 @@ function mobRenderInicio(d) {
     '</span><span class="mi-dia">' +
     origem +
     '</span></div>' +
-    _mobSvgAneis(a) +
     '</div>' +
+    _mobDestinoNoCartao(d) +
     _mobLinhaCarregado(d) +
     conta +
-    '<div class="mi-legs">' +
-    leg +
-    '</div></section>' +
+    '</section>' +
     '<nav class="mi-atalhos" aria-label="Atalhos">' +
     atalhos +
-    '</nav>';
+    '</nav>' +
+    // Receitas, despesas, cartão, investimentos e sonhos: lista vertical.
+    (d.tiposHtml
+      ? '<section class="mi-card mi-tipos" aria-label="O mês por tipo"><div class="mi-tit-linha"><h2 class="mi-h2">O mês por tipo</h2></div>' +
+        d.tiposHtml +
+        '</section>'
+      : '');
 
+  // "Para onde foi" entrou no cartão do topo (_mobDestinoNoCartao); a
+  // projeção mora na aba Projeção. Ordem do canvas: O que notamos, Falta
+  // pagar, Por categoria, Movimentações.
   const comp = document.getElementById('mobComposicao');
-  if (comp) comp.innerHTML = _mobComposicao(d.composicao);
+  if (comp) comp.innerHTML = '';
   const prox = document.getElementById('mobProximos');
-  if (prox) prox.innerHTML = _mobProximos(d.vencimentos, d.hojeStr);
+  if (prox)
+    prox.innerHTML =
+      _mobNotamosCartao() +
+      _mobProximos(d.vencimentos, d.hojeStr) +
+      // "Para onde foi" completo (todas as categorias, com "Ver todas"), como
+      // era antes; "Destino do dinheiro" mostra fixas, variáveis, cartão etc.
+      _mobComposicao(d.composicao);
 
   const movs = _mobMovimentos(d.mes, d.ano);
   fim.innerHTML =
-    _mobCartaoProjecao() +
     '<section class="mi-movs"><div class="mi-tit-linha"><h2 class="mi-h2">Movimentações</h2>' +
     '<button type="button" class="mi-link" onclick="mobSegControle(\'extrato\')">Extrato completo <i class="ph ph-caret-right"></i></button></div>' +
     (movs.length
@@ -1634,12 +1388,12 @@ function _mobLinhaCarregado(d) {
     d.ano +
     ')"><i class="ph ph-arrow-elbow-down-right"></i><span>' +
     (d.carregadoManual
-      ? 'Saldo de ' + ant + ' ajustado para '
-      : 'Inclui o que sobrou de ' + ant + ': ') +
+      ? 'Com o saldo de ' + ant + ' ajustado, acumulada '
+      : 'Acumulada com o que sobrou até ' + ant + ': ') +
     '<b class="valor-mascarado' +
-    (v < 0 ? ' neg' : '') +
+    ((Number(d.saldoLivre) || 0) < 0 ? ' neg' : '') +
     '">' +
-    _mobEsc(_mobDreFmt(v)) +
+    _mobEsc(_mobDreFmt(Number(d.saldoLivre) || 0)) +
     '</b></span>' +
     (d.carregadoManual
       ? '<span class="mi-carregado-tag">Manual</span>'
@@ -1773,6 +1527,25 @@ function _mobComposicao(c) {
           ? x.slug
           : null
         : x.tipo || null;
+      // Categoria com limite por mês: "de R$ 280 · 85%" / "passou R$ 40".
+      const lim =
+        despesa && x.slug && typeof obterLimiteCategoria === 'function'
+          ? obterLimiteCategoria(x.slug)
+          : 0;
+      const limTxt =
+        lim > 0
+          ? '<small class="mc-lim' +
+            (x.valor > lim ? ' passou' : x.valor >= lim * 0.8 ? ' perto' : '') +
+            '">' +
+            (x.valor > lim
+              ? 'passou ' + _mobEsc(_mobDreFmt(x.valor - lim)) + ' do limite'
+              : 'de ' +
+                _mobEsc(_mobDreFmt(lim)) +
+                ' · ' +
+                Math.round((x.valor / lim) * 100) +
+                '%') +
+            '</small>'
+          : '';
       const corpo =
         '<span class="mc-dot" style="background:' +
         x.cor +
@@ -1784,7 +1557,9 @@ function _mobComposicao(c) {
         x.cor +
         ';width:' +
         Math.max(2, (Math.abs(x.valor) / maior) * 100).toFixed(1) +
-        '%"></span></span></span><span class="mc-pct">' +
+        '%"></span></span>' +
+        limTxt +
+        '</span><span class="mc-pct">' +
         pct +
         '</span>';
       return alvo
@@ -1811,13 +1586,6 @@ function _mobComposicao(c) {
     '<b class="valor-mascarado">' +
     _mobEsc(_mobDreFmt(total)) +
     '</b></span></div>' +
-    '<div class="mc-seg" role="tablist" aria-label="Agrupar">' +
-    '<button type="button" role="tab" aria-selected="' +
-    !despesa +
-    '" onclick="setAgrupamentoComposicao(\'contabil\')">Destino do dinheiro</button>' +
-    '<button type="button" role="tab" aria-selected="' +
-    despesa +
-    '" onclick="setAgrupamentoComposicao(\'despesa\')">Tipo de gasto</button></div>' +
     '<div class="mc-barra" aria-hidden="true">' +
     barra +
     '</div><div class="mc-lista">' +
@@ -1934,12 +1702,326 @@ function _mobProximos(itens, hojeStr) {
     })
     .join('');
   return (
-    '<section class="mp"><div class="mi-tit-linha"><h2 class="mi-h2">Próximos dias</h2><span class="mc-total"><b class="valor-mascarado">' +
+    // Lista vertical com os dois próximos (canvas); o resto atrás de "+ N".
+    // O carrossel escondia do terceiro em diante.
+    '<section class="mp"><div class="mi-tit-linha"><h2 class="mi-h2">Falta pagar</h2><span class="mc-total"><b class="valor-mascarado">' +
     _mobEsc(_mobDreFmt(total)) +
-    '</b> a pagar</span></div><div class="mp-fila">' +
+    '</b></span></div><div class="mi-card mp-fila mp-lista">' +
     cards +
+    (itens.length > 2
+      ? '<button type="button" class="mp-mais" onclick="this.parentNode.classList.add(\'todos\');this.remove()">+ ' +
+        (itens.length - 2) +
+        ' até o fim do mês</button>'
+      : '') +
     '</div></section>'
   );
+}
+
+// ------------------------------------------------------------
+// Folha do lançamento (toque numa linha do extrato)
+// ------------------------------------------------------------
+// Tudo o que se faz com UM lançamento num lugar só, na zona do polegar:
+// marcar como pago hoje, "paguei outro valor" (só este mês muda), adiar para
+// o mês seguinte, editar e excluir — esta perguntando "só este mês" ou "este e
+// os próximos" quando é conta fixa ou parcelada. As ações são as do extrato
+// (confirmarPagamento, adiarLancamentoUmMes, prepararEdicao, executarDelecao).
+
+var _mobLancMeses = [
+  'janeiro',
+  'fevereiro',
+  'março',
+  'abril',
+  'maio',
+  'junho',
+  'julho',
+  'agosto',
+  'setembro',
+  'outubro',
+  'novembro',
+  'dezembro',
+];
+
+function _mobLancDdMm(ymd) {
+  return ymd && /^\d{4}-\d{2}-\d{2}/.test(ymd) ? ymd.slice(8, 10) + '/' + ymd.slice(5, 7) : '';
+}
+
+/** O selo do topo: "A pagar · vence 10/11", "Atrasado · venceu 05/11", "Pago em 03/11". */
+function mobLancStatus(t, hojeYmd) {
+  const hoje = hojeYmd || (typeof hojeYmdLocal === 'function' ? hojeYmdLocal() : '');
+  if (t.categoria === 'receita' || t.categoria === 'dividendo')
+    return {
+      classe: 'ok',
+      txt: 'Entrada' + (t.dataVencimento ? ' · ' + _mobLancDdMm(t.dataVencimento) : ''),
+    };
+  if (t.pago) {
+    const dia = typeof appliqueiDiaDoPagamento === 'function' ? appliqueiDiaDoPagamento(t) : null;
+    return { classe: 'ok', txt: 'Pago' + (dia ? ' em ' + _mobLancDdMm(dia) : '') };
+  }
+  if (t.dataVencimento && t.dataVencimento < hoje)
+    return { classe: 'atraso', txt: 'Atrasado · venceu ' + _mobLancDdMm(t.dataVencimento) };
+  if (t.dataVencimento === hoje) return { classe: 'atraso', txt: 'A pagar · vence hoje' };
+  return {
+    classe: 'pendente',
+    txt: 'A pagar' + (t.dataVencimento ? ' · vence ' + _mobLancDdMm(t.dataVencimento) : ''),
+  };
+}
+
+/** "Moradia · sai do Itaú · todo mês" */
+function mobLancMeta(t) {
+  const partes = [];
+  if (t.categoriaDespesa && typeof rotuloCategoriaDespesa === 'function')
+    partes.push(rotuloCategoriaDespesa(t.categoriaDespesa));
+  const origem = typeof extratoOrigemDe === 'function' ? extratoOrigemDe(t) : null;
+  if (origem && origem.chave !== 'sem') {
+    const entrada = t.categoria === 'receita' || t.categoria === 'dividendo';
+    partes.push(
+      (entrada ? 'entra no ' : t.categoria === 'cartao_credito' ? 'no ' : 'sai do ') + origem.rotulo
+    );
+  }
+  const p = String(t.descricao || '').match(/\((\d+)\/(\d+)\)\s*$/);
+  if (p) partes.push('parcela ' + p[1] + ' de ' + p[2]);
+  else if (t.groupId && t.categoria === 'despesa_fixa') partes.push('todo mês');
+  return partes.join(' · ');
+}
+
+function _mobLancMesNome(t, mais) {
+  const d = new Date(t.ano, t.mes + (mais || 0), 1);
+  return _mobLancMeses[d.getMonth()];
+}
+
+/** Pode ir para o mês seguinte? Conta a pagar comum; cartão e sonho têm regra própria. */
+function mobLancPodeAdiar(t) {
+  return (
+    !!t &&
+    !t.pago &&
+    (t.categoria === 'despesa_fixa' || t.categoria === 'despesa_variavel') &&
+    !t.sonhoId &&
+    !t.compromissoId
+  );
+}
+
+function mobLancPodePagar(t) {
+  return !!t && !t.pago && t.categoria !== 'receita' && t.categoria !== 'dividendo';
+}
+
+/** vista: '' (ações), 'valor', 'excluir', 'pago'. */
+function mobLancFolha(id, vista) {
+  if (typeof transacoes === 'undefined') return;
+  const t = transacoes.find((x) => String(x.id) === String(id));
+  if (!t) return mobFolhaFechar();
+  const idEsc = _mobEsc(String(t.id));
+  const st = mobLancStatus(t);
+  const meta = mobLancMeta(t);
+  const hoje = typeof hojeYmdLocal === 'function' ? hojeYmdLocal() : '';
+  const fmt = (v) => (typeof formatarMoeda === 'function' ? formatarMoeda(v) : String(v));
+  const mes = _mobLancMesNome(t, 0);
+  const prox = _mobLancMesNome(t, 1);
+  const serie = !!t.groupId;
+
+  let html =
+    '<div class="ml-cab"><div class="ml-cab-txt"><span class="ml-st ' +
+    st.classe +
+    '">' +
+    _mobEsc(st.txt) +
+    '</span><h3 class="mf-tit">' +
+    _mobEsc(t.descricao || 'Lançamento') +
+    '</h3>' +
+    (meta ? '<span class="ml-meta">' + _mobEsc(meta) + '</span>' : '') +
+    '</div><b class="ml-valor valor-mascarado">' +
+    _mobEsc(fmt(t.valor)) +
+    '</b></div>';
+
+  const linha = (onclick, txt, extra) =>
+    '<button type="button" class="ml-linha' +
+    (extra || '') +
+    '" onclick="' +
+    onclick +
+    '"><span>' +
+    txt +
+    '</span><i class="ph ph-caret-right" aria-hidden="true"></i></button>';
+
+  if (vista === 'valor') {
+    html +=
+      '<label class="mf-campo" for="input-pago-' +
+      idEsc +
+      '">Quanto você pagou?<span class="mf-campo-caixa"><span>R$</span><input type="text" inputmode="decimal" id="input-pago-' +
+      idEsc +
+      '" value="' +
+      _mobEsc(
+        typeof formatarBRLInput === 'function' ? formatarBRLInput(t.valor) : String(t.valor)
+      ) +
+      '" oninput="aplicarMascaraBRL(this);mobLancValorAviso(\'' +
+      idEsc +
+      '\')"></span></label>' +
+      '<label class="mf-campo" for="input-pago-dia-' +
+      idEsc +
+      '">Pago em<span class="mf-campo-caixa ml-dia"><input type="date" id="input-pago-dia-' +
+      idEsc +
+      '" value="' +
+      _mobEsc(hoje) +
+      '" max="' +
+      _mobEsc(hoje) +
+      '"></span></label>' +
+      '<div class="mf-info" id="mlValorAviso"><i class="ph ph-info"></i><span>' +
+      (serie
+        ? 'Só ' +
+          _mobEsc(mes) +
+          ' muda. ' +
+          _mobEsc(prox.charAt(0).toUpperCase() + prox.slice(1)) +
+          ' em diante continua ' +
+          _mobEsc(fmt(t.valor)) +
+          '.'
+        : 'O valor do lançamento passa a ser o que você pagou.') +
+      '</span></div>' +
+      '<button type="button" class="mf-btn1" onclick="mobLancPagar(\'' +
+      idEsc +
+      '\')">Marcar como pago</button>' +
+      '<button type="button" class="mf-btn2" onclick="mobLancFolha(\'' +
+      idEsc +
+      '\')">Voltar</button>';
+  } else if (vista === 'excluir') {
+    html +=
+      '<b class="ml-perg">Excluir ' +
+      _mobEsc(String(t.descricao || 'o lançamento').replace(/\s*\(\d+\/\d+\)\s*$/, '')) +
+      ' de quais meses?</b>' +
+      '<button type="button" class="ml-escolha" onclick="mobLancExcluir(\'' +
+      idEsc +
+      "','unica')\"><b>Só " +
+      _mobEsc(mes) +
+      '</b><span>Some deste mês; ' +
+      _mobEsc(prox) +
+      ' em diante continua.</span></button>' +
+      '<button type="button" class="ml-escolha perigo" onclick="mobLancExcluir(\'' +
+      idEsc +
+      "','todas')\"><b>" +
+      _mobEsc(mes.charAt(0).toUpperCase() + mes.slice(1)) +
+      ' e os próximos</b><span>Os meses anteriores ficam no histórico.</span></button>' +
+      '<button type="button" class="mf-btn2" onclick="mobLancFolha(\'' +
+      idEsc +
+      '\')">Voltar</button>';
+  } else if (vista === 'pago') {
+    const origem = typeof extratoOrigemDe === 'function' ? extratoOrigemDe(t) : null;
+    html +=
+      '<div class="ml-feito" role="status"><i class="ph-bold ph-check" aria-hidden="true"></i><span>' +
+      _mobEsc(String(t.descricao || 'Lançamento').replace(/\s*\(\d+\/\d+\)\s*$/, '')) +
+      ' pago' +
+      (origem && origem.chave !== 'sem' ? ' · saiu do ' + _mobEsc(origem.rotulo) : '') +
+      '</span>' +
+      (typeof controlePodeReverterPagamento === 'function' && controlePodeReverterPagamento(t)
+        ? '<button type="button" onclick="mobLancDesfazer(\'' + idEsc + '\')">Desfazer</button>'
+        : '') +
+      '</div><button type="button" class="mf-btn2" onclick="mobFolhaFechar()">Fechar</button>';
+  } else {
+    if (mobLancPodePagar(t)) {
+      // Campos escondidos: confirmarPagamento lê o valor e o dia pelo id.
+      html +=
+        '<input type="hidden" id="input-pago-' +
+        idEsc +
+        '" value="' +
+        _mobEsc(
+          typeof formatarBRLInput === 'function' ? formatarBRLInput(t.valor) : String(t.valor)
+        ) +
+        '"><input type="hidden" id="input-pago-dia-' +
+        idEsc +
+        '" value="' +
+        _mobEsc(hoje) +
+        '">' +
+        '<button type="button" class="mf-btn1" onclick="mobLancPagar(\'' +
+        idEsc +
+        '\')">Marcar como pago hoje</button>';
+    }
+    html += '<div class="ml-linhas">';
+    if (mobLancPodePagar(t))
+      html += linha("mobLancFolha('" + idEsc + "','valor')", 'Paguei outro valor');
+    if (typeof controlePodePularSonho === 'function' && controlePodePularSonho(t))
+      html += linha(
+        "mobFolhaFechar();pularParcelaSonho('" + idEsc + "')",
+        'Não vou guardar este mês'
+      );
+    if (mobLancPodeAdiar(t))
+      html += linha("mobLancAdiar('" + idEsc + "')", 'Adiar para ' + _mobEsc(prox));
+    if (typeof controlePodeReverterPagamento === 'function' && controlePodeReverterPagamento(t))
+      html += linha("mobLancDesfazer('" + idEsc + "')", 'Voltar para a pagar');
+    html += linha("mobFolhaFechar();prepararEdicao('" + idEsc + "')", 'Editar');
+    html += linha(
+      serie
+        ? "mobLancFolha('" + idEsc + "','excluir')"
+        : "mobFolhaFechar();deletarTransacao('" + idEsc + "')",
+      'Excluir',
+      ' perigo'
+    );
+    html += '</div>';
+  }
+  mobFolhaAbrir(html, t.descricao || 'Lançamento');
+  // A folha foca o primeiro campo; nas ações não há campo de verdade.
+  if (vista !== 'valor') {
+    const f = document.getElementById('mobFolha');
+    const b = f && f.querySelector('.mf-btn1, .ml-linha');
+    if (b) setTimeout(() => b.focus({ preventScroll: true }), 260);
+  }
+}
+
+/** "Só novembro fica R$ 2.230. Dezembro em diante continua R$ 2.150." */
+function mobLancValorAviso(id) {
+  const t = transacoes.find((x) => String(x.id) === String(id));
+  const el = document.querySelector('#mlValorAviso span');
+  const campo = document.getElementById('input-pago-' + id);
+  if (!t || !el || !campo || !t.groupId) return;
+  const v = typeof parseBRL === 'function' ? parseBRL(campo.value) : NaN;
+  if (!Number.isFinite(v)) return;
+  const prox = _mobLancMesNome(t, 1);
+  el.textContent =
+    'Só ' +
+    _mobLancMesNome(t, 0) +
+    ' fica ' +
+    formatarMoeda(v) +
+    '. ' +
+    prox.charAt(0).toUpperCase() +
+    prox.slice(1) +
+    ' em diante continua ' +
+    formatarMoeda(t.valor) +
+    '.';
+}
+
+function mobLancPagar(id) {
+  const campo = document.getElementById('input-pago-' + id);
+  const v = typeof parseBRL === 'function' && campo ? parseBRL(campo.value) : NaN;
+  if (!Number.isFinite(v) || v < 0) {
+    if (typeof mostrarToast === 'function')
+      mostrarToast('Por favor, informe um valor válido.', 'erro');
+    return;
+  }
+  const dia = document.getElementById('input-pago-dia-' + id);
+  if (dia && dia.value && typeof hojeYmdLocal === 'function' && dia.value > hojeYmdLocal()) {
+    if (typeof mostrarToast === 'function')
+      mostrarToast('A data do pagamento não pode ser no futuro.', 'erro');
+    return;
+  }
+  confirmarPagamento(id);
+  const t = transacoes.find((x) => String(x.id) === String(id));
+  // R$ 0 abre a pergunta "não pagou?" no modal: a folha sai da frente.
+  if (t && t.pago) mobLancFolha(id, 'pago');
+  else mobFolhaFechar();
+}
+
+function mobLancDesfazer(id) {
+  mobFolhaFechar();
+  if (typeof reverterPagamento === 'function') reverterPagamento(id);
+}
+
+function mobLancAdiar(id) {
+  mobFolhaFechar();
+  if (typeof adiarLancamentoUmMes === 'function') adiarLancamentoUmMes(id);
+}
+
+/** Excluir com a escolha já feita na folha — sem o segundo modal. */
+function mobLancExcluir(id, modo) {
+  const t = transacoes.find((x) => String(x.id) === String(id));
+  mobFolhaFechar();
+  if (!t) return;
+  if (t.sonhoId || typeof executarDelecao !== 'function') return deletarTransacao(id);
+  itemParaDeletar = t;
+  executarDelecao(modo === 'todas' ? 'todas' : 'unica');
 }
 
 /** "Baixar": folha com o valor editável e de qual conta o dinheiro sai. */
@@ -2022,9 +2104,11 @@ function mobConfirmarBaixa(id) {
 // calculados; a série mensal vem de mpSerieMensalPatrimonio. Os blocos de
 // gestão (Minhas contas, Meus bens) seguem os do desktop, logo abaixo.
 
-var _mobPat = { dados: null, serie: null, liquido: false, periodo: 12, aberta: null };
+// liquido: null até o primeiro desenho — abre em Líquido quando há dívida.
+var _mobPat = { dados: null, serie: null, liquido: null, periodo: 12, aberta: null };
 var MOB_PAT_CORES = ['#047857', '#1d4ed8', '#6d28d9', '#b45309', '#0e7490', '#be185d'];
 var MOB_PAT_PERIODOS = [
+  [1, '1M'],
   [6, '6M'],
   [12, '1A'],
   [24, '2A'],
@@ -2037,7 +2121,9 @@ function _mobPatFmt(v) {
 
 function _mobPatSerieVisivel() {
   const s = _mobPat.serie || [];
-  return _mobPat.periodo > 0 ? s.slice(-_mobPat.periodo) : s;
+  // N meses = N+1 pontos (o fim do mês de partida e os N seguintes), igual
+  // ao web; com um ponto só o 1M não desenharia linha nenhuma.
+  return _mobPat.periodo > 0 ? s.slice(-(_mobPat.periodo + 1)) : s;
 }
 
 function mobRenderPatrimonio(d) {
@@ -2064,6 +2150,11 @@ function mobPatDesenharProventos() {
   wrap.innerHTML = htmlProjecaoProventos(projecaoProventos12m(obterResumoCarteira()), {
     link: "mobIrPara('patrimonio');mudarSubAbaPatrimonio('dividendos');document.getElementById('subtabBtnDividendos').scrollIntoView({block:'start'})",
   });
+}
+
+/** Redesenha o topo da foto (chamada pelo seletor Mês/12M do "Por que mudou"). */
+function mobPatRedesenharTopo() {
+  if (_mobPat.dados) _mobPatDesenharTopo();
 }
 
 function mobPatAlternarLiquido(liq) {
@@ -2172,6 +2263,7 @@ function _mobPatDesenharTopo() {
   if (!topo || !d) return;
   const k = d.kpis;
   const divida = Math.max(0, Number(d.divida) || 0);
+  if (_mobPat.liquido === null) _mobPat.liquido = divida > 0;
   const liquido = _mobPat.liquido && divida > 0;
   const total = k.total - (liquido ? divida : 0);
   const serie = _mobPatSerieVisivel();
@@ -2180,22 +2272,26 @@ function _mobPatDesenharTopo() {
   const base = serie.length > 1 ? serie[0] : null;
   // O gráfico é sempre o bruto: não há histórico do saldo devedor dos
   // financiamentos, e descontar a dívida de hoje do passado inventaria números.
-  const delta = base && !liquido ? _mobPatDelta(k.total, base.total, _mobPatRotuloMes(base)) : null;
+  // Por isso, no Líquido, a variação diz que é a do que você TEM.
+  const delta = base ? _mobPatDelta(k.total, base.total, _mobPatRotuloMes(base)) : null;
+  if (delta && liquido) delta.html += ' no que você tem';
 
   const seg =
     divida > 0
       ? '<div class="mpm-seg" role="tablist" aria-label="Como somar">' +
         '<button type="button" role="tab" aria-selected="' +
-        !liquido +
-        '" onclick="mobPatAlternarLiquido(false)">Bruto</button>' +
-        '<button type="button" role="tab" aria-selected="' +
         liquido +
-        '" onclick="mobPatAlternarLiquido(true)">Líquido</button></div>'
+        '" onclick="mobPatAlternarLiquido(true)">Líquido</button>' +
+        '<button type="button" role="tab" aria-selected="' +
+        !liquido +
+        '" onclick="mobPatAlternarLiquido(false)">Bruto</button></div>'
       : '';
   const nota = liquido
-    ? '<p class="mpm-nota">Descontados <b class="valor-mascarado">' +
+    ? '<p class="mpm-nota">Você tem <b class="valor-mascarado">' +
+      _mobEsc(_mobPatFmt(k.total)) +
+      '</b> e deve <b class="valor-mascarado">' +
       _mobEsc(_mobPatFmt(divida)) +
-      '</b> de financiamentos. O gráfico mostra o bruto.</p>'
+      '</b> (financiamentos e faturas em aberto). O gráfico mostra o que você tem.</p>'
     : '';
   const periodos = MOB_PAT_PERIODOS.map(
     (p) =>
@@ -2215,6 +2311,14 @@ function _mobPatDesenharTopo() {
     ['Imóveis', k.imoveis, 'var(--cor-cartao)', 'listaBens'],
     ['Veículos', k.veiculos, '#64748b', 'listaBens'],
   ].filter((p) => Math.abs(p[1]) > 0.005);
+  // Dívida é linha da composição, em vermelho: fica à vista sem precisar
+  // trocar para Líquido. Fora da barra (a barra é só o que você tem).
+  const chipDivida =
+    divida > 0
+      ? '<button type="button" class="mpm-chip mpm-lin mpm-chip-divida" onclick="mobPatIrPara(\'mpMobBens\')"><span class="mpm-chip-dot" style="background:var(--cor-erro)"></span><span class="mpm-chip-txt"><small>Dívidas</small><b class="valor-mascarado">−' +
+        _mobEsc(_mobPatFmt(divida)) +
+        '</b></span><i class="ph ph-caret-right" aria-hidden="true"></i></button>'
+      : '';
   const soma = partes.reduce((a, p) => a + Math.max(0, p[1]), 0);
   const barra = partes
     .filter((p) => p[1] > 0)
@@ -2227,27 +2331,31 @@ function _mobPatDesenharTopo() {
         '%"></span>'
     )
     .join('');
-  const chips = partes
-    .map(
-      (p) =>
-        '<button type="button" class="mpm-chip" onclick="mobPatIrPara(\'' +
-        p[3] +
-        '\')"><span class="mpm-chip-dot" style="background:' +
-        p[2] +
-        '"></span><span class="mpm-chip-txt"><small>' +
-        p[0] +
-        (soma > 0 ? ' · ' + Math.round((Math.max(0, p[1]) / soma) * 100) + '%' : '') +
-        '</small><b class="valor-mascarado">' +
-        _mobEsc(_mobPatFmt(p[1])) +
-        '</b></span></button>'
-    )
-    .join('');
+  // Composição em lista, como o canvas: ponto, nome, valor e seta; a linha
+  // de dívidas fecha a lista (chipDivida).
+  const chips =
+    partes
+      .map(
+        (p) =>
+          '<button type="button" class="mpm-chip mpm-lin" onclick="mobPatIrPara(\'' +
+          p[3] +
+          '\')"><span class="mpm-chip-dot" style="background:' +
+          p[2] +
+          '"></span><span class="mpm-chip-txt"><small>' +
+          p[0] +
+          (soma > 0 ? ' · ' + Math.round((Math.max(0, p[1]) / soma) * 100) + '%' : '') +
+          '</small><b class="valor-mascarado">' +
+          _mobEsc(_mobPatFmt(p[1])) +
+          '</b></span><i class="ph ph-caret-right" aria-hidden="true"></i></button>'
+      )
+      .join('') + chipDivida;
 
   topo.innerHTML =
     '<div class="mpm-cab"><p class="mpm-tit">Patrimônio ' +
     (liquido ? 'líquido' : 'total') +
-    '</p>' +
+    '</p><span class="mpm-cab-acoes">' +
     seg +
+    '<button type="button" class="mpm-olho" onclick="toggleValoresOcultos()" aria-label="Esconder ou mostrar valores"><i class="ph ph-eye"></i></button></span>' +
     '</div>' +
     '<p class="mpm-valor valor-mascarado" id="mpmValor">' +
     _mobEsc(_mobPatFmt(total)) +
@@ -2262,13 +2370,15 @@ function _mobPatDesenharTopo() {
         periodos +
         '</div>'
       : '') +
+    _mobPatMudouHtml() +
     (partes.length
-      ? '<section class="mpm-comp"><h2 class="mi-h2">Do que ele é feito</h2><div class="mc-barra" aria-hidden="true">' +
+      ? '<section class="mpm-comp"><h2 class="mi-h2">Do que ele é feito</h2><div class="mi-card mpm-comp-card"><div class="mc-barra" aria-hidden="true">' +
         barra +
-        '</div><div class="mpm-chips">' +
+        '</div><div class="mpm-chips mpm-lista">' +
         chips +
-        '</div></section>'
-      : '');
+        '</div></div></section>'
+      : '') +
+    _mobPatFolegoHtml(d.folego);
   _mobPatTitulo(total, quando, delta);
   if (g.svg) _mobPatLigarScrub(serie, g, total, quando, delta);
 }
@@ -2326,21 +2436,103 @@ function _mobPatLigarScrub(serie, g, total, quando, delta) {
   caixa.addEventListener('pointerleave', soltar);
 }
 
+/** Por que mudou, em três linhas: contas, valorização e bens (mpMudancaDoMes). */
+function _mobPatMudouHtml() {
+  const meses = typeof mpWeb !== 'undefined' ? mpWeb.mudouMeses : 1;
+  const m = typeof mpMudancaDoMes === 'function' ? mpMudancaDoMes(_mobPat.serie, meses) : null;
+  if (!m) return '';
+  const num = (v) =>
+    '<b class="valor-mascarado ' +
+    (Math.abs(v) < 0.005 ? 'neu' : v > 0 ? 'pos' : 'neg') +
+    '">' +
+    (v > 0.005 ? '+' : v < -0.005 ? '−' : '') +
+    _mobEsc(_mobPatFmt(Math.abs(v))) +
+    '</b>';
+  const linhas = [
+    ['Sobrou nas contas', m.contas],
+    ['Valorização dos investimentos', m.valorizacao],
+    ['Bens', m.bens],
+  ].filter((l, i) => i === 0 || Math.abs(l[1]) > 0.005);
+  return (
+    '<section class="mpm-mudou"><div class="mi-tit-linha"><h2 class="mi-h2">Por que mudou</h2>' +
+    (typeof mpdMudouSeletorHtml === 'function' ? mpdMudouSeletorHtml() : '') +
+    '</div><div class="mpm-mudou-sub"><span class="mpm-mudou-tot">' +
+    num(m.total) +
+    ' desde ' +
+    _mobEsc(_mobPatRotuloMes(m.de)) +
+    '</span></div><div class="mi-card mpm-mudou-lista">' +
+    linhas.map((l) => '<div><span>' + l[0] + '</span>' + num(l[1]) + '</div>').join('') +
+    '</div></section>'
+  );
+}
+
+/** Fôlego em faixa que desliza: liquidez, reserva em meses e proventos. */
+function _mobPatFolegoHtml(f) {
+  if (!f) return '';
+  const cartoes = [
+    [
+      'Disponível em 1 dia',
+      '<b class="valor-mascarado">' + _mobEsc(_mobPatFmt(f.disponivel)) + '</b>',
+      f.pctDisponivel == null
+        ? 'contas, ações e FIIs'
+        : Math.round(f.pctDisponivel) + '% do que você tem',
+    ],
+  ];
+  if (f.reservaMeses != null)
+    cartoes.push([
+      'Reserva cobre',
+      '<b>' + f.reservaMeses.toFixed(1).replace('.', ',') + ' meses</b>',
+      'do seu gasto médio',
+    ]);
+  if (f.proventos)
+    cartoes.push([
+      'Proventos 12 meses',
+      '<b class="valor-mascarado">' + _mobEsc(_mobPatFmt(f.proventos.total)) + '</b>',
+      'previstos',
+    ]);
+  return (
+    '<section class="mpm-folego" aria-label="Fôlego">' +
+    cartoes
+      .map(
+        (c) =>
+          '<div class="mpm-fol"><small>' +
+          c[0] +
+          '</small>' +
+          c[1] +
+          '<span>' +
+          c[2] +
+          '</span></div>'
+      )
+      .join('') +
+    '</section>'
+  );
+}
+
 function mobPatIrPara(id) {
   const el = document.getElementById(id);
   if (el && typeof el.scrollIntoView === 'function')
     el.scrollIntoView({ block: 'start', behavior: 'smooth' });
 }
 
-/** Cartões de banco/corretora. Também chamada por mpToggleExtrato. */
+/** "Caixa R$ X · Investido R$ Y" — o que antes só aparecia ao abrir o cartão. */
+function _mobPatSubInst(x) {
+  if (x.reconciliar) return 'sem instituição no lançamento';
+  const p = [];
+  if (Math.abs(x.caixa) > 0.01) p.push('Caixa ' + _mobPatFmt(x.caixa));
+  if (Math.abs(x.investido) > 0.01) p.push('Investido ' + _mobPatFmt(x.investido));
+  return p.join(' · ');
+}
+
+/** Lista de bancos/corretoras, uma linha cada. Também chamada por mpToggleExtrato. */
 function mobPatrimonioRedesenharCarteiras() {
   const wrap = document.getElementById('mpMobCarteiras');
   const d = _mobPat.dados;
   if (!wrap || !d) return;
   const lista = (typeof mpEstado !== 'undefined' && mpEstado._instituicoes) || d.instituicoes || [];
   const cab =
-    '<div class="mi-tit-linha"><h2 class="mi-h2">Onde está o dinheiro</h2>' +
-    '<button type="button" class="mi-link" onclick="abrirNovaContaForm()"><i class="ph ph-plus"></i> Conta</button></div>';
+    '<div class="mi-tit-linha"><h2 class="mi-h2">Onde está o dinheiro</h2><span class="mpl-botoes">' +
+    '<button type="button" class="mi-link" onclick="abrirTransferenciaModal()"><i class="ph ph-arrows-left-right"></i> Transferir</button>' +
+    '<button type="button" class="mi-link" onclick="abrirNovaContaForm()"><i class="ph ph-plus"></i> Conta</button></span></div>';
   if (!lista.length) {
     wrap.innerHTML =
       cab +
@@ -2365,14 +2557,11 @@ function mobPatrimonioRedesenharCarteiras() {
             partes.push([(typeof MP_LABELS !== 'undefined' && MP_LABELS[cl]) || cl, x.classes[cl]]);
         });
         partes.sort((a, b) => b[1] - a[1]);
-        const extratoAberto = !!(mpEstado.extratoAberto && mpEstado.extratoAberto[x.key]);
         const acoes = [
           ['abrirTransferenciaModal()', 'ph-arrows-left-right', 'Transferir'],
-          [
-            'mpToggleExtrato(' + i + ')',
-            'ph-receipt',
-            extratoAberto ? 'Fechar extrato' : 'Extrato',
-          ],
+          // O extrato abre no painel da instituição (folha), com filtros e o
+          // saldo de cada dia — o mesmo do web.
+          ['mpAbrirPainelInst(' + i + ')', 'ph-receipt', 'Extrato'],
         ];
         if (conta)
           acoes.push(["conferirAbrir('" + _mobEsc(conta.id) + "')", 'ph-check-circle', 'Conferir']);
@@ -2434,7 +2623,9 @@ function mobPatrimonioRedesenharCarteiras() {
         _mobEsc(sigla) +
         '</span><span class="mpw-nome">' +
         _mobEsc(x.nome) +
-        '</span><b class="mpw-total valor-mascarado">' +
+        '<small>' +
+        _mobEsc(_mobPatSubInst(x)) +
+        '</small></span><b class="mpw-total valor-mascarado">' +
         _mobEsc(_mobPatFmt(x.total)) +
         '</b></button>' +
         (conta && typeof conferirAvisoHtml === 'function'
@@ -2477,9 +2668,7 @@ function _mobPatDesenharClasses() {
   const total = itens.reduce((a, x) => a + x.atual, 0);
   const maior = itens[0].atual;
   wrap.innerHTML =
-    '<div class="mi-tit-linha"><h2 class="mi-h2">Investido por classe</h2><span class="mc-total"><b class="valor-mascarado">' +
-    _mobEsc(_mobPatFmt(total)) +
-    '</b></span></div><div class="mi-card mpc">' +
+    '<div class="mi-tit-linha"><h2 class="mi-h2">Investido por classe</h2><button type="button" class="mi-link" onclick="mobIrPara(\'patrimonio\')">Ver carteira <i class="ph ph-caret-right"></i></button></div><div class="mi-card mpc">' +
     itens
       .map((x) => {
         const cor =
@@ -2497,7 +2686,8 @@ function _mobPatDesenharClasses() {
           ';width:' +
           Math.max(2, (x.atual / maior) * 100).toFixed(1) +
           '%"></span></div>' +
-          (rent != null
+          // "↑ 0%" sem histórico de cotação parecia resultado: só com o que dizer.
+          (rent != null && Math.abs(rent) >= 0.05
             ? '<small class="mpc-rent ' +
               (rent >= 0 ? 'pos' : 'neg') +
               '">' +
@@ -3119,19 +3309,19 @@ function mobListaAbrir(tipo, id) {
   else mobRenderBens();
 }
 
-function _mobLinhaLista(tipo, id, icone, cor, nome, sub, valor, acoes, apagada) {
-  const aberta = _mobListas[tipo] === id;
+/** `abrir` (opcional): o que o toque na linha faz no lugar de mostrar as ações
+ *  — o bem abre o painel de detalhe, como no canvas. */
+function _mobLinhaLista(tipo, id, icone, cor, nome, sub, valor, acoes, apagada, abrir) {
+  const aberta = !abrir && _mobListas[tipo] === id;
   return (
     '<div class="mpl-item' +
     (aberta ? ' aberta' : '') +
     (apagada ? ' apagada' : '') +
     '"><button type="button" class="mpl-cab" aria-expanded="' +
     aberta +
-    '" onclick="mobListaAbrir(\'' +
-    tipo +
-    "','" +
-    _mobEsc(id) +
-    '\')"><span class="mpl-ic" style="--mpl-cor:' +
+    '" onclick="' +
+    (abrir || "mobListaAbrir('" + tipo + "','" + _mobEsc(id) + "')") +
+    '"><span class="mpl-ic" style="--mpl-cor:' +
     cor +
     '"><i class="ph ' +
     icone +
@@ -3175,18 +3365,21 @@ function mobRenderContas() {
     tipos[t.v] = t.label.replace(/^[^\wÀ-ú]+\s*/, '');
   });
   const icones = { banco: 'ph-bank', corretora: 'ph-chart-line-up', carteira: 'ph-wallet' };
-  const cab =
-    '<div class="mi-tit-linha"><h2 class="mi-h2">Contas</h2><span class="mpl-botoes">' +
-    '<button type="button" class="mi-link" onclick="abrirTransferenciaModal()"><i class="ph ph-arrows-left-right"></i> Transferir</button>' +
-    '<button type="button" class="mi-link" onclick="abrirNovaContaForm()"><i class="ph ph-plus"></i> Conta</button></span></div>';
+  // As contas já aparecem uma a uma em "Onde está o dinheiro", com saldo e
+  // ações. Aqui fica o cadastro (saldo de partida, fundir, arquivar,
+  // restaurar), recolhido para não repetir a mesma lista logo abaixo.
   if (!ordem.length) {
     el.innerHTML =
-      cab +
       '<p class="mi-vazio">Nenhuma conta cadastrada. Não é preciso para lançar: o nome do banco no lançamento já basta. Cadastre para informar o saldo que já tem.</p>';
     return;
   }
+  const aberto = el.querySelector && el.querySelector('details[open]') ? ' open' : '';
   el.innerHTML =
-    cab +
+    '<details class="mpm-gerenciar"' +
+    aberto +
+    '><summary><i class="ph ph-gear-six"></i> Gerenciar contas (' +
+    ordem.length +
+    ')</summary>' +
     '<div class="mi-card mpl">' +
     ordem
       .map((c) => {
@@ -3224,7 +3417,7 @@ function mobRenderContas() {
         );
       })
       .join('') +
-    '</div>';
+    '</div></details>';
 }
 
 function mobRenderBens() {
@@ -3237,8 +3430,24 @@ function mobRenderBens() {
     icones[t.v] = t.icon;
   });
   const cab =
-    '<div class="mi-tit-linha"><h2 class="mi-h2">Bens</h2><button type="button" class="mi-link" onclick="abrirNovoBemForm()"><i class="ph ph-plus"></i> Bem</button></div>';
-  if (!todos.length) {
+    '<div class="mi-tit-linha"><h2 class="mi-h2">Bens e dívidas</h2><button type="button" class="mi-link" onclick="abrirNovoBemForm()"><i class="ph ph-plus"></i> Bem</button></div>';
+  // Faturas em aberto entram aqui como dívida (as mesmas do balanço do web).
+  const faturas =
+    typeof mpDividaCartoes === 'function'
+      ? mpDividaCartoes(new Date())
+          .map(
+            (f) =>
+              '<button type="button" class="mpl-fatura" data-cartao="' +
+              _mobEsc(String(f.cartaoId)) +
+              '" onclick="abrirFaturas(this.dataset.cartao, \'atual\')"><span class="mpl-fatura-ic"><i class="ph ph-credit-card"></i></span><span><b>Fatura ' +
+              _mobEsc(f.nome) +
+              '</b><small>em aberto</small></span><b class="valor-mascarado neg">−' +
+              _mobEsc(_mobDreFmt(f.valor)) +
+              '</b></button>'
+          )
+          .join('')
+      : '';
+  if (!todos.length && !faturas) {
     el.innerHTML =
       cab +
       '<p class="mi-vazio">Nenhum bem cadastrado. Imóveis e veículos entram no seu patrimônio.</p>';
@@ -3291,10 +3500,12 @@ function mobRenderBens() {
           partes.join(' · ') || ' ',
           b.valorAtual ? _mobDreFmt(b.valorAtual) : '—',
           acoes,
-          b.arquivado
+          b.arquivado,
+          b.arquivado || typeof bemPainelAbrir !== 'function' ? '' : 'bemPainelAbrir(' + idJs + ')'
         );
       })
       .join('') +
+    faturas +
     '</div>';
 }
 

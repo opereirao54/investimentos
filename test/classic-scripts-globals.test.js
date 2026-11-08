@@ -44,6 +44,7 @@ const CLASSIC_SCRIPTS = [
   { file: 'web/appliquei-aba-info-mercado.js', indent: '' },
   { file: 'web/appliquei-aba-dividendos.js', indent: '' },
   { file: 'web/appliquei-aba-controle-financeiro.js', indent: '' },
+  { file: 'web/appliquei-projecao-caixa.js', indent: '' },
   { file: 'web/appliquei-faturas.js', indent: '' },
   { file: 'web/appliquei-categorias-palavras.js', indent: '' },
   { file: 'web/appliquei-importar-fatura.js', indent: '' },

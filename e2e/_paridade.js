@@ -51,7 +51,6 @@ const ESTADOS_MOB = {
     "mobSegControle('resumo')",
     "mobSegControle('extrato')",
     "mobSegControle('projecao')",
-    "mobSegControle('projecao'); mobDreAlternarTabela()",
     // Os avisos de "O que notamos" abrem em tela cheia, com o cartão do desktop.
     "mobSegControle('resumo'); mobStoryAbrir(0)",
     // "Hoje" só aparece fora do mês corrente (no mês corrente não faria nada).
@@ -110,6 +109,24 @@ const OVERLAYS = [
  * que ninguém use esta lista para silenciar uma perda de verdade.
  */
 const EQUIVALENTES = {
+  'fn:abrirAnaliseBem':
+    'no celular tocar no bem abre o painel do bem (bemPainelAbrir); "Confira a taxa do contrato" lá chama bemPainelAcao(\'analise\') → abrirAnaliseBem',
+  'fn:abrirModalAmortizacao':
+    'no celular o painel do bem (bemPainelAbrir) tem a simulação e "Outro valor e detalhes" → bemPainelAcao(\'simulador\') → abrirModalAmortizacao',
+  'fn:editarBemForm':
+    'no celular tocar no bem abre o painel do bem; "Editar" lá chama bemPainelAcao(\'editar\') → editarBemForm',
+  'fn:confirmarExcluirBem':
+    'no celular tocar no bem abre o painel do bem; "Excluir" lá chama bemPainelAcao(\'excluir\') → confirmarExcluirBem',
+  'fn:confirmarPagamento':
+    '"Pagar" no Falta pagar do web; no celular é "Baixar" no Falta pagar do Início (mobBaixarConta → mobConfirmarBaixa → confirmarPagamento)',
+  'fn:mpdMenuInstituicao':
+    'menu ⋯ de cada instituição no web; no celular tocar na linha da instituição abre as mesmas ações (mobPatAbrirCarteira)',
+  'fn:ctrlDreSelecionar':
+    'barra de um mês da projeção no web; no celular é tocar na barra ou no cartão do mês (mobDreIrPara)',
+  'fn:mpWebAlternarLiquido':
+    'Líquido/Bruto do Patrimônio no web; no celular é o mesmo seletor no topo da foto (mobPatAlternarLiquido)',
+  'fn:mpWebPeriodo':
+    'período do gráfico do Patrimônio no web (1M…Tudo); no celular são os mesmos botões abaixo do gráfico (mobPatPeriodo)',
   'fn:abrirPainelLancamento':
     'no celular o "Novo lançamento" largo sai do Controle; o "+" da barra inferior abre o menu de cadastro → Despesa/Receita/Cartão (cadastrarEm → abrirPainelLancamento, já no tipo)',
   'fn:abrirTransferenciaModal':

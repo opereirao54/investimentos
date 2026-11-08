@@ -632,7 +632,7 @@ function _cfgPaineis() {
   return {
     cartoes: 'Cartões de crédito',
     categorias: 'Categorias de despesa',
-    metas: 'Metas de saldo',
+    metas: 'Metas do mês',
     telegram: 'Lançar pelo Telegram',
     dados: 'Dados e conta',
   };
@@ -719,6 +719,87 @@ function obterMetas() {
   };
 }
 
+/** Metas em % do que entra: gastar até (40–80, padrão 60) e investir pelo
+ *  menos (0–50, padrão 30). São as réguas da Saúde do mês. */
+function obterMetasPct() {
+  const ler = (chave, padrao, min, max) => {
+    const bruto = localStorage.getItem(chave);
+    const n = bruto == null || bruto === '' ? NaN : Number(bruto);
+    return Number.isFinite(n) && n >= min && n <= max ? Math.round(n) : padrao;
+  };
+  return {
+    gasto: ler('futurorico_metaGastoPct', 60, 40, 80),
+    investir: ler('futurorico_metaInvestirPct', 30, 0, 50),
+  };
+}
+
+/** Texto embaixo de cada régua, com a receita do mês em reais. */
+function cfgMetasPctPintar() {
+  const m = obterMetasPct();
+  const gEl = document.getElementById('metaGastoPct');
+  const iEl = document.getElementById('metaInvestirPct');
+  const g = gEl ? Number(gEl.value) : m.gasto;
+  const i = iEl ? Number(iEl.value) : m.investir;
+  const h = new Date();
+  let entrou = 0;
+  let gastou = 0;
+  let investiu = 0;
+  if (typeof buildMonthlyReport === 'function') {
+    try {
+      const rep = buildMonthlyReport(
+        h.getFullYear() + '-' + String(h.getMonth() + 1).padStart(2, '0')
+      );
+      entrou = Number(rep.entradas) || 0;
+      gastou = Number(rep.pctDespesas) || 0;
+      investiu = Number(rep.pctInvestimentos) || 0;
+    } catch (_e) {}
+  }
+  const fmt = (v) => (typeof formatarMoeda === 'function' ? formatarMoeda(v) : String(v));
+  const mes = h.toLocaleDateString('pt-BR', { month: 'long' });
+  const Mes = mes.charAt(0).toUpperCase() + mes.slice(1);
+  const put = (id, txt) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = txt;
+  };
+  put('metaGastoPctVal', g + '% do que entra');
+  put('metaInvestirPctVal', i + '% do que entra');
+  put(
+    'metaGastoPctTxt',
+    entrou > 0
+      ? 'Com ' +
+          fmt(entrou) +
+          ' de receita: até ' +
+          fmt((entrou * g) / 100) +
+          '. ' +
+          Mes +
+          ' está em ' +
+          Math.round(gastou) +
+          '%.'
+      : 'Sem receita lançada neste mês ainda.'
+  );
+  put(
+    'metaInvestirPctTxt',
+    entrou > 0
+      ? 'Meta de ' +
+          fmt((entrou * i) / 100) +
+          ' por mês. ' +
+          Mes +
+          ': ' +
+          (investiu > 0 ? Math.round(investiu) + '% investido.' : 'nada investido ainda.')
+      : 'Sem receita lançada neste mês ainda.'
+  );
+}
+
+/** Mexeu na régua: grava na hora e redesenha a Saúde do mês. */
+function cfgMetaPctMudou(final) {
+  const gEl = document.getElementById('metaGastoPct');
+  const iEl = document.getElementById('metaInvestirPct');
+  if (gEl) localStorage.setItem('futurorico_metaGastoPct', String(Number(gEl.value)));
+  if (iEl) localStorage.setItem('futurorico_metaInvestirPct', String(Number(iEl.value)));
+  cfgMetasPctPintar();
+  if (final && typeof atualizarTelaControle === 'function') atualizarTelaControle();
+}
+
 /** O que está digitado nos campos difere do que está salvo? */
 function _cfgMetasDigitadas() {
   const v = document.getElementById('metaVerde');
@@ -767,6 +848,15 @@ function carregarMetas() {
   const m = obterMetas();
   setValorBRLInput(document.getElementById('metaVerde'), m.verde);
   setValorBRLInput(document.getElementById('metaVermelha'), m.vermelha);
+  // As réguas em % (Metas do mês) — guardadas: a função mora mais acima e um
+  // teste carrega só este trecho do arquivo.
+  if (typeof obterMetasPct !== 'function') return;
+  const pct = obterMetasPct();
+  const gEl = document.getElementById('metaGastoPct');
+  const iEl = document.getElementById('metaInvestirPct');
+  if (gEl) gEl.value = pct.gasto;
+  if (iEl) iEl.value = pct.investir;
+  cfgMetasPctPintar();
 }
 
 // --- GESTÃO DE CARTÕES ---

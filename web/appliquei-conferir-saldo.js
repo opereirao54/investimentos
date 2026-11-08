@@ -26,6 +26,9 @@
 
 var CONFERIR_DIAS_AVISO = 30;
 var conferirContaAberta = null;
+// O que fazer com a diferença: 'lancar' (vira gasto ou entrada de hoje) ou
+// 'ajuste' (só acerta o saldo, fora dos gastos do mês).
+var conferirModo = 'lancar';
 
 function _confEsc(s) {
   return String(s == null ? '' : s)
@@ -431,6 +434,7 @@ function conferirAbrir(contaId) {
   var c = _confConta(contaId);
   if (!c) return;
   conferirContaAberta = contaId;
+  conferirModo = 'lancar';
   var ov = document.getElementById('confSaldoOverlay');
   if (!ov) {
     ov = document.createElement('div');
@@ -546,14 +550,39 @@ function _confRenderCorpo() {
     return;
   }
   html +=
-    '<div class="dif"><span>Diferença</span><b>' +
-    (dif > 0 ? '+ ' : '− ') +
+    '<div><span>No banco</span><b class="' +
+    (real < 0 ? 'neg' : '') +
+    '">' +
+    _confEsc(_confFmt(real)) +
+    '</b></div>' +
+    '<div class="dif"><span>' +
+    (dif < 0 ? 'Faltam no Appliquei' : 'Sobram no banco') +
+    '</span><b>' +
     _confEsc(_confFmt(Math.abs(dif))) +
+    (dif < 0 ? ' de saída' : ' de entrada') +
     '</b></div></div>';
+  var lancarTit = dif < 0 ? 'Lançar como gasto' : 'Lançar como entrada';
+  var lancarTxt =
+    dif < 0
+      ? 'Entra hoje em “Outros”, saindo desta conta; você pode mudar a categoria depois.'
+      : 'Entra hoje como receita nesta conta; você pode editar depois.';
+  html +=
+    '<fieldset class="conf-modo"><legend>O que fazer com a diferença?</legend>' +
+    '<label><input type="radio" name="confModo" value="lancar"' +
+    (conferirModo === 'lancar' ? ' checked' : '') +
+    ' onchange="conferirEscolherModo(this.value)"><span><b>' +
+    lancarTit +
+    '</b><small>' +
+    lancarTxt +
+    '</small></span></label>' +
+    '<label><input type="radio" name="confModo" value="ajuste"' +
+    (conferirModo === 'ajuste' ? ' checked' : '') +
+    ' onchange="conferirEscolherModo(this.value)"><span><b>Só acertar o saldo</b><small>Ajuste sem categoria; não aparece nos gastos do mês e dá para desfazer.</small></span></label>' +
+    '</fieldset>';
   var exp = conferirExplicacoes(contaId, dif);
   if (exp.length) {
     html +=
-      '<h3 class="conf-h3">O que pode explicar a diferença</h3>' +
+      '<details class="conf-procurar"><summary>Procurar o que faltou</summary>' +
       exp
         .map(function (e) {
           return (
@@ -566,25 +595,82 @@ function _confRenderCorpo() {
             '</div>'
           );
         })
-        .join('');
+        .join('') +
+      '</details>';
   }
   html +=
-    '<button type="button" class="conf-btn-pri conf-btn-largo" onclick="conferirConfirmar()">Ajustar para ' +
-    _confEsc(_confFmt(real)) +
-    '</button>' +
-    '<p class="conf-dica">Cria um “Ajuste de saldo” de hoje no extrato. Não conta como receita nem despesa e dá para desfazer.</p>';
+    '<button type="button" class="conf-btn-pri conf-btn-largo" onclick="conferirConfirmar()">' +
+    (conferirModo === 'lancar'
+      ? 'Lançar ' + _confEsc(_confFmt(Math.abs(dif))) + ' e fechar'
+      : 'Ajustar para ' + _confEsc(_confFmt(real))) +
+    '</button>';
   corpo.innerHTML = html;
+}
+
+function conferirEscolherModo(m) {
+  conferirModo = m === 'ajuste' ? 'ajuste' : 'lancar';
+  _confRenderCorpo();
+}
+
+/**
+ * "Lançar como gasto/entrada": a diferença vira um lançamento de hoje nesta
+ * conta, já pago — despesa variável em "Outros" (sem categoria) quando falta
+ * dinheiro no banco, receita quando sobra. Depois a conta bate e é marcada
+ * como conferida, sem ajuste. Devolve o lançamento criado (ou null).
+ */
+function conferirLancarDiferenca(contaId, saldoReal, agoraMs) {
+  var c = _confConta(contaId);
+  if (!c || !isFinite(Number(saldoReal)) || typeof criarLancamentos !== 'function') return null;
+  var agora = new Date(agoraMs || Date.now());
+  var app = conferirSaldoApp(contaId, agora.getTime());
+  var dif = Math.round((Number(saldoReal) - app) * 100) / 100;
+  if (Math.abs(dif) < 0.01) return null;
+  var novos = criarLancamentos({
+    descricao: dif < 0 ? 'Diferença no ' + c.nome : 'Entrada no ' + c.nome,
+    valor: Math.abs(dif),
+    categoria: dif < 0 ? 'despesa_variavel' : 'receita',
+    fixo: false,
+    parcelas: 1,
+    banco: c.nome,
+    obs: 'Conferência de saldo',
+    dataVencimento: '',
+    mesBase: agora.getMonth(),
+    anoBase: agora.getFullYear(),
+    agora: agora,
+  });
+  var t = novos && novos[0];
+  if (!t) return null;
+  t.contaId = c.id;
+  t.banco = c.nome;
+  t.pago = true;
+  t.pagoEm = agora.toISOString();
+  transacoes.push(t);
+  _confSalvarTransacoes();
+  c.conferidoEm = agora.toISOString();
+  delete c.avisoSaldoDispensadoEm;
+  if (typeof salvarContas === 'function') salvarContas();
+  return t;
 }
 
 function conferirConfirmar() {
   var contaId = conferirContaAberta;
   var real = _confValorDigitado();
   if (!contaId || real == null) return;
-  var aj = conferirAjustar(contaId, real);
+  var app = conferirSaldoApp(contaId, Date.now());
+  var lancou = null;
+  if (conferirModo === 'lancar' && Math.abs(real - app) >= 0.01) {
+    lancou = conferirLancarDiferenca(contaId, real);
+  }
+  var aj = lancou ? null : conferirAjustar(contaId, real);
   conferirFechar();
   if (typeof mostrarToast === 'function')
     mostrarToast(
-      aj ? 'Saldo acertado. O ajuste está no extrato, com Desfazer.' : 'Conta conferida.',
+      lancou
+        ? (lancou.categoria === 'receita' ? 'Entrada lançada' : 'Gasto lançado em “Outros”') +
+            ' — a conta bate com o banco.'
+        : aj
+          ? 'Saldo acertado. O ajuste está no extrato, com Desfazer.'
+          : 'Conta conferida.',
       'sucesso'
     );
   conferirRerender();
@@ -595,5 +681,6 @@ if (typeof module !== 'undefined' && module.exports) {
     conferirAviso: conferirAviso,
     conferirExplicacoes: conferirExplicacoes,
     conferirAjustar: conferirAjustar,
+    conferirLancarDiferenca: conferirLancarDiferenca,
   };
 }

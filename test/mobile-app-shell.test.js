@@ -148,31 +148,32 @@ test('a DRE do celular recebe os números prontos da tabela', () => {
   assert.doesNotMatch(fn, /calcularResumoMes|obterSaldoCarregadoParaMes/);
 });
 
-test('a tabela completa da DRE vira mês a mês no celular, com todas as linhas', () => {
+test('a projeção mostra as barras e as linhas do mês só ao abrir o mês', () => {
+  // 08/11/2026: sem a tabela à vista (nem no web nem no celular). As linhas
+  // do demonstrativo aparecem ao abrir um mês: no celular, na lista de meses;
+  // no web, no detalhe da barra clicada. A tabela segue no DOM, escondida,
+  // porque é ela que calcula.
   assert.match(HTML, /id="mobDRE"[^>]*data-mob-aba="projecao"/);
-  assert.match(HTML, /id="cardTabelaDRE"/);
-  assert.match(HTML, /#controle #cardTabelaDRE \{ display: none !important; \}/);
-  assert.match(MOB, /function mobDreAlternarTabela[\s\S]*_mobDreRedesenharMM\(\)/);
-  // Cada linha da tabela do desktop existe no detalhe do mês.
-  const det = MOB.slice(
-    MOB.indexOf('function _mobDreDetalhe'),
-    MOB.indexOf('function _mobDreRedesenharMM')
-  );
+  assert.match(HTML, /id="ctrlDreBarras"/);
+  assert.match(HTML, /id="cardTabelaDRE"[^>]*data-recolhida="1"/);
+  const CF = fs.readFileSync(path.join(ROOT, 'web/appliquei-aba-controle-financeiro.js'), 'utf8');
+  assert.match(CF, /function ctrlDreSelecionar/);
+  const PJ = fs.readFileSync(path.join(ROOT, 'web/appliquei-projecao-caixa.js'), 'utf8');
+  const det = PJ.slice(PJ.indexOf('function projHtmlMes'), PJ.indexOf('function projAbrirMes'));
   for (const rot of [
     'Receita total',
-    'Resgates',
+    'Resgates (venda de ativos)',
     'Investimento (renda fixa)',
     'Investimento (renda variável)',
-    'Aporte externo',
-    'Sonhos',
+    'Sonhos (separado p/ metas)',
     'Despesas consumidas',
     'Saldo do mês anterior',
     'Resultado do mês',
-    'Investimento acumulado',
-  ])
-    assert.ok(det.includes(rot), rot);
-  assert.match(det, /editarSaldoMesAnterior\(/);
-  assert.doesNotMatch(det, /calcularResumoMes|obterSaldoCarregadoParaMes/);
+  ]) {
+    assert.ok(det.includes(rot), 'o mês aberto no celular tem "' + rot + '"');
+  }
+  // Nada de carrossel para arrastar de lado.
+  assert.doesNotMatch(MOB, /mdre-cards/);
 });
 
 test('o topo do extrato no celular usa os totais que a tela já somou', () => {
@@ -195,11 +196,23 @@ test('as ações do extrato no celular são os botões originais', () => {
       new RegExp(`\\[id\\^="acao-pagar-list-"\\] > button\\[onclick\\^="${fn}"\\]`)
     );
   }
-  assert.doesNotMatch(MOB, /deletarTransacao\(|prepararPagamento\(/);
-  // Editar: o toque na linha do extrato clica o próprio lápis da linha; só as
-  // Movimentações do Início (que não têm botões) chamam a edição de sempre.
-  assert.equal((MOB.match(/prepararEdicao\(/g) || []).length, 1);
+  // Toque na linha: a folha do lançamento (mobLancFolha) usa as MESMAS funções
+  // do extrato — pagar por confirmarPagamento, editar por prepararEdicao,
+  // excluir por deletarTransacao/executarDelecao, adiar por adiarLancamentoUmMes.
   assert.match(MOB, /querySelector\('button\[onclick\^="prepararEdicao"\]'\)/);
+  const i = MOB.indexOf('function mobLancFolha');
+  const folha = MOB.slice(i, MOB.indexOf('function mobBaixarConta'));
+  for (const fn of [
+    'confirmarPagamento(',
+    "prepararEdicao('",
+    "deletarTransacao('",
+    'executarDelecao(',
+    'adiarLancamentoUmMes(',
+    'reverterPagamento(',
+  ]) {
+    assert.ok(folha.includes(fn), 'folha do lançamento usa ' + fn);
+  }
+  assert.doesNotMatch(MOB, /prepararPagamento\(/);
 });
 
 test('a faixa do Simulador lê o resultado do próprio herói', () => {
@@ -231,7 +244,15 @@ test('o Início do celular usa o mesmo saldo livre e as mesmas barras do desktop
     CF,
     /const saldoLivre = totRec - totDesp - totCartao - totInv - totSonho \+ saldoCarregado;/
   );
-  assert.match(CF, /kpiSaldo\.innerText = formatarMoeda\(saldoLivre\)/);
+  // O card mostra a sobra DO MÊS (saldo livre sem o carregado); a acumulada
+  // (o próprio saldo livre) vai no selo. O celular faz a mesma subtração.
+  assert.match(CF, /const sobraMes = saldoLivre - saldoCarregado;/);
+  assert.match(CF, /kpiSaldo\.innerText = formatarMoeda\(sobraMes\)/);
+  assert.match(CF, /Acumulada \$\{formatarMoeda\(saldoLivre\)\}/);
+  assert.match(
+    MOB,
+    /const livre = \(Number\(d\.saldoLivre\) \|\| 0\) - \(Number\(d\.carregado\) \|\| 0\);/
+  );
   assert.match(
     CF,
     /mobRenderInicio\(\{[\s\S]*saldoLivre: saldoLivre[\s\S]*composicao: \{ modo: agrupamentoComposicao, itens: dadosComposicao \}/

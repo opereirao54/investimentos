@@ -147,11 +147,14 @@ function semearParidade() {
     'appliquei_bens',
     JSON.stringify([
       bem('bem_1', 'Apartamento', 'imovel', 520000, 480000, {
+        // Sem `ativo` o app trata o financiamento como quitado e nem o
+        // Líquido/Bruto nem a dívida apareciam no teste.
+        ativo: true,
         valorFinanciado: 300000,
         saldoDevedor: 190000,
         parcela: 2800,
         parcelasRestantes: 120,
-        taxaMensal: 0.8,
+        taxaMensal: 0.008, // fração ao mês (0,8%), como o app grava
       }),
       bem('bem_2', 'Carro', 'veiculo', 98000, 120000, null),
     ])

@@ -462,29 +462,36 @@ function rmApplicashAtivo() {
 // Termômetro — 4 critérios (5 com o Applicash no ar) → score 0-100 + status por critério
 function rmCalcularTermometro(rep) {
   const criterios = [];
-  // 1. Despesas ≤ 60% (verde), 60-75% (amarelo), >75% (vermelho)
+  // As duas réguas de % vêm das Metas do mês (Configurações): gastar até G%
+  // (padrão 60) e investir pelo menos I% (padrão 30). Amarelo é a faixa de
+  // tolerância: até G+15 no gasto, até I−10 no investimento.
+  const metasPct =
+    typeof obterMetasPct === 'function' ? obterMetasPct() : { gasto: 60, investir: 30 };
+  const G = metasPct.gasto;
+  const I = metasPct.investir;
+  // 1. Despesas ≤ G% (verde), G a G+15% (amarelo), acima (vermelho)
   const cDesp = rep.pctDespesas;
   let stDesp = 'verde';
   if (rep.entradas === 0) stDesp = 'cinza';
-  else if (cDesp > 75) stDesp = 'vermelho';
-  else if (cDesp > 60) stDesp = 'amarelo';
+  else if (cDesp > G + 15) stDesp = 'vermelho';
+  else if (cDesp > G) stDesp = 'amarelo';
   criterios.push({
-    label: 'Despesas ≤ 60% da entrada',
+    label: 'Despesas ≤ ' + G + '% da entrada',
     valor: rep.entradas > 0 ? cDesp.toFixed(1) + '%' : '—',
-    meta: '≤ 60%',
+    meta: '≤ ' + G + '%',
     status: stDesp,
     icone: 'ph-receipt',
   });
-  // 2. Investimentos ≥ 30% (verde), 20-30% (amarelo), <20% (vermelho)
+  // 2. Investimentos ≥ I% (verde), I−10 a I% (amarelo), abaixo (vermelho)
   const cInv = rep.pctInvestimentos;
   let stInv = 'verde';
   if (rep.entradas === 0) stInv = 'cinza';
-  else if (cInv < 20) stInv = 'vermelho';
-  else if (cInv < 30) stInv = 'amarelo';
+  else if (cInv < Math.max(0, I - 10)) stInv = 'vermelho';
+  else if (cInv < I) stInv = 'amarelo';
   criterios.push({
-    label: 'Investimentos ≥ 30% da entrada',
+    label: 'Investimentos ≥ ' + I + '% da entrada',
     valor: rep.entradas > 0 ? cInv.toFixed(1) + '%' : '—',
-    meta: '≥ 30%',
+    meta: '≥ ' + I + '%',
     status: stInv,
     icone: 'ph-trending-up',
   });

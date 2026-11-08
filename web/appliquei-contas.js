@@ -552,6 +552,162 @@ function popularSelectTipoConta() {
   }).join('');
 }
 
+// Nova conta: as instituições mais comuns em grade (canvas "Nova conta"). Só
+// nome, tipo e uma sigla com cor — o app não usa marca de ninguém. Quem não
+// achar a sua digita o nome no campo, como sempre.
+var CONTA_INSTITUICOES = [
+  { n: 'Nubank', s: 'Nu', t: 'banco', c: '#7c3aed' },
+  { n: 'Itaú', s: 'It', t: 'banco', c: '#ea580c' },
+  { n: 'Bradesco', s: 'Br', t: 'banco', c: '#dc2626' },
+  { n: 'Banco do Brasil', s: 'BB', t: 'banco', c: '#ca8a04' },
+  { n: 'Caixa', s: 'Cx', t: 'banco', c: '#2563eb' },
+  { n: 'Santander', s: 'Sa', t: 'banco', c: '#b91c1c' },
+  { n: 'Inter', s: 'In', t: 'banco', c: '#f97316' },
+  { n: 'C6 Bank', s: 'C6', t: 'banco', c: '#1f2937' },
+  { n: 'Mercado Pago', s: 'MP', t: 'banco', c: '#0ea5e9' },
+  { n: 'PicPay', s: 'PP', t: 'banco', c: '#16a34a' },
+  { n: 'PagBank', s: 'PB', t: 'banco', c: '#059669' },
+  { n: 'Sicoob', s: 'Sc', t: 'banco', c: '#0f766e' },
+  { n: 'Sicredi', s: 'Si', t: 'banco', c: '#15803d' },
+  { n: 'BTG Pactual', s: 'BTG', t: 'corretora', c: '#1e3a8a' },
+  { n: 'XP Investimentos', s: 'XP', t: 'corretora', c: '#111827' },
+  { n: 'Rico', s: 'Ri', t: 'corretora', c: '#ea580c' },
+  { n: 'Clear', s: 'Cl', t: 'corretora', c: '#0891b2' },
+  { n: 'NuInvest', s: 'NI', t: 'corretora', c: '#6d28d9' },
+  { n: 'Genial', s: 'Ge', t: 'corretora', c: '#2563eb' },
+  { n: 'Toro', s: 'To', t: 'corretora', c: '#0d9488' },
+  { n: 'Avenue', s: 'Av', t: 'corretora', c: '#1d4ed8' },
+  { n: 'Carteira', s: 'R$', t: 'carteira', c: '#65a30d' },
+];
+
+function _contaEsc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function _contaNorm(v) {
+  return String(v || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+}
+
+/** As instituições da grade que batem com a busca; as já cadastradas vêm marcadas. */
+function contaInstituicoesFiltradas(busca) {
+  const q = _contaNorm(busca).trim();
+  return CONTA_INSTITUICOES.filter(function (i) {
+    return !q || _contaNorm(i.n).indexOf(q) !== -1 || _contaNorm(i.s) === q;
+  }).map(function (i) {
+    return Object.assign({}, i, { jaTem: !!obterContaPorNome(i.n) });
+  });
+}
+
+function contaGradeRender() {
+  const el = document.getElementById('contaGradeInst');
+  if (!el) return;
+  const busca = (document.getElementById('contaBuscaInst') || {}).value || '';
+  const nomeAtual = _contaNorm((document.getElementById('contaNome') || {}).value || '');
+  const lista = contaInstituicoesFiltradas(busca);
+  el.innerHTML = lista.length
+    ? lista
+        .map(function (i) {
+          const on = nomeAtual && _contaNorm(i.n) === nomeAtual;
+          return (
+            '<button type="button" role="radio" aria-checked="' +
+            on +
+            '" class="conta-inst' +
+            (on ? ' on' : '') +
+            '"' +
+            (i.jaTem ? ' disabled title="Você já tem essa conta"' : '') +
+            ' data-nome="' +
+            _contaEsc(i.n) +
+            '" data-tipo="' +
+            i.t +
+            '" onclick="contaEscolherInst(this.dataset.nome, this.dataset.tipo)"><span class="conta-inst-sig" style="background:' +
+            i.c +
+            '">' +
+            _contaEsc(i.s) +
+            '</span><span class="conta-inst-nome">' +
+            _contaEsc(i.n) +
+            (i.jaTem ? '<small>já cadastrada</small>' : '') +
+            '</span></button>'
+          );
+        })
+        .join('')
+    : '<p class="conta-inst-vazio">Não está na lista? Digite o nome abaixo.</p>';
+}
+
+function contaEscolherInst(nome, tipo) {
+  const n = document.getElementById('contaNome');
+  if (n) n.value = nome;
+  contaEscolherTipo(tipo || 'banco');
+  contaGradeRender();
+  const saldo = document.getElementById('contaSaldoInicial');
+  if (saldo) saldo.focus();
+}
+
+/** Tipo em botões (Banco / Corretora / Carteira); o select segue como fonte. */
+function contaEscolherTipo(v) {
+  const sel = document.getElementById('contaTipo');
+  if (sel) sel.value = v;
+  document.querySelectorAll('#contaTiposChips button').forEach(function (b) {
+    b.setAttribute('aria-pressed', String(b.dataset.tipo === v));
+  });
+}
+
+function contaTiposRender() {
+  const el = document.getElementById('contaTiposChips');
+  if (!el) return;
+  const atual = (document.getElementById('contaTipo') || {}).value || 'banco';
+  el.innerHTML = [
+    ['banco', 'Banco'],
+    ['corretora', 'Corretora'],
+    ['carteira', 'Carteira (dinheiro)'],
+    ['outro', 'Outro'],
+  ]
+    .map(function (t) {
+      return (
+        '<button type="button" data-tipo="' +
+        t[0] +
+        '" aria-pressed="' +
+        (t[0] === atual) +
+        '" onclick="contaEscolherTipo(this.dataset.tipo)">' +
+        t[1] +
+        '</button>'
+      );
+    })
+    .join('');
+}
+
+/** Edição: "Arquivar conta" no pé do formulário, dizendo o que continua. */
+function contaArquivarBlocoRender(id) {
+  const el = document.getElementById('contaArquivarBloco');
+  if (!el) return;
+  const c = id ? obterConta(id) : null;
+  if (!c || c.arquivada) {
+    el.hidden = true;
+    el.innerHTML = '';
+    return;
+  }
+  const n = (typeof transacoes !== 'undefined' ? transacoes : []).filter(function (t) {
+    return t.contaId === id;
+  }).length;
+  el.hidden = false;
+  el.innerHTML =
+    '<button type="button" class="btn-secundario conta-arquivar" onclick="cancelarFormConta();arquivarContaUI(\'' +
+    _contaEsc(id) +
+    '\')">Arquivar conta</button><span>Some das listas e do total.' +
+    (n
+      ? ' ' +
+        (n === 1 ? 'O lançamento continua' : 'Os ' + n + ' lançamentos continuam') +
+        ' no extrato e nos relatórios.'
+      : '') +
+    ' Dá para restaurar em Gerenciar contas.</span>';
+}
+
 function abrirNovaContaForm() {
   const f = document.getElementById('formNovaConta');
   if (!f) return;
@@ -562,10 +718,33 @@ function abrirNovaContaForm() {
   document.getElementById('contaSaldoInicial').value = '';
   document.getElementById('contaDataSaldoInicial').value = '';
   contaFormModoSaldoHoje(true);
+  const busca = document.getElementById('contaBuscaInst');
+  if (busca) busca.value = '';
+  const grade = document.getElementById('contaGradeBloco');
+  if (grade) grade.hidden = false;
+  contaGradeRender();
+  contaTiposRender();
+  contaArquivarBlocoRender(null);
   const titulo = document.getElementById('tituloFormConta');
   if (titulo) titulo.textContent = 'Nova conta';
   f.style.display = 'block';
-  document.getElementById('contaNome').focus();
+  contaFormMostrar(f);
+}
+
+// No web o formulário fica abaixo da lista de instituições; o botão que o
+// abre está no cabeçalho da página. Rola até ele para não abrir fora da vista.
+function contaFormMostrar(f) {
+  if (f && typeof f.scrollIntoView === 'function') {
+    try {
+      f.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    } catch (e) {}
+  }
+  // Nova conta começa pela grade (o teclado não cobre as instituições);
+  // na edição, o nome.
+  const grade = document.getElementById('contaGradeBloco');
+  if (grade && !grade.hidden) return;
+  const nome = document.getElementById('contaNome');
+  if (nome) nome.focus();
 }
 
 function cancelarFormConta() {
@@ -586,10 +765,14 @@ function editarContaForm(id) {
       : '';
   document.getElementById('contaDataSaldoInicial').value = c.dataSaldoInicial || '';
   contaFormModoSaldoHoje(false);
+  const grade = document.getElementById('contaGradeBloco');
+  if (grade) grade.hidden = true;
+  contaTiposRender();
+  contaArquivarBlocoRender(c.id);
   const titulo = document.getElementById('tituloFormConta');
-  if (titulo) titulo.textContent = 'Editar conta';
+  if (titulo) titulo.textContent = 'Editar ' + c.nome;
   document.getElementById('formNovaConta').style.display = 'block';
-  document.getElementById('contaNome').focus();
+  contaFormMostrar(document.getElementById('formNovaConta'));
 }
 
 // Conta NOVA pergunta "quanto tem nela hoje?" — o número que a pessoa vê no
@@ -602,7 +785,7 @@ function contaFormModoSaldoHoje(novo) {
   if (lbl)
     lbl.innerHTML = novo
       ? 'Quanto tem nela hoje? <span style="color:var(--cor-erro);">*</span>'
-      : 'Saldo inicial';
+      : 'Saldo de partida';
   const grupoData = document.getElementById('grupoContaDataSaldoInicial');
   if (grupoData) grupoData.style.display = novo ? 'none' : '';
   const dica = document.getElementById('dicaContaSaldoInicial');
@@ -781,6 +964,13 @@ function renderMinhasContas() {
     return c.arquivada;
   });
   const ordem = ativas.concat(arquivadas);
+  // Mesmo texto do celular (mobRenderContas): "Gerenciar contas (N)".
+  // Sem id no <summary>: a trava de paridade compara pelo texto, igual ao celular.
+  const resumo = document.querySelector('#meu_patrimonio .mpd-gerenciar > summary');
+  if (resumo)
+    resumo.innerHTML =
+      '<i class="ph ph-gear-six"></i> Gerenciar contas' +
+      (ordem.length ? ' (' + ordem.length + ')' : '');
   if (!ordem.length) {
     // O texto antigo ("crie uma para registrar de onde o dinheiro entra e
     // sai") lia-se como pré-requisito e foi metade da confusão do primeiro

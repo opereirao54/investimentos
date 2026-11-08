@@ -429,22 +429,158 @@ function faturasCadastrarCartao() {
   }
 }
 
+/** Atalho "Cartões" do topo: a lista de cartões fica nas Configurações. */
+function faturasAbrirCartoes() {
+  fecharFaturas();
+  if (typeof abrirModalConfig === 'function') abrirModalConfig('cartoes');
+}
+
+/** Lista lateral (web): leva direto a um ciclo de qualquer cartão. */
+function faturasAbrir(cartaoId, ymd) {
+  faturasEstado.itemAberto = null;
+  faturasEstado.cartaoId = cartaoId;
+  faturasEstado.vencimento = ymd || null;
+  renderizarFaturas();
+}
+
+/** "TV (2/5)" → { base: 'TV', n: 2, m: 5 }. A parcela mora na descrição, no
+ *  mesmo formato que o lançamento parcelado e a importação da fatura gravam. */
+function faturaParcelaDe(t) {
+  const desc = String((t && t.descricao) || '');
+  const m = desc.match(/\s*\((\d+)\/(\d+)\)\s*$/);
+  if (!m) return { base: desc, n: 0, m: 0 };
+  return { base: desc.slice(0, m.index), n: +m[1], m: +m[2] };
+}
+
+/** Limite do cartão: usado = tudo o que ainda não foi pago neste cartão,
+ *  inclusive as parcelas das próximas faturas (é o que o banco desconta do
+ *  disponível). Sem limite cadastrado devolve null. */
+function faturaUsoDoLimite(cartao, ciclos) {
+  const limite = cartao ? Number(cartao.limite) || 0 : 0;
+  if (limite <= 0) return null;
+  const usado = ciclos.reduce((s, c) => s + Math.max(0, c.aPagar), 0);
+  return {
+    limite,
+    usado,
+    disponivel: limite - usado,
+    pct: Math.round((usado / limite) * 100),
+  };
+}
+
+/** O que já está lançado nas faturas depois desta (parcelas e fixos). */
+function faturaComprometidoDepois(ciclos, ymd) {
+  return ciclos.filter((c) => c.vencimento > ymd && c.status !== 'paga' && c.total > 0).slice(0, 6);
+}
+
+/** Texto do selo de status, com a data que importa para cada um. */
+function _fatSelo(c) {
+  const venc = _fatDdMm(c.vencimento);
+  const fech = c.fechamento ? _fatDdMm(c.fechamento) : '';
+  if (c.status === 'paga') {
+    const em = c.pagoEm ? new Date(c.pagoEm) : null;
+    return em && !isNaN(em) ? 'Paga em ' + _fatDdMm(_fatYmd(em)) : 'Paga';
+  }
+  if (c.status === 'vencida') return 'Vencida · venceu ' + venc;
+  if (c.status === 'fechada') return 'Fechada · a pagar';
+  if (c.status === 'vazia') return 'Sem lançamentos';
+  if (c.status === 'futura') return 'Futura' + (fech ? ' · fecha ' + fech : '');
+  return 'Aberta' + (fech ? ' · fecha ' + fech : '');
+}
+
+/** "4.690" — a lista lateral não tem espaço para "R$" e centavos. */
+function _fatValorCurto(v) {
+  return Math.round(Number(v) || 0).toLocaleString('pt-BR');
+}
+
+/** "Vence em 05/12 · paga pelo Itaú" — de onde o dinheiro sai. */
+function _fatLinhaVence(c, cartao) {
+  const venc = _fatDdMm(c.vencimento);
+  let txt;
+  if (c.status === 'paga' || c.status === 'vencida' || c.status === 'vazia')
+    txt = 'Venceu em ' + venc;
+  else txt = 'Vence em ' + venc;
+  const conta =
+    cartao && cartao.contaPagadoraId && typeof obterConta === 'function'
+      ? obterConta(cartao.contaPagadoraId)
+      : null;
+  if (conta) return txt + ' · paga pelo ' + _fatEsc(conta.nome);
+  return (
+    txt +
+    ' · <button type="button" class="fat-link-conta" onclick="faturasAbrirCartoes()">falta a conta que paga</button>'
+  );
+}
+
+/** A lista lateral da versão web: cada cartão com as faturas que importam
+ *  agora (a aberta, as que faltam pagar, as próximas e as últimas pagas). */
+function _fatNavHtml(visiveis, cartaoIdAtual, ymdAtual) {
+  let html = '<nav class="fat-lado" aria-label="Cartões e faturas">';
+  visiveis.forEach((cd) => {
+    const ciclos = faturasDoCartao(cd.id);
+    html +=
+      '<span class="fat-lado-cartao">' +
+      _fatEsc(cd.nome) +
+      (cd.arquivado ? ' <small>(arquivado)</small>' : '') +
+      '</span>';
+    if (!cd.contaPagadoraId) {
+      html +=
+        '<button type="button" class="fat-lado-item alerta" onclick="faturasAbrirCartoes()"><span>Falta a conta que paga</span><i class="ph ph-caret-right" aria-hidden="true"></i></button>';
+    }
+    const pendentes = ciclos.filter(
+      (c) => c.status === 'vencida' || c.status === 'fechada' || c.atual
+    );
+    const proximas = ciclos.filter((c) => c.status === 'futura' && c.total > 0).slice(0, 2);
+    const pagas = ciclos
+      .filter((c) => c.status === 'paga')
+      .slice(-3)
+      .reverse();
+    let lista = pendentes.concat(proximas, pagas);
+    // A fatura aberta na tela sempre aparece na lista, mesmo antiga.
+    if (cd.id === cartaoIdAtual && ymdAtual && !lista.some((c) => c.vencimento === ymdAtual)) {
+      const sel = ciclos.find((c) => c.vencimento === ymdAtual);
+      if (sel) lista = lista.concat([sel]);
+    }
+    if (!lista.length) {
+      html += '<span class="fat-lado-vazio">Sem faturas ainda</span>';
+    }
+    lista.forEach((c) => {
+      const on = cd.id === cartaoIdAtual && c.vencimento === ymdAtual;
+      const st = FATURA_STATUS[c.status];
+      html +=
+        '<button type="button" class="fat-lado-item st-' +
+        st.classe +
+        (on ? ' on' : '') +
+        '"' +
+        (on ? ' aria-current="true"' : '') +
+        ' onclick="faturasAbrir(\'' +
+        _fatEsc(cd.id) +
+        "','" +
+        c.vencimento +
+        '\')"><span><i aria-hidden="true"></i>' +
+        _fatEsc(faturaTituloMes(_fatData(c.vencimento)).split(' ')[0]) +
+        ' · ' +
+        st.rotulo.split(' · ')[0].toLowerCase() +
+        '</span><span class="fat-lado-valor valor-mascarado">' +
+        _fatValorCurto(c.total) +
+        '</span></button>';
+    });
+  });
+  html += '</nav>';
+  return html;
+}
+
 function renderizarFaturas() {
   const corpo = document.getElementById('faturasCorpo');
   if (!corpo) return;
   const visiveis = faturasCartoesVisiveis();
-  const btnAtual = document.getElementById('faturasBtnAtual');
 
   if (!visiveis.length) {
-    if (btnAtual) btnAtual.style.display = 'none';
     corpo.innerHTML =
-      '<div class="fat-vazio"><i class="ph ph-credit-card" aria-hidden="true"></i>' +
+      '<div class="fat-principal"><div class="fat-vazio"><i class="ph ph-credit-card" aria-hidden="true"></i>' +
       '<strong>Nenhum cartão cadastrado</strong>' +
       '<span>Cadastre o cartão para ver as faturas e importar a do banco.</span>' +
-      '<button type="button" class="btn-acao fat-cadastrar" onclick="faturasCadastrarCartao()"><i class="ph ph-plus" aria-hidden="true"></i> Cadastrar um cartão</button></div>';
+      '<button type="button" class="btn-acao fat-cadastrar" onclick="faturasCadastrarCartao()"><i class="ph ph-plus" aria-hidden="true"></i> Cadastrar um cartão</button></div></div>';
     return;
   }
-  if (btnAtual) btnAtual.style.display = '';
 
   const cartaoId = faturasEstado.cartaoId || visiveis[0].id;
   faturasEstado.cartaoId = cartaoId;
@@ -459,8 +595,10 @@ function renderizarFaturas() {
   const c = ciclos[i];
   faturasEstado.vencimento = c ? c.vencimento : null;
 
-  let html = '';
-  // Cartões: só aparece a escolha quando há escolha.
+  let html = _fatNavHtml(visiveis, cartaoId, faturasEstado.vencimento);
+  html += '<div class="fat-principal">';
+
+  // Celular: escolha do cartão em chips (na web, a lista lateral faz isso).
   if (visiveis.length > 1) {
     html += '<div class="fat-cartoes" role="tablist" aria-label="Cartão">';
     visiveis.forEach((cd) => {
@@ -472,116 +610,130 @@ function renderizarFaturas() {
         (on ? ' on' : '') +
         '" onclick="faturasEscolherCartao(\'' +
         _fatEsc(cd.id) +
-        '\')"><i class="ph ph-credit-card" aria-hidden="true"></i> ' +
+        '\')">' +
         _fatEsc(cd.nome) +
         (cd.arquivado ? ' <small>(arquivado)</small>' : '') +
         '</button>';
     });
     html += '</div>';
-  } else {
-    html +=
-      '<div class="fat-cartao-unico"><i class="ph ph-credit-card" aria-hidden="true"></i> ' +
-      _fatEsc(cartao ? cartao.nome : 'Cartão') +
-      '</div>';
   }
 
-  // Trazer as compras do arquivo do banco (appliquei-importar-fatura-ui.js).
-  if (typeof abrirImportarFatura === 'function') {
-    html +=
-      '<button type="button" class="btn-secundario fat-importar" onclick="abrirImportarFatura(\'' +
+  const podeImportar = typeof abrirImportarFatura === 'function';
+  const btnImportar = podeImportar
+    ? '<button type="button" class="btn-secundario fat-importar" onclick="abrirImportarFatura(\'' +
       _fatEsc(cartaoId) +
-      '\')"><i class="ph ph-upload-simple" aria-hidden="true"></i> Importar fatura do arquivo</button>';
-  }
+      '\')"><i class="ph ph-upload-simple" aria-hidden="true"></i> Importar fatura</button>'
+    : '';
 
   if (!c) {
     corpo.innerHTML =
       html +
       '<div class="fat-vazio"><i class="ph ph-receipt" aria-hidden="true"></i>' +
-      '<strong>Sem faturas ainda</strong><span>As compras lançadas neste cartão aparecem aqui, mês a mês.</span></div>';
+      '<strong>Sem faturas ainda</strong><span>As compras lançadas neste cartão aparecem aqui, mês a mês.</span>' +
+      btnImportar +
+      '</div></div>';
     return;
   }
 
-  // Histórico: uma pílula por ciclo, com o status em cor e em texto.
-  html +=
-    '<div class="fat-hist-rotulo">Histórico de faturas</div><div class="fat-meses" id="faturasMeses">';
-  ciclos.forEach((ci, k) => {
-    const st = FATURA_STATUS[ci.status];
-    html +=
-      '<button type="button" class="fat-mes st-' +
-      st.classe +
-      (k === i ? ' on' : '') +
-      '" onclick="faturasIrPara(\'' +
-      ci.vencimento +
-      '\')" aria-label="' +
-      _fatEsc(faturaNome(_fatData(ci.vencimento)) + ', ' + st.rotulo) +
-      '"' +
-      (k === i ? ' aria-current="true"' : '') +
-      '><span class="fat-mes-nome">' +
-      _fatRotuloCurto(ci.vencimento) +
-      '</span><span class="fat-mes-st"><i aria-hidden="true"></i>' +
-      st.rotulo.split(' · ')[0] +
-      '</span></button>';
-  });
-  html += '</div>';
-
   const st = FATURA_STATUS[c.status];
-  const d = _fatData(c.vencimento);
+  const nomeCartao = cartao ? cartao.nome : 'Cartão';
+  const uso = faturaUsoDoLimite(cartao, ciclos);
+
+  // Resumo: no celular, o cartão escuro com ‹ ›; na web, o cabeçalho da fatura.
   html +=
-    '<div class="fat-cartao-det">' +
+    '<section class="fat-heroi st-' +
+    st.classe +
+    '" aria-label="' +
+    _fatEsc(faturaNome(_fatData(c.vencimento))) +
+    '">' +
     '<div class="fat-nav">' +
     '<button type="button" class="fat-seta" onclick="faturasNavegar(-1)" aria-label="Fatura anterior"' +
     (i === 0 ? ' disabled' : '') +
     '><i class="ph ph-caret-left" aria-hidden="true"></i></button>' +
-    '<div class="fat-titulo"><strong>' +
-    _fatEsc(faturaTituloMes(d)) +
-    '</strong><span class="fat-chip st-' +
-    st.classe +
-    '">' +
-    st.rotulo +
-    '</span></div>' +
+    '<strong class="fat-nav-tit">' +
+    _fatEsc(faturaNome(_fatData(c.vencimento))) +
+    (_fatData(c.vencimento).getFullYear() !== new Date().getFullYear()
+      ? ' ' + _fatData(c.vencimento).getFullYear()
+      : '') +
+    '</strong>' +
     '<button type="button" class="fat-seta" onclick="faturasNavegar(1)" aria-label="Próxima fatura"' +
     (i === ciclos.length - 1 ? ' disabled' : '') +
     '><i class="ph ph-caret-right" aria-hidden="true"></i></button>' +
     '</div>' +
-    '<div class="fat-total"><span class="fat-total-valor valor-mascarado">' +
+    '<div class="fat-heroi-selos"><span class="fat-chip st-' +
+    st.classe +
+    '">' +
+    _fatSelo(c) +
+    '</span>' +
+    (!c.atual
+      ? '<button type="button" class="fat-ir-atual" onclick="faturasIrParaAtual()">Ir para a atual</button>'
+      : '') +
+    '</div>' +
+    '<h3 class="fat-heroi-tit">' +
+    _fatEsc(nomeCartao) +
+    ' · ' +
+    _fatEsc(faturaNome(_fatData(c.vencimento)).toLowerCase()) +
+    '</h3>' +
+    '<div class="fat-total-valor valor-mascarado">' +
     formatarMoeda(c.total) +
-    '</span><span class="fat-prazo">' +
-    _fatLinhaPrazo(c) +
+    '</div>' +
+    '<span class="fat-prazo">' +
+    _fatLinhaVence(c, cartao) +
     '</span>' +
     (c.status !== 'paga' && c.qtdPagos > 0
       ? '<span class="fat-parcial">' +
         c.qtdPagos +
         ' de ' +
         c.itens.length +
-        ' já pagos · falta ' +
+        ' já pagos · falta <span class="valor-mascarado">' +
         formatarMoeda(c.aPagar) +
-        '</span>'
-      : '') +
-    '</div>';
-
-  // Fatura que veio de um arquivo do banco: o Desfazer continua aqui enquanto
-  // nada daquela importação foi pago (appliquei-importar-fatura-ui.js).
-  if (typeof impfatHtmlLinhaImportada === 'function') {
-    html += impfatHtmlLinhaImportada(cartaoId, c.vencimento);
-  }
-
-  if (c.aPagar > 0 && (c.status === 'fechada' || c.status === 'vencida')) {
+        '</span></span>'
+      : '');
+  if (uso) {
+    const pct = Math.max(0, Math.min(100, uso.pct));
     html +=
+      '<div class="fat-limite' +
+      (uso.pct >= 90 ? ' alto' : '') +
+      '" role="img" aria-label="' +
+      uso.pct +
+      '% do limite em uso"><i style="width:' +
+      pct +
+      '%"></i></div>' +
+      '<span class="fat-limite-txt">' +
+      uso.pct +
+      '% do limite de <span class="valor-mascarado">' +
+      formatarMoeda(uso.limite) +
+      '</span> em uso · ' +
+      (uso.disponivel >= 0
+        ? 'disponível <span class="valor-mascarado">' + formatarMoeda(uso.disponivel)
+        : 'acima do limite em <span class="valor-mascarado">' + formatarMoeda(-uso.disponivel)) +
+      '</span></span>';
+  }
+  html += '</section>';
+
+  // Ações: pagar (principal quando a fatura fechou) e importar do banco.
+  let btnPagar = '';
+  if (c.aPagar > 0 && (c.status === 'fechada' || c.status === 'vencida')) {
+    btnPagar =
       '<button type="button" class="btn-acao fat-pagar" onclick="faturasPagar(\'' +
       _fatEsc(cartaoId) +
       "','" +
       c.vencimento +
-      '\')"><i class="ph-bold ph-check" aria-hidden="true"></i> Marcar como paga</button>';
+      '\')"><i class="ph-bold ph-check" aria-hidden="true"></i> Pagar fatura</button>';
   } else if (c.aPagar > 0 && c.status === 'aberta' && c.itens.length) {
     // Pagar antes de fechar é raro (e a fatura ainda pode crescer), mas é do
     // usuário: fica como ação secundária.
-    html +=
+    btnPagar =
       '<button type="button" class="btn-secundario fat-pagar" onclick="faturasPagar(\'' +
       _fatEsc(cartaoId) +
       "','" +
       c.vencimento +
       '\')">Pagar antecipado</button>';
   }
+  if (btnPagar || btnImportar) {
+    html += '<div class="fat-acoes">' + btnPagar + btnImportar + '</div>';
+  }
+
   if (c.status === 'paga') {
     html +=
       '<div class="fat-paga-nota"><i class="ph-bold ph-check" aria-hidden="true"></i>' +
@@ -593,10 +745,18 @@ function renderizarFaturas() {
       '\')">Desfazer</button></div>';
   }
 
-  html += '<div class="fat-itens-rotulo">Lançamentos da fatura</div>';
+  // Fatura que veio de um arquivo do banco: o Desfazer continua aqui enquanto
+  // nada daquela importação foi pago (appliquei-importar-fatura-ui.js).
+  if (typeof impfatHtmlLinhaImportada === 'function') {
+    html += impfatHtmlLinhaImportada(cartaoId, c.vencimento);
+  }
+
+  html += '<section class="fat-compras" aria-label="Compras desta fatura">';
   if (!c.itens.length) {
     html += '<div class="fat-itens-vazio">Nenhuma compra nesta fatura ainda.</div>';
   } else {
+    html +=
+      '<div class="fat-itens-cab" aria-hidden="true"><span>Compra</span><span>Categoria</span><span>Parcela</span><span>Valor</span><span></span></div>';
     html += '<div class="fat-itens">';
     // Compra importada da fatura do banco traz a data da COMPRA (dataCompra);
     // a lançada no app só tem `data`, o momento do cadastro.
@@ -613,13 +773,18 @@ function renderizarFaturas() {
       .sort((a, b) => quando(b).localeCompare(quando(a)))
       .forEach((t) => {
         const ymd = quando(t);
-        const dia = ymd ? _fatDdMm(ymd) : '—';
+        const dia = ymd
+          ? _fatData(ymd).getDate() + ' ' + FATURA_MES_CURTO[_fatData(ymd).getMonth()]
+          : '';
         const cat =
           t.categoriaDespesa && typeof rotuloCategoriaDespesa === 'function'
             ? rotuloCategoriaDespesa(t.categoriaDespesa)
             : t.cartaoFixoMensal
               ? 'Fixo mensal'
               : 'Cartão';
+        const p = faturaParcelaDe(t);
+        const parcela = p.m ? p.n + ' de ' + p.m : t.cartaoFixoMensal ? 'todo mês' : 'à vista';
+        const quandoTxt = p.m ? 'parcela ' + parcela : t.cartaoFixoMensal ? 'todo mês' : dia;
         const aberto = faturasEstado.itemAberto === t.id;
         html +=
           '<div class="fat-item-bloco' +
@@ -630,14 +795,20 @@ function renderizarFaturas() {
           (aberto ? 'true' : 'false') +
           '" onclick="faturasAbrirItem(this.dataset.id)" data-id="' +
           _fatEsc(t.id) +
-          '"><span class="fat-item-dia">' +
-          dia +
-          '</span><span class="fat-item-corpo"><span class="fat-item-desc">' +
-          _fatEsc(t.descricao) +
+          '"><span class="fat-item-corpo"><span class="fat-item-desc">' +
+          _fatEsc(p.base || t.descricao) +
           '</span><span class="fat-item-cat">' +
           _fatEsc(cat) +
+          (quandoTxt ? ' · ' + _fatEsc(quandoTxt) : '') +
           (t.pago ? ' · pago' : '') +
-          '</span></span><span class="fat-item-valor valor-mascarado">' +
+          '</span><span class="fat-item-dia">' +
+          _fatEsc(dia) +
+          (t.pago ? (dia ? ' · ' : '') + 'pago' : '') +
+          '</span></span><span class="fat-col-cat">' +
+          _fatEsc(cat) +
+          '</span><span class="fat-col-parc">' +
+          _fatEsc(parcela) +
+          '</span><span class="fat-item-valor valor-mascarado">' +
           formatarMoeda(t.valor) +
           '</span><i class="ph ph-dots-three-vertical fat-item-mais" aria-hidden="true"></i></button>' +
           (aberto
@@ -652,14 +823,55 @@ function renderizarFaturas() {
       });
     html += '</div>';
   }
-  html += '</div>';
+  html += '</section>';
 
+  // Já comprometido: o que as parcelas e os fixos já ocupam nas próximas.
+  const depois = faturaComprometidoDepois(ciclos, c.vencimento);
+  if (depois.length) {
+    const max = Math.max.apply(
+      null,
+      depois.map((x) => x.total)
+    );
+    html +=
+      '<section class="fat-futuro" aria-label="Parcelas já assumidas"><strong>Já comprometido nas próximas faturas</strong>';
+    depois.forEach((x) => {
+      html +=
+        '<button type="button" class="fat-futuro-linha" onclick="faturasIrPara(\'' +
+        x.vencimento +
+        '\')" aria-label="' +
+        _fatEsc(faturaNome(_fatData(x.vencimento)) + ': ' + formatarMoeda(x.total)) +
+        '"><span>' +
+        _fatRotuloCurto(x.vencimento) +
+        '</span><span class="fat-futuro-barra"><i style="width:' +
+        Math.max(4, Math.round((x.total / max) * 100)) +
+        '%"></i></span><span class="fat-futuro-valor valor-mascarado">' +
+        formatarMoeda(x.total) +
+        '</span></button>';
+    });
+    const parcelados = [];
+    depois.forEach((x) =>
+      x.itens.forEach((t) => {
+        const b = faturaParcelaDe(t);
+        if (b.m && parcelados.indexOf(b.base) === -1) parcelados.push(b.base);
+      })
+    );
+    html +=
+      '<span class="fat-futuro-nota">' +
+      (parcelados.length
+        ? _fatEsc(
+            parcelados.slice(0, 2).join(' e ') +
+              (parcelados.length > 2 ? ' e mais ' + (parcelados.length - 2) : '')
+          ) + (parcelados.length === 1 ? ' parcelada. ' : ' parceladas. ')
+        : '') +
+      'Já entra na projeção dos próximos meses.</span></section>';
+  }
+
+  html += '</div>';
   corpo.innerHTML = html;
-  // A pílula escolhida fica à vista mesmo com muitos meses de histórico.
-  const on = corpo.querySelector('.fat-mes.on');
+  const on = corpo.querySelector('.fat-lado-item.on');
   if (on && typeof on.scrollIntoView === 'function') {
     try {
-      on.scrollIntoView({ block: 'nearest', inline: 'center' });
+      on.scrollIntoView({ block: 'nearest' });
     } catch (_e) {}
   }
 }

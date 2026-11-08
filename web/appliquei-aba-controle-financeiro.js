@@ -376,6 +376,111 @@ function resolverCategoriaDespesaSelecionada(categoriaContabil) {
 // v da categoria aguardando confirmação de exclusão (linha expandida na lista).
 var categoriaConfigExcluindo = null;
 
+// Limite por mês de uma categoria. Mora no mesmo array de ajustes
+// ({ v, limite }) — sem chave nova para sync, backup e "Recomeçar do zero".
+function obterLimiteCategoria(v) {
+  if (!v) return 0;
+  const a = obterCategoriasDespesaCustom().find((x) => x && x.v === v);
+  const n = a ? Number(a.limite) : 0;
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function definirLimiteCategoria(v, valor) {
+  if (!v) return;
+  const n = Number(valor);
+  const ajustes = obterCategoriasDespesaCustom();
+  let a = ajustes.find((x) => x && x.v === v);
+  if (n > 0) {
+    if (!a) {
+      a = { v };
+      ajustes.push(a);
+    }
+    a.limite = Math.round(n * 100) / 100;
+  } else if (a) {
+    delete a.limite;
+    // Padrão sem rótulo próprio nem oculta: o ajuste só existia pelo limite.
+    if (ehCategoriaDespesaPadrao(v) && !a.label && !a.oculta) ajustes.splice(ajustes.indexOf(a), 1);
+  }
+  salvarCategoriasDespesaCustom(ajustes);
+}
+
+/** Situação do limite: null sem limite; senão { limite, pct, estado }
+ *  com estado 'ok' | 'perto' (80% ou mais) | 'passou'. */
+function situacaoLimiteCategoria(valor, limite) {
+  if (!(limite > 0)) return null;
+  const pct = Math.round(((Number(valor) || 0) / limite) * 100);
+  return { limite, pct, estado: pct > 100 ? 'passou' : pct >= 80 ? 'perto' : 'ok' };
+}
+
+/** Frase para o aviso de "lançamento salvo" quando ele leva a categoria
+ *  a 80% do limite ou além. Vazio quando não há o que avisar. */
+function complementoLimiteCategoria(novos) {
+  const vistos = new Set();
+  const frases = [];
+  (novos || []).forEach((t) => {
+    if (!t || !t.categoriaDespesa || !categoriaDespesaUsada(t.categoria)) return;
+    const chave = t.categoriaDespesa + '|' + t.mes + '|' + t.ano;
+    if (vistos.has(chave)) return;
+    vistos.add(chave);
+    const lim = obterLimiteCategoria(t.categoriaDespesa);
+    if (!lim) return;
+    const gasto = Number(calcularDespesasPorCategoria(t.mes, t.ano)[t.categoriaDespesa]) || 0;
+    const sit = situacaoLimiteCategoria(gasto, lim);
+    const nome = rotuloCategoriaDespesa(t.categoriaDespesa);
+    if (sit.estado === 'passou')
+      frases.push(
+        nome + ' passou do limite: ' + formatarMoeda(gasto) + ' de ' + formatarMoeda(lim) + '.'
+      );
+    else if (sit.estado === 'perto') frases.push(nome + ' chegou a ' + sit.pct + '% do limite.');
+  });
+  return frases.length ? ' ' + frases.slice(0, 2).join(' ') : '';
+}
+
+var categoriaConfigLimite = null;
+
+/** Média dos 3 meses anteriores de uma categoria (sugestão de limite). */
+function mediaCategoriaTresMeses(v) {
+  const h = new Date();
+  const linha = gastosPorCategoriaComMedia(h.getMonth(), h.getFullYear()).find((l) => l.slug === v);
+  return linha && linha.media > 0 ? linha.media : 0;
+}
+
+function abrirLimiteCategoriaConfig(v) {
+  cancelarCategoriaConfig();
+  categoriaConfigExcluindo = null;
+  categoriaConfigLimite = v;
+  renderizarListaCategoriasConfig();
+  const campo = document.getElementById('categoriaLimiteValor');
+  if (campo) campo.focus();
+}
+
+function cancelarLimiteCategoriaConfig() {
+  categoriaConfigLimite = null;
+  renderizarListaCategoriasConfig();
+}
+
+/** modo: 'sem' | 'media' | 'valor' (lê o campo). */
+function salvarLimiteCategoriaConfig(v, modo) {
+  let valor = 0;
+  if (modo === 'media') valor = Math.round(mediaCategoriaTresMeses(v));
+  else if (modo === 'valor') {
+    const campo = document.getElementById('categoriaLimiteValor');
+    valor = campo ? parseBRL(campo.value) : NaN;
+    if (!Number.isFinite(valor) || valor <= 0)
+      return mostrarToast('Informe o limite por mês (ou escolha "Sem limite").', 'erro');
+  }
+  definirLimiteCategoria(v, valor);
+  categoriaConfigLimite = null;
+  renderizarListaCategoriasConfig();
+  atualizarTelaControle();
+  mostrarToast(
+    valor > 0
+      ? rotuloCategoriaDespesa(v) + ': limite de ' + formatarMoeda(valor) + ' por mês.'
+      : rotuloCategoriaDespesa(v) + ' sem limite.',
+    'sucesso'
+  );
+}
+
 function renderizarListaCategoriasConfig() {
   const container = document.getElementById('listaCategoriasConfig');
   if (!container) return;
@@ -393,8 +498,9 @@ function renderizarListaCategoriasConfig() {
       <div style="display:flex;align-items:center;gap:10px;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:9px;padding:10px 12px;">
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:600;color:var(--cor-texto-principal);">${c.label}</div>
-          <div style="font-size:11px;color:var(--cor-texto-mutado);">${tipoTxt} • ${usoTxt}</div>
+          <div style="font-size:11px;color:var(--cor-texto-mutado);">${tipoTxt} • ${usoTxt}${obterLimiteCategoria(c.v) ? ' • limite ' + formatarMoeda(obterLimiteCategoria(c.v)) + '/mês' : ''}</div>
         </div>
+        <button class="btn-secundario cat-cfg-limite" onclick="abrirLimiteCategoriaConfig('${c.v}')" title="Limite por mês">Limite</button>
         <button class="btn-secundario" style="padding:4px 8px;font-size:11px;color:var(--cor-info);border-color:var(--cor-info);" onclick="editarCategoriaConfig('${c.v}')" title="Renomear"><i class="ph ph-pencil-simple"></i></button>
         <button class="btn-secundario" style="padding:4px 8px;font-size:11px;color:var(--cor-erro);border-color:var(--cor-erro);" onclick="pedirExclusaoCategoriaConfig('${c.v}')" title="${acaoTitulo}"><i class="ph ${acaoIcone}"></i></button>
       </div>`;
@@ -451,6 +557,32 @@ function renderizarListaCategoriasConfig() {
   if (categoriaConfigExcluindo) {
     container.innerHTML = blocoConfirmacao(categoriaConfigExcluindo);
     return;
+  }
+  if (categoriaConfigLimite) {
+    const v = categoriaConfigLimite;
+    const cat = visiveis.find((c) => c.v === v);
+    if (cat) {
+      const atual = obterLimiteCategoria(v);
+      const media = mediaCategoriaTresMeses(v);
+      container.innerHTML = `
+      <div class="cat-lim">
+        <b>Limite para ${cat.label}</b>
+        <div class="cat-lim-ops">
+          <button type="button" class="btn-secundario${atual ? '' : ' on'}" onclick="salvarLimiteCategoriaConfig('${v}','sem')">Sem limite</button>
+          ${media > 0 ? `<button type="button" class="btn-secundario" onclick="salvarLimiteCategoriaConfig('${v}','media')">Sua média (${formatarMoeda(Math.round(media))})</button>` : ''}
+        </div>
+        <label class="cat-lim-campo">Outro valor por mês
+          <span><span>R$</span><input id="categoriaLimiteValor" type="text" inputmode="decimal" value="${atual ? formatarBRLInput(atual) : ''}" oninput="aplicarMascaraBRL(this)" onkeydown="if(event.key==='Enter')salvarLimiteCategoriaConfig('${v}','valor')"></span>
+        </label>
+        <span class="cat-lim-nota">Avisamos quando chegar a 80% e quando passar.</span>
+        <div class="cat-lim-botoes">
+          <button type="button" class="btn-secundario" onclick="cancelarLimiteCategoriaConfig()">Cancelar</button>
+          <button type="button" class="btn-acao" onclick="salvarLimiteCategoriaConfig('${v}','valor')">Salvar limite</button>
+        </div>
+      </div>`;
+      return;
+    }
+    categoriaConfigLimite = null;
   }
   container.innerHTML = visiveis.map(linhaVisivel).join('') + ocultas.map(linhaOculta).join('');
 }
@@ -550,12 +682,14 @@ function salvarCategoriaConfig() {
 
 function pedirExclusaoCategoriaConfig(v) {
   cancelarCategoriaConfig();
+  categoriaConfigLimite = null;
   categoriaConfigExcluindo = v;
   renderizarListaCategoriasConfig();
 }
 
 function cancelarExclusaoCategoriaConfig() {
   categoriaConfigExcluindo = null;
+  categoriaConfigLimite = null;
   renderizarListaCategoriasConfig();
 }
 
@@ -598,7 +732,7 @@ function restaurarCategoriaConfig(v) {
   const ajustes = obterCategoriasDespesaCustom();
   const a = ajustes.find((x) => x && x.v === v);
   if (!a) return;
-  if (ehCategoriaDespesaPadrao(v) && !a.label) {
+  if (ehCategoriaDespesaPadrao(v) && !a.label && !a.limite) {
     // Sem rótulo próprio, o ajuste só existia para esconder — some junto.
     ajustes.splice(ajustes.indexOf(a), 1);
   } else {
@@ -2383,7 +2517,8 @@ function executarInsercao() {
   if (typeof lancUiReiniciar === 'function') lancUiReiniciar();
   mostrarToast(
     mensagemLancamentoSalvo(categoria, dataVencInput, mesesGerar) +
-      complementoLancamentoSalvo(novos, dados),
+      complementoLancamentoSalvo(novos, dados) +
+      complementoLimiteCategoria(novos),
     'sucesso',
     6000
   );
@@ -2465,7 +2600,9 @@ function aporteLiquidoAcumuladoAte(mesAlvo, anoAlvo) {
 // 'contabil' = barras por classificação contábil (Receita, Cartão, Fixa...).
 // 'despesa'  = despesas (fixa + variável + cartão) quebradas por categoria
 //              de despesa (Alimentação, Transporte...), mantendo Receita/Sobra.
-var agrupamentoComposicao = 'contabil';
+// "Para onde foi" mostra as categorias de gasto; o destino do dinheiro
+// (fixas, variáveis, sobra) já está no cartão do topo.
+var agrupamentoComposicao = 'despesa';
 
 // Paleta cíclica para as barras de categoria de despesa.
 var PALETA_CATEGORIA_DESPESA = [
@@ -2492,6 +2629,494 @@ function setAgrupamentoComposicao(tipo) {
 
 // Soma as despesas do mês agrupadas pela categoria de despesa (campo
 // categoriaDespesa). Lançamentos sem categoria caem em '__sem_categoria__'.
+/**
+ * Gastos por categoria do mês contra a média dos 3 meses anteriores (só os
+ * meses que tiveram gasto entram na média). Pura: devolve as linhas ordenadas
+ * da maior para a menor. `alerta` marca o que passou 1,5× a média e mais de
+ * R$ 100 acima dela — o mesmo tipo de desvio que o "O que notamos" aponta.
+ */
+function gastosPorCategoriaComMedia(mes, ano) {
+  const atual = calcularDespesasPorCategoria(mes, ano);
+  const somas = {};
+  let mesesComGasto = 0;
+  for (let k = 1; k <= 3; k++) {
+    const d = new Date(ano, mes - k, 1);
+    const m = calcularDespesasPorCategoria(d.getMonth(), d.getFullYear());
+    const chaves = Object.keys(m);
+    if (!chaves.length) continue;
+    mesesComGasto++;
+    chaves.forEach((c) => {
+      somas[c] = (somas[c] || 0) + m[c];
+    });
+  }
+  const chaves = new Set(Object.keys(atual).concat(Object.keys(somas)));
+  const linhas = [];
+  chaves.forEach((c) => {
+    const valor = Number(atual[c]) || 0;
+    const media = mesesComGasto ? (Number(somas[c]) || 0) / mesesComGasto : null;
+    if (valor <= 0.005 && !(media > 0.005)) return;
+    const limite = c === '__sem_categoria__' ? 0 : obterLimiteCategoria(c);
+    const sit = situacaoLimiteCategoria(valor, limite);
+    linhas.push({
+      slug: c,
+      rotulo: c === '__sem_categoria__' ? 'Sem categoria' : rotuloCategoriaDespesa(c),
+      valor,
+      media,
+      limite,
+      limiteEstado: sit ? sit.estado : null,
+      limitePct: sit ? sit.pct : null,
+      alerta:
+        (sit && sit.estado === 'passou') ||
+        (media != null && media > 0 && valor > media * 1.5 && valor - media > 100),
+    });
+  });
+  linhas.sort((a, b) => b.valor - a.valor);
+  return linhas;
+}
+
+var ctrlCatTodas = false;
+
+function ctrlCatAlternarTodas() {
+  ctrlCatTodas = !ctrlCatTodas;
+  if (typeof atualizarTelaControle === 'function') atualizarTelaControle();
+}
+
+function renderGastosPorCategoria(mes, ano) {
+  const el = document.getElementById('ctrlCategorias');
+  if (!el) return;
+  const linhas = gastosPorCategoriaComMedia(mes, ano).filter((l) => l.valor > 0.005);
+  if (!linhas.length) {
+    el.innerHTML = '<p class="ctrl-cat-vazio">Nenhum gasto lançado neste mês.</p>';
+    return;
+  }
+  const max = linhas.reduce((a, l) => Math.max(a, l.valor, l.media || 0, l.limite || 0), 0) || 1;
+  const esc = (v) =>
+    String(v == null ? '' : v)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/"/g, '&quot;');
+  // Todas as categorias do mês; acima de 8, as demais ficam atrás de "Ver todas".
+  const visiveis = ctrlCatTodas ? linhas : linhas.slice(0, 8);
+  const mais =
+    linhas.length > 8
+      ? '<button type="button" class="ctrl-cat-mais" onclick="ctrlCatAlternarTodas()">' +
+        (ctrlCatTodas ? 'Mostrar menos' : 'Ver todas (' + linhas.length + ')') +
+        '</button>'
+      : '';
+  el.innerHTML =
+    visiveis
+      .map(
+        (l) =>
+          '<button type="button" class="ctrl-cat' +
+          (l.alerta ? ' alerta' : '') +
+          (l.limiteEstado ? ' lim-' + l.limiteEstado : '') +
+          '" data-cat="' +
+          esc(l.slug === '__sem_categoria__' ? '' : l.slug) +
+          '" onclick="filtrarExtratoPorCategoria(this.dataset.cat)" title="' +
+          (l.media != null
+            ? 'Média dos 3 meses anteriores: ' + esc(formatarMoeda(l.media))
+            : 'Sem histórico') +
+          '"><span class="ctrl-cat-nome">' +
+          esc(l.rotulo) +
+          '</span><span class="ctrl-cat-trilho"><span style="width:' +
+          ((l.valor / max) * 100).toFixed(1) +
+          '%"></span>' +
+          (l.media != null
+            ? '<em style="left:' + ((l.media / max) * 100).toFixed(1) + '%"></em>'
+            : '') +
+          (l.limite
+            ? '<i class="ctrl-cat-lim" style="left:' +
+              ((l.limite / max) * 100).toFixed(1) +
+              '%"></i>'
+            : '') +
+          '</span><b class="valor-mascarado">' +
+          esc(formatarMoeda(l.valor)) +
+          (l.limite
+            ? '<small class="ctrl-cat-limtxt">' + esc(ctrlCatLimiteTexto(l)) + '</small>'
+            : '') +
+          '</b></button>'
+      )
+      .join('') + mais;
+}
+
+/** "de R$ 280 · 85%" / "passou R$ 40" — a linha de baixo do valor. */
+function ctrlCatLimiteTexto(l) {
+  if (!l || !l.limite) return '';
+  if (l.limiteEstado === 'passou') return 'passou ' + formatarMoeda(l.valor - l.limite);
+  return 'de ' + formatarMoeda(l.limite) + ' · ' + l.limitePct + '%';
+}
+
+/**
+ * Projeção no web: o acumulado de cada mês em barras. Clicar numa barra mostra
+ * logo abaixo o resumo daquele mês (o que entra, o que sai, a sobra do mês e a
+ * acumulada), como o cartão do celular. A tabela mês a mês saiu da tela.
+ */
+var ctrlDre = { dados: null, sel: null };
+
+function renderDreBarras(d) {
+  const el = document.getElementById('ctrlDreBarras');
+  if (!el || !d || !Array.isArray(d.meses) || !d.meses.length) return;
+  // Mudou o horizonte ou o mês em visão: volta a mostrar o mês atual.
+  if (!ctrlDre.dados || ctrlDre.dados.rotulos.join() !== d.rotulos.join()) ctrlDre.sel = null;
+  ctrlDre.dados = d;
+  if (typeof projPreparar !== 'function') return;
+  // Projeção do caixa (appliquei-projecao-caixa.js): o resumo e a linha à
+  // esquerda, alertas e "o que muda" à direita, e o mês a mês embaixo.
+  const p = projPreparar(Object.assign({}, d, { web: true }));
+  const sel =
+    ctrlDre.sel != null && ctrlDre.sel < d.meses.length
+      ? ctrlDre.sel
+      : d.indiceAtual >= 0 && d.indiceAtual < d.meses.length
+        ? d.indiceAtual
+        : 0;
+  const faixa = d.meses
+    .map((m, i) => {
+      const v = Number(m.saldoAcumulado) || 0;
+      const comp = projComprometido(m);
+      return (
+        '<button type="button" class="pj-faixa-mes' +
+        (i === sel ? ' sel' : '') +
+        (v < 0 ? ' neg' : '') +
+        (i === p.idxHoje ? ' hoje' : '') +
+        '" aria-pressed="' +
+        (i === sel) +
+        '" onclick="ctrlDreSelecionar(' +
+        i +
+        ')"><small>' +
+        d.rotulos[i] +
+        '</small><b class="valor-mascarado">' +
+        _projFmtCurto(v).replace('R$ ', '') +
+        '</b><span class="pj-comp" title="' +
+        Math.min(comp, 100) +
+        '% do que entra já tem destino"><i style="width:' +
+        Math.min(100, comp) +
+        '%"></i></span></button>'
+      );
+    })
+    .join('');
+  el.innerHTML =
+    '<div class="pj-web">' +
+    '<div class="pj-web-esq">' +
+    projHtmlTopo(p) +
+    projHtmlEntraSai(p) +
+    '</div><div class="pj-web-dir">' +
+    '<button type="button" class="pj-btn1 pj-simular" onclick="projSimAbrir()"><i class="ph ph-plus" aria-hidden="true"></i> E se…? Simular uma compra ou entrada</button>' +
+    projHtmlAlertas(p) +
+    projHtmlOQueMuda(p) +
+    '</div></div>' +
+    '<section class="pj-card pj-faixa-card" aria-label="Mês a mês"><div class="pj-card-cab"><b>Mês a mês</b><small>clique num mês para ver as linhas</small></div>' +
+    '<div class="pj-faixa" style="grid-template-columns: repeat(' +
+    Math.min(d.meses.length, 12) +
+    ', minmax(0, 1fr))">' +
+    faixa +
+    '</div><div id="pjMesDetalhe" class="pj-mes-web"><div class="pj-mes-tit">' +
+    d.rotulos[sel] +
+    (sel === d.indiceAtual ? ' <span>mês em foco</span>' : '') +
+    '</div>' +
+    projHtmlMes(p, sel) +
+    '</div></section>';
+}
+
+/** O resumo de um mês da projeção, com os números que a tabela trazia. */
+/** O mês clicado nas barras, com as linhas do demonstrativo — as mesmas do
+ *  mês aberto no celular (_mobDreDetalheMes). */
+function ctrlDreDetalheHtml(d, i) {
+  const m = d.meses[i] || {};
+  const n = (v) => Number(v) || 0;
+  const saida = (v) => (n(v) > 0.005 ? '-' + formatarMoeda(n(v)) : formatarMoeda(0));
+  const lin = (rot, valor, cls, extra) =>
+    '<div class="ctrl-dre-det-l' +
+    (extra || '') +
+    '"><span>' +
+    rot +
+    '</span><b class="valor-mascarado ' +
+    (cls || '') +
+    '">' +
+    valor +
+    '</b></div>';
+  const carregado = n(m.saldoCarregado);
+  const resultado = n(m.saldoAcumulado);
+  const lapis =
+    i === d.indiceAtual
+      ? ' <button type="button" class="ctrl-dre-lapis" aria-label="Ajustar saldo do mês anterior" onclick="editarSaldoMesAnterior(' +
+        m.mes +
+        ',' +
+        m.ano +
+        ')"><i class="ph ph-pencil-simple"></i></button>'
+      : '';
+  const esquerda =
+    lin('Receita total', formatarMoeda(n(m.receita)), 'pos') +
+    lin('Resgates (venda de ativos)', formatarMoeda(n(m.resgate)), 'pos') +
+    lin('Investimento (renda fixa)', saida(m.invFixo), 'info') +
+    lin('Investimento (renda variável)', saida(m.invVar), 'info') +
+    (n(m.invExterno) > 0.005
+      ? lin('Aporte externo (fora do caixa)', formatarMoeda(n(m.invExterno)), '')
+      : '') +
+    lin('Sonhos (separado p/ metas)', saida(m.sonho), 'roxo') +
+    lin('Despesas consumidas', saida(m.despesas), 'neg');
+  const direita =
+    lin(
+      '<span class="ctrl-dre-herd">↳ Saldo do mês anterior</span>' + lapis,
+      Math.abs(carregado) > 0.005 ? formatarMoeda(carregado) : '—',
+      carregado < 0 ? 'neg' : 'roxo'
+    ) + lin('Resultado do mês', formatarMoeda(resultado), resultado < 0 ? 'neg' : 'pos', ' forte');
+  return (
+    '<div class="ctrl-dre-det"><div class="ctrl-dre-det-tit">' +
+    d.rotulos[i] +
+    (i === d.indiceAtual ? ' <span>mês em foco</span>' : '') +
+    '</div><div class="ctrl-dre-det-grade"><div>' +
+    esquerda +
+    '</div><div>' +
+    direita +
+    '</div></div></div>'
+  );
+}
+
+function ctrlDreSelecionar(i) {
+  if (!ctrlDre.dados) return;
+  ctrlDre.sel = i;
+  renderDreBarras(ctrlDre.dados);
+}
+
+/** Quanto das saídas do mês ainda não foi pago (despesas, fatura, aportes, sonhos). */
+function saidasAPagarDoMes(mes, ano) {
+  const SAIDAS = [
+    'despesa_fixa',
+    'despesa_variavel',
+    'cartao_credito',
+    'investimento_fixo',
+    'investimento_variavel',
+    'sonho',
+  ];
+  return (typeof transacoes !== 'undefined' ? transacoes : []).reduce((soma, t) => {
+    if (t.mes !== mes || t.ano !== ano || t.pago || SAIDAS.indexOf(t.categoria) === -1) return soma;
+    return soma + (Number(t.valor) || 0);
+  }, 0);
+}
+
+/**
+ * As linhas de contexto do card da sobra: "Entrou X · vai sair Y (Z já pago,
+ * W a pagar)" e a sobra acumulada com o que sobrou dos meses anteriores (com
+ * o Ajustar que antes morava na faixa roxa).
+ */
+function pintarResumoDaSobra(r) {
+  const fmt = formatarMoeda;
+  const el = document.getElementById('ctlSaidasResumo');
+  if (el) {
+    const aPagar = Math.min(r.saidas, saidasAPagarDoMes(r.mes, r.ano));
+    const pago = Math.max(0, r.saidas - aPagar);
+    el.innerHTML =
+      'Entrou <b class="valor-mascarado">' +
+      fmt(r.entrou) +
+      '</b> · vai sair <b class="valor-mascarado">' +
+      fmt(r.saidas) +
+      '</b>' +
+      (r.saidas > 0.005
+        ? ' (<b class="valor-mascarado">' +
+          fmt(pago) +
+          '</b> já pago, <b class="valor-mascarado">' +
+          fmt(aPagar) +
+          '</b> a pagar)'
+        : '');
+  }
+  const ac = document.getElementById('ctlAcumuladaLinha');
+  if (ac) {
+    const manual = !!(
+      typeof obterMapaSaldoCarregado === 'function' &&
+      (obterMapaSaldoCarregado()[chaveMes(r.mes, r.ano)] || {}).manual
+    );
+    if (Math.abs(r.carregado) < 0.005 && !manual) {
+      ac.hidden = true;
+      ac.innerHTML = '';
+      return;
+    }
+    const ant = new Date(r.ano, r.mes - 1, 1).toLocaleDateString('pt-BR', { month: 'long' });
+    ac.hidden = false;
+    ac.innerHTML =
+      '<span>Com o que sobrou até ' +
+      ant +
+      ' (<b class="valor-mascarado">' +
+      fmt(r.carregado) +
+      '</b>' +
+      (manual ? ', ajustado' : '') +
+      '), a sobra acumulada fica em <b class="valor-mascarado">' +
+      fmt(r.acumulada) +
+      '</b></span><button type="button" class="ctl-link" onclick="editarSaldoMesAnterior(' +
+      r.mes +
+      ',' +
+      r.ano +
+      ')">Ajustar</button>';
+  }
+}
+
+/**
+ * "Falta pagar" no web: as contas e faturas em aberto (os mesmos itens do
+ * painel de vencimentos) e, embaixo, cada cartão com a fatura aberta, o
+ * vencimento e o uso do limite.
+ */
+function renderFaltaPagar(itens, hojeStr) {
+  const el = document.getElementById('ctlFaltaPagar');
+  if (!el) return;
+  const esc = (v) =>
+    String(v == null ? '' : v)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  const lista = Array.isArray(itens) ? itens : [];
+  let total = 0;
+  const linhas = lista
+    .map((it) => {
+      const dia = String(it.dataVencimento || '').slice(8, 10);
+      const atraso = hojeStr && it.dataVencimento < hojeStr;
+      const dd = String(it.dataVencimento || '')
+        .split('-')
+        .reverse()
+        .slice(0, 2)
+        .join('/');
+      if (it.tipo === 'cartao') {
+        const g = it.grupo;
+        total += Number(g.total) || 0;
+        const c = typeof obterCartao === 'function' ? obterCartao(g.cartaoId) : null;
+        const key = (g.cartaoId || 'sem') + '_' + g.dataVencimento;
+        return (
+          '<div class="ctl-falta-lin' +
+          (atraso ? ' atraso' : '') +
+          '"><span class="ctl-falta-dia">' +
+          dia +
+          '</span><span>Fatura ' +
+          esc(c ? c.nome : 'do cartão') +
+          '<small><b class="valor-mascarado">' +
+          esc(formatarMoeda(g.total)) +
+          '</b> · ' +
+          (atraso ? 'venceu ' : 'vence ') +
+          dd +
+          '</small></span><button type="button" class="ctl-pagar" data-key="' +
+          esc(key) +
+          '" onclick="baixarGrupoCartao(this.dataset.key)">Pagar</button></div>'
+        );
+      }
+      const t = it.conta;
+      total += Number(t.valor) || 0;
+      return (
+        '<div class="ctl-falta-lin' +
+        (atraso ? ' atraso' : '') +
+        '"><span class="ctl-falta-dia">' +
+        dia +
+        '</span><span>' +
+        esc(t.descricao || 'Conta') +
+        '<small><b class="valor-mascarado">' +
+        esc(formatarMoeda(t.valor)) +
+        '</b>' +
+        (atraso ? ' · venceu ' + dd : t.banco ? ' · ' + esc(t.banco) : '') +
+        '</small></span><button type="button" class="ctl-pagar" data-id="' +
+        esc(t.id) +
+        '" onclick="confirmarPagamento(this.dataset.id)">Pagar</button></div>'
+      );
+    })
+    .join('');
+
+  // Cartões: a fatura aberta de cada um.
+  let cartoesHtml = '';
+  if (typeof faturasCartoesVisiveis === 'function' && typeof faturasDoCartao === 'function') {
+    cartoesHtml = faturasCartoesVisiveis()
+      .filter((c) => !c.arquivado)
+      .map((c) => {
+        const ciclos = faturasDoCartao(c.id, new Date());
+        const aberta = ciclos.filter((f) => f.atual)[0] || ciclos[ciclos.length - 1];
+        const valor = aberta ? aberta.total : 0;
+        const limite = Number(c.limite) || 0;
+        const pct = limite > 0 ? Math.min(100, (valor / limite) * 100) : null;
+        const fmtDia = (ymd) =>
+          ymd ? String(ymd).split('-').reverse().slice(0, 2).join('/') : '—';
+        return (
+          '<button type="button" class="ctl-cartao" data-cartao="' +
+          esc(c.id) +
+          '" onclick="abrirFaturas(this.dataset.cartao, \'atual\')"><span class="ctl-cartao-ic"><i class="ph ph-credit-card"></i></span><span>' +
+          esc(c.nome || 'Cartão') +
+          '<small>' +
+          (aberta
+            ? 'fecha ' + fmtDia(aberta.fechamento) + ' · vence ' + fmtDia(aberta.vencimento)
+            : 'sem fatura aberta') +
+          '</small>' +
+          (pct != null
+            ? '<span class="ctl-cartao-trilho"><span style="width:' +
+              pct.toFixed(1) +
+              '%"></span></span>'
+            : '') +
+          '</span><span class="ctl-num"><span class="valor-mascarado">' +
+          esc(formatarMoeda(valor)) +
+          '</span>' +
+          (pct != null ? '<small>' + Math.round(pct) + '% do limite</small>' : '') +
+          '</span></button>'
+        );
+      })
+      .join('');
+  }
+
+  el.innerHTML =
+    '<div class="ctl-topo"><h3>Falta pagar</h3><span class="ctl-saidas">' +
+    (lista.length
+      ? lista.length + ' · <b class="valor-mascarado">' + esc(formatarMoeda(total)) + '</b>'
+      : '') +
+    '</span></div>' +
+    (linhas || '<p class="ctl-vazio">Nada a pagar neste mês.</p>') +
+    (cartoesHtml
+      ? '<div class="ctl-grupo"><span>Cartões</span><button type="button" class="ctl-link" onclick="abrirFaturas()">Faturas <i class="ph ph-arrow-right"></i></button></div>' +
+        cartoesHtml
+      : '');
+}
+
+/**
+ * Os avisos do "O que notamos" dentro da Saúde do mês (web): título, valor,
+ * a frase de contexto e as MESMAS ações do cartão (insightsUiAgir e
+ * insightsUiDispensar). O cartão grande segue no DOM para o celular.
+ */
+function pintarAvisosNaSaude() {
+  const el = document.getElementById('ctlSaudeAvisos');
+  if (!el) return;
+  const lista =
+    typeof insightsUiUltimo !== 'undefined' &&
+    insightsUiUltimo &&
+    Array.isArray(insightsUiUltimo.insights)
+      ? insightsUiUltimo.insights
+      : [];
+  if (!lista.length || typeof insightsUiApresentar !== 'function') {
+    el.innerHTML = '';
+    return;
+  }
+  const esc = (v) =>
+    String(v == null ? '' : v)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  el.innerHTML = lista
+    .slice(0, 3)
+    .map((ins) => {
+      const a = insightsUiApresentar(ins) || {};
+      return (
+        '<div class="ctl-aviso"><i aria-hidden="true">!</i><span>' +
+        esc(a.titulo || 'Aviso') +
+        (a.frase ? '<small>' + a.frase + '</small>' : '') +
+        '<span class="ctl-aviso-acoes">' +
+        (a.acao
+          ? '<button type="button" data-id="' +
+            esc(ins.id) +
+            '" onclick="insightsUiAgir(this.dataset.id)">' +
+            esc(a.acao.rotulo) +
+            '</button>'
+          : '') +
+        '<button type="button" class="sec" data-id="' +
+        esc(ins.id) +
+        '" onclick="insightsUiDispensar(this.dataset.id)">Dispensar</button></span></span><b class="valor-mascarado">' +
+        esc(a.valor || '') +
+        '</b></div>'
+      );
+    })
+    .join('');
+}
+
 function calcularDespesasPorCategoria(mesAlvo, anoAlvo) {
   const mapa = {};
   transacoes.forEach((t) => {
@@ -2890,6 +3515,136 @@ function atualizarCabecalhoVencimentos(estado) {
 }
 
 // Nome curto do mês, para os rótulos de comparação ("vs. ago").
+/**
+ * O mês por tipo — Receitas, Despesas, Cartão, Investimentos e Sonhos — em
+ * lista vertical (antes eram cinco cartões para arrastar de lado). Cada linha:
+ * o total, quanto pesa na receita, a variação contra o mês anterior e a
+ * mini-linha dos últimos 6 meses. Tocar abre o extrato filtrado pelo tipo.
+ * Os números são os de totaisDoResumo, os mesmos da Projeção.
+ */
+var CTL_TIPOS = [
+  {
+    k: 'receita',
+    rot: 'Receitas',
+    filtro: 'receita',
+    icone: 'ph-arrow-down-left',
+    cls: 'rec',
+    sobeBom: true,
+  },
+  {
+    k: 'despesas',
+    rot: 'Despesas',
+    filtro: 'despesa',
+    icone: 'ph-arrow-up-right',
+    cls: 'desp',
+    sobeBom: false,
+  },
+  {
+    k: 'cartao',
+    rot: 'Cartão',
+    filtro: 'cartao',
+    icone: 'ph-credit-card',
+    cls: 'cart',
+    sobeBom: false,
+  },
+  {
+    k: 'investimentos',
+    rot: 'Investimentos',
+    filtro: 'investimento',
+    icone: 'ph-trend-up',
+    cls: 'inv',
+    sobeBom: true,
+  },
+  { k: 'sonhos', rot: 'Sonhos', filtro: 'sonho', icone: 'ph-star', cls: 'son', sobeBom: true },
+];
+
+function ctlTiposDados(mes, ano) {
+  const serie = serieTotaisMeses(mes, ano, 6);
+  const atual = serie[serie.length - 1];
+  const anterior = serie.length > 1 ? serie[serie.length - 2] : null;
+  const dAnt = new Date(ano, mes - 1, 1);
+  const rotAnt = ctrlMesCurto(dAnt.getMonth(), dAnt.getFullYear());
+  return CTL_TIPOS.map((t) => {
+    const v = atual[t.k];
+    const varia = anterior ? variacaoMensal(v, anterior[t.k]) : null;
+    return {
+      k: t.k,
+      rot: t.rot,
+      filtro: t.filtro,
+      icone: t.icone,
+      cls: t.cls,
+      valor: v,
+      fatia: t.k !== 'receita' && atual.receita > 0 ? (v / atual.receita) * 100 : null,
+      variacao: varia,
+      bom: varia == null || Math.abs(varia) <= 0.05 ? null : varia > 0 === t.sobeBom,
+      rotAnterior: rotAnt,
+      serie: serie.map((m) => m[t.k]),
+    };
+  });
+}
+
+function ctlTiposHtml(mes, ano) {
+  const linhas = ctlTiposDados(mes, ano)
+    .map((x) => {
+      const sub = [];
+      if (x.fatia != null && x.valor > 0.005) sub.push(ctrlPctBR(x.fatia) + ' da receita');
+      if (!(x.valor > 0.005) && x.k !== 'receita') sub.push('nada neste mês');
+      if (x.variacao != null && Math.abs(x.variacao) <= 0.05) sub.push('igual a ' + x.rotAnterior);
+      else if (x.variacao != null)
+        sub.push(
+          '<span class="ctl-tp-var ' +
+            (x.bom == null ? 'igual' : x.bom ? 'bom' : 'ruim') +
+            '">' +
+            (x.variacao > 0.05 ? '↑' : x.variacao < -0.05 ? '↓' : '·') +
+            ' ' +
+            ctrlPctBR(Math.abs(x.variacao)) +
+            '</span> vs. ' +
+            x.rotAnterior
+        );
+      const temMov = x.serie.some((v) => Math.abs(v) > 0.005);
+      const spark =
+        temMov && typeof rmSparklineSvg === 'function'
+          ? rmSparklineSvg(x.serie, { width: 72, height: 24 })
+          : '';
+      return (
+        '<button type="button" class="ctl-tp ' +
+        x.cls +
+        '" onclick="ctlIrParaTipo(\'' +
+        x.filtro +
+        '\')"><span class="ctl-tp-ic"><i class="ph ' +
+        x.icone +
+        '" aria-hidden="true"></i></span><span class="ctl-tp-txt"><b>' +
+        x.rot +
+        '</b><small>' +
+        (sub.join(' · ') || '&nbsp;') +
+        '</small></span><span class="ctl-tp-spark" aria-hidden="true">' +
+        spark +
+        '</span><span class="ctl-tp-v valor-mascarado">' +
+        formatarMoeda(x.valor) +
+        '</span></button>'
+      );
+    })
+    .join('');
+  return '<div class="ctl-tp-lista">' + linhas + '</div>';
+}
+
+/** Abre o extrato filtrado por um tipo (no celular, troca para a aba Extrato). */
+function ctlIrParaTipo(tipo) {
+  const celular = typeof mobEhCelular === 'function' && mobEhCelular();
+  if (celular && typeof mobSegControle === 'function') mobSegControle('extrato');
+  const aba = Array.from(document.querySelectorAll('.ext-tab')).find((b) =>
+    (b.getAttribute('onclick') || '').includes("'" + tipo + "'")
+  );
+  if (aba) aba.click();
+  else if (typeof filtrarExtrato === 'function') filtrarExtrato(null, tipo);
+  const alvo = document.querySelector('.ctl-linha-extrato');
+  if (!celular && alvo && typeof alvo.scrollIntoView === 'function') {
+    try {
+      alvo.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    } catch (_e) {}
+  }
+}
+
 function ctrlMesCurto(mes, ano) {
   return new Date(ano, mes, 1)
     .toLocaleDateString('pt-BR', { month: 'short' })
@@ -2930,20 +3685,34 @@ function atualizarDestinoDoMes(entradas) {
     )
     .join('');
 
+  // Legenda com o valor de cada fatia, como no canvas: a barra sozinha dizia
+  // a proporção e escondia de quanto se estava falando.
   let rodape;
+  const legenda = d.fatias
+    .filter((f) => f.valor > 0.005)
+    .map((f) => {
+      const ehSobra = f.chave === 'livre';
+      const pct = d.base > 0 ? (f.valor / d.base) * 100 : 0;
+      return (
+        '<span><i data-destino="' +
+        f.chave +
+        '"></i>' +
+        (ehSobra ? 'Sobra' : f.rotulo) +
+        ' <b class="valor-mascarado">' +
+        formatarMoeda(f.valor) +
+        '</b>' +
+        (ehSobra ? ' · ' + ctrlPctBR(pct) + ' do que entrou' : '') +
+        '</span>'
+      );
+    })
+    .join('');
   if (d.estourou) {
     rodape =
       '<i class="ph-fill ph-warning-circle"></i> Saiu <strong>' +
       formatarMoeda(d.excedente) +
       '</strong> a mais do que entrou neste mês';
   } else {
-    const pctLivre = d.base > 0 ? (d.livre / d.base) * 100 : 0;
-    rodape =
-      'Sobrou <strong>' +
-      ctrlPctBR(pctLivre) +
-      '</strong> de tudo o que entrou (' +
-      formatarMoeda(d.base) +
-      ')';
+    rodape = '';
   }
 
   cx.innerHTML =
@@ -2952,9 +3721,10 @@ function atualizarDestinoDoMes(entradas) {
     '>' +
     segs +
     '</div>' +
-    '<div class="kpi-destino-rodape">' +
-    rodape +
-    '</div>';
+    '<div class="kpi-destino-legenda">' +
+    legenda +
+    '</div>' +
+    (rodape ? '<div class="kpi-destino-rodape">' + rodape + '</div>' : '');
 }
 
 // Percentual em pt-BR. Acima de 10% a casa decimal só polui a leitura de um
@@ -2983,6 +3753,17 @@ function atualizarContextoMiniKpis(mes, ano) {
   ['receita', 'despesas', 'cartao', 'investimentos', 'sonhos'].forEach(function (chave) {
     const card = document.querySelector('.kpi-mini[data-tipo="' + chave + '"]');
     if (!card) return;
+
+    // Cartão, aportes e sonhos sem nenhum valor em 6 meses saem da grade: três
+    // "R$ 0,00" para quem não usa cartão nem guarda para sonhos são ruído.
+    // Receita e despesas ficam sempre (zero ali é informação).
+    if (chave !== 'receita' && chave !== 'despesas') {
+      const semUso = serie.every(function (m) {
+        return !(Math.abs(Number(m[chave]) || 0) > 0.005);
+      });
+      if (semUso) card.setAttribute('data-vazio', '1');
+      else card.removeAttribute('data-vazio');
+    }
 
     // Fatia da receita. Não vale para o próprio card de receita (seria sempre
     // 100%) nem quando não entrou nada — 0% de nada não é informação.
@@ -3767,6 +4548,45 @@ function termChipGeometria(score, comprimentoArco) {
 // funções que o Relatório mensal usa. Recalcular por conta própria aqui faria
 // o chip e o relatório discordarem no dia em que a régua dos 5 critérios
 // mudasse, e o chip é justamente o convite para abrir o relatório.
+// O card "Saúde do mês" mostra os critérios do MESMO termômetro do chip do
+// cabeçalho (e do Relatório mensal). Antes o card só tinha a Regra dos 60%, e
+// o mês podia aparecer "sob controle" no card e "Atenção" no chip.
+function pintarSaudeDoMes(t) {
+  const lista = document.getElementById('saudeCriterios');
+  const nota = document.getElementById('saudeScore');
+  if (!t) {
+    if (lista) lista.innerHTML = '';
+    if (nota) nota.hidden = true;
+    return;
+  }
+  if (nota) {
+    nota.hidden = false;
+    nota.setAttribute('data-faixa', t.statusGeral);
+    nota.textContent = t.score + ' · ' + (t.faixa ? t.faixa.rotulo : '');
+    nota.title = 'Ver o Relatório mensal completo';
+  }
+  if (!lista) return;
+  const cor = { verde: '#10b981', amarelo: '#f59e0b', vermelho: '#ef4444', cinza: '#94a3b8' };
+  const esc = (v) =>
+    String(v == null ? '' : v)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;');
+  lista.innerHTML = t.criterios
+    .map(
+      (c) =>
+        '<div class="saude-crit"><i style="background:' +
+        (cor[c.status] || cor.cinza) +
+        '"></i><span>' +
+        esc(c.label) +
+        '<small>meta ' +
+        esc(c.meta) +
+        '</small></span><b>' +
+        esc(c.valor) +
+        '</b></div>'
+    )
+    .join('');
+}
+
 function atualizarTermometroControle(mes, ano) {
   const chip = document.getElementById('termometroControle');
   if (!chip) return;
@@ -3786,6 +4606,7 @@ function atualizarTermometroControle(mes, ano) {
     // Mês sem nada lançado: o score seria 40 ("Atenção") só porque quatro dos
     // cinco critérios são neutros — um diagnóstico sobre dado nenhum.
     if (!rep.hasData) {
+      pintarSaudeDoMes(null);
       chip.setAttribute('data-faixa', 'vazio');
       const g = termChipGeometria(0);
       if (arco) arco.setAttribute('stroke-dashoffset', String(g.offset));
@@ -3797,6 +4618,7 @@ function atualizarTermometroControle(mes, ano) {
     }
 
     const t = rmCalcularTermometro(rep);
+    pintarSaudeDoMes(t);
     const g = termChipGeometria(t.score);
     chip.setAttribute('data-faixa', t.statusGeral);
     if (arco) arco.setAttribute('stroke-dashoffset', String(g.offset));
@@ -3952,6 +4774,7 @@ function atualizarTelaControle() {
     })),
   ];
   itensRender.sort((a, b) => a.dataVencimento.localeCompare(b.dataVencimento));
+  renderFaltaPagar(itensRender, hojeStr);
 
   const renderEstadoVenc = (dataVencimento) => {
     let corBorda = 'var(--cor-borda)',
@@ -4233,15 +5056,34 @@ function atualizarTelaControle() {
   // livre subiria pelo valor guardado no mês — o app diria que sobrou o que
   // já foi reservado para a meta.
   const saldoLivre = totRec - totDesp - totCartao - totInv - totSonho + saldoCarregado;
+  // O número grande é a sobra do MÊS (o que entrou menos o que sai nele). A
+  // acumulada — com o que sobrou dos meses anteriores — vira o selo ao lado:
+  // ela só cresce e escondia um mês ruim atrás de meses bons. É o mesmo
+  // número que o celular chama de "Sobra acumulada".
+  const sobraMes = saldoLivre - saldoCarregado;
   if (kpiSaldo) {
-    kpiSaldo.innerText = formatarMoeda(saldoLivre);
-    kpiSaldo.style.color = saldoLivre >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)';
+    kpiSaldo.innerText = formatarMoeda(sobraMes);
+    kpiSaldo.style.color = sobraMes >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)';
   }
+  const rotSobra = document.getElementById('kpiSobraRotulo');
+  if (rotSobra) {
+    const nomeMes = new Date(visaoAno, visaoMes, 1).toLocaleDateString('pt-BR', { month: 'long' });
+    rotSobra.innerText = 'Sobra de ' + nomeMes;
+  }
+  pintarResumoDaSobra({
+    mes: visaoMes,
+    ano: visaoAno,
+    entrou: totRec,
+    saidas: totDesp + totCartao + totInv + totSonho,
+    carregado: saldoCarregado,
+    acumulada: saldoLivre,
+  });
   if (lblCarregado) {
     if (saldoCarregado !== 0) {
-      const sinal = saldoCarregado > 0 ? '+' : '';
       lblCarregado.style.display = 'inline';
-      lblCarregado.innerText = `${sinal}${formatarMoeda(saldoCarregado)} do mês anterior`;
+      lblCarregado.innerText = `Acumulada ${formatarMoeda(saldoLivre)}`;
+      lblCarregado.title =
+        'Com ' + formatarMoeda(saldoCarregado) + ' que sobraram até o mês anterior';
     } else {
       lblCarregado.style.display = 'none';
     }
@@ -4250,9 +5092,12 @@ function atualizarTelaControle() {
   // Os mesmos totais que os cards acabaram de imprimir viram a barra de
   // destino. Passar os números daqui, em vez de recalculá-los lá dentro,
   // garante que a barra e os cards nunca contem histórias diferentes.
+  // A barra fala do dinheiro que entrou NESTE mês — a mesma base do "Para
+  // onde foi" do celular. Com o carregado dentro, o web dizia "sobrou 85%"
+  // e o celular "56%" para o mesmo mês.
   atualizarDestinoDoMes({
     receita: totRec,
-    carregado: saldoCarregado,
+    carregado: 0,
     despesas: totDesp,
     cartao: totCartao,
     investimentos: totInv,
@@ -4284,7 +5129,9 @@ function atualizarTelaControle() {
     if (alertaCartao) alertaCartao.style.display = 'none';
   }
 
-  // GRÁFICO BARRAS
+  renderGastosPorCategoria(visaoMes, visaoAno);
+
+  // GRÁFICO BARRAS (escondido no web; alimenta o "Para onde foi" do celular)
   let rPizza = calcularResumoMes(visaoMes, visaoAno);
   if (chartComposicao) chartComposicao.destroy();
   let vSobra =
@@ -4495,7 +5342,7 @@ function atualizarTelaControle() {
     labelsMeses.push(`${nomeMeses[m]}/${a.toString().slice(-2)}`);
   }
 
-  let htmlThead = `<tr><th class="coluna-fixa" style="min-width: 190px;">Demonstrativo contábil</th>`;
+  let htmlThead = `<tr><th class="coluna-fixa" style="min-width: 240px;">Demonstrativo contábil</th>`;
   labelsMeses.forEach((lbl, index) => {
     htmlThead += `<th style="text-align: right; min-width: 120px; ${index === indiceMesAtual ? 'background-color: var(--cor-bg-info);' : ''}">${lbl}</th>`;
   });
@@ -4503,25 +5350,25 @@ function atualizarTelaControle() {
   theadDRE.innerHTML = htmlThead;
 
   let htmlLinhas = '';
-  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Receita Total</td>`;
+  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Receita total</td>`;
   dreDados.forEach((d, i) => {
     htmlLinhas += `<td style="text-align: right; color: var(--tinta-verde); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${formatarMoeda(d.receita)}</td>`;
   });
   htmlLinhas += `</tr>`;
 
-  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Resgates (Venda de Ativos)</td>`;
+  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Resgates (venda de ativos)</td>`;
   dreDados.forEach((d, i) => {
     htmlLinhas += `<td style="text-align: right; color: var(--tinta-verde); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${formatarMoeda(d.resgate)}</td>`;
   });
   htmlLinhas += `</tr>`;
 
-  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Investimento (Renda Fixa)</td>`;
+  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Investimento (renda fixa)</td>`;
   dreDados.forEach((d, i) => {
     htmlLinhas += `<td style="text-align: right; color: var(--tinta-azul); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${d.invFixo > 0 ? '-' + formatarMoeda(d.invFixo) : 'R$ 0,00'}</td>`;
   });
   htmlLinhas += `</tr>`;
 
-  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Investimento (Renda Variável)</td>`;
+  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Investimento (renda variável)</td>`;
   dreDados.forEach((d, i) => {
     htmlLinhas += `<td style="text-align: right; color: var(--tinta-azul); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${d.invVar > 0 ? '-' + formatarMoeda(d.invVar) : 'R$ 0,00'}</td>`;
   });
@@ -4546,7 +5393,7 @@ function atualizarTelaControle() {
   });
   htmlLinhas += `</tr>`;
 
-  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Despesas Consumidas</td>`;
+  htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Despesas consumidas</td>`;
   dreDados.forEach((d, i) => {
     htmlLinhas += `<td style="text-align: right; color: var(--tinta-vermelho); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${d.despesas > 0 ? '-' + formatarMoeda(d.despesas) : 'R$ 0,00'}</td>`;
   });
@@ -4630,6 +5477,12 @@ function atualizarTelaControle() {
 
   tbodyDRE.innerHTML = htmlLinhas;
 
+  renderDreBarras({
+    meses: dreDados,
+    rotulos: labelsMeses,
+    indiceAtual: indiceMesAtual,
+  });
+
   // No celular a mesma DRE vira gráfico + cartões por mês (appliquei-mobile.js).
   // Recebe os números já calculados acima: nada é recalculado lá.
   if (typeof mobRenderDRE === 'function')
@@ -4650,10 +5503,17 @@ function atualizarTelaControle() {
   // sobre o mês em visão — navegar para agosto reanalisa agosto em vez de
   // mostrar a leitura de setembro num mês que não é o dela.
   if (typeof insightsUiRenderizar === 'function') insightsUiRenderizar();
+  pintarAvisosNaSaude();
 
   // Início no celular (appliquei-mobile.js): os mesmos totais dos cards.
+  // O mês por tipo (Receitas, Despesas, Cartão, Investimentos, Sonhos).
+  const elTipos = document.getElementById('ctlTipos');
+  if (elTipos)
+    elTipos.innerHTML =
+      '<div class="ctl-topo"><h3>O mês por tipo</h3></div>' + ctlTiposHtml(visaoMes, visaoAno);
   if (typeof mobRenderInicio === 'function')
     mobRenderInicio({
+      tiposHtml: ctlTiposHtml(visaoMes, visaoAno),
       mes: visaoMes,
       ano: visaoAno,
       saldoLivre: saldoLivre,

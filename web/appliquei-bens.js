@@ -718,6 +718,7 @@ function irParaValoresBem() {
   document.getElementById('bemAcoesPasso1').style.display = 'none';
   document.getElementById('bemPasso2').style.display = '';
   document.getElementById('bemAcoesPasso2').style.display = 'flex';
+  bemMarcarPasso(3);
   var card = document.querySelector('#modalBem > div');
   if (card) card.scrollTop = 0;
   // A comparação por m² usa o valor atual, que só existe neste passo.
@@ -729,6 +730,7 @@ function voltarParaDadosBem() {
   document.getElementById('bemAcoesPasso2').style.display = 'none';
   document.getElementById('bemPasso1').style.display = '';
   document.getElementById('bemAcoesPasso1').style.display = 'flex';
+  bemMarcarPasso(2);
 }
 
 function bemToggleFinanciamento() {
@@ -1390,8 +1392,13 @@ function abrirNovoBemForm() {
   document.getElementById('bemDataCompra').value = new Date().toISOString().slice(0, 10);
   bemOnTrocarTipo();
   resetarPassosBem();
+  var busca = document.getElementById('bemFipeBusca');
+  if (busca) busca.value = '';
+  var res = document.getElementById('bemFipeResultados');
+  if (res) res.innerHTML = '';
+  // Bem novo começa pelo tipo (passo 1); a edição pula direto para os dados.
+  bemMostrarPasso0(true);
   modal.style.display = 'flex';
-  document.getElementById('bemNome').focus();
 }
 
 function editarBemForm(id) {
@@ -1399,6 +1406,7 @@ function editarBemForm(id) {
   if (!b) return;
   abrirNovoBemForm();
   document.getElementById('bemEditId').value = id;
+  bemMostrarPasso0(false);
   document.getElementById('tituloModalBem').querySelector('span').textContent = 'Editar bem';
   document.getElementById('bemNome').value = b.nome;
   document.getElementById('bemDescricao').value = b.descricao || '';
@@ -1685,6 +1693,12 @@ function bemFipeOnAno() {
   var modeloC = document.getElementById('bemFipeModelo').value;
   var anoC = document.getElementById('bemFipeAno').value;
   if (!anoC) return;
+  bemFipeAplicar(tipoV, marcaC, modeloC, anoC);
+}
+
+/** Consulta o valor de um veículo da FIPE e preenche o bem (valor atual,
+ *  nome se vazio e o registro `fipe` que a atualização mensal usa). */
+function bemFipeAplicar(tipoV, marcaC, modeloC, anoC) {
   var info = document.getElementById('bemFipeInfo');
   if (info) {
     info.style.display = '';
@@ -1725,8 +1739,10 @@ function bemFipeOnAno() {
       var marcaNome = data.Marca || data.marca || '';
       var modeloNome = data.Modelo || data.modelo || '';
       var inputNome = document.getElementById('bemNome');
+      // "Como você chama este bem": o nome curto do modelo ("Civic"), não o
+      // nome inteiro da tabela.
       if (inputNome && !inputNome.value.trim()) {
-        inputNome.value = (marcaNome + ' ' + modeloNome).trim();
+        inputNome.value = String(modeloNome).split(' ')[0] || (marcaNome + ' ' + modeloNome).trim();
       }
     })
     .catch(function () {
@@ -1736,6 +1752,979 @@ function bemFipeOnAno() {
       }
       mostrarToast('Não foi possível consultar o valor FIPE.', 'erro');
     });
+}
+
+// ------------------------------------------------------------
+// Busca única na FIPE ("civic 2020")
+// ------------------------------------------------------------
+// A API pública da FIPE não tem busca por texto: anda por marca → modelo →
+// ano. A busca acha a marca pelo nome digitado ou pelo modelo (mapa dos mais
+// vendidos), filtra os modelos dessa marca pelas outras palavras e, havendo
+// ano, já traz o valor das primeiras opções. Os selects continuam embaixo,
+// em "Não achei", para o que a busca não cobrir.
+var FIPE_MODELO_MARCA = {
+  civic: 'honda',
+  city: 'honda',
+  fit: 'honda',
+  hrv: 'honda',
+  wrv: 'honda',
+  corolla: 'toyota',
+  yaris: 'toyota',
+  hilux: 'toyota',
+  sw4: 'toyota',
+  etios: 'toyota',
+  rav4: 'toyota',
+  onix: 'chevrolet',
+  prisma: 'chevrolet',
+  cruze: 'chevrolet',
+  tracker: 'chevrolet',
+  s10: 'chevrolet',
+  spin: 'chevrolet',
+  cobalt: 'chevrolet',
+  celta: 'chevrolet',
+  montana: 'chevrolet',
+  equinox: 'chevrolet',
+  gol: 'volkswagen',
+  polo: 'volkswagen',
+  virtus: 'volkswagen',
+  tcross: 'volkswagen',
+  nivus: 'volkswagen',
+  saveiro: 'volkswagen',
+  fox: 'volkswagen',
+  voyage: 'volkswagen',
+  jetta: 'volkswagen',
+  amarok: 'volkswagen',
+  taos: 'volkswagen',
+  tera: 'volkswagen',
+  hb20: 'hyundai',
+  hb20s: 'hyundai',
+  creta: 'hyundai',
+  tucson: 'hyundai',
+  ka: 'ford',
+  ecosport: 'ford',
+  ranger: 'ford',
+  fiesta: 'ford',
+  focus: 'ford',
+  territory: 'ford',
+  uno: 'fiat',
+  mobi: 'fiat',
+  argo: 'fiat',
+  cronos: 'fiat',
+  strada: 'fiat',
+  toro: 'fiat',
+  palio: 'fiat',
+  siena: 'fiat',
+  pulse: 'fiat',
+  fastback: 'fiat',
+  fiorino: 'fiat',
+  kwid: 'renault',
+  sandero: 'renault',
+  logan: 'renault',
+  duster: 'renault',
+  captur: 'renault',
+  oroch: 'renault',
+  compass: 'jeep',
+  renegade: 'jeep',
+  commander: 'jeep',
+  kicks: 'nissan',
+  versa: 'nissan',
+  frontier: 'nissan',
+  march: 'nissan',
+  sentra: 'nissan',
+  208: 'peugeot',
+  2008: 'peugeot',
+  3008: 'peugeot',
+  c3: 'citroen',
+  c4: 'citroen',
+  tiggo: 'chery',
+  t7: 'caoa',
+  song: 'byd',
+  dolphin: 'byd',
+  seal: 'byd',
+};
+
+function _fipeNorm(v) {
+  return String(v || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+/** "civic exl 2020" → { ano: '2020', palavras: ['civic', 'exl'] } */
+function fipeInterpretarBusca(texto) {
+  var palavras = _fipeNorm(texto).split(' ').filter(Boolean);
+  var ano = '';
+  palavras = palavras.filter(function (p) {
+    if (!ano && /^(19[5-9]\d|20[0-4]\d)$/.test(p)) {
+      ano = p;
+      return false;
+    }
+    return true;
+  });
+  return { ano: ano, palavras: palavras };
+}
+
+/** A marca da busca: o nome digitado ou a dona do modelo. */
+function fipeAcharMarca(marcas, palavras) {
+  var lista = marcas || [];
+  var porNome = null;
+  palavras.some(function (p) {
+    if (p.length < 2) return false;
+    porNome = lista.find(function (m) {
+      return _fipeNorm(m.nome).split(' ').indexOf(p) !== -1;
+    });
+    return !!porNome;
+  });
+  if (porNome) return porNome;
+  var dona = null;
+  palavras.some(function (p) {
+    var alvo = FIPE_MODELO_MARCA[p.replace(/\s/g, '')];
+    if (!alvo) return false;
+    dona = lista.find(function (m) {
+      return _fipeNorm(m.nome).indexOf(alvo) !== -1;
+    });
+    return !!dona;
+  });
+  return dona;
+}
+
+/**
+ * Resultados da busca: [{ tipoV, marca, marcaCodigo, modelo, modeloCodigo,
+ * ano, anoCodigo, valor }] — com ano quando ele foi digitado (e o valor das
+ * primeiras opções), só os modelos quando não foi.
+ */
+function fipeBuscar(texto, tipoV) {
+  var tipo = tipoV || 'carros';
+  var q = fipeInterpretarBusca(texto);
+  if (!q.palavras.length) return Promise.resolve([]);
+  return fipeMarcas(tipo).then(function (marcas) {
+    var marca = fipeAcharMarca(marcas, q.palavras);
+    if (!marca) return [];
+    var marcaPalavras = _fipeNorm(marca.nome).split(' ');
+    var resto = q.palavras.filter(function (p) {
+      return marcaPalavras.indexOf(p) === -1;
+    });
+    return fipeModelos(tipo, marca.codigo).then(function (data) {
+      var modelos = (data && data.modelos) || data || [];
+      var achados = modelos
+        .filter(function (m) {
+          var nm = _fipeNorm(m.nome);
+          var compacto = nm.replace(/\s/g, '');
+          return resto.every(function (p) {
+            return nm.split(' ').indexOf(p) !== -1 || compacto.indexOf(p) !== -1;
+          });
+        })
+        .slice(0, 8);
+      var base = achados.map(function (m) {
+        return {
+          tipoV: tipo,
+          marca: marca.nome,
+          marcaCodigo: String(marca.codigo),
+          modelo: m.nome,
+          modeloCodigo: String(m.codigo),
+          ano: '',
+          anoCodigo: '',
+          valor: '',
+        };
+      });
+      if (!q.ano) return base;
+      return Promise.all(
+        base.slice(0, 6).map(function (r) {
+          return fipeAnos(tipo, r.marcaCodigo, r.modeloCodigo)
+            .then(function (anos) {
+              return (anos || [])
+                .filter(function (a) {
+                  return String(a.nome || a.codigo || '').indexOf(q.ano) === 0;
+                })
+                .map(function (a) {
+                  return Object.assign({}, r, { ano: a.nome, anoCodigo: String(a.codigo) });
+                });
+            })
+            .catch(function () {
+              return [];
+            });
+        })
+      ).then(function (listas) {
+        var comAno = [].concat.apply([], listas).slice(0, 6);
+        return Promise.all(
+          comAno.map(function (r, i) {
+            if (i > 3) return r;
+            return fipeValor(tipo, r.marcaCodigo, r.modeloCodigo, r.anoCodigo)
+              .then(function (v) {
+                return Object.assign({}, r, {
+                  valor: (v && (v.Valor || v.valor)) || '',
+                  ref: (v && (v.MesReferencia || v.mesReferencia)) || '',
+                });
+              })
+              .catch(function () {
+                return r;
+              });
+          })
+        );
+      });
+    });
+  });
+}
+
+var _bemFipeBusca = { timer: null, seq: 0, res: [], sel: -1 };
+
+function bemFipeBuscarDigitado() {
+  clearTimeout(_bemFipeBusca.timer);
+  _bemFipeBusca.timer = setTimeout(bemFipeBuscarAgora, 450);
+}
+
+function bemFipeBuscarAgora() {
+  var el = document.getElementById('bemFipeResultados');
+  var txt = ((document.getElementById('bemFipeBusca') || {}).value || '').trim();
+  if (!el) return;
+  if (txt.length < 2) {
+    el.innerHTML = '';
+    return;
+  }
+  var tipoSel = (document.getElementById('bemFipeVeiculoTipo') || {}).value || 'carros';
+  var seq = ++_bemFipeBusca.seq;
+  el.innerHTML =
+    '<div class="bem-fipe-msg"><i class="ph ph-spinner ph-spin"></i> Buscando na tabela FIPE…</div>';
+  fipeBuscar(txt, tipoSel)
+    .then(function (res) {
+      if (seq !== _bemFipeBusca.seq) return;
+      _bemFipeBusca.res = res;
+      _bemFipeBusca.sel = -1;
+      bemFipeDesenharResultados();
+    })
+    .catch(function () {
+      if (seq !== _bemFipeBusca.seq) return;
+      el.innerHTML =
+        '<div class="bem-fipe-msg">A tabela FIPE não respondeu agora. Tente de novo ou use "Não achei".</div>';
+    });
+}
+
+function bemFipeDesenharResultados() {
+  var el = document.getElementById('bemFipeResultados');
+  if (!el) return;
+  var res = _bemFipeBusca.res || [];
+  if (!res.length) {
+    el.innerHTML =
+      '<div class="bem-fipe-msg">Nada encontrado. Escreva a marca junto (ex.: "honda civic 2020") ou use "Não achei".</div>';
+    return;
+  }
+  var esc = function (v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/"/g, '&quot;');
+  };
+  el.innerHTML = res
+    .map(function (r, i) {
+      return (
+        '<button type="button" role="option" class="bem-fipe-op" aria-selected="' +
+        (i === _bemFipeBusca.sel) +
+        '" onclick="bemFipeEscolher(' +
+        i +
+        ')"><span>' +
+        esc(r.marca.replace(/^.* - /, '') + ' ' + r.modelo + (r.ano ? ' · ' + r.ano : '')) +
+        '</span><b>' +
+        esc(r.valor || (r.ano ? '' : 'ver anos')) +
+        '</b>' +
+        (r.ref ? '<small>FIPE de ' + esc(String(r.ref).trim()) + '</small>' : '') +
+        '</button>'
+      );
+    })
+    .join('');
+}
+
+/** Escolheu uma opção: com ano, aplica; sem ano, lista os anos do modelo. */
+function bemFipeEscolher(i) {
+  var r = (_bemFipeBusca.res || [])[i];
+  if (!r) return;
+  if (r.anoCodigo) {
+    _bemFipeBusca.sel = i;
+    bemFipeDesenharResultados();
+    bemFipeAplicar(r.tipoV, r.marcaCodigo, r.modeloCodigo, r.anoCodigo);
+    return;
+  }
+  var el = document.getElementById('bemFipeResultados');
+  if (el)
+    el.innerHTML =
+      '<div class="bem-fipe-msg"><i class="ph ph-spinner ph-spin"></i> Carregando os anos…</div>';
+  fipeAnos(r.tipoV, r.marcaCodigo, r.modeloCodigo)
+    .then(function (anos) {
+      _bemFipeBusca.res = (anos || []).slice(0, 12).map(function (a) {
+        return Object.assign({}, r, { ano: a.nome, anoCodigo: String(a.codigo), valor: '' });
+      });
+      _bemFipeBusca.sel = -1;
+      bemFipeDesenharResultados();
+    })
+    .catch(function () {
+      if (el) el.innerHTML = '<div class="bem-fipe-msg">A tabela FIPE não respondeu agora.</div>';
+    });
+}
+
+// ------------------------------------------------------------
+// Passos do bem novo: 1 tipo · 2 dados · 3 valores e financiamento
+// ------------------------------------------------------------
+function bemMarcarPasso(n) {
+  var barra = document.getElementById('bemPassos');
+  var txt = document.getElementById('bemPassoTxt');
+  var novo = !((document.getElementById('bemEditId') || {}).value || '');
+  if (barra) {
+    barra.hidden = !novo || !n;
+    barra.setAttribute('data-passo', String(n || 0));
+  }
+  if (txt) txt.textContent = novo && n ? 'Passo ' + Math.min(n, 3) + ' de 3' : '';
+}
+
+function bemMostrarPasso0(mostrar) {
+  var p0 = document.getElementById('bemPasso0');
+  var p1 = document.getElementById('bemPasso1');
+  var a1 = document.getElementById('bemAcoesPasso1');
+  if (p0) p0.style.display = mostrar ? '' : 'none';
+  if (p1) p1.style.display = mostrar ? 'none' : '';
+  if (a1) a1.style.display = mostrar ? 'none' : 'flex';
+  bemMarcarPasso(mostrar ? 1 : 2);
+}
+
+function bemEscolherTipoNovo(tipo) {
+  var sel = document.getElementById('bemTipo');
+  if (sel) sel.value = tipo;
+  bemOnTrocarTipo();
+  bemMostrarPasso0(false);
+  var busca = document.getElementById('bemFipeResultados');
+  if (busca) busca.innerHTML = '';
+  var foco = document.getElementById(tipo === 'veiculo' ? 'bemFipeBusca' : 'bemNome');
+  if (foco) foco.focus();
+}
+
+function bemVoltarDoPasso1() {
+  var editando = (document.getElementById('bemEditId') || {}).value;
+  if (editando) return fecharModalBem();
+  bemMostrarPasso0(true);
+}
+
+// ------------------------------------------------------------
+// Detalhe do bem (canvas "Bem"): à direita no web, folha no celular
+// ------------------------------------------------------------
+// Usa o mesmo painel do extrato da instituição (#mpdPainel). Mostra quanto
+// vale, quanto já é seu, o financiamento (parcela, prazo, juros até quitar,
+// quitação), a simulação de antecipação com valores prontos e — no imóvel —
+// a referência por m².
+var bemPainel = { id: null, extra: 0, modo: 'prazo', contaId: null };
+
+var _BEM_MESES_CURTOS = [
+  'jan',
+  'fev',
+  'mar',
+  'abr',
+  'mai',
+  'jun',
+  'jul',
+  'ago',
+  'set',
+  'out',
+  'nov',
+  'dez',
+];
+
+function _bemMesAno(d) {
+  return _BEM_MESES_CURTOS[d.getMonth()] + '/' + d.getFullYear();
+}
+
+/** Mês/ano da última parcela, contando a partir do mês que vem. */
+function bemQuitacao(parcelas, hoje) {
+  var h = hoje || new Date();
+  var n = Math.max(0, Math.round(Number(parcelas) || 0));
+  if (!n) return null;
+  return new Date(h.getFullYear(), h.getMonth() + n, 1);
+}
+
+/** Valores sugeridos para antecipar: 10, 20 e 50 mil (ou frações do saldo). */
+function bemValoresAntecipar(saldo) {
+  var sd = Number(saldo) || 0;
+  if (sd <= 0) return [];
+  var base = [10000, 20000, 50000].filter(function (v) {
+    return v < sd;
+  });
+  if (base.length < 3) {
+    base = [0.1, 0.25, 0.5].map(function (f) {
+      return Math.max(100, Math.round((sd * f) / 100) * 100);
+    });
+  }
+  return base;
+}
+
+/**
+ * Registra uma antecipação: o saldo devedor cai, o prazo (ou a parcela) se
+ * ajusta pela simulação e o dinheiro sai do caixa da conta escolhida como um
+ * ajuste — fora do resultado do mês, como a transferência. O patrimônio
+ * líquido não muda: sai do caixa o mesmo tanto que sai da dívida.
+ */
+function bemRegistrarAntecipacao(id, valor, modo, contaId) {
+  var b = obterBem(id);
+  var fin = b && b.financiamento;
+  var v = Math.round((Number(valor) || 0) * 100) / 100;
+  if (!fin || !fin.ativo || !(v > 0)) return null;
+  var sd = Number(fin.saldoDevedor) || 0;
+  if (v > sd) v = sd;
+  var sim = finSimularAmortizacao(fin, v);
+  if (!sim) return null;
+  var conta = contaId && typeof obterConta === 'function' ? obterConta(contaId) : null;
+  var agora = new Date();
+  var registro = {
+    id: 'ant_' + agora.getTime(),
+    data: agora.toISOString(),
+    valor: v,
+    modo: modo === 'parcela' ? 'parcela' : 'prazo',
+    contaId: conta ? conta.id : null,
+    saldoAntes: sd,
+    parcelasAntes: fin.parcelasRestantes,
+    parcelaAntes: fin.valorParcela,
+    valorPagoAntes: fin.valorPago,
+  };
+  fin.saldoDevedor = Math.round((sd - v) * 100) / 100;
+  fin.valorPago = Math.round(((Number(fin.valorPago) || 0) + v) * 100) / 100;
+  if (sim.quitou || fin.saldoDevedor <= 0.005) {
+    fin.saldoDevedor = 0;
+    fin.parcelasRestantes = 0;
+  } else if (registro.modo === 'prazo') {
+    fin.parcelasRestantes = sim.prazo.parcelas;
+  } else {
+    fin.valorParcela = Math.round(sim.parcela.novaParcela * 100) / 100;
+  }
+  // As parcelas que estão lançadas no Controle acompanham: prazo menor some
+  // com as do fim; parcela menor muda o valor das que faltam.
+  registro.controle = bemAjustarParcelasControle(b, registro, sim);
+  if (registro.controle && registro.controle.grupoId)
+    fin.parcelasGrupoId = registro.controle.grupoId;
+  if (!Array.isArray(fin.antecipacoes)) fin.antecipacoes = [];
+  fin.antecipacoes.push(registro);
+  salvarBens();
+  if (conta) {
+    if (!Array.isArray(conta.ajustes)) conta.ajustes = [];
+    conta.ajustes.push({
+      id: 'aj_' + registro.id,
+      valor: -v,
+      data: registro.data,
+      descricao: 'Antecipação · ' + (b.nome || 'financiamento'),
+      bemId: b.id,
+    });
+    if (typeof salvarContas === 'function') salvarContas();
+  }
+  return { registro: registro, sim: sim };
+}
+
+// ------------------------------------------------------------
+// Parcelas do financiamento no Controle
+// ------------------------------------------------------------
+// O bem não guarda vínculo com os lançamentos: a parcela costuma ter sido
+// lançada como despesa fixa ("Financiamento apê", "Prestação do carro"). A
+// série é achada pelo valor (até 15% da parcela do contrato) e, havendo mais
+// de uma com esse valor, pelo nome. Achada uma vez, fica gravada em
+// fin.parcelasGrupoId. Na dúvida, nada é mexido.
+var BEM_PALAVRAS_PARCELA =
+  /financ|presta|parcela|habita|consorc|imovel|apart|ape\b|casa|carro|veic|moto/;
+
+function _bemNormTxt(v) {
+  return String(v || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+}
+
+function _bemMesAtualIdx(hoje) {
+  var h = hoje || new Date();
+  return h.getFullYear() * 12 + h.getMonth();
+}
+
+/** Lançamentos ainda não pagos de uma série, do mês atual em diante, em ordem. */
+function bemParcelasFuturasDoGrupo(grupoId, hoje) {
+  var desde = _bemMesAtualIdx(hoje);
+  return (typeof transacoes !== 'undefined' ? transacoes : [])
+    .filter(function (t) {
+      return t.groupId === grupoId && !t.pago && t.ano * 12 + t.mes >= desde;
+    })
+    .sort(function (a, c) {
+      return a.ano * 12 + a.mes - (c.ano * 12 + c.mes);
+    });
+}
+
+/** A série de parcelas do financiamento no Controle: groupId ou null. */
+function bemAcharParcelasControle(b, parcelaRef, hoje) {
+  var fin = (b && b.financiamento) || {};
+  if (fin.parcelasGrupoId && bemParcelasFuturasDoGrupo(fin.parcelasGrupoId, hoje).length) {
+    return fin.parcelasGrupoId;
+  }
+  var ref = Number(parcelaRef) || 0;
+  if (!(ref > 0)) return null;
+  var desde = _bemMesAtualIdx(hoje);
+  var grupos = {};
+  (typeof transacoes !== 'undefined' ? transacoes : []).forEach(function (t) {
+    if (!t.groupId || t.pago || t.ano * 12 + t.mes < desde) return;
+    if (t.categoria !== 'despesa_fixa' && t.categoria !== 'despesa_variavel') return;
+    if (Math.abs((Number(t.valor) || 0) - ref) / ref > 0.15) return;
+    if (!grupos[t.groupId])
+      grupos[t.groupId] = { id: t.groupId, desc: t.descricao, valor: t.valor };
+  });
+  var lista = Object.keys(grupos).map(function (k) {
+    return grupos[k];
+  });
+  if (!lista.length) return null;
+  var nomeBem = _bemNormTxt(b.nome).split(/\s+/)[0] || '';
+  var comNome = lista.filter(function (g) {
+    var d = _bemNormTxt(g.desc);
+    return (nomeBem.length >= 3 && d.indexOf(nomeBem) !== -1) || BEM_PALAVRAS_PARCELA.test(d);
+  });
+  if (lista.length === 1) return lista[0].id;
+  if (comNome.length === 1) return comNome[0].id;
+  return null;
+}
+
+/**
+ * Ajusta a série no Controle depois da antecipação. Devolve o que mudou
+ * ({ grupoId, removidos: [transação], valores: [{ id, valor }] }) para o
+ * Desfazer — ou { grupoId: null } quando não achou a série.
+ */
+function bemAjustarParcelasControle(b, registro, sim, hoje) {
+  var fin = b.financiamento || {};
+  var ref =
+    Number(registro.parcelaAntes) ||
+    finParcelaEsperada(
+      fin.sistema === 'price' ? 'price' : 'sac',
+      registro.saldoAntes,
+      Number(fin.taxaMensal) || 0,
+      registro.parcelasAntes
+    );
+  var grupoId = bemAcharParcelasControle(b, ref, hoje);
+  var out = { grupoId: grupoId, removidos: [], valores: [] };
+  if (!grupoId) return out;
+  var futuras = bemParcelasFuturasDoGrupo(grupoId, hoje);
+  var quitou = sim.quitou || !(Number(fin.saldoDevedor) > 0);
+  if (quitou || registro.modo === 'prazo') {
+    var manter = quitou ? 0 : Math.max(0, Number(fin.parcelasRestantes) || 0);
+    var sair = futuras.slice(manter);
+    var ids = {};
+    sair.forEach(function (t) {
+      ids[t.id] = true;
+      out.removidos.push(Object.assign({}, t));
+    });
+    for (var k = transacoes.length - 1; k >= 0; k--) {
+      if (ids[transacoes[k].id]) transacoes.splice(k, 1);
+    }
+  } else {
+    var nova = Math.round((Number(fin.valorParcela) || 0) * 100) / 100;
+    if (nova > 0) {
+      futuras.forEach(function (t) {
+        out.valores.push({ id: t.id, valor: t.valor });
+        t.valor = nova;
+      });
+    }
+  }
+  if (out.removidos.length || out.valores.length) {
+    if (typeof salvarTransacoes === 'function') salvarTransacoes();
+  }
+  return out;
+}
+
+/** Desfaz a última antecipação: dívida, conta e parcelas do Controle voltam. */
+function bemDesfazerAntecipacao(bemId, registroId) {
+  var b = obterBem(bemId);
+  var fin = b && b.financiamento;
+  if (!fin || !Array.isArray(fin.antecipacoes)) return false;
+  var i = fin.antecipacoes.findIndex(function (r) {
+    return r.id === registroId;
+  });
+  if (i === -1) return false;
+  var r = fin.antecipacoes[i];
+  fin.saldoDevedor = r.saldoAntes;
+  fin.parcelasRestantes = r.parcelasAntes;
+  fin.valorParcela = r.parcelaAntes;
+  fin.valorPago = r.valorPagoAntes;
+  fin.antecipacoes.splice(i, 1);
+  salvarBens();
+  if (r.contaId && typeof obterConta === 'function') {
+    var c = obterConta(r.contaId);
+    if (c && Array.isArray(c.ajustes)) {
+      c.ajustes = c.ajustes.filter(function (a) {
+        return a.id !== 'aj_' + r.id;
+      });
+      if (typeof salvarContas === 'function') salvarContas();
+    }
+  }
+  var ctl = r.controle || {};
+  var mudou = false;
+  (ctl.removidos || []).forEach(function (t) {
+    if (!transacoes.some((x) => x.id === t.id)) {
+      transacoes.push(t);
+      mudou = true;
+    }
+  });
+  (ctl.valores || []).forEach(function (v) {
+    var t = transacoes.find((x) => x.id === v.id);
+    if (t && !t.pago) {
+      t.valor = v.valor;
+      mudou = true;
+    }
+  });
+  if (mudou && typeof salvarTransacoes === 'function') salvarTransacoes();
+  return true;
+}
+
+function bemPainelAbrir(id) {
+  var b = obterBem(id);
+  if (!b) return;
+  if (bemPainel.id !== id) {
+    bemPainel.extra = 0;
+    bemPainel.modo = 'prazo';
+    bemPainel.contaId = null;
+  }
+  bemPainel.id = id;
+  if (typeof mpPainel !== 'undefined') mpPainel.key = null;
+  bemPainelDesenhar();
+}
+
+function bemPainelFechar() {
+  bemPainel.id = null;
+  if (typeof mpFecharPainelInst === 'function') mpFecharPainelInst();
+}
+
+/** Ações que abrem outro modal fecham o painel antes (no celular ele fica por cima). */
+function bemPainelAcao(acao, id) {
+  bemPainelFechar();
+  if (acao === 'editar') editarBemForm(id);
+  else if (acao === 'excluir') confirmarExcluirBem(id);
+  else if (acao === 'fipe') bemAtualizarFipe(id);
+  else if (acao === 'analise') abrirAnaliseBem(id);
+  else if (acao === 'simulador') abrirModalAmortizacao(id);
+}
+
+function bemPainelExtra(v) {
+  bemPainel.extra = Number(v) || 0;
+  bemPainelDesenhar();
+}
+
+function bemPainelModo(m) {
+  bemPainel.modo = m === 'parcela' ? 'parcela' : 'prazo';
+  bemPainelDesenhar();
+}
+
+function bemPainelConta(id) {
+  bemPainel.contaId = id || null;
+}
+
+function bemPainelRegistrar() {
+  var id = bemPainel.id;
+  var b = obterBem(id);
+  if (!b || !(bemPainel.extra > 0)) return;
+  var r = bemRegistrarAntecipacao(id, bemPainel.extra, bemPainel.modo, bemPainel.contaId);
+  if (!r) return mostrarToast('Não deu para registrar a antecipação.', 'erro');
+  var fmt = _fmtDinheiroFin();
+  bemPainel.extra = 0;
+  if (typeof renderMeuPatrimonio === 'function') renderMeuPatrimonio(true);
+  else if (typeof renderMeusBens === 'function') renderMeusBens();
+  bemPainelDesenhar();
+  var ctl = r.registro.controle || {};
+  var nRem = (ctl.removidos || []).length;
+  var nVal = (ctl.valores || []).length;
+  var sobreControle = nRem
+    ? ' ' + nRem + (nRem === 1 ? ' parcela saiu' : ' parcelas saíram') + ' do fim, no Controle.'
+    : nVal
+      ? ' As ' +
+        nVal +
+        ' parcelas que faltam no Controle agora são de ' +
+        fmt(nVal ? obterBem(id).financiamento.valorParcela : 0) +
+        '.'
+      : ctl.grupoId
+        ? ''
+        : ' Não achei as parcelas no Controle; se estiverem lá, ajuste à mão.';
+  var msg =
+    'Antecipação de ' +
+    fmt(r.registro.valor) +
+    ' registrada' +
+    (r.registro.contaId ? '' : ' (sem conta: o caixa não mudou)') +
+    '.' +
+    sobreControle;
+  var regId = r.registro.id;
+  var aoDesfazer = function () {
+    if (!bemDesfazerAntecipacao(id, regId)) return;
+    if (typeof renderMeuPatrimonio === 'function') renderMeuPatrimonio(true);
+    if (typeof atualizarTelaControle === 'function') atualizarTelaControle();
+    if (bemPainel.id === id) bemPainelDesenhar();
+    mostrarToast('Antecipação desfeita.', 'sucesso');
+  };
+  if (typeof atualizarTelaControle === 'function') atualizarTelaControle();
+  if (typeof mostrarToastDesfazer === 'function') mostrarToastDesfazer(msg, aoDesfazer, 9000);
+  else mostrarToast(msg, 'sucesso', 7000);
+}
+
+function bemPainelHtml(b) {
+  var esc = function (v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/"/g, '&quot;');
+  };
+  var fmt = _fmtDinheiroFin();
+  var fmtK = function (v) {
+    var n = Math.abs(Number(v) || 0);
+    if (n >= 1000) return 'R$ ' + (Math.round(n / 100) / 10).toLocaleString('pt-BR') + ' mil';
+    return fmt(n);
+  };
+  var tipo = BEM_TIPOS.find(function (t) {
+    return t.v === b.tipo;
+  }) || { label: 'Bem', icon: 'ph-package' };
+  var idEsc = esc(b.id);
+  var comprado = b.dataCompra ? new Date(b.dataCompra + 'T12:00:00') : null;
+  var sub = [tipo.label];
+  if (b.imovel && b.imovel.areaM2) sub.push(String(b.imovel.areaM2).replace('.', ',') + ' m²');
+  if (comprado && !isNaN(comprado)) sub.push('comprado em ' + _bemMesAno(comprado));
+
+  var html =
+    '<header class="mpx-cab"><span class="mpd-inst-av bem-av"><i class="ph ' +
+    tipo.icon +
+    '"></i></span><div class="mpx-tit"><h2>' +
+    esc(b.nome) +
+    '</h2><small>' +
+    esc(sub.join(' · ')) +
+    '</small></div><button type="button" class="mpx-fechar" aria-label="Fechar" onclick="bemPainelFechar()"><i class="ph ph-x"></i></button></header>';
+
+  var varia = bemVariacaoCompra(b);
+  html +=
+    '<section class="mpx-saldo"><span class="mpd-rotulo">Vale hoje</span><div class="mpx-valor mpd-oculta">' +
+    esc(fmt(b.valorAtual || 0)) +
+    '</div>' +
+    (varia !== null
+      ? '<span class="mpd-sub">' +
+        (varia >= 0 ? '+' : '−') +
+        Math.abs(varia).toFixed(1).replace('.', ',') +
+        '% sobre a compra (<span class="mpd-oculta">' +
+        esc(fmt(b.valorCompra)) +
+        '</span>)</span>'
+      : '') +
+    '</section>';
+
+  var acoes = [];
+  if (b.fipe && b.fipe.codigoFipe)
+    acoes.push(['fipe', 'ph-arrows-clockwise', 'Atualizar FIPE', '']);
+  else acoes.push(['editar', 'ph-arrows-clockwise', 'Atualizar valor', '']);
+  acoes.push(['editar', 'ph-pencil-simple', 'Editar', '']);
+  acoes.push(['excluir', 'ph-trash', 'Excluir', ' perigo']);
+  html +=
+    '<nav class="mpx-acoes" aria-label="Ações do bem">' +
+    acoes
+      .map(function (a) {
+        return (
+          '<button type="button" class="mpx-acao' +
+          a[3] +
+          '" data-bem="' +
+          idEsc +
+          '" onclick="bemPainelAcao(\'' +
+          a[0] +
+          '\', this.dataset.bem)"><span><i class="ph ' +
+          a[1] +
+          '"></i></span>' +
+          a[2] +
+          '</button>'
+        );
+      })
+      .join('') +
+    '</nav>';
+
+  var fin = b.financiamento;
+  var ativo = fin && fin.ativo && Number(fin.saldoDevedor) > 0;
+  if (ativo) {
+    var sd = Number(fin.saldoDevedor) || 0;
+    var valor = Number(b.valorAtual) || 0;
+    var seu = Math.max(0, valor - sd);
+    var pctSeu = valor > 0 ? Math.max(0, Math.min(100, Math.round((seu / valor) * 100))) : 0;
+    html +=
+      '<section class="bem-seu"><div class="mpd-topo"><b>Quanto já é seu</b><span>' +
+      pctSeu +
+      '%</span></div><div class="bem-seu-barra" role="img" aria-label="' +
+      pctSeu +
+      '% já é seu"><span style="width:' +
+      pctSeu +
+      '%"></span></div><div class="bem-seu-leg"><span><i class="seu"></i>Seu <b class="mpd-oculta">' +
+      esc(fmt(seu)) +
+      '</b></span><span><i class="banco"></i>Ainda do banco <b class="mpd-oculta">' +
+      esc(fmt(sd)) +
+      '</b></span></div><small>É isto que entra no seu patrimônio líquido.</small></section>';
+
+    var r = finResumo(fin, valor);
+    var parcela = r.parcelaInformada > 0 ? r.parcelaInformada : r.parcelaEsperada;
+    var quita = bemQuitacao(r.parcelasRestantes);
+    var mesQueVem = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
+    var jurosPrimeira = sd * (r.taxaMensal || 0);
+    var porCem = parcela > 0 ? Math.round((jurosPrimeira / parcela) * 100) : 0;
+    html +=
+      '<section class="bem-fin"><div class="mpd-topo"><b>Financiamento</b><span>' +
+      (r.sistema === 'price' ? 'Price' : 'SAC') +
+      (r.taxaMensal ? ' · ' + _fmtTaxaMensal(r.taxaMensal) : '') +
+      '</span></div><div class="bem-fin-grade">' +
+      '<div><span>Parcela de ' +
+      FATURA_MESES_BEM[mesQueVem.getMonth()] +
+      '</span><b class="mpd-oculta">' +
+      esc(fmt(parcela)) +
+      '</b></div>' +
+      '<div><span>Faltam</span><b>' +
+      r.parcelasRestantes +
+      (r.parcelasRestantes === 1 ? ' parcela' : ' parcelas') +
+      '</b></div>' +
+      '<div><span>Juros até quitar</span><b class="mpd-oculta">≈ ' +
+      esc(fmtK(r.jurosRestantes)) +
+      '</b></div>' +
+      '<div><span>Quitação</span><b>' +
+      (quita ? _bemMesAno(quita) : '—') +
+      '</b></div></div>' +
+      (porCem > 0 && porCem < 100
+        ? '<small>De cada R$ 100 da próxima parcela, R$ ' +
+          porCem +
+          ' são juros. ' +
+          (r.sistema === 'sac'
+            ? 'A proporção cai a cada mês.'
+            : 'A proporção cai ao longo do contrato.') +
+          '</small>'
+        : '') +
+      '</section>';
+
+    // Simular antecipação
+    var opcoes = bemValoresAntecipar(sd);
+    if (!(bemPainel.extra > 0) && opcoes.length)
+      bemPainel.extra = opcoes[Math.min(1, opcoes.length - 1)];
+    var sim =
+      bemPainel.extra > 0 ? finSimularAmortizacao(fin, Math.min(bemPainel.extra, sd)) : null;
+    html +=
+      '<section class="bem-ant"><b>Simular antecipação</b><div class="mpd-seg bem-ant-vals" role="group" aria-label="Quanto antecipar">' +
+      opcoes
+        .map(function (v) {
+          return (
+            '<button type="button" aria-pressed="' +
+            (v === bemPainel.extra) +
+            '" onclick="bemPainelExtra(' +
+            v +
+            ')">' +
+            esc(fmtK(v)) +
+            '</button>'
+          );
+        })
+        .join('') +
+      '</div><div class="mpd-seg" role="group" aria-label="O que reduzir"><button type="button" aria-pressed="' +
+      (bemPainel.modo === 'prazo') +
+      '" onclick="bemPainelModo(\'prazo\')">Reduzir o prazo</button><button type="button" aria-pressed="' +
+      (bemPainel.modo === 'parcela') +
+      '" onclick="bemPainelModo(\'parcela\')">Reduzir a parcela</button></div>';
+    if (sim) {
+      var depois = bemPainel.modo === 'prazo' ? sim.prazo : sim.parcela;
+      var quitaDepois = bemQuitacao(depois.parcelas);
+      html +=
+        '<div class="bem-ant-res">' +
+        (sim.quitou
+          ? 'Com ' +
+            esc(fmtK(bemPainel.extra)) +
+            ' você <b>quita o financiamento</b> e deixa de pagar <b>≈ ' +
+            esc(fmtK(sim.jurosAtuais)) +
+            '</b> de juros.'
+          : bemPainel.modo === 'prazo'
+            ? 'Economiza <b>≈ ' +
+              esc(fmtK(depois.economia)) +
+              '</b> de juros e quita <b>' +
+              depois.parcelasReduzidas +
+              (depois.parcelasReduzidas === 1 ? ' mês' : ' meses') +
+              ' antes</b>' +
+              (quitaDepois ? ' (' + _bemMesAno(quitaDepois) + ')' : '') +
+              '.'
+            : 'Economiza <b>≈ ' +
+              esc(fmtK(depois.economia)) +
+              '</b> de juros e a parcela cai para <b>' +
+              esc(fmt(depois.novaParcela)) +
+              '</b>.') +
+        '</div>';
+      var contas = typeof contasComSaldo === 'function' ? contasComSaldo() : [];
+      if (!bemPainel.contaId && contas.length) {
+        var maior = contas.slice().sort(function (a, c) {
+          return (c.saldo || 0) - (a.saldo || 0);
+        })[0];
+        bemPainel.contaId = maior && (maior.id || (maior.conta && maior.conta.id));
+      }
+      if (contas.length) {
+        html +=
+          '<label class="bem-ant-conta">Sai de<select onchange="bemPainelConta(this.value)">' +
+          contas
+            .map(function (c) {
+              var cid = c.id || (c.conta && c.conta.id);
+              var nome = c.nome || (c.conta && c.conta.nome) || '';
+              return (
+                '<option value="' +
+                esc(cid) +
+                '"' +
+                (cid === bemPainel.contaId ? ' selected' : '') +
+                '>' +
+                esc(nome) +
+                (c.saldo != null ? ' · saldo ' + esc(fmt(c.saldo)) : '') +
+                '</option>'
+              );
+            })
+            .join('') +
+          '</select></label>';
+      }
+      html +=
+        '<button type="button" class="btn-acao bem-ant-btn" onclick="bemPainelRegistrar()">Registrar antecipação de ' +
+        esc(fmtK(Math.min(bemPainel.extra, sd))) +
+        '</button><button type="button" class="mpx-mais" data-bem="' +
+        idEsc +
+        '" onclick="bemPainelAcao(\'simulador\', this.dataset.bem)">Outro valor e detalhes</button>' +
+        '<small>Estimativa pelo sistema e pela taxa do contrato. O valor exato vem do banco.</small>';
+    }
+    html += '</section>';
+    if (typeof finConflitoNaoRevisado === 'function' && finConflitoNaoRevisado(fin)) {
+      html +=
+        '<button type="button" class="mpx-mais" data-bem="' +
+        idEsc +
+        '" onclick="bemPainelAcao(\'analise\', this.dataset.bem)">Confira a taxa do contrato</button>';
+    }
+  } else if (fin && fin.ativo === false) {
+    html += '<p class="mpd-sub">Quitado.</p>';
+  }
+
+  if (b.imovel && (b.imovel.areaM2 || b.imovel.valorM2)) {
+    var area = Number(b.imovel.areaM2) || 0;
+    var m2 = Number(b.imovel.valorM2) || 0;
+    html +=
+      '<section class="bem-imovel">' +
+      (area ? '<span>Área</span><b>' + String(area).replace('.', ',') + ' m²</b>' : '') +
+      (m2
+        ? '<span>Referência do bairro</span><b class="mpd-oculta">' + esc(fmt(m2)) + '/m²</b>'
+        : '') +
+      (area && m2
+        ? '<span>Estimativa por m²</span><b class="mpd-oculta">' + esc(fmt(area * m2)) + '</b>'
+        : '') +
+      '</section>';
+  }
+  return html;
+}
+
+var FATURA_MESES_BEM = [
+  'janeiro',
+  'fevereiro',
+  'março',
+  'abril',
+  'maio',
+  'junho',
+  'julho',
+  'agosto',
+  'setembro',
+  'outubro',
+  'novembro',
+  'dezembro',
+];
+
+function bemPainelDesenhar() {
+  var b = obterBem(bemPainel.id);
+  var p = document.getElementById('mpdPainel');
+  if (!b || !p) return;
+  p.innerHTML = '<div class="mpx">' + bemPainelHtml(b) + '</div>';
+  p.hidden = false;
+  document.body.classList.add('mpd-painel-aberto');
 }
 
 function bemAtualizarFipe(id) {
@@ -1829,6 +2818,29 @@ function bemAtualizarFipeAuto() {
 // ============================================================
 // === UI — RENDERIZAÇÃO DA LISTA                            ===
 // ============================================================
+
+// Quanto o bem valorizou ou desvalorizou sobre o que foi pago. Só aparece
+// com valor de compra informado e diferença de pelo menos 0,1%.
+function bemVariacaoCompra(b) {
+  var compra = Number(b && b.valorCompra) || 0;
+  var atual = Number(b && b.valorAtual) || 0;
+  if (!(compra > 0) || !(atual > 0)) return null;
+  var pct = ((atual - compra) / compra) * 100;
+  return Math.abs(pct) < 0.05 ? null : pct;
+}
+
+function bemVariacaoCompraHtml(b) {
+  var pct = bemVariacaoCompra(b);
+  if (pct === null) return '';
+  return (
+    '<span class="mp-bem-var" style="display:block;font-size:11px;font-weight:600;color:' +
+    (pct > 0 ? 'var(--tinta-verde)' : 'var(--tinta-vermelho)') +
+    ';">' +
+    (pct > 0 ? '+' : '−') +
+    Math.abs(pct).toFixed(1).replace('.', ',') +
+    '% sobre a compra</span>'
+  );
+}
 
 function renderMeusBens() {
   var wrap = document.getElementById('listaBens');
@@ -1953,9 +2965,13 @@ function renderMeusBens() {
       // própria e o CSS decide o arranjo por largura.
       return (
         '<div class="mp-inst-item mp-bem' +
-        (arq ? ' mp-arq' : '') +
+        (arq ? ' mp-arq' : ' mp-bem-clicavel') +
         '"' +
-        (arq ? ' style="opacity:.55;"' : '') +
+        (arq
+          ? ' style="opacity:.55;"'
+          : ' data-bem="' +
+            b.id +
+            '" onclick="if(!event.target.closest(\'button\'))bemPainelAbrir(this.dataset.bem)"') +
         '>' +
         '<i class="ph-fill ' +
         icon +
@@ -1972,6 +2988,7 @@ function renderMeusBens() {
         '<span class="mp-inst-valor valor-mascarado">' +
         valorTxt +
         '</span>' +
+        bemVariacaoCompraHtml(b) +
         '</div>' +
         // A linha do financiamento é IRMÃ do valor, não filha: só filho direto
         // da grade recebe grid-area. Aninhada, ela voltava a dividir a coluna do

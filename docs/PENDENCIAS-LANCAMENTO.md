@@ -3,7 +3,7 @@
 Lista viva do que falta para abrir a Appliquei a mais testadores e depois
 divulgar. Ao concluir um item, mova-o para "Feito" com a data e o PR.
 
-Última revisão: 26/10/2026.
+Última revisão: 07/11/2026.
 
 ## Entrada em produção (cobrança de verdade)
 
@@ -67,6 +67,12 @@ O código está pronto (26/10/2026); o resto é painel. Passo a passo completo e
   enquanto a conta existir" — confirmar.
 - Aviso de 30 dias antes de mudar o preço (nos Termos) — manter ou tirar.
 - Plano B se o advogado exigir credenciamento para a carteira sugerida.
+- Patrimônio e Controle (07/11/2026), escolhas feitas na implementação que
+  valem confirmar: o Patrimônio abre em **Líquido** quando há dívida; dívida =
+  financiamentos ativos + faturas aberta/fechada não pagas (parcelas futuras
+  ficam de fora); o número grande do Controle é a **sobra do mês** (a
+  acumulada virou selo/linha). Proposta completa no canvas "Appliquei —
+  Patrimônio e Controle".
 - Vercel: fica no Hobby, um ambiente só, por enquanto (26/10/2026). Revisitar
   quando a receita justificar: os termos do Hobby são para uso não comercial,
   e o Pro tira o teto de 12 funções e dá o Spend Management.
@@ -77,8 +83,32 @@ O código está pronto (26/10/2026); o resto é painel. Passo a passo completo e
       Hoje o reembolso é manual, por pedido; os Termos já preveem.
 - [ ] **Limite de requisições em `/api/market`** (opcional, risco baixo:
       exige login e usa cache).
+- [ ] **Patrimônio e Controle — o que o canvas propõe e ainda não entrou**
+      (07/11/2026): liquidez da renda fixa (falta o campo de prazo de
+      resgate); "por que mudou" separando proventos e amortização; gráfico do
+      líquido no passado (reconstruir o saldo devedor pelo contrato).
 
 ## Feito
+
+- 07/11/2026 · branch `claude/intelligent-ritchie-6o5r6m` (2ª leva) — Faturas
+  do cartão no layout novo (limite, parcela, comprometido); folha do
+  lançamento no celular (pagar, outro valor, adiar, só este mês); limite por
+  categoria e Metas do mês em % (réguas da Saúde do mês); nova conta em grade
+  de instituições, editar conta com arquivar; conferir saldo com "lançar a
+  diferença"; novo bem em passos com busca FIPE única; painel do bem com
+  "quanto já é seu", financiamento e registro de antecipação — que também
+  corrige as parcelas do Controle (prazo menor tira as do fim, parcela menor
+  muda o valor), com Desfazer.
+- 08/11/2026 · mesma branch — Projeção nova: resumo (quanto terá, menor
+  ponto, sobra média), linha da sobra acumulada, alerta do mês negativo com
+  o motivo, aviso de receita não lançada, entra × sai, "o que muda", mês a
+  mês com o comprometido e o "E se…?" para testar uma compra ou entrada.
+- 07/11/2026 · branch `claude/intelligent-ritchie-6o5r6m` — Patrimônio: web com
+  líquido/bruto, linha do tempo, balanço tem/deve, "por que mudou", fôlego,
+  classes em lista, contas sem lista duplicada; celular com lista de
+  instituições, 1M, dívidas e "gerenciar contas". Controle: sobra do mês em
+  destaque nos dois, "Saúde do mês" com os critérios do termômetro, gastos por
+  categoria × média, projeção em barras no web, sem os valores repetidos.
 
 - 26/10/2026 · produção — Applicash desligado (tela: `APPLICASH_ATIVO` no
   `<head>` do app; servidor: `APPLICASH_ENABLED`); "Pro + IA" fora da landing e

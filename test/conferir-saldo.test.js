@@ -277,3 +277,31 @@ test('"Pagou com": cartões só na saída variável nova', () => {
   fields.editTransacaoId = 'x';
   assert.equal(s.lancUiCartoesPagouCom('saida').length, 0, 'na edição, não');
 });
+
+// ---------------------------------------------------------------------------
+// "Lançar como gasto / entrada" (canvas Conferir saldo, nov/2026)
+// ---------------------------------------------------------------------------
+
+test('lançar a diferença como gasto: despesa paga hoje nesta conta, e a conta bate', () => {
+  const { s, conta } = cenario();
+  const antes = s.conferirSaldoApp(conta.id, Date.now());
+  const t = s.conferirLancarDiferenca(conta.id, antes - 120);
+  assert.equal(t.categoria, 'despesa_variavel');
+  assert.equal(t.valor, 120);
+  assert.equal(t.contaId, conta.id);
+  assert.equal(t.pago, true);
+  assert.ok(!t.categoriaDespesa, 'fica em "Outros" (sem categoria)');
+  assert.equal(Math.round(s.conferirSaldoApp(conta.id, Date.now()) * 100) / 100, antes - 120);
+  assert.ok(s.obterConta(conta.id).conferidoEm);
+  assert.ok(!(s.obterConta(conta.id).ajustes || []).length, 'sem ajuste de saldo');
+});
+
+test('lançar a diferença como entrada quando o banco tem mais', () => {
+  const { s, conta } = cenario();
+  const antes = s.conferirSaldoApp(conta.id, Date.now());
+  const t = s.conferirLancarDiferenca(conta.id, antes + 50);
+  assert.equal(t.categoria, 'receita');
+  assert.equal(t.valor, 50);
+  assert.equal(Math.round(s.conferirSaldoApp(conta.id, Date.now()) * 100) / 100, antes + 50);
+  assert.equal(s.conferirLancarDiferenca(conta.id, antes + 50), null, 'sem diferença, nada');
+});
