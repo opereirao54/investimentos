@@ -1532,18 +1532,32 @@ function _mobComposicao(c) {
         despesa && x.slug && typeof obterLimiteCategoria === 'function'
           ? obterLimiteCategoria(x.slug)
           : 0;
+      // No mês corrente, o ritmo ("cabe R$ 95 por semana" / "R$ 180 acima do
+      // ritmo") toma o lugar do percentual — a mesma régua do web.
+      const ritmo =
+        lim > 0 &&
+        typeof ritmoLimiteCategoria === 'function' &&
+        typeof visaoMes !== 'undefined' &&
+        typeof visaoAno !== 'undefined'
+          ? ritmoLimiteCategoria(x.slug, visaoMes, visaoAno)
+          : null;
+      const ritmoTxt =
+        ritmo && typeof textoRitmoLimite === 'function' ? textoRitmoLimite(ritmo) : '';
       const limTxt =
         lim > 0
           ? '<small class="mc-lim' +
-            (x.valor > lim ? ' passou' : x.valor >= lim * 0.8 ? ' perto' : '') +
+            (x.valor > lim
+              ? ' passou'
+              : x.valor >= lim * 0.8 || (ritmo && ritmo.estado === 'acima')
+                ? ' perto'
+                : '') +
             '">' +
             (x.valor > lim
               ? 'passou ' + _mobEsc(_mobDreFmt(x.valor - lim)) + ' do limite'
               : 'de ' +
                 _mobEsc(_mobDreFmt(lim)) +
                 ' · ' +
-                Math.round((x.valor / lim) * 100) +
-                '%') +
+                (ritmoTxt ? _mobEsc(ritmoTxt) : Math.round((x.valor / lim) * 100) + '%')) +
             '</small>'
           : '';
       const corpo =

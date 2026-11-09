@@ -323,6 +323,7 @@ function onChangeCategoriaDespesa() {
   const novaWrap = document.getElementById('grupoCategoriaDespesaNova');
   if (!sel || !novaWrap) return;
   novaWrap.style.display = sel.value === '__nova__' ? 'block' : 'none';
+  avisarCategoriaParecida('');
   const picker = document.getElementById('categoriaDespesaEmojiPicker');
   if (picker) picker.style.display = 'none';
   if (sel.value === '__nova__') document.getElementById('categoriaDespesaNova')?.focus();
@@ -337,7 +338,7 @@ function resolverCategoriaDespesaSelecionada(categoriaContabil) {
   if (!sel) return null;
   let valor = sel.value;
   if (valor === '__nova__') {
-    const nome = (document.getElementById('categoriaDespesaNova')?.value || '').trim();
+    const nome = normalizarNomeCategoria(document.getElementById('categoriaDespesaNova')?.value);
     if (!nome) return null;
     const slug = slugCategoriaDespesa(nome);
     if (obterCategoriasDespesa().some((c) => c.v === slug)) return slug;
@@ -357,6 +358,177 @@ function resolverCategoriaDespesaSelecionada(categoriaContabil) {
     return slug;
   }
   return valor || null;
+}
+
+// --- Categoria repetida -----------------------------------------------------
+// Sem aviso, quem digita "FARMACIA" cria uma categoria nova ao lado de Saúde, e
+// "CABELEIREIRO" ao lado de Cuidados Pessoais: o gasto de saúde passa a morar
+// em dois lugares, e nem o limite nem a média da categoria batem mais. Na hora
+// de criar, o app aponta a categoria que já existe. É sugestão, não trava:
+// quem quer mesmo separar Farmácia de Saúde continua podendo.
+
+// Palavras que, sozinhas, já dizem qual categoria padrão é a casa do gasto.
+// Comer fora (padaria, restaurante) fica de fora de propósito: separar isso
+// de Alimentação é uma escolha legítima de controle.
+var SINONIMOS_CATEGORIA_PADRAO = {
+  saude: [
+    'farmacia',
+    'drogaria',
+    'remedio',
+    'medico',
+    'consulta',
+    'dentista',
+    'exame',
+    'hospital',
+    'plano de saude',
+  ],
+  cuidados_pessoais: [
+    'cabeleireiro',
+    'cabelo',
+    'salao',
+    'barbeiro',
+    'barbearia',
+    'manicure',
+    'unha',
+    'estetica',
+    'beleza',
+    'cosmetico',
+    'perfumaria',
+  ],
+  transporte: [
+    'combustivel',
+    'gasolina',
+    'etanol',
+    'posto',
+    'estacionamento',
+    'uber',
+    'onibus',
+    'metro',
+    'pedagio',
+    'oficina',
+  ],
+  alimentacao: ['mercado', 'supermercado', 'acougue', 'mistura', 'hortifruti', 'feira', 'sacolao'],
+  moradia: ['aluguel', 'condominio', 'luz', 'energia', 'agua', 'gas', 'internet'],
+  lazer: ['assinatura', 'streaming', 'cinema', 'passeio'],
+  educacao: ['escola', 'faculdade', 'curso', 'livro', 'material escolar'],
+  pets: ['pet', 'veterinario', 'racao', 'petshop'],
+  impostos_taxas: ['imposto', 'taxa', 'iptu', 'ipva', 'contabilidade', 'tarifa'],
+};
+
+/** "Plano de Saúde!" → "plano de saude" (sem acento, sem emoji, sem o "s" do plural). */
+function _normCategoria(txt) {
+  return String(txt || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .map((p) => (p.length > 3 ? p.replace(/s$/, '') : p))
+    .join(' ');
+}
+
+/** Nome digitado → nome gravado. Tudo em maiúsculas vira "Farmacia" (caixa
+ *  alta parece outra categoria na lista e grita no extrato); espaços em
+ *  excesso somem. Quem escreveu com maiúsculas e minúsculas fica como está. */
+function normalizarNomeCategoria(nome) {
+  const limpo = String(nome || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!limpo) return '';
+  const letras = limpo.replace(/[^A-Za-zÀ-ÿ]/g, '');
+  if (letras.length > 3 && letras === letras.toUpperCase()) {
+    const minusculas = ['e', 'de', 'da', 'do', 'das', 'dos', 'a', 'o'];
+    return limpo
+      .toLowerCase()
+      .split(' ')
+      .map((p, i) => (i > 0 && minusculas.includes(p) ? p : p.charAt(0).toUpperCase() + p.slice(1)))
+      .join(' ');
+  }
+  return limpo.charAt(0).toUpperCase() + limpo.slice(1);
+}
+
+/** A categoria visível que já cobre `nome`, ou null. `ignorar` é o slug da
+ *  própria categoria (na lista de Configurações ela não conta como repetida). */
+function categoriaParecida(nome, ignorar) {
+  const n = _normCategoria(nome);
+  if (n.length < 3) return null;
+  const visiveis = obterCategoriasDespesa().filter((c) => c.v !== ignorar);
+  const palavras = ' ' + n + ' ';
+  // 1) Mesmo nome (ou um contém o outro como palavra inteira): "Saúde" e
+  //    "Saude e farmácia", "Pets" e "Pet".
+  for (const c of visiveis) {
+    const r = _normCategoria(_partesRotuloCategoria(c.label).nome);
+    if (!r) continue;
+    if (r === n || palavras.includes(' ' + r + ' ') || (' ' + r + ' ').includes(palavras)) return c;
+  }
+  // 2) Sinônimo de uma categoria padrão.
+  for (const c of visiveis) {
+    const sin = SINONIMOS_CATEGORIA_PADRAO[c.v];
+    if (sin && sin.some((x) => palavras.includes(' ' + _normCategoria(x) + ' '))) return c;
+  }
+  return null;
+}
+
+function _escCategoria(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** Liga ao digitar o nome de uma categoria nova. sufixo '' = formulário de
+ *  lançamento, 'Config' = Configurações. Renomear não avisa. */
+function avisarCategoriaParecida(sufixo) {
+  const suf = sufixo || '';
+  const aviso = document.getElementById('categoriaParecidaAviso' + suf);
+  if (!aviso) return;
+  const input = document.getElementById('categoriaDespesaNova' + suf);
+  const editando = input && input.dataset ? input.dataset.editandoV || '' : '';
+  const c = input && !editando ? categoriaParecida(input.value) : null;
+  if (!c) {
+    aviso.hidden = true;
+    aviso.innerHTML = '';
+    return;
+  }
+  aviso.hidden = false;
+  aviso.innerHTML =
+    '<span>Já existe <b>' +
+    _escCategoria(c.label) +
+    '</b>. Usar a mesma deixa o gasto num lugar só.</span>' +
+    '<button type="button" class="btn-secundario" onclick="usarCategoriaParecida(\'' +
+    c.v +
+    "','" +
+    suf +
+    '\')">Usar essa</button>';
+}
+
+function usarCategoriaParecida(v, sufixo) {
+  const suf = sufixo || '';
+  const input = document.getElementById('categoriaDespesaNova' + suf);
+  if (input) input.value = '';
+  avisarCategoriaParecida(suf);
+  if (suf === 'Config') {
+    cancelarCategoriaConfig();
+    return mostrarToast(
+      'Ok, nada foi criado. Use ' + rotuloCategoriaDespesa(v) + ' nos lançamentos.',
+      'sucesso'
+    );
+  }
+  const sel = document.getElementById('categoriaDespesa');
+  if (sel) sel.value = v;
+  onChangeCategoriaDespesa();
+  if (typeof lancUiSincronizar === 'function') lancUiSincronizar();
+}
+
+/** Configurações: junta uma categoria criada na parecida — é a exclusão com o
+ *  destino dos lançamentos já escolhido. */
+function juntarCategoriaConfig(de, para) {
+  pedirExclusaoCategoriaConfig(de);
+  const sel = document.getElementById('categoriaConfigDestino');
+  if (sel) sel.value = para;
 }
 
 // ============================================================
@@ -432,8 +604,97 @@ function complementoLimiteCategoria(novos) {
         nome + ' passou do limite: ' + formatarMoeda(gasto) + ' de ' + formatarMoeda(lim) + '.'
       );
     else if (sit.estado === 'perto') frases.push(nome + ' chegou a ' + sit.pct + '% do limite.');
+    else {
+      const r = ritmoLimiteCategoria(t.categoriaDespesa, t.mes, t.ano);
+      if (r && r.estado === 'acima')
+        frases.push(
+          nome +
+            ' está ' +
+            formatarMoeda(r.acima) +
+            ' acima do ritmo do mês: ' +
+            (r.diasRestantes >= 7
+              ? 'cabem ' + formatarMoeda(r.porSemana) + ' por semana até o fim.'
+              : 'cabem ' + formatarMoeda(r.porDia) + ' por dia até o fim.')
+        );
+    }
   });
   return frases.length ? ' ' + frases.slice(0, 2).join(' ') : '';
+}
+
+// --- Ritmo do limite -------------------------------------------------------
+// O aviso de 80% só olha QUANTO já foi, não QUANDO. No dia 8 (27% do mês),
+// ter gasto 60% do limite de Mercado já é o sinal — e o aviso de 80% ficava
+// calado até ser tarde. O ritmo compara o gasto com a fração do mês que já
+// passou e diz quanto ainda cabe por semana (ou por dia, na última semana).
+//
+// O limite continua sendo UM número por mês: é o ciclo da renda e das contas.
+// Semana e dia são a mesma régua mostrada em pedaços menores, sem segunda
+// configuração para manter em sincronia.
+//
+// Só a parte VARIÁVEL entra no ritmo. O fixo da categoria (dízimo, plano,
+// parcela, assinatura) já está decidido no começo do mês: se entrasse, a
+// categoria nasceria "acima do ritmo" no dia 1. O fixo sai do limite antes, e
+// o que sobra é o que dá para gastar no dia a dia.
+
+/** Gasto já comprometido ao entrar no mês: fixo, recorrente, parcela, fixo do cartão. */
+function lancamentoComprometido(t) {
+  if (!t) return false;
+  if (t.categoria === 'despesa_fixa' || t.cartaoFixoMensal) return true;
+  if (t.categoria === 'cartao_credito') return /\(\d+\/\d+\)\s*$/.test(String(t.descricao || ''));
+  return !!t.groupId;
+}
+
+/** Ritmo do limite de uma categoria no mês corrente (pura sobre `transacoes`).
+ *  null quando não há limite, o mês não é o de `hoje`, ou o fixo já come o
+ *  limite inteiro (aí o estado do limite já diz tudo). */
+function ritmoLimiteCategoria(slug, mes, ano, hoje) {
+  const limite = obterLimiteCategoria(slug);
+  if (!limite || typeof transacoes === 'undefined') return null;
+  const h = hoje || new Date();
+  if (h.getMonth() !== mes || h.getFullYear() !== ano) return null;
+  let fixo = 0;
+  let variavel = 0;
+  transacoes.forEach((t) => {
+    if (t.mes !== mes || t.ano !== ano || t.categoriaDespesa !== slug) return;
+    if (!categoriaDespesaUsada(t.categoria)) return;
+    if (lancamentoComprometido(t)) fixo += Number(t.valor) || 0;
+    else variavel += Number(t.valor) || 0;
+  });
+  const livre = limite - fixo;
+  if (livre <= 0.005) return null;
+  const diasMes = new Date(ano, mes + 1, 0).getDate();
+  const dia = h.getDate();
+  const esperado = (livre * dia) / diasMes;
+  const restante = livre - variavel;
+  const diasRestantes = diasMes - dia + 1; // hoje ainda conta
+  const porDia = Math.max(0, restante) / diasRestantes;
+  const porSemana = diasRestantes >= 7 ? porDia * 7 : Math.max(0, restante);
+  const acima = variavel - esperado;
+  // Folga de 10% do livre (mínimo R$ 20): uma compra de mercado maior num
+  // dia não pode acender o aviso sozinha.
+  const folga = Math.max(livre * 0.1, 20);
+  const estado = restante < -0.005 ? 'passou' : acima > folga ? 'acima' : 'ok';
+  return {
+    limite,
+    fixo,
+    variavel,
+    livre,
+    esperado,
+    restante,
+    diasRestantes,
+    porDia,
+    porSemana,
+    acima,
+    estado,
+  };
+}
+
+/** "cabe R$ 95 por semana" / "R$ 180 acima do ritmo" — vazio sem ritmo. */
+function textoRitmoLimite(r) {
+  if (!r || r.estado === 'passou') return '';
+  if (r.estado === 'acima') return formatarMoeda(r.acima) + ' acima do ritmo';
+  if (r.diasRestantes >= 7) return 'cabe ' + formatarMoeda(r.porSemana) + ' por semana';
+  return 'cabe ' + formatarMoeda(r.porDia) + ' por dia';
 }
 
 var categoriaConfigLimite = null;
@@ -494,11 +755,17 @@ function renderizarListaCategoriasConfig() {
     const tipoTxt = c.padrao ? 'Padrão' : 'Criada por você';
     const acaoTitulo = c.padrao ? 'Ocultar (histórico preservado)' : 'Excluir';
     const acaoIcone = c.padrao ? 'ph-eye-slash' : 'ph-trash';
+    // Criada que repete uma existente (FARMACIA ao lado de Saúde): juntar é
+    // a exclusão com o destino já escolhido, histórico movido junto.
+    const par = c.padrao ? null : categoriaParecida(_partesRotuloCategoria(c.label).nome, c.v);
+    const parTxt = par
+      ? `<div class="cat-cfg-parecida">Parece com ${_escCategoria(par.label)} <button type="button" onclick="juntarCategoriaConfig('${c.v}','${par.v}')">Juntar</button></div>`
+      : '';
     return `
       <div style="display:flex;align-items:center;gap:10px;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:9px;padding:10px 12px;">
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:600;color:var(--cor-texto-principal);">${c.label}</div>
-          <div style="font-size:11px;color:var(--cor-texto-mutado);">${tipoTxt} • ${usoTxt}${obterLimiteCategoria(c.v) ? ' • limite ' + formatarMoeda(obterLimiteCategoria(c.v)) + '/mês' : ''}</div>
+          <div style="font-size:11px;color:var(--cor-texto-mutado);">${tipoTxt} • ${usoTxt}${obterLimiteCategoria(c.v) ? ' • limite ' + formatarMoeda(obterLimiteCategoria(c.v)) + '/mês' : ''}</div>${parTxt}
         </div>
         <button class="btn-secundario cat-cfg-limite" onclick="abrirLimiteCategoriaConfig('${c.v}')" title="Limite por mês">Limite</button>
         <button class="btn-secundario" style="padding:4px 8px;font-size:11px;color:var(--cor-info);border-color:var(--cor-info);" onclick="editarCategoriaConfig('${c.v}')" title="Renomear"><i class="ph ph-pencil-simple"></i></button>
@@ -574,7 +841,7 @@ function renderizarListaCategoriasConfig() {
         <label class="cat-lim-campo">Outro valor por mês
           <span><span>R$</span><input id="categoriaLimiteValor" type="text" inputmode="decimal" value="${atual ? formatarBRLInput(atual) : ''}" oninput="aplicarMascaraBRL(this)" onkeydown="if(event.key==='Enter')salvarLimiteCategoriaConfig('${v}','valor')"></span>
         </label>
-        <span class="cat-lim-nota">Avisamos quando chegar a 80% e quando passar.</span>
+        <span class="cat-lim-nota">Durante o mês mostramos quanto ainda cabe por semana, e avisamos quando o gasto passa do ritmo, chega a 80% ou passa do limite. As contas fixas da categoria saem do limite primeiro.</span>
         <div class="cat-lim-botoes">
           <button type="button" class="btn-secundario" onclick="cancelarLimiteCategoriaConfig()">Cancelar</button>
           <button type="button" class="btn-acao" onclick="salvarLimiteCategoriaConfig('${v}','valor')">Salvar limite</button>
@@ -599,6 +866,7 @@ function abrirNovaCategoriaConfig() {
     nome.dataset.editandoV = '';
   }
   resetarEmojiCategoriaNova('Config');
+  avisarCategoriaParecida('Config');
   const titulo = document.getElementById('tituloFormCategoriaConfig');
   if (titulo) titulo.textContent = 'Nova categoria';
   const salvar = document.getElementById('btnSalvarCategoriaConfig');
@@ -636,6 +904,7 @@ function editarCategoriaConfig(v) {
     nome.dataset.editandoV = v;
   }
   definirEmojiCategoria(partes.emoji, 'Config');
+  avisarCategoriaParecida('Config');
   const titulo = document.getElementById('tituloFormCategoriaConfig');
   if (titulo) titulo.textContent = 'Renomear categoria';
   const salvar = document.getElementById('btnSalvarCategoriaConfig');
@@ -646,7 +915,7 @@ function editarCategoriaConfig(v) {
 
 function salvarCategoriaConfig() {
   const inputNome = document.getElementById('categoriaDespesaNovaConfig');
-  const nome = (inputNome?.value || '').trim();
+  const nome = normalizarNomeCategoria(inputNome?.value);
   if (!nome) return mostrarToast('Informe o nome da categoria.', 'erro');
   const emoji = (document.getElementById('categoriaDespesaNovaEmojiConfig')?.value || '🏷️').trim();
   const label = `${emoji} ${nome}`;
@@ -2657,6 +2926,7 @@ function gastosPorCategoriaComMedia(mes, ano) {
     if (valor <= 0.005 && !(media > 0.005)) return;
     const limite = c === '__sem_categoria__' ? 0 : obterLimiteCategoria(c);
     const sit = situacaoLimiteCategoria(valor, limite);
+    const ritmo = limite ? ritmoLimiteCategoria(c, mes, ano) : null;
     linhas.push({
       slug: c,
       rotulo: c === '__sem_categoria__' ? 'Sem categoria' : rotuloCategoriaDespesa(c),
@@ -2665,6 +2935,7 @@ function gastosPorCategoriaComMedia(mes, ano) {
       limite,
       limiteEstado: sit ? sit.estado : null,
       limitePct: sit ? sit.pct : null,
+      ritmo,
       alerta:
         (sit && sit.estado === 'passou') ||
         (media != null && media > 0 && valor > media * 1.5 && valor - media > 100),
@@ -2710,6 +2981,7 @@ function renderGastosPorCategoria(mes, ano) {
           '<button type="button" class="ctrl-cat' +
           (l.alerta ? ' alerta' : '') +
           (l.limiteEstado ? ' lim-' + l.limiteEstado : '') +
+          (l.limiteEstado === 'ok' && l.ritmo && l.ritmo.estado === 'acima' ? ' lim-ritmo' : '') +
           '" data-cat="' +
           esc(l.slug === '__sem_categoria__' ? '' : l.slug) +
           '" onclick="filtrarExtratoPorCategoria(this.dataset.cat)" title="' +
@@ -2743,7 +3015,8 @@ function renderGastosPorCategoria(mes, ano) {
 function ctrlCatLimiteTexto(l) {
   if (!l || !l.limite) return '';
   if (l.limiteEstado === 'passou') return 'passou ' + formatarMoeda(l.valor - l.limite);
-  return 'de ' + formatarMoeda(l.limite) + ' · ' + l.limitePct + '%';
+  const ritmo = textoRitmoLimite(l.ritmo);
+  return 'de ' + formatarMoeda(l.limite) + ' · ' + (ritmo || l.limitePct + '%');
 }
 
 /**
@@ -5542,31 +5815,71 @@ function atualizarTelaControle() {
 var extratoCategoriaAtiva = '';
 var extratoTipoAtivo = 'todos';
 
+// Os VALORES dos chips seguem a aba de cima (e a conta escolhida): em
+// "Saídas" eles somam só saídas. Antes somavam o mês inteiro, e "Todas" virava
+// receita + despesa — um número que não responde nada, e um chip "Receita"
+// aparecia no meio das saídas. Em "Todos", o chip "Todas" fica sem valor pelo
+// mesmo motivo; cada categoria continua com o seu (ela é de um tipo só).
+// A busca não entra na conta: digitar não deve fazer a linha de chips pular.
+
+/** Totais por categoria para a aba e a conta ativas (pura, testável).
+ *  itens: [{ tipo, cat, origem, valor }] (valor com sinal ou não).
+ *  Devolve [[cat, total]] do maior para o menor, só com total > 0. */
+function extratoTotaisCategoria(itens, tipo, origem) {
+  const tot = new Map();
+  (itens || []).forEach((it) => {
+    if (!it || !it.cat) return;
+    if (tipo && tipo !== 'todos' && it.tipo !== tipo) return;
+    if (origem && it.origem !== origem) return;
+    tot.set(it.cat, (tot.get(it.cat) || 0) + Math.abs(Number(it.valor) || 0));
+  });
+  return Array.from(tot.entries())
+    .filter(([, v]) => v > 0.005)
+    .sort((a, b) => b[1] - a[1]);
+}
+
 function renderizarChipsCategoriaExtrato(mapa) {
+  extratoCatsDoMes = mapa;
+  aplicarFiltrosExtrato();
+}
+
+// Chamada por aplicarFiltrosExtrato, ANTES de filtrar a lista: se a categoria
+// escolhida não existe na aba nova, ela volta para "Todas" aqui, em vez de a
+// lista ficar vazia.
+function desenharChipsCategoriaExtrato() {
   const wrap = document.getElementById('extratoCategorias');
   if (!wrap) return;
-  const cats = Array.from(mapa.entries()).sort((a, b) => b[1].total - a[1].total);
-  extratoCatsDoMes = mapa;
+  const lista = document.getElementById('extratoUnificado');
+  const itens = lista
+    ? Array.from(lista.querySelectorAll('.extrato-item:not(.ext-fatura-linha)')).map((el) => ({
+        tipo: el.dataset.extTipo,
+        cat: el.dataset.extCat,
+        origem: el.dataset.extOrigem,
+        valor: el.dataset.extValor,
+      }))
+    : [];
+  const cats = extratoTotaisCategoria(itens, extratoTipoAtivo, extratoOrigemAtiva);
 
   // Um chip só não é filtro — é rótulo. Nesse caso a linha não aparece.
   if (cats.length < 2) {
     wrap.style.display = 'none';
     wrap.innerHTML = '';
     extratoCategoriaAtiva = '';
-    aplicarFiltrosExtrato();
     return;
   }
-  if (extratoCategoriaAtiva && !mapa.has(extratoCategoriaAtiva)) extratoCategoriaAtiva = '';
+  if (extratoCategoriaAtiva && !cats.some(([k]) => k === extratoCategoriaAtiva))
+    extratoCategoriaAtiva = '';
 
-  const total = cats.reduce((s, [, c]) => s + c.total, 0);
+  const misturaTipos = !extratoTipoAtivo || extratoTipoAtivo === 'todos';
+  const total = cats.reduce((s, [, v]) => s + v, 0);
   let html =
     '<button type="button" class="ext-cat' +
     (extratoCategoriaAtiva ? '' : ' on') +
     '" data-ext-chip="" onclick="filtrarExtratoPorCategoria(\'\')">Todas' +
-    '<span class="ext-cat-val">' +
-    formatarMoeda(total) +
-    '</span></button>';
-  for (const [slug, c] of cats) {
+    (misturaTipos ? '' : '<span class="ext-cat-val">' + formatarMoeda(total) + '</span>') +
+    '</button>';
+  for (const [slug, v] of cats) {
+    const c = extratoCatsDoMes.get(slug);
     html +=
       '<button type="button" class="ext-cat' +
       (extratoCategoriaAtiva === slug ? ' on' : '') +
@@ -5575,14 +5888,16 @@ function renderizarChipsCategoriaExtrato(mapa) {
       '" onclick="filtrarExtratoPorCategoria(\'' +
       slug.replace(/\\/g, '\\\\').replace(/'/g, "\\'") +
       '\')">' +
-      c.rotulo +
+      (c ? c.rotulo : slug) +
       '<span class="ext-cat-val">' +
-      formatarMoeda(c.total) +
+      formatarMoeda(v) +
       '</span></button>';
   }
+  // Trocar de aba redesenha a linha; a rolagem lateral fica onde estava.
+  const rolagem = wrap.scrollLeft || 0;
   wrap.innerHTML = html;
   wrap.style.display = 'flex';
-  aplicarFiltrosExtrato();
+  if (rolagem) wrap.scrollLeft = rolagem;
 }
 
 function filtrarExtratoPorCategoria(slug) {
@@ -5934,6 +6249,7 @@ function filtrarExtratoPorOrigem(chave) {
 function aplicarFiltrosExtrato() {
   const lista = document.getElementById('extratoUnificado');
   if (!lista) return;
+  desenharChipsCategoriaExtrato();
   let visiveis = 0;
   let entrou = 0;
   let saiu = 0;
