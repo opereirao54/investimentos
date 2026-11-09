@@ -1174,6 +1174,11 @@ function mobRenderInicio(d) {
     prox.innerHTML =
       _mobNotamosCartao() +
       _mobProximos(d.vencimentos, d.hojeStr) +
+      // Seu plano do mês: a soma dos limites contra a renda, e como ela se
+      // divide — logo antes do "Para onde foi", que mostra cada categoria.
+      (typeof planoDoMes === 'function' && typeof htmlPlanoDoMes === 'function'
+        ? '<div class="mi-card mi-plano">' + htmlPlanoDoMes(planoDoMes(d.mes, d.ano)) + '</div>'
+        : '') +
       // "Para onde foi" completo (todas as categorias, com "Ver todas"), como
       // era antes; "Destino do dinheiro" mostra fixas, variáveis, cartão etc.
       _mobComposicao(d.composicao);
@@ -1527,39 +1532,61 @@ function _mobComposicao(c) {
           ? x.slug
           : null
         : x.tipo || null;
-      // Categoria com limite por mês: "de R$ 280 · 85%" / "passou R$ 40".
+      // Categoria com limite: a barra enche até O LIMITE dela (não até a
+      // maior categoria), na cor do estado, e a pílula à direita diz quanto do
+      // limite foi usado com ✓ / ! / ✕. Antes a barra era relativa à maior
+      // categoria: "passou R$ 369" aparecia com a barra pela metade.
       const lim =
         despesa && x.slug && typeof obterLimiteCategoria === 'function'
           ? obterLimiteCategoria(x.slug)
           : 0;
-      // No mês corrente, o ritmo ("cabe R$ 95 por semana" / "R$ 180 acima do
-      // ritmo") toma o lugar do percentual — a mesma régua do web.
+      const temMes = typeof visaoMes !== 'undefined' && typeof visaoAno !== 'undefined';
+      const estado =
+        lim > 0 && temMes && typeof estadoLimiteCategoria === 'function'
+          ? estadoLimiteCategoria(x.slug, visaoMes, visaoAno, x.valor, lim)
+          : lim > 0
+            ? x.valor > lim
+              ? 'passou'
+              : 'ok'
+            : null;
       const ritmo =
-        lim > 0 &&
-        typeof ritmoLimiteCategoria === 'function' &&
-        typeof visaoMes !== 'undefined' &&
-        typeof visaoAno !== 'undefined'
+        lim > 0 && temMes && typeof ritmoLimiteCategoria === 'function'
           ? ritmoLimiteCategoria(x.slug, visaoMes, visaoAno)
           : null;
-      const ritmoTxt =
-        ritmo && typeof textoRitmoLimite === 'function' ? textoRitmoLimite(ritmo) : '';
-      const limTxt =
-        lim > 0
-          ? '<small class="mc-lim' +
-            (x.valor > lim
-              ? ' passou'
-              : x.valor >= lim * 0.8 || (ritmo && ritmo.estado === 'acima')
-                ? ' perto'
-                : '') +
-            '">' +
-            (x.valor > lim
-              ? 'passou ' + _mobEsc(_mobDreFmt(x.valor - lim)) + ' do limite'
-              : 'de ' +
-                _mobEsc(_mobDreFmt(lim)) +
-                ' · ' +
-                (ritmoTxt ? _mobEsc(ritmoTxt) : Math.round((x.valor / lim) * 100) + '%')) +
-            '</small>'
-          : '';
+      let limTxt = '';
+      if (estado === 'passou') {
+        limTxt = 'Passou ' + _mobDreFmt(x.valor - lim) + ' · limite ' + _mobDreFmt(lim);
+      } else if (estado === 'ritmo' && ritmo) {
+        limTxt = _mobDreFmt(ritmo.acima) + ' acima do ritmo · restam ' + _mobDreFmt(lim - x.valor);
+      } else if (estado) {
+        limTxt = 'Restam ' + _mobDreFmt(lim - x.valor) + ' de ' + _mobDreFmt(lim);
+        if (
+          estado === 'ok' &&
+          ritmo &&
+          ritmo.estado === 'ok' &&
+          (typeof ritmoTemFolgaUtil !== 'function' || ritmoTemFolgaUtil(ritmo))
+        )
+          limTxt +=
+            ' · cabe ' +
+            _mobDreFmt(ritmo.diasRestantes >= 7 ? ritmo.porSemana : ritmo.porDia) +
+            (ritmo.diasRestantes >= 7 ? '/semana' : '/dia');
+      } else if (despesa && x.slug && x.slug !== '__sem_categoria__') {
+        limTxt = 'sem limite';
+      }
+      const corBarra = estado ? '' : 'background:' + x.cor + ';';
+      const larg = estado
+        ? Math.max(2, Math.min(1, x.valor / lim) * 100)
+        : Math.max(2, (Math.abs(x.valor) / maior) * 100);
+      const icone = { ok: 'ph-check', perto: 'ph-warning', ritmo: 'ph-warning', passou: 'ph-x' };
+      const direita = estado
+        ? '<span class="mc-pilula ' +
+          estado +
+          '"><i class="ph-bold ' +
+          icone[estado] +
+          '" aria-hidden="true"></i>' +
+          Math.round((x.valor / lim) * 100) +
+          '%</span>'
+        : '<span class="mc-pct">' + pct + '</span>';
       const corpo =
         '<span class="mc-dot" style="background:' +
         x.cor +
@@ -1567,24 +1594,34 @@ function _mobComposicao(c) {
         _mobEsc(nome) +
         '</span><b class="valor-mascarado">' +
         _mobEsc(_mobDreFmt(x.valor)) +
-        '</b></span><span class="mc-trilho"><span style="background:' +
-        x.cor +
-        ';width:' +
-        Math.max(2, (Math.abs(x.valor) / maior) * 100).toFixed(1) +
+        '</b></span><span class="mc-trilho' +
+        (estado ? ' lim ' + estado : '') +
+        '"><span style="' +
+        corBarra +
+        'width:' +
+        larg.toFixed(1) +
         '%"></span></span>' +
-        limTxt +
-        '</span><span class="mc-pct">' +
-        pct +
-        '</span>';
+        (limTxt
+          ? '<small class="mc-lim' +
+            (estado ? ' ' + estado : ' sem') +
+            '">' +
+            _mobEsc(limTxt) +
+            '</small>'
+          : '') +
+        '</span>' +
+        direita;
+      const rowCls = 'mc-row' + (estado === 'passou' ? ' lim-passou' : '');
       return alvo
-        ? '<button type="button" class="mc-row" onclick="mobVerNoExtrato(' +
+        ? '<button type="button" class="' +
+            rowCls +
+            '" onclick="mobVerNoExtrato(' +
             (despesa ? "'todos','" + _mobEsc(alvo) + "'" : "'" + alvo + "',''") +
             ')" aria-label="' +
             _mobEsc(nome) +
             ', ver no extrato">' +
             corpo +
             '<i class="ph ph-caret-right mc-seta"></i></button>'
-        : '<div class="mc-row">' + corpo + '<span class="mc-seta"></span></div>';
+        : '<div class="' + rowCls + '">' + corpo + '<span class="mc-seta"></span></div>';
     })
     .join('');
   const mais =

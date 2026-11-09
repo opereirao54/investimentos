@@ -1532,6 +1532,46 @@
         .ctrl-cat.lim-perto .ctrl-cat-limtxt { color: var(--cor-txt-amber); font-weight: 700; }
         .ctrl-cat.lim-passou .ctrl-cat-limtxt { color: var(--cor-erro); font-weight: 700; }
         .ctrl-cat.lim-ritmo .ctrl-cat-limtxt { color: var(--cor-txt-amber); font-weight: 700; }
+        /* Seu plano do mês (htmlPlanoDoMes) — celular e web. */
+        .plano { display: flex; flex-direction: column; gap: 12px; }
+        .plano-topo { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+        .plano-topo h3 { margin: 0; font-size: 18px; font-weight: 700; color: var(--cor-texto-principal); }
+        .plano-link { border: 0; background: none; padding: 0; font: 700 13px 'Figtree', sans-serif; color: var(--cor-primaria); cursor: pointer; }
+        .plano-num { margin: 0; font-size: 14px; color: var(--cor-texto-secundario); line-height: 1.45; }
+        .plano-num b { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--cor-texto-principal); }
+        .plano-dist { display: flex; gap: 2px; height: 14px; border-radius: 99px; overflow: hidden; background: var(--cor-fundo); }
+        .plano-dist > span { display: block; height: 100%; }
+        .plano-seg-sobra { background: repeating-linear-gradient(135deg, #10b981 0 4px, rgba(16, 185, 129, .35) 4px 8px); }
+        .plano-leg { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 7px 24px; }
+        .plano-leg li { display: grid; grid-template-columns: 9px minmax(0, 1fr) auto 38px; column-gap: 8px; align-items: baseline; font-size: 13px; color: var(--cor-texto-secundario); }
+        .plano-leg li > i { width: 9px; height: 9px; border-radius: 99px; align-self: center; }
+        .plano-leg li > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .plano-leg li > b { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 12.5px; color: var(--cor-texto-principal); white-space: nowrap; }
+        .plano-leg li > small { text-align: right; font-size: 11.5px; color: var(--cor-texto-mutado); }
+        .plano-uso-aviso { font-size: 12px; font-weight: 700; color: var(--cor-erro); }
+        .plano-leg li.sobra > i { background: #10b981; }
+        .plano-leg li.sobra > span, .plano-leg li.sobra > b { color: var(--cor-primaria); font-weight: 700; }
+        .plano-leg li.falta > i { background: var(--cor-erro); }
+        .plano-leg li.falta > span, .plano-leg li.falta > b { color: var(--cor-erro); font-weight: 700; }
+        .plano-uso { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 1px solid var(--cor-borda); }
+        .plano-uso-lin { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--cor-texto-secundario); }
+        .plano-uso-lin b { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--cor-texto-principal); white-space: nowrap; }
+        .plano-trilho { display: block; height: 8px; border-radius: 99px; background: var(--cor-fundo); overflow: hidden; }
+        .plano-trilho > span { display: block; height: 100%; border-radius: 99px; background: #10b981; }
+        .plano-uso.perto .plano-trilho > span { background: #f59e0b; }
+        .plano-uso.passou .plano-trilho > span { background: var(--cor-erro); }
+        .plano-status { display: flex; flex-wrap: wrap; gap: 6px; }
+        .plano-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 99px; font: 700 12px 'Figtree', sans-serif; }
+        .plano-chip.passou { background: var(--cor-bg-erro); color: var(--cor-txt-erro); }
+        .plano-chip.perto { background: rgba(245, 158, 11, .14); color: var(--cor-txt-amber); }
+        .plano-chip.ok { background: rgba(16, 185, 129, .12); color: var(--cor-primaria); }
+        .plano-fora { margin: 0; font-size: 12px; color: var(--cor-texto-mutado); line-height: 1.45; }
+        .plano-fora b { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--cor-texto-secundario); }
+        .plano-vazio p { margin: 0; font-size: 13px; color: var(--cor-texto-secundario); line-height: 1.5; }
+        .plano-cta { align-self: flex-start; padding: 9px 16px; font-size: 13px; }
+        .mi-plano { padding: 16px; margin-bottom: 18px; }
+        #ctrlPlano:not(:empty) { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--cor-borda); }
+        #ctrlPlano .plano-topo h3 { font-size: 14px; }
         .cat-parecida { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--cor-superficie); border: 1px solid var(--cor-borda); font: 500 12px 'Figtree', sans-serif; color: var(--cor-texto-secundario); line-height: 1.4; }
         .cat-parecida[hidden] { display: none; }
         .cat-parecida > span { flex: 1; min-width: 0; }
@@ -1634,6 +1674,20 @@
             .mc-lim { font-size: 11.5px; color: var(--cor-texto-mutado); }
             .mc-lim.perto { color: var(--cor-txt-amber); font-weight: 700; }
             .mc-lim.passou { color: var(--cor-erro); font-weight: 700; }
+
+            /* Para onde foi: barra até o limite, na cor do estado, e pílula. */
+            .mc-trilho.lim { overflow: hidden; }
+            .mc-trilho.lim > span { background: #10b981; }
+            .mc-trilho.lim.perto > span, .mc-trilho.lim.ritmo > span { background: #f59e0b; }
+            .mc-trilho.lim.passou > span { background: var(--cor-erro); }
+            .mc-lim.ok { color: var(--cor-texto-mutado); font-weight: 500; }
+            .mc-lim.ritmo { color: var(--cor-txt-amber); font-weight: 700; }
+            .mc-lim.sem { color: var(--cor-texto-mutado); opacity: .8; }
+            .mc-pilula { display: inline-flex; align-items: center; justify-content: center; gap: 3px; min-width: 54px; padding: 3px 7px; border-radius: 99px; font: 700 12px 'DM Mono', monospace; white-space: nowrap; }
+            .mc-pilula.ok { background: rgba(16, 185, 129, .12); color: var(--cor-primaria); }
+            .mc-pilula.perto, .mc-pilula.ritmo { background: rgba(245, 158, 11, .16); color: var(--cor-txt-amber); }
+            .mc-pilula.passou { background: var(--cor-erro); color: #fff; }
+            .mc-row.lim-passou { background: var(--cor-bg-erro); margin: 0 -16px; width: calc(100% + 32px); padding-left: 16px; padding-right: 16px; }
         }
         .ext-totais-dup[hidden] { display: none !important; }
 
@@ -15926,6 +15980,7 @@
                         <h4 style="font-size:14px;font-weight:700;color:var(--cor-texto-principal);margin:0;">Gastos por categoria</h4>
                         <span style="font-size:11.5px;color:var(--cor-texto-mutado);">traço = sua média dos 3 meses anteriores</span>
                     </div>
+                    <div id="ctrlPlano"></div>
                     <div id="ctrlCategorias"></div>
                     <div class="grafico-container" style="height:180px;margin-top:0;display:none;"><canvas id="graficoComposicao"></canvas></div>
                     <div style="display:none;" id="legendaPizzaVazia"></div>

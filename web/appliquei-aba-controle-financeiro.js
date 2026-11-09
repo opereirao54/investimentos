@@ -598,15 +598,16 @@ function complementoLimiteCategoria(novos) {
     if (!lim) return;
     const gasto = Number(calcularDespesasPorCategoria(t.mes, t.ano)[t.categoriaDespesa]) || 0;
     const sit = situacaoLimiteCategoria(gasto, lim);
+    const estado = estadoLimiteCategoria(t.categoriaDespesa, t.mes, t.ano, gasto, lim);
     const nome = rotuloCategoriaDespesa(t.categoriaDespesa);
     if (sit.estado === 'passou')
       frases.push(
         nome + ' passou do limite: ' + formatarMoeda(gasto) + ' de ' + formatarMoeda(lim) + '.'
       );
-    else if (sit.estado === 'perto') frases.push(nome + ' chegou a ' + sit.pct + '% do limite.');
-    else {
+    else if (estado === 'perto') frases.push(nome + ' chegou a ' + sit.pct + '% do limite.');
+    else if (estado === 'ritmo') {
       const r = ritmoLimiteCategoria(t.categoriaDespesa, t.mes, t.ano);
-      if (r && r.estado === 'acima')
+      if (r)
         frases.push(
           nome +
             ' está ' +
@@ -652,14 +653,7 @@ function ritmoLimiteCategoria(slug, mes, ano, hoje) {
   if (!limite || typeof transacoes === 'undefined') return null;
   const h = hoje || new Date();
   if (h.getMonth() !== mes || h.getFullYear() !== ano) return null;
-  let fixo = 0;
-  let variavel = 0;
-  transacoes.forEach((t) => {
-    if (t.mes !== mes || t.ano !== ano || t.categoriaDespesa !== slug) return;
-    if (!categoriaDespesaUsada(t.categoria)) return;
-    if (lancamentoComprometido(t)) fixo += Number(t.valor) || 0;
-    else variavel += Number(t.valor) || 0;
-  });
+  const { fixo, variavel } = fixoVariavelCategoria(slug, mes, ano);
   const livre = limite - fixo;
   if (livre <= 0.005) return null;
   const diasMes = new Date(ano, mes + 1, 0).getDate();
@@ -689,12 +683,235 @@ function ritmoLimiteCategoria(slug, mes, ano, hoje) {
   };
 }
 
+/** Categoria quase toda fixa (Moradia: R$ 11 livres de R$ 2.300): "cabe
+ *  R$ 3,53 por semana" é ruído — o que ela tem é conta, não ritmo. */
+function ritmoTemFolgaUtil(r) {
+  return !!r && r.livre >= Math.max(50, r.limite * 0.1);
+}
+
 /** "cabe R$ 95 por semana" / "R$ 180 acima do ritmo" — vazio sem ritmo. */
 function textoRitmoLimite(r) {
   if (!r || r.estado === 'passou') return '';
   if (r.estado === 'acima') return formatarMoeda(r.acima) + ' acima do ritmo';
+  if (!ritmoTemFolgaUtil(r)) return '';
   if (r.diasRestantes >= 7) return 'cabe ' + formatarMoeda(r.porSemana) + ' por semana';
   return 'cabe ' + formatarMoeda(r.porDia) + ' por dia';
+}
+
+/** Quanto da categoria no mês é fixo (comprometido) e quanto é variável. */
+function fixoVariavelCategoria(slug, mes, ano) {
+  let fixo = 0;
+  let variavel = 0;
+  if (typeof transacoes === 'undefined') return { fixo, variavel };
+  transacoes.forEach((t) => {
+    if (t.mes !== mes || t.ano !== ano || t.categoriaDespesa !== slug) return;
+    if (!categoriaDespesaUsada(t.categoria)) return;
+    if (lancamentoComprometido(t)) fixo += Number(t.valor) || 0;
+    else variavel += Number(t.valor) || 0;
+  });
+  return { fixo, variavel };
+}
+
+// --- Estado do limite ---------------------------------------------------------
+// "Chegou a 80%" virava laranja em Moradia com R$ 2.288 de R$ 2.300 — só
+// contas fixas, exatamente o planejado. O estado agora olha o que ainda pode
+// mudar: 'perto' é quando o VARIÁVEL já usou 80% do que sobra depois do fixo.
+//   'passou' gasto acima do limite
+//   'ritmo'  mês corrente, variável acima do ritmo (ver ritmoLimiteCategoria)
+//   'perto'  variável em 80% ou mais do que o fixo deixou livre
+//   'ok'     dentro
+function estadoLimiteCategoria(slug, mes, ano, valor, limite, hoje) {
+  if (!(limite > 0)) return null;
+  if ((Number(valor) || 0) > limite + 0.005) return 'passou';
+  const fv = fixoVariavelCategoria(slug, mes, ano);
+  const livre = limite - fv.fixo;
+  if (livre > 0.005 && fv.variavel >= livre * 0.8) return 'perto';
+  const r = ritmoLimiteCategoria(slug, mes, ano, hoje);
+  if (r && r.estado === 'acima') return 'ritmo';
+  return 'ok';
+}
+
+// --- Plano do mês -------------------------------------------------------------
+// A soma dos limites É o plano: quanto da renda já tem destino, como ele se
+// divide entre as categorias, quanto sobra, e como o mês está indo contra ele.
+// Sem tela nova para configurar — o plano nasce dos limites por categoria.
+
+/** Números do plano do mês (pura sobre `transacoes` e os limites). */
+function planoDoMes(mes, ano, hoje) {
+  const resumo = calcularResumoMes(mes, ano);
+  const renda = (Number(resumo.receita) || 0) + (Number(resumo.resgate) || 0);
+  const gastos = calcularDespesasPorCategoria(mes, ano);
+  const cats = [];
+  obterCategoriasDespesa().forEach((c) => {
+    const limite = obterLimiteCategoria(c.v);
+    if (!limite) return;
+    const valor = Number(gastos[c.v]) || 0;
+    cats.push({
+      slug: c.v,
+      rotulo: c.label,
+      limite,
+      valor,
+      estado: estadoLimiteCategoria(c.v, mes, ano, valor, limite, hoje),
+    });
+  });
+  cats.sort((a, b) => b.limite - a.limite);
+  cats.forEach((c, i) => {
+    c.cor = PALETA_CATEGORIA_DESPESA[i % PALETA_CATEGORIA_DESPESA.length];
+  });
+  const comLimite = new Set(cats.map((c) => c.slug));
+  const fora = Object.keys(gastos)
+    .filter((k) => !comLimite.has(k) && (Number(gastos[k]) || 0) > 0.005)
+    .map((k) => ({
+      slug: k,
+      rotulo: k === '__sem_categoria__' ? 'Sem categoria' : rotuloCategoriaDespesa(k),
+      valor: Number(gastos[k]) || 0,
+    }))
+    .sort((a, b) => b.valor - a.valor);
+  const planejado = cats.reduce((s, c) => s + c.limite, 0);
+  const gastoNoPlano = cats.reduce((s, c) => s + c.valor, 0);
+  const conta = (e) => cats.filter((c) => c.estado === e).length;
+  return {
+    renda,
+    planejado,
+    sobraPlanejada: renda - planejado,
+    gastoNoPlano,
+    foraDoPlano: fora.reduce((s, c) => s + c.valor, 0),
+    cats,
+    fora,
+    passou: conta('passou'),
+    atencao: conta('perto') + conta('ritmo'),
+    dentro: conta('ok'),
+  };
+}
+
+/** Cartão "Seu plano do mês" (o mesmo HTML no celular e no web). */
+function htmlPlanoDoMes(p) {
+  const esc = _escCategoria;
+  const m = (v) => esc(formatarMoeda(v));
+  if (!p || !p.cats.length) {
+    return (
+      '<section class="plano plano-vazio" aria-label="Seu plano do mês">' +
+      '<div class="plano-topo"><h3>Seu plano do mês</h3></div>' +
+      '<p>Defina um limite em cada categoria e veja aqui quanto da renda já tem destino, como ela se divide e quanto sobra.</p>' +
+      '<button type="button" class="btn-acao plano-cta" onclick="abrirModalConfig(\'categorias\')">Montar meu plano</button>' +
+      '</section>'
+    );
+  }
+  const base = Math.max(p.renda, p.planejado) || 1;
+  const pctRenda = (v) => (p.renda > 0 ? Math.round((v / p.renda) * 100) + '%' : '');
+  const segs =
+    p.cats
+      .map(
+        (c) =>
+          '<span style="background:' +
+          c.cor +
+          ';width:' +
+          ((c.limite / base) * 100).toFixed(2) +
+          '%" title="' +
+          esc(c.rotulo) +
+          '"></span>'
+      )
+      .join('') +
+    (p.sobraPlanejada > 0.005
+      ? '<span class="plano-seg-sobra" style="width:' +
+        ((p.sobraPlanejada / base) * 100).toFixed(2) +
+        '%" title="Sobra planejada"></span>'
+      : '');
+  const leg =
+    p.cats
+      .map(
+        (c) =>
+          '<li><i style="background:' +
+          c.cor +
+          '"></i><span>' +
+          esc(c.rotulo) +
+          '</span><b class="valor-mascarado">' +
+          m(c.limite) +
+          '</b><small>' +
+          pctRenda(c.limite) +
+          '</small></li>'
+      )
+      .join('') +
+    (p.renda > 0
+      ? '<li class="' +
+        (p.sobraPlanejada >= 0 ? 'sobra' : 'falta') +
+        '"><i></i><span>' +
+        (p.sobraPlanejada >= 0 ? 'Sobra planejada' : 'Plano passa da renda') +
+        '</span><b class="valor-mascarado">' +
+        m(Math.abs(p.sobraPlanejada)) +
+        '</b><small>' +
+        pctRenda(Math.abs(p.sobraPlanejada)) +
+        '</small></li>'
+      : '');
+  const usoPct = p.planejado > 0 ? (p.gastoNoPlano / p.planejado) * 100 : 0;
+  const usoEstado = usoPct > 100 ? 'passou' : p.passou ? 'perto' : 'ok';
+  const chip = (n, cls, ic, txt) =>
+    n
+      ? '<span class="plano-chip ' +
+        cls +
+        '"><i class="ph-bold ' +
+        ic +
+        '"></i>' +
+        n +
+        ' ' +
+        txt +
+        '</span>'
+      : '';
+  const status =
+    chip(p.passou, 'passou', 'ph-x', p.passou === 1 ? 'passou' : 'passaram') +
+    chip(p.atencao, 'perto', 'ph-warning', 'em atenção') +
+    chip(p.dentro, 'ok', 'ph-check', 'dentro');
+  const fora = p.fora.length
+    ? '<p class="plano-fora">Fora do plano: <b class="valor-mascarado">' +
+      m(p.foraDoPlano) +
+      '</b> em ' +
+      p.fora
+        .slice(0, 3)
+        .map((c) => esc(c.rotulo))
+        .join(', ') +
+      (p.fora.length > 3 ? ' e mais ' + (p.fora.length - 3) : '') +
+      ' (sem limite)</p>'
+    : '';
+  return (
+    '<section class="plano" aria-label="Seu plano do mês">' +
+    '<div class="plano-topo"><h3>Seu plano do mês</h3>' +
+    '<button type="button" class="plano-link" onclick="abrirModalConfig(\'categorias\')">Ajustar limites</button></div>' +
+    '<p class="plano-num"><b class="valor-mascarado">' +
+    m(p.planejado) +
+    '</b> planejados' +
+    (p.renda > 0
+      ? ' de <b class="valor-mascarado">' +
+        m(p.renda) +
+        '</b> de renda (' +
+        pctRenda(p.planejado) +
+        ')'
+      : '') +
+    '</p>' +
+    '<div class="plano-dist" aria-hidden="true">' +
+    segs +
+    '</div>' +
+    '<ul class="plano-leg">' +
+    leg +
+    '</ul>' +
+    '<div class="plano-uso ' +
+    usoEstado +
+    '"><div class="plano-uso-lin"><span>Gasto no plano</span><b class="valor-mascarado">' +
+    m(p.gastoNoPlano) +
+    ' de ' +
+    m(p.planejado) +
+    '</b></div><span class="plano-trilho"><span style="width:' +
+    Math.min(100, usoPct).toFixed(1) +
+    '%"></span></span>' +
+    (p.gastoNoPlano > p.planejado + 0.005
+      ? '<span class="plano-uso-aviso">' +
+        m(p.gastoNoPlano - p.planejado) +
+        ' acima do planejado</span>'
+      : '') +
+    '</div>' +
+    (status ? '<div class="plano-status">' + status + '</div>' : '') +
+    fora +
+    '</section>'
+  );
 }
 
 var categoriaConfigLimite = null;
@@ -2927,17 +3144,18 @@ function gastosPorCategoriaComMedia(mes, ano) {
     const limite = c === '__sem_categoria__' ? 0 : obterLimiteCategoria(c);
     const sit = situacaoLimiteCategoria(valor, limite);
     const ritmo = limite ? ritmoLimiteCategoria(c, mes, ano) : null;
+    const estado = limite ? estadoLimiteCategoria(c, mes, ano, valor, limite) : null;
     linhas.push({
       slug: c,
       rotulo: c === '__sem_categoria__' ? 'Sem categoria' : rotuloCategoriaDespesa(c),
       valor,
       media,
       limite,
-      limiteEstado: sit ? sit.estado : null,
+      limiteEstado: estado,
       limitePct: sit ? sit.pct : null,
       ritmo,
       alerta:
-        (sit && sit.estado === 'passou') ||
+        estado === 'passou' ||
         (media != null && media > 0 && valor > media * 1.5 && valor - media > 100),
     });
   });
@@ -2953,6 +3171,8 @@ function ctrlCatAlternarTodas() {
 }
 
 function renderGastosPorCategoria(mes, ano) {
+  const plano = document.getElementById('ctrlPlano');
+  if (plano) plano.innerHTML = htmlPlanoDoMes(planoDoMes(mes, ano));
   const el = document.getElementById('ctrlCategorias');
   if (!el) return;
   const linhas = gastosPorCategoriaComMedia(mes, ano).filter((l) => l.valor > 0.005);
@@ -2981,7 +3201,6 @@ function renderGastosPorCategoria(mes, ano) {
           '<button type="button" class="ctrl-cat' +
           (l.alerta ? ' alerta' : '') +
           (l.limiteEstado ? ' lim-' + l.limiteEstado : '') +
-          (l.limiteEstado === 'ok' && l.ritmo && l.ritmo.estado === 'acima' ? ' lim-ritmo' : '') +
           '" data-cat="' +
           esc(l.slug === '__sem_categoria__' ? '' : l.slug) +
           '" onclick="filtrarExtratoPorCategoria(this.dataset.cat)" title="' +
