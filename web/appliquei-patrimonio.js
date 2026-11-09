@@ -287,7 +287,17 @@ function mpEhAporteExterno(t) {
 function mpQuandoEntraNoCaixa(t) {
   if (t && t.dataVencimento) {
     const d = appliqueiParseData(t.dataVencimento);
-    if (d && !isNaN(d.getTime())) return d.getTime();
+    if (d && !isNaN(d.getTime())) {
+      // Data sem hora ("2026-11-09") é lida ao meio-dia (appliqueiParseData);
+      // para o caixa, a entrada do dia conta desde o começo dele. Sem isto,
+      // "Já caiu" de manhã só mexia no saldo depois das 12h.
+      if (
+        typeof t.dataVencimento === 'string' &&
+        /^\d{4}-\d{2}-\d{2}$/.test(t.dataVencimento.trim())
+      )
+        d.setHours(0, 0, 0, 0);
+      return d.getTime();
+    }
   }
   return mpTimestampTransacao(t);
 }

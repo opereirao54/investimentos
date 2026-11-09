@@ -1279,6 +1279,12 @@
         .ctl-linha-extrato > [data-mob-aba="extrato"] { flex: 2 1 520px; }
         .ctl-linha-extrato > .ctl-falta { flex: 1 1 300px; }
         .ctl-linha-fim > * { flex: 1 1 420px; }
+        .ctl-linha-cat > .ctrl-cat-card { flex: 1.45 1 520px; }
+        .ctl-linha-cat > .ctrl-plano-card { flex: 1 1 380px; }
+        .ctrl-cat-topo { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+        .ctrl-cat-topo h3 { margin: 0; font-size: 16px; font-weight: 700; color: var(--cor-texto-principal); }
+        .ctrl-cat-topo span { font-size: 12.5px; color: var(--cor-texto-mutado); }
+        .ctrl-cat-topo b { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--cor-texto-principal); }
         .ctl-linha-fim > .ctl-proj { flex: 1 1 100%; }
         /* === PROJEÇÃO DO CAIXA (web/appliquei-projecao-caixa.js) === */
         .pj-web { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; margin-top: 4px; }
@@ -1531,6 +1537,165 @@
         .ctrl-cat.lim-perto .ctrl-cat-trilho > span { background: var(--cor-cartao); }
         .ctrl-cat.lim-perto .ctrl-cat-limtxt { color: var(--cor-txt-amber); font-weight: 700; }
         .ctrl-cat.lim-passou .ctrl-cat-limtxt { color: var(--cor-erro); font-weight: 700; }
+        .ctrl-cat.lim-ritmo .ctrl-cat-limtxt { color: var(--cor-txt-amber); font-weight: 700; }
+        /* Seu plano do mês (htmlPlanoDoMes) — celular e web. */
+        .plano { display: flex; flex-direction: column; gap: 12px; }
+        .plano-topo { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .plano-topo h3 { margin: 0; font-size: 18px; font-weight: 700; color: var(--cor-texto-principal); }
+        .plano-ajustar { min-height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--cor-borda); background: var(--cor-superficie); font: 700 13px 'Figtree', sans-serif; color: var(--cor-primaria); cursor: pointer; white-space: nowrap; }
+        .plano-num { margin: 0; font-size: 14px; color: var(--cor-texto-secundario); line-height: 1.45; }
+        .plano-num b { color: var(--cor-texto-principal); white-space: nowrap; }
+        .plano-num b.valor-mascarado { font-family: 'DM Mono', monospace; font-weight: 500; }
+        .plano-dist { display: flex; gap: 2px; height: 14px; border-radius: 99px; overflow: hidden; background: var(--cor-fundo); }
+        .plano-dist > span { display: block; height: 100%; }
+        .plano-seg-sobra { background: repeating-linear-gradient(135deg, #10b981 0 4px, rgba(16, 185, 129, .35) 4px 8px); }
+        .plano-seg-fora { background: repeating-linear-gradient(135deg, #9aa7a0 0 4px, rgba(154, 167, 160, .35) 4px 8px); }
+        .plano-prev { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-weight: 700; font-size: 14px; color: var(--cor-primaria); }
+        .plano-prev b { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 17px; white-space: nowrap; }
+        .plano-prev.falta { color: var(--cor-erro); }
+        .plano-nota { margin: -6px 0 0; font-size: 12px; color: var(--cor-texto-mutado); line-height: 1.45; }
+        .plano-nota b { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--cor-texto-secundario); white-space: nowrap; }
+        .plano-div { border-top: 1px solid var(--cor-borda); }
+        .plano-div > summary { display: flex; align-items: center; justify-content: space-between; min-height: 44px; cursor: pointer; list-style: none; font: 600 13.5px 'Figtree', sans-serif; color: var(--cor-texto-secundario); }
+        .plano-div > summary::-webkit-details-marker { display: none; }
+        .plano-div > summary::after { content: '▾'; font-size: 13px; }
+        .plano-div[open] > summary::after { content: '▴'; }
+        .plano-leg { list-style: none; margin: 0 0 6px; padding: 0; display: grid; grid-template-columns: 1fr; gap: 7px; }
+        .plano-leg li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto 38px; column-gap: 8px; align-items: baseline; font-size: 13px; color: var(--cor-texto-secundario); }
+        .plano-leg li > i { width: 10px; height: 10px; border-radius: 3px; align-self: center; }
+        .plano-leg li > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .plano-leg li > b { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 12.5px; color: var(--cor-texto-principal); white-space: nowrap; }
+        .plano-leg li > small { text-align: right; font-size: 11.5px; color: var(--cor-texto-mutado); }
+        .plano-leg li.fora > i { background: #9aa7a0; }
+        .plano-leg li.sobra > i { background: #10b981; }
+        .plano-leg li.sobra > span, .plano-leg li.sobra > b { color: var(--cor-primaria); font-weight: 700; }
+        .plano-leg li.falta > i { background: var(--cor-erro); }
+        .plano-leg li.falta > span, .plano-leg li.falta > b { color: var(--cor-erro); font-weight: 700; }
+        .plano-uso { display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px solid var(--cor-borda); }
+        .plano-div + .plano-uso { border-top: 0; padding-top: 0; }
+        .plano-uso-lin { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--cor-texto-secundario); }
+        .plano-uso-lin b { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--cor-texto-principal); white-space: nowrap; }
+        .plano-trilho { position: relative; display: block; height: 10px; border-radius: 99px; background: var(--cor-fundo); margin: 4px 0 2px; }
+        .plano-trilho > .den { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; background: #10b981; }
+        .plano-trilho > .exc { position: absolute; top: 0; bottom: 0; border-radius: 0 99px 99px 0; background: repeating-linear-gradient(135deg, var(--cor-erro) 0 4px, rgba(220, 38, 38, .4) 4px 8px); }
+        .plano-trilho > .cem { position: absolute; top: -4px; bottom: -4px; width: 2px; border-radius: 2px; background: var(--cor-texto-principal); }
+        .plano-uso.perto .plano-trilho > .den { background: #f59e0b; }
+        .plano-uso.passou .plano-trilho > .den { background: var(--cor-erro); border-radius: 99px 0 0 99px; }
+        .plano-uso-leg { align-self: flex-end; font-size: 11.5px; color: var(--cor-texto-mutado); }
+        .plano-uso-leg b { color: var(--cor-erro); }
+        .plano-status { display: flex; flex-wrap: wrap; gap: 6px; }
+        .plano-chip { display: inline-flex; align-items: center; gap: 5px; min-height: 36px; padding: 0 12px; border-radius: 99px; border: 0; font: 700 12.5px 'Figtree', sans-serif; cursor: pointer; }
+        .plano-chip.passou { background: var(--cor-bg-erro); color: var(--cor-txt-erro); }
+        .plano-chip.perto { background: rgba(245, 158, 11, .16); color: var(--cor-txt-amber); }
+        .plano-chip.ok { background: rgba(16, 185, 129, .12); color: var(--cor-primaria); }
+        .plano-chip.sem { background: var(--cor-superficie); color: var(--cor-texto-secundario); }
+        .plano-vazio p { margin: 0; font-size: 13px; color: var(--cor-texto-secundario); line-height: 1.5; }
+        .plano-vazio .plano-ajustar { align-self: flex-start; }
+        .mi-plano { padding: 16px; margin-bottom: 18px; }
+        .ctrl-plano-card .plano-topo h3 { font-size: 16px; }
+        .ctrl-plano-card .plano-leg { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); column-gap: 24px; }
+
+        /* Montagem do plano (abrirMontarPlano): painel no web, tela cheia no celular. */
+        .pm-ov { position: fixed; inset: 0; z-index: 10005; display: flex; align-items: center; justify-content: center; background: rgba(15, 23, 42, .5); backdrop-filter: blur(3px); }
+        .pm-ov[hidden] { display: none; }
+        body.pm-aberto { overflow: hidden; }
+        .pm-caixa { display: flex; flex-direction: column; width: min(560px, 100%); height: min(88vh, 900px); background: var(--cor-fundo); border-radius: 22px; overflow: hidden; box-shadow: 0 24px 60px rgba(0, 0, 0, .25); }
+        .pm-cab { display: flex; align-items: center; gap: 8px; padding: 12px 16px 8px; }
+        .pm-cab h2 { margin: 0; font-size: 18px; font-weight: 700; color: var(--cor-texto-principal); flex: 1; }
+        .pm-cab-mes { font-size: 12px; color: var(--cor-texto-mutado); }
+        .pm-voltar { width: 44px; height: 44px; margin-left: -8px; border: 0; background: none; font-size: 26px; color: var(--cor-primaria); cursor: pointer; }
+        .pm-corpo { flex: 1; overflow-y: auto; padding: 0 12px 16px; -webkit-overflow-scrolling: touch; }
+        .pm-res { position: sticky; top: 12px; z-index: 2; margin-top: 12px; padding: 14px; background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 18px; box-shadow: 0 -12px 0 var(--cor-fundo), 0 6px 16px rgba(18, 32, 26, .08); }
+        .pm-res.passou { border-color: var(--cor-borda-erro, #f5c2c2); }
+        .pm-res-lin { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; color: var(--cor-texto-secundario); }
+        .pm-res-lin b { color: var(--cor-texto-principal); }
+        .pm-res-lin b.valor-mascarado { font-family: 'DM Mono', monospace; font-weight: 500; }
+        .pm-res.passou .pm-pct { color: var(--cor-erro); }
+        .pm-res-v { font: 500 24px 'DM Mono', monospace; color: var(--cor-texto-principal); margin: 2px 0 8px; }
+        .pm-res.passou .pm-res-v { color: var(--cor-erro); }
+        .pm-res-sobra { display: flex; justify-content: space-between; margin-top: 8px; font-weight: 700; font-size: 14px; color: var(--cor-primaria); }
+        .pm-res-sobra b { font-family: 'DM Mono', monospace; font-weight: 500; }
+        .pm-res-sobra.falta { color: var(--cor-erro); }
+        .pm-delta { position: absolute; right: 14px; top: -11px; padding: 3px 9px; border-radius: 99px; background: var(--cor-texto-principal); color: var(--cor-branco); font: 700 11.5px 'Figtree', sans-serif; }
+        .pm-delta.menos { background: var(--cor-primaria); color: #fff; }
+        .pm-card { margin-top: 10px; padding: 12px 14px; background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 16px; font-size: 13.5px; line-height: 1.5; color: var(--cor-texto-secundario); }
+        .pm-card b { color: var(--cor-texto-principal); }
+        .pm-card b.valor-mascarado { font-family: 'DM Mono', monospace; font-weight: 500; }
+        .pm-cortar { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--cor-borda); font-size: 12.5px; line-height: 1.4; color: var(--cor-texto-secundario); }
+        .pm-cortar b { color: var(--cor-erro); }
+        .pm-cortar .pm-chip { flex: 0 0 auto; }
+        .pm-sec { margin: 16px 4px 6px; font: 700 11px 'Figtree', sans-serif; letter-spacing: .6px; text-transform: uppercase; color: var(--cor-texto-mutado); }
+        .pm-it { margin-bottom: 7px; padding: 10px 12px; background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 14px; }
+        .pm-it:focus-within { border-color: var(--cor-primaria); box-shadow: 0 0 0 3px rgba(16, 185, 129, .14); }
+        .pm-l1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .pm-nome { display: flex; align-items: center; gap: 7px; min-width: 0; font-weight: 600; font-size: 14.5px; color: var(--cor-texto-principal); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pm-nome i { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 3px; }
+        .pm-campo { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; width: 128px; height: 44px; padding: 0 10px; border: 1.5px solid var(--cor-borda); border-radius: 11px; background: var(--cor-superficie); }
+        .pm-it:focus-within .pm-campo { border-color: var(--cor-primaria); background: var(--cor-branco); }
+        .pm-campo small { font-size: 12px; color: var(--cor-texto-mutado); }
+        .pm-inp { width: 100%; min-width: 0; border: 0; background: none; outline: none; text-align: right; font: 500 16px 'DM Mono', monospace; color: var(--cor-texto-principal); }
+        .pm-inp::placeholder { font: 500 12px 'Figtree', sans-serif; color: var(--cor-texto-mutado); }
+        .pm-l2 { margin-top: 5px; font-size: 12px; color: var(--cor-texto-mutado); }
+        .pm-l2 b { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--cor-texto-secundario); }
+        .pm-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .pm-chip { min-height: 34px; padding: 0 11px; border: 0; border-radius: 99px; background: var(--cor-superficie); font: 700 12px 'Figtree', sans-serif; color: var(--cor-primaria); cursor: pointer; }
+        .pm-chip.on, .pm-chip.forte { background: var(--cor-primaria); color: #fff; }
+        .pm-chip.sem { color: var(--cor-texto-secundario); }
+        .pm-av { font-size: 12px; font-weight: 700; color: var(--cor-txt-amber); }
+        .pm-av:not(:empty) { margin-top: 6px; }
+        .pm-mais { margin-top: 14px; }
+        .pm-mais > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font: 700 12.5px 'Figtree', sans-serif; color: var(--cor-texto-secundario); }
+        .pm-rod { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px 14px; border-top: 1px solid var(--cor-borda); background: var(--cor-fundo); }
+        .pm-salvar { height: 50px; border: 0; border-radius: 14px; background: var(--cor-primaria); color: #fff; font: 700 15px 'Figtree', sans-serif; cursor: pointer; }
+        .pm-rod span { text-align: center; font-size: 12px; color: var(--cor-texto-mutado); }
+        .cat-cfg-plano { width: 100%; justify-content: center; margin-bottom: 4px; padding: 10px; font-size: 13px; }
+        @media (max-width: 768px) {
+            .pm-ov { align-items: stretch; background: var(--cor-fundo); backdrop-filter: none; }
+            .pm-caixa { width: 100%; height: 100%; border-radius: 0; box-shadow: none; }
+            .pm-cab { padding-top: max(12px, env(safe-area-inset-top)); }
+            .pm-rod { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+        }
+
+        /* Linha de categoria (htmlLinhaCategoria) — web; .curta = celular. */
+        .cat-lista { display: flex; flex-direction: column; }
+        .cat-row { position: relative; display: grid; grid-template-columns: 150px minmax(0, 1fr) 112px 74px; grid-template-areas: "nome bar val pil" "nome frase val pil"; column-gap: 14px; row-gap: 4px; align-items: center; padding: 10px 0 10px 12px; border-bottom: 1px solid var(--cor-borda); cursor: pointer; }
+        .cat-row:last-child { border-bottom: 0; }
+        .cat-row::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: transparent; }
+        .cat-row.passou::before { background: var(--cor-erro); }
+        .cat-row.perto::before, .cat-row.ritmo::before { background: #f59e0b; }
+        .cat-row:focus-visible { outline: 2px solid var(--cor-primaria); outline-offset: 2px; border-radius: 8px; }
+        .cat-nome { grid-area: nome; font-size: 14px; font-weight: 600; color: var(--cor-texto-principal); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cat-val { grid-area: val; text-align: right; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 13.5px; color: var(--cor-texto-principal); white-space: nowrap; line-height: 1.3; }
+        .cat-val small { display: block; font-family: 'Figtree', sans-serif; font-size: 11.5px; color: var(--cor-texto-mutado); font-weight: 500; }
+        .cat-bar { grid-area: bar; display: block; height: 7px; border-radius: 99px; background: var(--cor-fundo); overflow: hidden; }
+        .cat-bar > span { display: block; height: 100%; border-radius: 99px; background: #10b981; }
+        .cat-row.perto .cat-bar > span, .cat-row.ritmo .cat-bar > span { background: #f59e0b; }
+        .cat-row.passou .cat-bar > span { background: var(--cor-erro); }
+        .cat-row.sem .cat-bar > span { background: var(--cor-texto-mutado); opacity: .45; }
+        .cat-frase { grid-area: frase; font-size: 12px; color: var(--cor-texto-mutado); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cat-row.passou .cat-frase { color: var(--cor-erro); font-weight: 600; }
+        .cat-row.perto .cat-frase, .cat-row.ritmo .cat-frase { color: var(--cor-txt-amber); font-weight: 600; }
+        .cat-pil, .cat-def { grid-area: pil; justify-self: end; }
+        .cat-pil { display: inline-flex; align-items: center; justify-content: center; gap: 3px; min-width: 64px; height: 30px; padding: 0 9px; border-radius: 99px; font: 500 12.5px 'DM Mono', monospace; white-space: nowrap; }
+        .cat-pil.vazio { background: none !important; }
+        .cat-row.ok .cat-pil { background: rgba(16, 185, 129, .12); color: var(--cor-primaria); }
+        .cat-row.perto .cat-pil, .cat-row.ritmo .cat-pil { background: rgba(245, 158, 11, .16); color: var(--cor-txt-amber); }
+        .cat-row.passou .cat-pil { background: var(--cor-erro); color: #fff; }
+        .cat-def { min-height: 44px; min-width: 64px; padding: 0 10px; border-radius: 12px; border: 1px dashed var(--cor-borda); background: none; font: 700 12.5px 'Figtree', sans-serif; color: var(--cor-primaria); cursor: pointer; }
+        .cat-mais { width: 100%; min-height: 44px; margin-top: 8px; border: 0; border-radius: 12px; background: var(--cor-superficie); font: 700 13px 'Figtree', sans-serif; color: var(--cor-primaria); cursor: pointer; }
+        .cat-vazio { margin: 6px 0; font-size: 13px; color: var(--cor-texto-mutado); }
+        .cat-lista.curta .cat-row { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "nome val pil" "bar bar pil" "frase frase pil"; column-gap: 10px; row-gap: 6px; padding: 12px 0 12px 12px; }
+        .cat-lista.curta .cat-nome { font-size: 15px; }
+        .cat-lista.curta .cat-val { font-size: 14.5px; }
+        .cat-lista.curta .cat-bar { height: 6px; }
+        .cat-lista.curta .cat-frase { font-size: 12.5px; white-space: normal; line-height: 1.35; }
+        .cat-parecida { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--cor-superficie); border: 1px solid var(--cor-borda); font: 500 12px 'Figtree', sans-serif; color: var(--cor-texto-secundario); line-height: 1.4; }
+        .cat-parecida[hidden] { display: none; }
+        .cat-parecida > span { flex: 1; min-width: 0; }
+        .cat-parecida b { color: var(--cor-texto-principal); }
+        .cat-parecida .btn-secundario { flex: 0 0 auto; padding: 5px 10px; font-size: 12px; }
+        .cat-cfg-parecida { margin-top: 3px; font-size: 11px; color: var(--cor-txt-amber); }
+        .cat-cfg-parecida button { margin-left: 4px; padding: 0; border: 0; background: none; font: 700 11px 'Figtree', sans-serif; color: var(--cor-primaria); text-decoration: underline; cursor: pointer; }
         /* Configurações › Categorias: botão "Limite" e o editor. */
         .cat-cfg-limite { padding: 4px 8px !important; font-size: 11px !important; color: var(--cor-txt-amber) !important; border-color: var(--cor-borda-amber, var(--cor-borda)) !important; }
         .cat-lim { display: flex; flex-direction: column; gap: 10px; background: var(--cor-superficie); border: 1px solid var(--cor-borda); border-radius: 12px; padding: 14px; }
@@ -1626,6 +1791,53 @@
             .mc-lim { font-size: 11.5px; color: var(--cor-texto-mutado); }
             .mc-lim.perto { color: var(--cor-txt-amber); font-weight: 700; }
             .mc-lim.passou { color: var(--cor-erro); font-weight: 700; }
+
+            /* Cartão do topo (nov/2026): entrou, saídas, sobra e o pé do plano. */
+            .mi-dlista { display: flex; flex-direction: column; margin-top: 4px; }
+            .mi-dl { display: grid; grid-template-columns: minmax(0, 1fr) auto 40px; align-items: baseline; gap: 8px; width: 100%; min-height: 32px; padding: 3px 0; border: 0; background: none; font: 500 14.5px 'Figtree', sans-serif; color: var(--cor-texto-principal); text-align: left; }
+            button.mi-dl { cursor: pointer; }
+            .mi-dl > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .mi-dl > span > i { display: inline-block; width: 8px; height: 8px; border-radius: 99px; margin-right: 9px; vertical-align: middle; }
+            .mi-dl > b { font-family: 'DM Mono', monospace; font-weight: 500; white-space: nowrap; }
+            .mi-dl > small { text-align: right; font-size: 12px; color: var(--cor-texto-mutado); }
+            .mi-dl.ent > span, .mi-dl.ent > b { color: var(--cor-primaria); }
+            .mi-dl.tot { margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--cor-borda); font-weight: 700; color: var(--cor-primaria); }
+            .mi-dl.tot > b, .mi-dl.tot > small { color: var(--cor-primaria); font-weight: 700; }
+            .mi-dl.tot.neg, .mi-dl.tot.neg > b, .mi-dl.tot.neg > small { color: var(--cor-erro); }
+            .mi-dzero { margin: 4px 0 0; font-size: 12.5px; color: var(--cor-texto-mutado); }
+            /* Cartão da sobra: Por tipo × Fixas × variáveis (ideia C). */
+            .mi-visao-seg { display: grid; grid-template-columns: 1fr 1fr; padding: 3px; margin: 2px 0 10px; border-radius: 11px; background: var(--cor-superficie); }
+            .mi-visao-seg button { min-height: 36px; border: 0; border-radius: 9px; background: none; font: 600 13px 'Figtree', sans-serif; color: var(--cor-texto-secundario); cursor: pointer; }
+            .mi-visao-seg button[aria-pressed="true"] { background: var(--cor-branco); color: var(--cor-texto-principal); box-shadow: 0 1px 3px rgba(16, 30, 19, .12); }
+            .mi-visoes[data-visao="tipo"] .mi-visao[data-v="fv"], .mi-visoes[data-visao="fv"] .mi-visao[data-v="tipo"] { display: none; }
+            .mi-dl.zero, .mi-dl.zero > b { color: var(--cor-texto-mutado); }
+            .mi-dl.zero > span > i { opacity: .45; }
+            .mi-plano-pe { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 52px; margin-top: 12px; padding: 8px 12px; border: 0; border-radius: 12px; font: 700 14px 'Figtree', sans-serif; text-align: left; cursor: pointer; }
+            .mi-plano-pe small { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 500; opacity: .9; }
+            .mi-plano-pe.passou { background: var(--cor-bg-erro); color: var(--cor-txt-erro); }
+            .mi-plano-pe.perto { background: rgba(245, 158, 11, .16); color: var(--cor-txt-amber); }
+            .mi-plano-pe.ok { background: rgba(16, 185, 129, .12); color: var(--cor-primaria); }
+            .mi-precisa .mi-notamos { margin-top: 10px; }
+            .mi-precisa[hidden] { display: none; }
+            .mi-notamos-aviso { padding: 14px 16px; }
+            .mi-notamos-aviso .ins-vazio { margin: 0; padding: 0; border: 0; background: none; }
+            .mi-precisa .mp-lista + #mobPrecisaNotamos:not(:empty) { margin-top: 10px; }
+            /* O painel solto de avisos dá lugar ao de "Precisa de você". */
+            #painelInsights { display: none !important; }
+            #mobCategorias .mi-tit-linha { margin-bottom: 2px; }
+            /* Para onde foi: barra até o limite, na cor do estado, e pílula. */
+            .mc-trilho.lim { overflow: hidden; }
+            .mc-trilho.lim > span { background: #10b981; }
+            .mc-trilho.lim.perto > span, .mc-trilho.lim.ritmo > span { background: #f59e0b; }
+            .mc-trilho.lim.passou > span { background: var(--cor-erro); }
+            .mc-lim.ok { color: var(--cor-texto-mutado); font-weight: 500; }
+            .mc-lim.ritmo { color: var(--cor-txt-amber); font-weight: 700; }
+            .mc-lim.sem { color: var(--cor-texto-mutado); opacity: .8; }
+            .mc-pilula { display: inline-flex; align-items: center; justify-content: center; gap: 3px; min-width: 54px; padding: 3px 7px; border-radius: 99px; font: 700 12px 'DM Mono', monospace; white-space: nowrap; }
+            .mc-pilula.ok { background: rgba(16, 185, 129, .12); color: var(--cor-primaria); }
+            .mc-pilula.perto, .mc-pilula.ritmo { background: rgba(245, 158, 11, .16); color: var(--cor-txt-amber); }
+            .mc-pilula.passou { background: var(--cor-erro); color: #fff; }
+            .mc-row.lim-passou { background: var(--cor-bg-erro); margin: 0 -16px; width: calc(100% + 32px); padding-left: 16px; padding-right: 16px; }
         }
         .ext-totais-dup[hidden] { display: none !important; }
 
@@ -14474,8 +14686,9 @@
                     <div style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);margin-bottom:8px;" id="tituloFormCategoriaConfig">Nova categoria</div>
                     <div style="display:flex;gap:8px;align-items:center;">
                         <button type="button" id="categoriaDespesaNovaEmojiBtnConfig" onclick="toggleEmojiPickerCategoria('Config')" title="Escolher emoji" style="flex:0 0 auto;width:40px;height:38px;display:flex;align-items:center;justify-content:center;font-size:18px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-branco);cursor:pointer;line-height:1;">🏷️</button>
-                        <input type="text" id="categoriaDespesaNovaConfig" placeholder="Ex: Viagens" maxlength="40" style="flex:1 1 auto;width:100%;padding:8px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-branco);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
+                        <input type="text" id="categoriaDespesaNovaConfig" oninput="avisarCategoriaParecida('Config')" placeholder="Ex: Viagens" maxlength="40" style="flex:1 1 auto;width:100%;padding:8px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-branco);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
                     </div>
+                    <div id="categoriaParecidaAvisoConfig" class="cat-parecida" hidden></div>
                     <input type="hidden" id="categoriaDespesaNovaEmojiConfig" value="🏷️">
                     <div id="categoriaDespesaEmojiPickerConfig" style="display:none;margin-top:8px;flex-wrap:wrap;gap:6px;border:1px solid var(--cor-borda);border-radius:9px;padding:8px;background:var(--cor-branco);"></div>
                     <div style="display:flex;gap:6px;margin-top:10px;">
@@ -15573,14 +15786,36 @@
                 <div id="listaVencimentosContainer" class="vencimentos-grid"></div>
             </div>
 
+            <!-- O mês por tipo (Receitas, Despesas, Cartão, Investimentos,
+                 Sonhos), logo abaixo da sobra: é a explicação dela. No celular
+                 a mesma lista mora dentro do cartão da sobra. -->
+            <section id="ctlTipos" class="card-container ctl-tipos ctl-web" aria-label="O mês por tipo"></section>
+            <!-- Por categoria + Seu plano do mês, logo depois dos números e do
+                 que vence (reorganização de nov/2026): "onde estou estourando"
+                 é a terceira pergunta de quem abre o Controle, e estava no fim
+                 da página, depois do extrato. A lista e o plano saem das mesmas
+                 funções do celular (htmlListaCategorias, htmlPlanoDoMes). O
+                 canvas continua escondido: ele monta os dados do celular. -->
+            <div class="ctl-linha ctl-linha-cat">
+                <div class="card-container ctrl-cat-card ctl-web" style="margin-bottom:0; min-width: 0;">
+                    <div class="ctrl-cat-topo">
+                        <h3>Por categoria</h3>
+                        <span>gasto <b class="valor-mascarado" id="ctrlCatTotal"></b> · quem passou primeiro</span>
+                    </div>
+                    <div id="ctrlCategorias"></div>
+                    <div class="grafico-container" style="height:180px;margin-top:0;display:none;"><canvas id="graficoComposicao"></canvas></div>
+                    <div style="display:none;" id="legendaPizzaVazia"></div>
+                </div>
+                <div class="card-container ctrl-plano-card ctl-web" style="margin-bottom:0; min-width: 0;">
+                    <div id="ctrlPlano"></div>
+                </div>
+            </div>
+
             <!-- No computador o que se usa todo dia vem logo depois dos números:
                  vencimentos, extrato e o formulário; análise (O que notamos, saúde,
                  composição) fica abaixo. Antes o extrato começava a ~1.500 px do
                  topo (avaliação de cliques, 11/2026). No celular cada bloco mora na
                  sua aba (data-mob-aba), e a ordem aqui não muda nada lá. -->
-            <!-- O mês por tipo (ctlTiposHtml): Receitas, Despesas, Cartão,
-                 Investimentos e Sonhos em lista, com a variação e a mini-linha. -->
-            <section id="ctlTipos" class="card-container ctl-tipos ctl-web" aria-label="O mês por tipo"></section>
             <div class="ctl-linha ctl-linha-extrato" style="margin-bottom:20px;">
 
                 <div class="card-container" data-mob-aba="extrato" style="margin-bottom:0;display:flex;flex-direction:column; min-width: 0;">
@@ -15717,8 +15952,9 @@
                         <div id="grupoCategoriaDespesaNova" style="display:none;margin-top:8px;">
                             <div style="display:flex;gap:8px;align-items:center;">
                                 <button type="button" id="categoriaDespesaNovaEmojiBtn" onclick="toggleEmojiPickerCategoria()" title="Escolher emoji" style="flex:0 0 auto;width:44px;height:42px;display:flex;align-items:center;justify-content:center;font-size:20px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);cursor:pointer;line-height:1;">🏷️</button>
-                                <input type="text" id="categoriaDespesaNova" placeholder="Nome da nova categoria (ex: Viagens)" maxlength="40" style="flex:1 1 auto;width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
+                                <input type="text" id="categoriaDespesaNova" oninput="avisarCategoriaParecida('')" placeholder="Nome da nova categoria (ex: Viagens)" maxlength="40" style="flex:1 1 auto;width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
                             </div>
+                            <div id="categoriaParecidaAviso" class="cat-parecida" hidden></div>
                             <input type="hidden" id="categoriaDespesaNovaEmoji" value="🏷️">
                             <div id="categoriaDespesaEmojiPicker" style="display:none;margin-top:8px;flex-wrap:wrap;gap:6px;border:1px solid var(--cor-borda);border-radius:9px;padding:8px;background:var(--cor-superficie);"></div>
                         </div>
@@ -15904,22 +16140,8 @@
 
             <div id="mobInicioFim" class="mob-inicio" data-mob-aba="resumo"></div>
 
-            <!-- Fim da página no web: gastos por categoria ao lado da projeção. -->
+            <!-- Fim da página no web: a projeção dos próximos meses. -->
             <div class="ctl-linha ctl-linha-fim">
-                <!-- Gastos por categoria, cada um contra a média dos 3 meses
-                     anteriores. Substitui "Composição do mês", que punha a
-                     receita e a sobra no mesmo gráfico dos gastos. O canvas
-                     continua (escondido): ele monta os dados do "Para onde foi"
-                     do celular. -->
-                <div class="card-container ctrl-cat-card ctl-web" style="margin-bottom:0; min-width: 0;">
-                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-                        <h4 style="font-size:14px;font-weight:700;color:var(--cor-texto-principal);margin:0;">Gastos por categoria</h4>
-                        <span style="font-size:11.5px;color:var(--cor-texto-mutado);">traço = sua média dos 3 meses anteriores</span>
-                    </div>
-                    <div id="ctrlCategorias"></div>
-                    <div class="grafico-container" style="height:180px;margin-top:0;display:none;"><canvas id="graficoComposicao"></canvas></div>
-                    <div style="display:none;" id="legendaPizzaVazia"></div>
-                </div>
                 <section class="card-container ctl-proj" data-mob-aba="projecao" aria-label="Próximos meses">
             <div data-mob-aba="projecao" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:12px;">
                 <h2 style="font-size:15px;font-weight:600;color:var(--cor-texto-principal);margin:0;display:flex;align-items:center;gap:7px;"><i class="ph ph-calendar-check" style="color:var(--cor-info);font-size:18px;"></i> Próximos meses</h2>

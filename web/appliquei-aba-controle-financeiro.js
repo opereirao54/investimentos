@@ -323,6 +323,7 @@ function onChangeCategoriaDespesa() {
   const novaWrap = document.getElementById('grupoCategoriaDespesaNova');
   if (!sel || !novaWrap) return;
   novaWrap.style.display = sel.value === '__nova__' ? 'block' : 'none';
+  avisarCategoriaParecida('');
   const picker = document.getElementById('categoriaDespesaEmojiPicker');
   if (picker) picker.style.display = 'none';
   if (sel.value === '__nova__') document.getElementById('categoriaDespesaNova')?.focus();
@@ -337,7 +338,7 @@ function resolverCategoriaDespesaSelecionada(categoriaContabil) {
   if (!sel) return null;
   let valor = sel.value;
   if (valor === '__nova__') {
-    const nome = (document.getElementById('categoriaDespesaNova')?.value || '').trim();
+    const nome = normalizarNomeCategoria(document.getElementById('categoriaDespesaNova')?.value);
     if (!nome) return null;
     const slug = slugCategoriaDespesa(nome);
     if (obterCategoriasDespesa().some((c) => c.v === slug)) return slug;
@@ -357,6 +358,177 @@ function resolverCategoriaDespesaSelecionada(categoriaContabil) {
     return slug;
   }
   return valor || null;
+}
+
+// --- Categoria repetida -----------------------------------------------------
+// Sem aviso, quem digita "FARMACIA" cria uma categoria nova ao lado de Saúde, e
+// "CABELEIREIRO" ao lado de Cuidados Pessoais: o gasto de saúde passa a morar
+// em dois lugares, e nem o limite nem a média da categoria batem mais. Na hora
+// de criar, o app aponta a categoria que já existe. É sugestão, não trava:
+// quem quer mesmo separar Farmácia de Saúde continua podendo.
+
+// Palavras que, sozinhas, já dizem qual categoria padrão é a casa do gasto.
+// Comer fora (padaria, restaurante) fica de fora de propósito: separar isso
+// de Alimentação é uma escolha legítima de controle.
+var SINONIMOS_CATEGORIA_PADRAO = {
+  saude: [
+    'farmacia',
+    'drogaria',
+    'remedio',
+    'medico',
+    'consulta',
+    'dentista',
+    'exame',
+    'hospital',
+    'plano de saude',
+  ],
+  cuidados_pessoais: [
+    'cabeleireiro',
+    'cabelo',
+    'salao',
+    'barbeiro',
+    'barbearia',
+    'manicure',
+    'unha',
+    'estetica',
+    'beleza',
+    'cosmetico',
+    'perfumaria',
+  ],
+  transporte: [
+    'combustivel',
+    'gasolina',
+    'etanol',
+    'posto',
+    'estacionamento',
+    'uber',
+    'onibus',
+    'metro',
+    'pedagio',
+    'oficina',
+  ],
+  alimentacao: ['mercado', 'supermercado', 'acougue', 'mistura', 'hortifruti', 'feira', 'sacolao'],
+  moradia: ['aluguel', 'condominio', 'luz', 'energia', 'agua', 'gas', 'internet'],
+  lazer: ['assinatura', 'streaming', 'cinema', 'passeio'],
+  educacao: ['escola', 'faculdade', 'curso', 'livro', 'material escolar'],
+  pets: ['pet', 'veterinario', 'racao', 'petshop'],
+  impostos_taxas: ['imposto', 'taxa', 'iptu', 'ipva', 'contabilidade', 'tarifa'],
+};
+
+/** "Plano de Saúde!" → "plano de saude" (sem acento, sem emoji, sem o "s" do plural). */
+function _normCategoria(txt) {
+  return String(txt || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .map((p) => (p.length > 3 ? p.replace(/s$/, '') : p))
+    .join(' ');
+}
+
+/** Nome digitado → nome gravado. Tudo em maiúsculas vira "Farmacia" (caixa
+ *  alta parece outra categoria na lista e grita no extrato); espaços em
+ *  excesso somem. Quem escreveu com maiúsculas e minúsculas fica como está. */
+function normalizarNomeCategoria(nome) {
+  const limpo = String(nome || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!limpo) return '';
+  const letras = limpo.replace(/[^A-Za-zÀ-ÿ]/g, '');
+  if (letras.length > 3 && letras === letras.toUpperCase()) {
+    const minusculas = ['e', 'de', 'da', 'do', 'das', 'dos', 'a', 'o'];
+    return limpo
+      .toLowerCase()
+      .split(' ')
+      .map((p, i) => (i > 0 && minusculas.includes(p) ? p : p.charAt(0).toUpperCase() + p.slice(1)))
+      .join(' ');
+  }
+  return limpo.charAt(0).toUpperCase() + limpo.slice(1);
+}
+
+/** A categoria visível que já cobre `nome`, ou null. `ignorar` é o slug da
+ *  própria categoria (na lista de Configurações ela não conta como repetida). */
+function categoriaParecida(nome, ignorar) {
+  const n = _normCategoria(nome);
+  if (n.length < 3) return null;
+  const visiveis = obterCategoriasDespesa().filter((c) => c.v !== ignorar);
+  const palavras = ' ' + n + ' ';
+  // 1) Mesmo nome (ou um contém o outro como palavra inteira): "Saúde" e
+  //    "Saude e farmácia", "Pets" e "Pet".
+  for (const c of visiveis) {
+    const r = _normCategoria(_partesRotuloCategoria(c.label).nome);
+    if (!r) continue;
+    if (r === n || palavras.includes(' ' + r + ' ') || (' ' + r + ' ').includes(palavras)) return c;
+  }
+  // 2) Sinônimo de uma categoria padrão.
+  for (const c of visiveis) {
+    const sin = SINONIMOS_CATEGORIA_PADRAO[c.v];
+    if (sin && sin.some((x) => palavras.includes(' ' + _normCategoria(x) + ' '))) return c;
+  }
+  return null;
+}
+
+function _escCategoria(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** Liga ao digitar o nome de uma categoria nova. sufixo '' = formulário de
+ *  lançamento, 'Config' = Configurações. Renomear não avisa. */
+function avisarCategoriaParecida(sufixo) {
+  const suf = sufixo || '';
+  const aviso = document.getElementById('categoriaParecidaAviso' + suf);
+  if (!aviso) return;
+  const input = document.getElementById('categoriaDespesaNova' + suf);
+  const editando = input && input.dataset ? input.dataset.editandoV || '' : '';
+  const c = input && !editando ? categoriaParecida(input.value) : null;
+  if (!c) {
+    aviso.hidden = true;
+    aviso.innerHTML = '';
+    return;
+  }
+  aviso.hidden = false;
+  aviso.innerHTML =
+    '<span>Já existe <b>' +
+    _escCategoria(c.label) +
+    '</b>. Usar a mesma deixa o gasto num lugar só.</span>' +
+    '<button type="button" class="btn-secundario" onclick="usarCategoriaParecida(\'' +
+    c.v +
+    "','" +
+    suf +
+    '\')">Usar essa</button>';
+}
+
+function usarCategoriaParecida(v, sufixo) {
+  const suf = sufixo || '';
+  const input = document.getElementById('categoriaDespesaNova' + suf);
+  if (input) input.value = '';
+  avisarCategoriaParecida(suf);
+  if (suf === 'Config') {
+    cancelarCategoriaConfig();
+    return mostrarToast(
+      'Ok, nada foi criado. Use ' + rotuloCategoriaDespesa(v) + ' nos lançamentos.',
+      'sucesso'
+    );
+  }
+  const sel = document.getElementById('categoriaDespesa');
+  if (sel) sel.value = v;
+  onChangeCategoriaDespesa();
+  if (typeof lancUiSincronizar === 'function') lancUiSincronizar();
+}
+
+/** Configurações: junta uma categoria criada na parecida — é a exclusão com o
+ *  destino dos lançamentos já escolhido. */
+function juntarCategoriaConfig(de, para) {
+  pedirExclusaoCategoriaConfig(de);
+  const sel = document.getElementById('categoriaConfigDestino');
+  if (sel) sel.value = para;
 }
 
 // ============================================================
@@ -387,8 +559,15 @@ function obterLimiteCategoria(v) {
 
 function definirLimiteCategoria(v, valor) {
   if (!v) return;
-  const n = Number(valor);
   const ajustes = obterCategoriasDespesaCustom();
+  _ajustarLimiteNoArray(ajustes, v, valor);
+  salvarCategoriasDespesaCustom(ajustes);
+}
+
+/** O mesmo de definirLimiteCategoria, sem gravar: a montagem do plano muda
+ *  vários limites e grava UMA vez (um sync, não doze). */
+function _ajustarLimiteNoArray(ajustes, v, valor) {
+  const n = Number(valor);
   let a = ajustes.find((x) => x && x.v === v);
   if (n > 0) {
     if (!a) {
@@ -401,6 +580,12 @@ function definirLimiteCategoria(v, valor) {
     // Padrão sem rótulo próprio nem oculta: o ajuste só existia pelo limite.
     if (ehCategoriaDespesaPadrao(v) && !a.label && !a.oculta) ajustes.splice(ajustes.indexOf(a), 1);
   }
+}
+
+/** Grava vários limites de uma vez. valores: { slug: número } (0 = sem limite). */
+function aplicarLimitesEmLote(valores) {
+  const ajustes = obterCategoriasDespesaCustom();
+  Object.keys(valores || {}).forEach((v) => _ajustarLimiteNoArray(ajustes, v, valores[v]));
   salvarCategoriasDespesaCustom(ajustes);
 }
 
@@ -426,14 +611,1066 @@ function complementoLimiteCategoria(novos) {
     if (!lim) return;
     const gasto = Number(calcularDespesasPorCategoria(t.mes, t.ano)[t.categoriaDespesa]) || 0;
     const sit = situacaoLimiteCategoria(gasto, lim);
+    const estado = estadoLimiteCategoria(t.categoriaDespesa, t.mes, t.ano, gasto, lim);
     const nome = rotuloCategoriaDespesa(t.categoriaDespesa);
     if (sit.estado === 'passou')
       frases.push(
         nome + ' passou do limite: ' + formatarMoeda(gasto) + ' de ' + formatarMoeda(lim) + '.'
       );
-    else if (sit.estado === 'perto') frases.push(nome + ' chegou a ' + sit.pct + '% do limite.');
+    else if (estado === 'perto') frases.push(nome + ' chegou a ' + sit.pct + '% do limite.');
+    else if (estado === 'ritmo') {
+      const r = ritmoLimiteCategoria(t.categoriaDespesa, t.mes, t.ano);
+      if (r)
+        frases.push(
+          nome +
+            ' está ' +
+            formatarMoeda(r.acima) +
+            ' acima do ritmo do mês: ' +
+            (r.diasRestantes >= 7
+              ? 'cabem ' + formatarMoeda(r.porSemana) + ' por semana até o fim.'
+              : 'cabem ' + formatarMoeda(r.porDia) + ' por dia até o fim.')
+        );
+    }
   });
   return frases.length ? ' ' + frases.slice(0, 2).join(' ') : '';
+}
+
+// --- Ritmo do limite -------------------------------------------------------
+// O aviso de 80% só olha QUANTO já foi, não QUANDO. No dia 8 (27% do mês),
+// ter gasto 60% do limite de Mercado já é o sinal — e o aviso de 80% ficava
+// calado até ser tarde. O ritmo compara o gasto com a fração do mês que já
+// passou e diz quanto ainda cabe por semana (ou por dia, na última semana).
+//
+// O limite continua sendo UM número por mês: é o ciclo da renda e das contas.
+// Semana e dia são a mesma régua mostrada em pedaços menores, sem segunda
+// configuração para manter em sincronia.
+//
+// Só a parte VARIÁVEL entra no ritmo. O fixo da categoria (dízimo, plano,
+// parcela, assinatura) já está decidido no começo do mês: se entrasse, a
+// categoria nasceria "acima do ritmo" no dia 1. O fixo sai do limite antes, e
+// o que sobra é o que dá para gastar no dia a dia.
+
+/** Gasto já comprometido ao entrar no mês: fixo, recorrente, parcela, fixo do cartão. */
+function lancamentoComprometido(t) {
+  if (!t) return false;
+  if (t.categoria === 'despesa_fixa' || t.cartaoFixoMensal) return true;
+  if (t.categoria === 'cartao_credito') return /\(\d+\/\d+\)\s*$/.test(String(t.descricao || ''));
+  return !!t.groupId;
+}
+
+/** Ritmo do limite de uma categoria no mês corrente (pura sobre `transacoes`).
+ *  null quando não há limite, o mês não é o de `hoje`, ou o fixo já come o
+ *  limite inteiro (aí o estado do limite já diz tudo). */
+function ritmoLimiteCategoria(slug, mes, ano, hoje) {
+  const limite = obterLimiteCategoria(slug);
+  if (!limite || typeof transacoes === 'undefined') return null;
+  const h = hoje || new Date();
+  if (h.getMonth() !== mes || h.getFullYear() !== ano) return null;
+  const { fixo, variavel } = fixoVariavelCategoria(slug, mes, ano);
+  const livre = limite - fixo;
+  if (livre <= 0.005) return null;
+  const diasMes = new Date(ano, mes + 1, 0).getDate();
+  const dia = h.getDate();
+  const esperado = (livre * dia) / diasMes;
+  const restante = livre - variavel;
+  const diasRestantes = diasMes - dia + 1; // hoje ainda conta
+  const porDia = Math.max(0, restante) / diasRestantes;
+  const porSemana = diasRestantes >= 7 ? porDia * 7 : Math.max(0, restante);
+  const acima = variavel - esperado;
+  // Folga de 10% do livre (mínimo R$ 20): uma compra de mercado maior num
+  // dia não pode acender o aviso sozinha.
+  const folga = Math.max(livre * 0.1, 20);
+  const estado = restante < -0.005 ? 'passou' : acima > folga ? 'acima' : 'ok';
+  return {
+    limite,
+    fixo,
+    variavel,
+    livre,
+    esperado,
+    restante,
+    diasRestantes,
+    porDia,
+    porSemana,
+    acima,
+    estado,
+  };
+}
+
+/** Categoria quase toda fixa (Moradia: R$ 11 livres de R$ 2.300): "cabe
+ *  R$ 3,53 por semana" é ruído — o que ela tem é conta, não ritmo. */
+function ritmoTemFolgaUtil(r) {
+  return !!r && r.livre >= Math.max(50, r.limite * 0.1);
+}
+
+/** "cabe R$ 95 por semana" / "R$ 180 acima do ritmo" — vazio sem ritmo. */
+function textoRitmoLimite(r) {
+  if (!r || r.estado === 'passou') return '';
+  if (r.estado === 'acima') return formatarMoeda(r.acima) + ' acima do ritmo';
+  if (!ritmoTemFolgaUtil(r)) return '';
+  if (r.diasRestantes >= 7) return 'cabe ' + formatarMoeda(r.porSemana) + ' por semana';
+  return 'cabe ' + formatarMoeda(r.porDia) + ' por dia';
+}
+
+/** Quanto da categoria no mês é fixo (comprometido) e quanto é variável. */
+function fixoVariavelCategoria(slug, mes, ano) {
+  let fixo = 0;
+  let variavel = 0;
+  if (typeof transacoes === 'undefined') return { fixo, variavel };
+  transacoes.forEach((t) => {
+    if (t.mes !== mes || t.ano !== ano || t.categoriaDespesa !== slug) return;
+    if (!categoriaDespesaUsada(t.categoria)) return;
+    if (lancamentoComprometido(t)) fixo += Number(t.valor) || 0;
+    else variavel += Number(t.valor) || 0;
+  });
+  return { fixo, variavel };
+}
+
+// --- Estado do limite ---------------------------------------------------------
+// "Chegou a 80%" virava laranja em Moradia com R$ 2.288 de R$ 2.300 — só
+// contas fixas, exatamente o planejado. O estado agora olha o que ainda pode
+// mudar: 'perto' é quando o VARIÁVEL já usou 80% do que sobra depois do fixo.
+//   'passou' gasto acima do limite
+//   'ritmo'  mês corrente, variável acima do ritmo (ver ritmoLimiteCategoria)
+//   'perto'  variável em 80% ou mais do que o fixo deixou livre
+//   'ok'     dentro
+function estadoLimiteCategoria(slug, mes, ano, valor, limite, hoje) {
+  if (!(limite > 0)) return null;
+  if ((Number(valor) || 0) > limite + 0.005) return 'passou';
+  const fv = fixoVariavelCategoria(slug, mes, ano);
+  const livre = limite - fv.fixo;
+  if (livre > 0.005 && fv.variavel >= livre * 0.8) return 'perto';
+  const r = ritmoLimiteCategoria(slug, mes, ano, hoje);
+  if (r && r.estado === 'acima') return 'ritmo';
+  return 'ok';
+}
+
+// --- Plano do mês -------------------------------------------------------------
+// A soma dos limites É o plano: quanto da renda já tem destino, como ele se
+// divide entre as categorias, quanto sobra, e como o mês está indo contra ele.
+// Sem tela nova para configurar — o plano nasce dos limites por categoria.
+
+/** Cor FIXA da categoria. Antes a cor vinha da posição na lista (por gasto em
+ *  um bloco, por limite no outro), e Dízimo era laranja no plano e roxo no
+ *  "Para onde foi". Agora a cor segue a categoria: a ordem das padrões e,
+ *  depois, a ordem em que as criadas foram cadastradas. */
+function corCategoriaDespesa(slug) {
+  if (!slug || slug === '__sem_categoria__') return '#9aa7a0';
+  const ordem = CATEGORIAS_DESPESA_PADRAO.map((c) => c.v);
+  obterCategoriasDespesaCustom().forEach((a) => {
+    if (a && a.v && !ordem.includes(a.v)) ordem.push(a.v);
+  });
+  let i = ordem.indexOf(slug);
+  if (i < 0) {
+    // Categoria que só existe nos lançamentos (veio de outro aparelho): cor
+    // estável pelo próprio nome.
+    i = 0;
+    for (const ch of String(slug)) i = (i * 31 + ch.charCodeAt(0)) % 997;
+  }
+  return PALETA_CATEGORIA_DESPESA[i % PALETA_CATEGORIA_DESPESA.length];
+}
+
+/** Ordem da lista de categorias: quem passou primeiro, depois atenção,
+ *  dentro e sem limite; no mesmo estado, o maior gasto primeiro. */
+var ORDEM_ESTADO_LIMITE = { passou: 0, perto: 1, ritmo: 1, ok: 2 };
+function ordemEstadoLimite(estado) {
+  return estado in ORDEM_ESTADO_LIMITE ? ORDEM_ESTADO_LIMITE[estado] : 3;
+}
+
+/** Números do plano do mês (pura sobre `transacoes` e os limites). */
+function planoDoMes(mes, ano, hoje) {
+  const resumo = calcularResumoMes(mes, ano);
+  const n = (v) => Number(v) || 0;
+  const renda = n(resumo.receita) + n(resumo.resgate);
+  // A mesma sobra do cartão do topo: o que entrou menos tudo o que sai.
+  const sobraReal =
+    renda -
+    (n(resumo.despFixa) +
+      n(resumo.despVar) +
+      n(resumo.cartao) +
+      n(resumo.invFixo) +
+      n(resumo.invVar) +
+      n(resumo.sonho));
+  const gastos = calcularDespesasPorCategoria(mes, ano);
+  const cats = [];
+  obterCategoriasDespesa().forEach((c) => {
+    const limite = obterLimiteCategoria(c.v);
+    if (!limite) return;
+    const valor = n(gastos[c.v]);
+    cats.push({
+      slug: c.v,
+      rotulo: c.label,
+      limite,
+      valor,
+      cor: corCategoriaDespesa(c.v),
+      estado: estadoLimiteCategoria(c.v, mes, ano, valor, limite, hoje),
+    });
+  });
+  cats.sort((a, b) => b.limite - a.limite);
+  const comLimite = new Set(cats.map((c) => c.slug));
+  const fora = Object.keys(gastos)
+    .filter((k) => !comLimite.has(k) && n(gastos[k]) > 0.005)
+    .map((k) => ({
+      slug: k,
+      rotulo: k === '__sem_categoria__' ? 'Sem categoria' : rotuloCategoriaDespesa(k),
+      valor: n(gastos[k]),
+    }))
+    .sort((a, b) => b.valor - a.valor);
+  const planejado = cats.reduce((s, c) => s + c.limite, 0);
+  const foraDoPlano = fora.reduce((s, c) => s + c.valor, 0);
+  const gastoNoPlano = cats.reduce((s, c) => s + c.valor, 0);
+  const conta = (e) => cats.filter((c) => c.estado === e).length;
+  return {
+    renda,
+    planejado,
+    // "Sobra prevista": se cada categoria ficar no limite. O que já saiu fora
+    // do plano não volta, então sai daqui — senão a sobra prometia demais.
+    sobraPrevista: renda - planejado - foraDoPlano,
+    sobraPlanejada: renda - planejado,
+    sobraReal,
+    gastoNoPlano,
+    foraDoPlano,
+    cats,
+    fora,
+    passou: conta('passou'),
+    atencao: conta('perto') + conta('ritmo'),
+    dentro: conta('ok'),
+    semLimite: fora.length,
+  };
+}
+
+/** "R$ 4.713" — o celular usa reais redondos para os nomes caberem em 360 px. */
+function formatarMoedaCurta(v) {
+  return (
+    (v < 0 ? '−' : '') +
+    'R$ ' +
+    Math.round(Math.abs(Number(v) || 0)).toLocaleString('pt-BR', { maximumFractionDigits: 0 })
+  );
+}
+
+/** Chips do plano: levam à lista de categorias (já ordenada por estado). */
+function planoIrParaCategorias() {
+  const alvos = ['mobCategorias', 'ctrlCategorias']
+    .map((id) => document.getElementById(id))
+    .filter((el) => el && el.offsetParent !== null);
+  if (alvos[0] && typeof alvos[0].scrollIntoView === 'function')
+    alvos[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/** Cartão "Seu plano do mês" (o mesmo HTML no celular e no web).
+ *  opts.curto: valores redondos (celular); opts.aberta: divisão já aberta. */
+function htmlPlanoDoMes(p, opts) {
+  const o = opts || {};
+  const esc = _escCategoria;
+  const m = (v) => esc(o.curto ? formatarMoedaCurta(v) : formatarMoeda(v));
+  const ajustar =
+    '<button type="button" class="plano-ajustar" onclick="abrirMontarPlano()">' +
+    (p && p.cats.length ? 'Ajustar limites' : 'Montar meu plano') +
+    '</button>';
+  if (!p || !p.cats.length) {
+    return (
+      '<section class="plano plano-vazio" aria-label="Seu plano do mês">' +
+      '<div class="plano-topo"><h3>Seu plano do mês</h3></div>' +
+      '<p>Defina um limite em cada categoria e veja aqui quanto da renda já tem destino, como ela se divide e quanto sobra.</p>' +
+      ajustar +
+      '</section>'
+    );
+  }
+  const base = Math.max(p.renda, p.planejado + p.foraDoPlano) || 1;
+  const pctRenda = (v) => (p.renda > 0 ? Math.round((v / p.renda) * 100) + '%' : '');
+  const larg = (v) => ((Math.max(0, v) / base) * 100).toFixed(2) + '%';
+  const segs =
+    p.cats
+      .map(
+        (c) =>
+          '<span style="background:' +
+          c.cor +
+          ';width:' +
+          larg(c.limite) +
+          '" title="' +
+          esc(c.rotulo) +
+          '"></span>'
+      )
+      .join('') +
+    (p.foraDoPlano > 0.005
+      ? '<span class="plano-seg-fora" style="width:' +
+        larg(p.foraDoPlano) +
+        '" title="Fora do plano"></span>'
+      : '') +
+    (p.sobraPrevista > 0.005
+      ? '<span class="plano-seg-sobra" style="width:' +
+        larg(p.sobraPrevista) +
+        '" title="Sobra prevista"></span>'
+      : '');
+  const linhaLeg = (cls, cor, nome, v) =>
+    '<li' +
+    (cls ? ' class="' + cls + '"' : '') +
+    '><i' +
+    (cor ? ' style="background:' + cor + '"' : '') +
+    '></i><span>' +
+    nome +
+    '</span><b class="valor-mascarado">' +
+    m(Math.abs(v)) +
+    '</b><small>' +
+    pctRenda(Math.abs(v)) +
+    '</small></li>';
+  const leg =
+    p.cats.map((c) => linhaLeg('', c.cor, esc(c.rotulo), c.limite)).join('') +
+    (p.foraDoPlano > 0.005
+      ? linhaLeg('fora', '', 'Fora do plano (sem limite)', p.foraDoPlano)
+      : '') +
+    (p.renda > 0
+      ? linhaLeg(
+          p.sobraPrevista >= 0 ? 'sobra' : 'falta',
+          '',
+          p.sobraPrevista >= 0 ? 'Sobra prevista' : 'Plano passa da renda',
+          p.sobraPrevista
+        )
+      : '');
+
+  // Sobra prevista + a ponte para o número do topo.
+  let prev = '';
+  if (p.renda > 0) {
+    prev =
+      '<div class="plano-prev' +
+      (p.sobraPrevista < 0 ? ' falta' : '') +
+      '"><span>' +
+      (p.sobraPrevista >= 0 ? 'Sobra prevista no plano' : 'O plano passa da renda em') +
+      '</span><b class="valor-mascarado">' +
+      m(Math.abs(p.sobraPrevista)) +
+      '</b></div><p class="plano-nota">Se cada categoria ficar no limite' +
+      (p.foraDoPlano > 0.005
+        ? ', já descontados ' + m(p.foraDoPlano) + ' gastos fora do plano'
+        : '') +
+      '. Hoje, com o que já saiu, a sobra é <b class="valor-mascarado">' +
+      m(p.sobraReal) +
+      '</b>.</p>';
+  }
+
+  // Gasto no plano: a marca é o 100%; o que passou aparece listrado depois dela.
+  const passouPlano = p.gastoNoPlano - p.planejado;
+  const escala = Math.max(p.gastoNoPlano, p.planejado) || 1;
+  const cem = (p.planejado / escala) * 100;
+  const dentroPct = (Math.min(p.gastoNoPlano, p.planejado) / escala) * 100;
+  const usoEstado = passouPlano > 0.005 ? 'passou' : p.passou || p.atencao ? 'perto' : 'ok';
+  const uso =
+    '<div class="plano-uso ' +
+    usoEstado +
+    '"><div class="plano-uso-lin"><span>Gasto nas categorias do plano</span><b class="valor-mascarado">' +
+    m(p.gastoNoPlano) +
+    '</b></div><span class="plano-trilho"><span class="den" style="width:' +
+    dentroPct.toFixed(1) +
+    '%"></span>' +
+    (passouPlano > 0.005
+      ? '<span class="exc" style="left:' +
+        cem.toFixed(1) +
+        '%;width:' +
+        (100 - cem).toFixed(1) +
+        '%"></span>'
+      : '') +
+    '<span class="cem" style="left:calc(' +
+    cem.toFixed(1) +
+    '% - 1px)"></span></span><span class="plano-uso-leg">' +
+    (passouPlano > 0.005
+      ? 'plano ' + m(p.planejado) + ' · <b>passou ' + m(passouPlano) + '</b>'
+      : 'restam ' + m(-passouPlano) + ' de ' + m(p.planejado)) +
+    '</span></div>';
+
+  const chip = (n, cls, ic, txt) =>
+    n
+      ? '<button type="button" class="plano-chip ' +
+        cls +
+        '" onclick="planoIrParaCategorias()">' +
+        (ic ? '<i class="ph-bold ' + ic + '" aria-hidden="true"></i>' : '') +
+        n +
+        ' ' +
+        txt +
+        '</button>'
+      : '';
+  const status =
+    chip(p.passou, 'passou', 'ph-x', p.passou === 1 ? 'passou' : 'passaram') +
+    chip(p.atencao, 'perto', 'ph-warning', 'em atenção') +
+    chip(p.dentro, 'ok', 'ph-check', 'dentro') +
+    chip(p.semLimite, 'sem', '', 'sem limite');
+
+  return (
+    '<section class="plano" aria-label="Seu plano do mês">' +
+    '<div class="plano-topo"><h3>Seu plano do mês</h3>' +
+    ajustar +
+    '</div>' +
+    '<p class="plano-num"><b class="valor-mascarado">' +
+    m(p.planejado) +
+    '</b> com destino' +
+    (p.renda > 0
+      ? ', <b>' +
+        pctRenda(p.planejado) +
+        '</b> da renda de <b class="valor-mascarado">' +
+        m(p.renda) +
+        '</b>'
+      : '') +
+    '</p>' +
+    '<div class="plano-dist" aria-hidden="true">' +
+    segs +
+    '</div>' +
+    prev +
+    '<details class="plano-div"' +
+    (o.aberta ? ' open' : '') +
+    '><summary>Ver a divisão por categoria</summary><ul class="plano-leg">' +
+    leg +
+    '</ul></details>' +
+    uso +
+    (status ? '<div class="plano-status">' + status + '</div>' : '') +
+    '</section>'
+  );
+}
+
+// --- Linha de categoria (celular e web) -------------------------------------
+// Uma linha só para os dois: a barra enche até O LIMITE da categoria, na cor
+// do estado; a frase diz o que fazer com isso; a pílula traz o % do limite com
+// ✓ / ! / ✕. Sem limite, a linha mostra a média e oferece "+ Limite".
+
+/** As linhas do mês: quem tem gasto ou limite, por estado e depois por gasto. */
+function linhasCategoriaMes(mes, ano) {
+  const linhas = gastosPorCategoriaComMedia(mes, ano).filter(
+    (l) => l.valor > 0.005 || l.limite > 0
+  );
+  const vistas = new Set(linhas.map((l) => l.slug));
+  // Categoria com limite e sem gasto ainda: faz parte do plano, aparece.
+  obterCategoriasDespesa().forEach((c) => {
+    const limite = obterLimiteCategoria(c.v);
+    if (!limite || vistas.has(c.v)) return;
+    linhas.push({
+      slug: c.v,
+      rotulo: c.label,
+      valor: 0,
+      media: null,
+      limite,
+      limiteEstado: estadoLimiteCategoria(c.v, mes, ano, 0, limite),
+      limitePct: 0,
+      ritmo: ritmoLimiteCategoria(c.v, mes, ano),
+    });
+  });
+  linhas.forEach((l) => {
+    l.estado = l.limite ? l.limiteEstado : null;
+    l.cor = corCategoriaDespesa(l.slug);
+  });
+  linhas.sort(
+    (a, b) => ordemEstadoLimite(a.estado) - ordemEstadoLimite(b.estado) || b.valor - a.valor
+  );
+  return linhas;
+}
+
+/** A frase da linha. curto = celular (diz o limite, porque não há coluna). */
+function fraseLinhaCategoria(l, mes, ano, curto) {
+  const m = curto ? formatarMoedaCurta : formatarMoeda;
+  if (!l.limite) {
+    if (l.slug === '__sem_categoria__') return 'Lançamentos sem categoria';
+    return l.media > 0.005 ? 'Sem limite · média ' + m(l.media) : 'Sem limite';
+  }
+  const resta = l.limite - l.valor;
+  if (l.estado === 'passou')
+    return curto ? 'Passou ' + m(-resta) + ' do limite de ' + m(l.limite) : 'Passou ' + m(-resta);
+  if (l.estado === 'ritmo' && l.ritmo)
+    return m(l.ritmo.acima) + ' acima do ritmo' + (curto ? ' · restam ' + m(resta) : '');
+  if (l.estado === 'perto') return 'Restam ' + m(resta) + (curto ? ' de ' + m(l.limite) : '');
+  const r = l.ritmo;
+  if (r && ritmoTemFolgaUtil(r))
+    return (
+      'Restam ' +
+      m(resta) +
+      ' · cabe ' +
+      m(r.diasRestantes >= 7 ? r.porSemana : r.porDia) +
+      (r.diasRestantes >= 7 ? '/semana' : '/dia')
+    );
+  const fv = fixoVariavelCategoria(l.slug, mes, ano);
+  if (fv.fixo > 0.005 && fv.variavel < 0.005) return 'Restam ' + m(resta) + ' · só contas fixas';
+  return 'Restam ' + m(resta) + (curto ? ' de ' + m(l.limite) : '');
+}
+
+/** HTML de uma linha. opts.curto: celular. */
+function htmlLinhaCategoria(l, mes, ano, opts) {
+  const o = opts || {};
+  const esc = _escCategoria;
+  const m = o.curto ? formatarMoedaCurta : formatarMoeda;
+  const estado = l.estado || 'sem';
+  const pct = l.limite ? Math.round((l.valor / l.limite) * 100) : 0;
+  const larg = l.limite
+    ? Math.min(100, (l.valor / l.limite) * 100)
+    : Math.min(100, (l.valor / (o.maior || l.valor || 1)) * 100);
+  const icone = { ok: 'ph-check', perto: 'ph-warning', ritmo: 'ph-warning', passou: 'ph-x' };
+  const slugAttr = esc(l.slug === '__sem_categoria__' ? '' : l.slug);
+  const direita = l.limite
+    ? '<span class="cat-pil" title="' +
+      pct +
+      '% do limite"><i class="ph-bold ' +
+      icone[estado] +
+      '" aria-hidden="true"></i>' +
+      pct +
+      '%</span>'
+    : l.slug === '__sem_categoria__'
+      ? '<span class="cat-pil vazio"></span>'
+      : '<button type="button" class="cat-def" onclick="event.stopPropagation();definirLimiteRapido(\'' +
+        slugAttr +
+        '\')">' +
+        (o.curto ? '+ Limite' : 'Definir') +
+        '</button>';
+  return (
+    '<div class="cat-row ' +
+    estado +
+    '" role="button" tabindex="0" data-cat="' +
+    slugAttr +
+    '" onclick="verCategoriaNoExtrato(this.dataset.cat)" onkeydown="if(event.key===\'Enter\')verCategoriaNoExtrato(this.dataset.cat)" title="' +
+    (l.media != null
+      ? 'Média dos 3 meses anteriores: ' + esc(formatarMoeda(l.media))
+      : 'Sem histórico') +
+    '"><span class="cat-nome">' +
+    esc(l.rotulo) +
+    '</span><b class="cat-val valor-mascarado">' +
+    esc(m(l.valor)) +
+    (o.curto ? '' : '<small>' + (l.limite ? 'de ' + esc(m(l.limite)) : 'sem limite') + '</small>') +
+    '</b><span class="cat-bar"><span style="width:' +
+    Math.max(l.valor > 0.005 ? 2 : 0, larg).toFixed(1) +
+    '%"></span></span><span class="cat-frase">' +
+    esc(fraseLinhaCategoria(l, mes, ano, o.curto)) +
+    '</span>' +
+    direita +
+    '</div>'
+  );
+}
+
+/** A lista inteira; acima de `limite` linhas, o resto atrás de "Ver todas". */
+function htmlListaCategorias(mes, ano, opts) {
+  const o = opts || {};
+  const linhas = linhasCategoriaMes(mes, ano);
+  if (!linhas.length) return '<p class="cat-vazio">Nenhum gasto lançado neste mês.</p>';
+  const maior = linhas.reduce((a, l) => Math.max(a, l.valor), 0) || 1;
+  const max = o.limite || 8;
+  const vis = o.todas ? linhas : linhas.slice(0, max);
+  return (
+    '<div class="cat-lista' +
+    (o.curto ? ' curta' : '') +
+    '">' +
+    vis.map((l) => htmlLinhaCategoria(l, mes, ano, { curto: o.curto, maior })).join('') +
+    '</div>' +
+    (linhas.length > max
+      ? '<button type="button" class="cat-mais" onclick="' +
+        (o.alternar || 'ctrlCatAlternarTodas()') +
+        '">' +
+        (o.todas ? 'Mostrar menos' : 'Ver todas (' + linhas.length + ')') +
+        '</button>'
+      : '')
+  );
+}
+
+/** Tocar numa linha: o extrato filtrado por aquela categoria. */
+function verCategoriaNoExtrato(slug) {
+  const celular = !!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+  if (celular && typeof mobVerNoExtrato === 'function') return mobVerNoExtrato('todos', slug || '');
+  if ((slug || '') !== extratoCategoriaAtiva) filtrarExtratoPorCategoria(slug || '');
+  const ext = document.getElementById('extratoUnificado');
+  if (ext && typeof ext.scrollIntoView === 'function')
+    ext.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/** "+ Limite": Configurações → Categorias, já no limite desta categoria. */
+function definirLimiteRapido(slug) {
+  abrirMontarPlano(slug);
+}
+
+// --- Montagem do plano: o cálculo ---------------------------------------------
+// A tela de montar o plano (abrirMontarPlano, mais abaixo) mostra todas as
+// categorias com o campo do limite e a soma AO VIVO no topo. Antes o limite
+// era editado um por vez em Configurações, e para saber o total era preciso
+// voltar ao Resumo. Aqui fica a parte que não depende de tela.
+
+/** Média dos 3 meses anteriores, total e só a parte variável. Conta só os
+ *  meses em que houve algum gasto, como gastosPorCategoriaComMedia. */
+function mediasCategoria(slug, mes, ano) {
+  let meses = 0;
+  let total = 0;
+  let variavel = 0;
+  for (let k = 1; k <= 3; k++) {
+    const d = new Date(ano, mes - k, 1);
+    const m = d.getMonth();
+    const a = d.getFullYear();
+    if (!Object.keys(calcularDespesasPorCategoria(m, a)).length) continue;
+    meses++;
+    const fv = fixoVariavelCategoria(slug, m, a);
+    total += fv.fixo + fv.variavel;
+    variavel += fv.variavel;
+  }
+  return meses ? { total: total / meses, variavel: variavel / meses } : { total: 0, variavel: 0 };
+}
+
+/** Limite sugerido: as contas fixas do mês mais a média do variável; sem
+ *  fixas, a média total; sem histórico, o gasto do mês. Arredonda para cima
+ *  de 10 em 10 — limite com centavos não é plano, é extrato. */
+function sugestaoLimiteCategoria(slug, mes, ano) {
+  const fv = fixoVariavelCategoria(slug, mes, ano);
+  const med = mediasCategoria(slug, mes, ano);
+  let base = fv.fixo > 0.005 ? fv.fixo + med.variavel : med.total;
+  if (base <= 0.005) base = fv.fixo + fv.variavel;
+  return base > 0.005 ? Math.ceil(base / 10) * 10 : 0;
+}
+
+/** Tudo o que a tela de montar precisa, para o mês em visão. */
+function dadosMontagemPlano(mes, ano) {
+  const r = calcularResumoMes(mes, ano);
+  let renda = (Number(r.receita) || 0) + (Number(r.resgate) || 0);
+  let rendaRotulo = 'da renda de';
+  if (renda <= 0.005) {
+    // Mês sem receita lançada ainda: a referência é a média dos 3 anteriores.
+    let soma = 0;
+    let n = 0;
+    for (let k = 1; k <= 3; k++) {
+      const d = new Date(ano, mes - k, 1);
+      const rr = calcularResumoMes(d.getMonth(), d.getFullYear());
+      const v = (Number(rr.receita) || 0) + (Number(rr.resgate) || 0);
+      if (v > 0.005) {
+        soma += v;
+        n++;
+      }
+    }
+    renda = n ? soma / n : 0;
+    rendaRotulo = 'da renda média de';
+  }
+  const ant = new Date(ano, mes - 1, 1);
+  const gastoAnt = calcularDespesasPorCategoria(ant.getMonth(), ant.getFullYear());
+  const cats = obterCategoriasDespesa().map((c) => {
+    const fv = fixoVariavelCategoria(c.v, mes, ano);
+    const med = mediasCategoria(c.v, mes, ano);
+    const limite = obterLimiteCategoria(c.v);
+    const gastoMes = fv.fixo + fv.variavel;
+    const grupo =
+      fv.fixo > 0.005 && fv.fixo >= med.variavel
+        ? 'fixas'
+        : med.total > 0.005 || gastoMes > 0.005 || limite > 0
+          ? 'dia'
+          : 'sem';
+    return {
+      slug: c.v,
+      rotulo: c.label,
+      cor: corCategoriaDespesa(c.v),
+      limite,
+      sugestao: sugestaoLimiteCategoria(c.v, mes, ano),
+      media: med.total,
+      mesPassado: Number(gastoAnt[c.v]) || 0,
+      gastoMes,
+      fixoMes: fv.fixo,
+      grupo,
+    };
+  });
+  return { mes, ano, renda, rendaRotulo, cats };
+}
+
+/** Soma ao vivo. valores: { slug: número }. */
+function resumoMontagemPlano(dados, valores) {
+  const planejado = dados.cats.reduce((s, c) => s + (Number(valores[c.slug]) || 0), 0);
+  const sobra = dados.renda - planejado;
+  return {
+    planejado,
+    sobra,
+    pct: dados.renda > 0 ? Math.round((planejado / dados.renda) * 100) : null,
+    passou: dados.renda > 0 && sobra < -0.005,
+  };
+}
+
+/** Onde dá para cortar: a categoria cujo limite mais passa da própria média. */
+function ondeCortarPlano(dados, valores) {
+  let melhor = null;
+  dados.cats.forEach((c) => {
+    const v = Number(valores[c.slug]) || 0;
+    if (!(c.media > 0.005) || v <= c.media) return;
+    const excesso = v - c.media;
+    if (!melhor || excesso > melhor.excesso)
+      melhor = { slug: c.slug, rotulo: c.rotulo, excesso, media: c.media, valor: v };
+  });
+  return melhor;
+}
+
+/** Limite muito acima do costume: aviso na linha (2× a média ou mais). */
+function vezesDaMedia(valor, media) {
+  return media > 0.005 && valor >= media * 2 ? valor / media : 0;
+}
+
+// --- Montagem do plano: a tela -----------------------------------------------
+// Uma folha (tela cheia no celular, painel no web) com o resumo FIXO no topo —
+// planejado, % da renda, a barra e a sobra prevista mudam a cada número
+// digitado — e todas as categorias com o campo do limite. Nada é gravado até
+// "Salvar plano", e aí tudo vai de uma vez (aplicarLimitesEmLote).
+
+var pmEstado = null;
+
+function _pmInt(txt) {
+  const d = String(txt == null ? '' : txt).replace(/\D/g, '');
+  return d ? parseInt(d, 10) : 0;
+}
+function _pmFmtInput(n) {
+  return n > 0 ? Math.round(n).toLocaleString('pt-BR') : '';
+}
+
+/** Abre a montagem. foco: slug da categoria para já deixar em edição. */
+function abrirMontarPlano(foco) {
+  const mes = typeof visaoMes !== 'undefined' ? visaoMes : new Date().getMonth();
+  const ano = typeof visaoAno !== 'undefined' ? visaoAno : new Date().getFullYear();
+  const dados = dadosMontagemPlano(mes, ano);
+  const valores = {};
+  dados.cats.forEach((c) => {
+    valores[c.slug] = c.limite || 0;
+  });
+  pmEstado = { dados, valores, iniciais: Object.assign({}, valores), delta: 0, valorNoFoco: 0 };
+  let ov = document.getElementById('pmOverlay');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'pmOverlay';
+    ov.className = 'pm-ov';
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-modal', 'true');
+    ov.setAttribute('aria-label', 'Montar o plano');
+    ov.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') fecharMontarPlano();
+    });
+    ov.addEventListener('click', (e) => {
+      if (e.target === ov) fecharMontarPlano();
+    });
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML = _pmHtml();
+  ov.hidden = false;
+  document.body.classList.add('pm-aberto');
+  _pmAtualizar();
+  const alvo =
+    (foco && ov.querySelector('.pm-inp[data-slug="' + foco + '"]')) || ov.querySelector('.pm-inp');
+  if (alvo && foco) {
+    const sec = alvo.closest('details');
+    if (sec) sec.open = true;
+    if (typeof alvo.scrollIntoView === 'function') alvo.scrollIntoView({ block: 'center' });
+    alvo.focus();
+  }
+}
+
+function _pmMudou() {
+  const e = pmEstado;
+  return !!e && Object.keys(e.valores).some((k) => (e.valores[k] || 0) !== (e.iniciais[k] || 0));
+}
+
+function fecharMontarPlano(forcar) {
+  if (!forcar && _pmMudou() && !window.confirm('Sair sem salvar o plano?')) return;
+  const ov = document.getElementById('pmOverlay');
+  if (ov) {
+    ov.hidden = true;
+    ov.innerHTML = '';
+  }
+  document.body.classList.remove('pm-aberto');
+  pmEstado = null;
+}
+
+function _pmHtml() {
+  const e = pmEstado;
+  const esc = _escCategoria;
+  const nomeMes = new Date(e.dados.ano, e.dados.mes, 1).toLocaleDateString('pt-BR', {
+    month: 'long',
+  });
+  const linha = (c) => {
+    const det =
+      c.grupo === 'fixas'
+        ? 'contas fixas do mês <b>' +
+          esc(formatarMoedaCurta(c.fixoMes)) +
+          '</b>' +
+          (c.gastoMes - c.fixoMes > 0.005
+            ? ' · variável <b>' + esc(formatarMoedaCurta(c.gastoMes - c.fixoMes)) + '</b>'
+            : '')
+        : (c.gastoMes > 0.005
+            ? 'este mês <b>' + esc(formatarMoedaCurta(c.gastoMes)) + '</b>'
+            : 'nada este mês') +
+          (c.media > 0.005 ? ' · média <b>' + esc(formatarMoedaCurta(c.media)) + '</b>' : '');
+    // Atalhos de um toque, de 10 em 10 e sem repetir valor: Moradia com
+    // sugestão, média e mês passado todos em R$ 2.290 vira um botão só.
+    const dez = (v) => Math.ceil(v / 10) * 10;
+    const chips = [];
+    const ja = new Set();
+    [
+      ['Sugestão', c.sugestao],
+      ['Média', c.media > 0.005 ? dez(c.media) : 0],
+      ['Mês passado', c.mesPassado > 0.005 ? dez(c.mesPassado) : 0],
+    ].forEach((x) => {
+      if (x[1] > 0 && !ja.has(x[1])) {
+        ja.add(x[1]);
+        chips.push(x);
+      }
+    });
+    return (
+      '<div class="pm-it" data-slug="' +
+      esc(c.slug) +
+      '"><div class="pm-l1"><label class="pm-nome" for="pmInp-' +
+      esc(c.slug) +
+      '"><i style="background:' +
+      c.cor +
+      '"></i>' +
+      esc(c.rotulo) +
+      '</label><span class="pm-campo"><small>R$</small><input id="pmInp-' +
+      esc(c.slug) +
+      '" class="pm-inp" type="text" inputmode="numeric" autocomplete="off" placeholder="sem limite" data-slug="' +
+      esc(c.slug) +
+      '" value="' +
+      _pmFmtInput(e.valores[c.slug]) +
+      '" onfocus="pmFoco(this)" oninput="pmDigitar(this)"></span></div><div class="pm-l2">' +
+      det +
+      '</div>' +
+      (chips.length
+        ? '<div class="pm-chips">' +
+          chips
+            .map(
+              (x) =>
+                '<button type="button" class="pm-chip" data-valor="' +
+                x[1] +
+                '" onclick="pmUsar(\'' +
+                esc(c.slug) +
+                "'," +
+                x[1] +
+                ')">' +
+                x[0] +
+                ' ' +
+                esc(formatarMoedaCurta(x[1])) +
+                '</button>'
+            )
+            .join('') +
+          (e.valores[c.slug] > 0 || c.limite > 0
+            ? '<button type="button" class="pm-chip sem" onclick="pmUsar(\'' +
+              esc(c.slug) +
+              '\',0)">Sem limite</button>'
+            : '') +
+          '</div>'
+        : '') +
+      '<div class="pm-av" id="pmAv-' +
+      esc(c.slug) +
+      '"></div></div>'
+    );
+  };
+  const grupo = (g) => e.dados.cats.filter((c) => c.grupo === g);
+  const sec = (tit, lista) =>
+    lista.length ? '<div class="pm-sec">' + tit + '</div>' + lista.map(linha).join('') : '';
+  const sem = grupo('sem');
+  return (
+    '<div class="pm-caixa"><div class="pm-cab"><button type="button" class="pm-voltar" onclick="fecharMontarPlano()" aria-label="Fechar">‹</button><h2>Seu plano</h2><span class="pm-cab-mes">números de ' +
+    nomeMes +
+    '</span></div><div class="pm-corpo"><div class="pm-res" id="pmResumo"></div>' +
+    '<div id="pmSugestao"></div>' +
+    sec('Contas fixas (já sabidas)', grupo('fixas')) +
+    sec('Gasto do dia a dia', grupo('dia')) +
+    (sem.length
+      ? '<details class="pm-mais"><summary>Sem gasto nos últimos meses (' +
+        sem.length +
+        ')</summary>' +
+        sem.map(linha).join('') +
+        '</details>'
+      : '') +
+    '</div><div class="pm-rod"><button type="button" class="pm-salvar" onclick="salvarMontarPlano()">Salvar plano</button>' +
+    '<span>O plano vale para todos os meses até você mudar.</span></div></div>'
+  );
+}
+
+/** Redesenha só o que muda ao digitar: resumo, aviso, sugestão e os avisos das linhas. */
+function _pmAtualizar() {
+  const e = pmEstado;
+  if (!e) return;
+  const esc = _escCategoria;
+  const m = formatarMoedaCurta;
+  const r = resumoMontagemPlano(e.dados, e.valores);
+  const base = Math.max(e.dados.renda, r.planejado) || 1;
+  const segs =
+    e.dados.cats
+      .filter((c) => e.valores[c.slug] > 0)
+      .sort((a, b) => e.valores[b.slug] - e.valores[a.slug])
+      .map(
+        (c) =>
+          '<span title="' +
+          esc(c.rotulo) +
+          '" style="background:' +
+          c.cor +
+          ';width:' +
+          ((e.valores[c.slug] / base) * 100).toFixed(2) +
+          '%"></span>'
+      )
+      .join('') +
+    (r.sobra > 0.005
+      ? '<span class="plano-seg-sobra" style="width:' +
+        ((r.sobra / base) * 100).toFixed(2) +
+        '%"></span>'
+      : '');
+  const res = document.getElementById('pmResumo');
+  if (res) {
+    res.className = 'pm-res' + (r.passou ? ' passou' : '');
+    res.innerHTML =
+      (Math.abs(e.delta) > 0.5
+        ? '<span class="pm-delta' +
+          (e.delta < 0 ? ' menos' : '') +
+          '">' +
+          (e.delta > 0 ? '+' : '−') +
+          esc(m(Math.abs(e.delta))) +
+          ' agora</span>'
+        : '') +
+      '<div class="pm-res-lin"><span>Planejado</span><span>' +
+      (r.pct != null
+        ? '<b class="pm-pct">' +
+          r.pct +
+          '%</b> ' +
+          e.dados.rendaRotulo +
+          ' <b class="valor-mascarado">' +
+          esc(m(e.dados.renda)) +
+          '</b>'
+        : 'sem renda lançada') +
+      '</span></div><div class="pm-res-v valor-mascarado">' +
+      esc(m(r.planejado)) +
+      '</div><div class="plano-dist" aria-hidden="true">' +
+      segs +
+      '</div>' +
+      (e.dados.renda > 0
+        ? '<div class="pm-res-sobra' +
+          (r.passou ? ' falta' : '') +
+          '"><span>' +
+          (r.passou ? 'Passa da renda em' : 'Sobra prevista') +
+          '</span><b class="valor-mascarado">' +
+          esc(m(Math.abs(r.sobra))) +
+          (r.passou ? '' : ' · ' + Math.round((r.sobra / e.dados.renda) * 100) + '%') +
+          '</b></div>'
+        : '');
+  }
+  // Onde cortar mora DENTRO do resumo fixo: o aviso aparece enquanto se
+  // edita lá embaixo, e não só para quem rolar de volta ao topo.
+  const corte = r.passou ? ondeCortarPlano(e.dados, e.valores) : null;
+  if (res && corte) {
+    const alvo = Math.ceil(corte.media / 10) * 10;
+    res.insertAdjacentHTML(
+      'beforeend',
+      '<div class="pm-cortar"><span><b>Onde cortar:</b> ' +
+        esc(corte.rotulo) +
+        ' está ' +
+        esc(m(corte.excesso)) +
+        ' acima da sua média.</span><button type="button" class="pm-chip" onclick="pmUsar(\'' +
+        esc(corte.slug) +
+        "'," +
+        alvo +
+        ')">Voltar para ' +
+        esc(m(alvo)) +
+        '</button></div>'
+    );
+  }
+  const sug = document.getElementById('pmSugestao');
+  if (sug) {
+    const vs = {};
+    e.dados.cats.forEach((c) => {
+      vs[c.slug] = c.sugestao;
+    });
+    const rs = resumoMontagemPlano(e.dados, vs);
+    const igual = e.dados.cats.every((c) => (e.valores[c.slug] || 0) === c.sugestao);
+    const temPlano = e.dados.cats.some((c) => e.valores[c.slug] > 0);
+    sug.innerHTML =
+      rs.planejado > 0 && !igual
+        ? '<div class="pm-card pm-sug"><b>' +
+          (temPlano ? 'Sugestão com os seus números:' : 'Comece pronto:') +
+          '</b> contas fixas pelo valor do mês, o dia a dia pela sua média.<br>Planejado <b class="valor-mascarado">' +
+          esc(m(rs.planejado)) +
+          '</b>' +
+          (e.dados.renda > 0
+            ? ' · ' +
+              (rs.sobra >= 0 ? 'sobra prevista' : 'passa da renda em') +
+              ' <b class="valor-mascarado">' +
+              esc(m(Math.abs(rs.sobra))) +
+              '</b>'
+            : '') +
+          '<div class="pm-chips"><button type="button" class="pm-chip forte" onclick="pmUsarSugestao()">Usar a sugestão</button>' +
+          (temPlano
+            ? '<button type="button" class="pm-chip" onclick="pmDesfazerTudo()">Voltar ao plano atual</button>'
+            : '') +
+          '<button type="button" class="pm-chip sem" onclick="pmLimparTudo()">Em branco</button></div></div>'
+        : '';
+  }
+  e.dados.cats.forEach((c) => {
+    const v = e.valores[c.slug] || 0;
+    const av = document.getElementById('pmAv-' + c.slug);
+    if (av) {
+      const x = vezesDaMedia(v, c.media);
+      av.textContent = x
+        ? '⚠ ' + x.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '× a sua média'
+        : '';
+    }
+    const it = document.querySelector('.pm-it[data-slug="' + c.slug + '"]');
+    if (it)
+      it.querySelectorAll('.pm-chip[data-valor]').forEach((b) => {
+        b.classList.toggle('on', Number(b.dataset.valor) === v);
+      });
+  });
+}
+
+function pmFoco(inp) {
+  if (!pmEstado) return;
+  pmEstado.valorNoFoco = pmEstado.valores[inp.dataset.slug] || 0;
+}
+
+function pmDigitar(inp) {
+  if (!pmEstado) return;
+  const n = _pmInt(inp.value);
+  inp.value = _pmFmtInput(n);
+  pmEstado.valores[inp.dataset.slug] = n;
+  pmEstado.delta = n - (pmEstado.valorNoFoco || 0);
+  _pmAtualizar();
+}
+
+function pmUsar(slug, valor) {
+  if (!pmEstado) return;
+  const antes = pmEstado.valores[slug] || 0;
+  pmEstado.valores[slug] = Math.max(0, Math.round(Number(valor) || 0));
+  pmEstado.delta = pmEstado.valores[slug] - antes;
+  const inp = document.getElementById('pmInp-' + slug);
+  if (inp) inp.value = _pmFmtInput(pmEstado.valores[slug]);
+  _pmAtualizar();
+}
+
+function _pmTodos(fn) {
+  if (!pmEstado) return;
+  const r0 = resumoMontagemPlano(pmEstado.dados, pmEstado.valores).planejado;
+  pmEstado.dados.cats.forEach((c) => {
+    pmEstado.valores[c.slug] = fn(c);
+    const inp = document.getElementById('pmInp-' + c.slug);
+    if (inp) inp.value = _pmFmtInput(pmEstado.valores[c.slug]);
+  });
+  pmEstado.delta = resumoMontagemPlano(pmEstado.dados, pmEstado.valores).planejado - r0;
+  _pmAtualizar();
+}
+function pmUsarSugestao() {
+  _pmTodos((c) => c.sugestao);
+}
+function pmLimparTudo() {
+  _pmTodos(() => 0);
+}
+function pmDesfazerTudo() {
+  _pmTodos((c) => pmEstado.iniciais[c.slug] || 0);
+}
+
+function salvarMontarPlano() {
+  if (!pmEstado) return;
+  const mudados = {};
+  Object.keys(pmEstado.valores).forEach((k) => {
+    if ((pmEstado.valores[k] || 0) !== (pmEstado.iniciais[k] || 0))
+      mudados[k] = pmEstado.valores[k] || 0;
+  });
+  const r = resumoMontagemPlano(pmEstado.dados, pmEstado.valores);
+  const renda = pmEstado.dados.renda;
+  if (Object.keys(mudados).length) aplicarLimitesEmLote(mudados);
+  fecharMontarPlano(true);
+  if (typeof renderizarListaCategoriasConfig === 'function') renderizarListaCategoriasConfig();
+  if (typeof atualizarTelaControle === 'function') atualizarTelaControle();
+  mostrarToast(
+    'Plano salvo: ' +
+      formatarMoedaCurta(r.planejado) +
+      ' planejados' +
+      (renda > 0
+        ? r.sobra >= 0
+          ? ', sobra prevista ' + formatarMoedaCurta(r.sobra) + '.'
+          : ', ' + formatarMoedaCurta(-r.sobra) + ' acima da renda.'
+        : '.'),
+    r.sobra < 0 && renda > 0 ? 'aviso' : 'sucesso'
+  );
 }
 
 var categoriaConfigLimite = null;
@@ -494,11 +1731,17 @@ function renderizarListaCategoriasConfig() {
     const tipoTxt = c.padrao ? 'Padrão' : 'Criada por você';
     const acaoTitulo = c.padrao ? 'Ocultar (histórico preservado)' : 'Excluir';
     const acaoIcone = c.padrao ? 'ph-eye-slash' : 'ph-trash';
+    // Criada que repete uma existente (FARMACIA ao lado de Saúde): juntar é
+    // a exclusão com o destino já escolhido, histórico movido junto.
+    const par = c.padrao ? null : categoriaParecida(_partesRotuloCategoria(c.label).nome, c.v);
+    const parTxt = par
+      ? `<div class="cat-cfg-parecida">Parece com ${_escCategoria(par.label)} <button type="button" onclick="juntarCategoriaConfig('${c.v}','${par.v}')">Juntar</button></div>`
+      : '';
     return `
       <div style="display:flex;align-items:center;gap:10px;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:9px;padding:10px 12px;">
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:600;color:var(--cor-texto-principal);">${c.label}</div>
-          <div style="font-size:11px;color:var(--cor-texto-mutado);">${tipoTxt} • ${usoTxt}${obterLimiteCategoria(c.v) ? ' • limite ' + formatarMoeda(obterLimiteCategoria(c.v)) + '/mês' : ''}</div>
+          <div style="font-size:11px;color:var(--cor-texto-mutado);">${tipoTxt} • ${usoTxt}${obterLimiteCategoria(c.v) ? ' • limite ' + formatarMoeda(obterLimiteCategoria(c.v)) + '/mês' : ''}</div>${parTxt}
         </div>
         <button class="btn-secundario cat-cfg-limite" onclick="abrirLimiteCategoriaConfig('${c.v}')" title="Limite por mês">Limite</button>
         <button class="btn-secundario" style="padding:4px 8px;font-size:11px;color:var(--cor-info);border-color:var(--cor-info);" onclick="editarCategoriaConfig('${c.v}')" title="Renomear"><i class="ph ph-pencil-simple"></i></button>
@@ -574,7 +1817,7 @@ function renderizarListaCategoriasConfig() {
         <label class="cat-lim-campo">Outro valor por mês
           <span><span>R$</span><input id="categoriaLimiteValor" type="text" inputmode="decimal" value="${atual ? formatarBRLInput(atual) : ''}" oninput="aplicarMascaraBRL(this)" onkeydown="if(event.key==='Enter')salvarLimiteCategoriaConfig('${v}','valor')"></span>
         </label>
-        <span class="cat-lim-nota">Avisamos quando chegar a 80% e quando passar.</span>
+        <span class="cat-lim-nota">Durante o mês mostramos quanto ainda cabe por semana, e avisamos quando o gasto passa do ritmo, chega a 80% ou passa do limite. As contas fixas da categoria saem do limite primeiro.</span>
         <div class="cat-lim-botoes">
           <button type="button" class="btn-secundario" onclick="cancelarLimiteCategoriaConfig()">Cancelar</button>
           <button type="button" class="btn-acao" onclick="salvarLimiteCategoriaConfig('${v}','valor')">Salvar limite</button>
@@ -584,7 +1827,12 @@ function renderizarListaCategoriasConfig() {
     }
     categoriaConfigLimite = null;
   }
-  container.innerHTML = visiveis.map(linhaVisivel).join('') + ocultas.map(linhaOculta).join('');
+  // A montagem do plano (todas as categorias, soma ao vivo) começa daqui
+  // também; o botão "Limite" de cada linha continua para o ajuste avulso.
+  container.innerHTML =
+    '<button type="button" class="btn-acao cat-cfg-plano" onclick="abrirMontarPlano()"><i class="ph ph-chart-pie-slice"></i> Montar o plano (todos os limites com a soma)</button>' +
+    visiveis.map(linhaVisivel).join('') +
+    ocultas.map(linhaOculta).join('');
 }
 
 function abrirNovaCategoriaConfig() {
@@ -599,6 +1847,7 @@ function abrirNovaCategoriaConfig() {
     nome.dataset.editandoV = '';
   }
   resetarEmojiCategoriaNova('Config');
+  avisarCategoriaParecida('Config');
   const titulo = document.getElementById('tituloFormCategoriaConfig');
   if (titulo) titulo.textContent = 'Nova categoria';
   const salvar = document.getElementById('btnSalvarCategoriaConfig');
@@ -636,6 +1885,7 @@ function editarCategoriaConfig(v) {
     nome.dataset.editandoV = v;
   }
   definirEmojiCategoria(partes.emoji, 'Config');
+  avisarCategoriaParecida('Config');
   const titulo = document.getElementById('tituloFormCategoriaConfig');
   if (titulo) titulo.textContent = 'Renomear categoria';
   const salvar = document.getElementById('btnSalvarCategoriaConfig');
@@ -646,7 +1896,7 @@ function editarCategoriaConfig(v) {
 
 function salvarCategoriaConfig() {
   const inputNome = document.getElementById('categoriaDespesaNovaConfig');
-  const nome = (inputNome?.value || '').trim();
+  const nome = normalizarNomeCategoria(inputNome?.value);
   if (!nome) return mostrarToast('Informe o nome da categoria.', 'erro');
   const emoji = (document.getElementById('categoriaDespesaNovaEmojiConfig')?.value || '🏷️').trim();
   const label = `${emoji} ${nome}`;
@@ -2605,6 +3855,9 @@ function aporteLiquidoAcumuladoAte(mesAlvo, anoAlvo) {
 var agrupamentoComposicao = 'despesa';
 
 // Paleta cíclica para as barras de categoria de despesa.
+// Doze tons que se distinguem lado a lado: a cor é fixa por categoria
+// (corCategoriaDespesa) e as criadas caem do 10º em diante — antes o fim da
+// lista repetia vermelho, laranja e âmbar quase iguais aos três primeiros.
 var PALETA_CATEGORIA_DESPESA = [
   '#e11d48',
   '#f97316',
@@ -2614,10 +3867,10 @@ var PALETA_CATEGORIA_DESPESA = [
   '#0891b2',
   '#db2777',
   '#65a30d',
-  '#9333ea',
-  '#dc2626',
-  '#ea580c',
-  '#ca8a04',
+  '#0d9488',
+  '#a16207',
+  '#4f46e5',
+  '#c026d3',
 ];
 
 function setAgrupamentoComposicao(tipo) {
@@ -2657,16 +3910,19 @@ function gastosPorCategoriaComMedia(mes, ano) {
     if (valor <= 0.005 && !(media > 0.005)) return;
     const limite = c === '__sem_categoria__' ? 0 : obterLimiteCategoria(c);
     const sit = situacaoLimiteCategoria(valor, limite);
+    const ritmo = limite ? ritmoLimiteCategoria(c, mes, ano) : null;
+    const estado = limite ? estadoLimiteCategoria(c, mes, ano, valor, limite) : null;
     linhas.push({
       slug: c,
       rotulo: c === '__sem_categoria__' ? 'Sem categoria' : rotuloCategoriaDespesa(c),
       valor,
       media,
       limite,
-      limiteEstado: sit ? sit.estado : null,
+      limiteEstado: estado,
       limitePct: sit ? sit.pct : null,
+      ritmo,
       alerta:
-        (sit && sit.estado === 'passou') ||
+        estado === 'passou' ||
         (media != null && media > 0 && valor > media * 1.5 && valor - media > 100),
     });
   });
@@ -2682,68 +3938,24 @@ function ctrlCatAlternarTodas() {
 }
 
 function renderGastosPorCategoria(mes, ano) {
+  const plano = document.getElementById('ctrlPlano');
+  if (plano) plano.innerHTML = htmlPlanoDoMes(planoDoMes(mes, ano), { aberta: true });
   const el = document.getElementById('ctrlCategorias');
   if (!el) return;
-  const linhas = gastosPorCategoriaComMedia(mes, ano).filter((l) => l.valor > 0.005);
-  if (!linhas.length) {
-    el.innerHTML = '<p class="ctrl-cat-vazio">Nenhum gasto lançado neste mês.</p>';
-    return;
+  el.innerHTML = htmlListaCategorias(mes, ano, { todas: ctrlCatTodas });
+  const tot = document.getElementById('ctrlCatTotal');
+  if (tot) {
+    const g = calcularDespesasPorCategoria(mes, ano);
+    tot.textContent = formatarMoeda(Object.keys(g).reduce((a, k) => a + (Number(g[k]) || 0), 0));
   }
-  const max = linhas.reduce((a, l) => Math.max(a, l.valor, l.media || 0, l.limite || 0), 0) || 1;
-  const esc = (v) =>
-    String(v == null ? '' : v)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/"/g, '&quot;');
-  // Todas as categorias do mês; acima de 8, as demais ficam atrás de "Ver todas".
-  const visiveis = ctrlCatTodas ? linhas : linhas.slice(0, 8);
-  const mais =
-    linhas.length > 8
-      ? '<button type="button" class="ctrl-cat-mais" onclick="ctrlCatAlternarTodas()">' +
-        (ctrlCatTodas ? 'Mostrar menos' : 'Ver todas (' + linhas.length + ')') +
-        '</button>'
-      : '';
-  el.innerHTML =
-    visiveis
-      .map(
-        (l) =>
-          '<button type="button" class="ctrl-cat' +
-          (l.alerta ? ' alerta' : '') +
-          (l.limiteEstado ? ' lim-' + l.limiteEstado : '') +
-          '" data-cat="' +
-          esc(l.slug === '__sem_categoria__' ? '' : l.slug) +
-          '" onclick="filtrarExtratoPorCategoria(this.dataset.cat)" title="' +
-          (l.media != null
-            ? 'Média dos 3 meses anteriores: ' + esc(formatarMoeda(l.media))
-            : 'Sem histórico') +
-          '"><span class="ctrl-cat-nome">' +
-          esc(l.rotulo) +
-          '</span><span class="ctrl-cat-trilho"><span style="width:' +
-          ((l.valor / max) * 100).toFixed(1) +
-          '%"></span>' +
-          (l.media != null
-            ? '<em style="left:' + ((l.media / max) * 100).toFixed(1) + '%"></em>'
-            : '') +
-          (l.limite
-            ? '<i class="ctrl-cat-lim" style="left:' +
-              ((l.limite / max) * 100).toFixed(1) +
-              '%"></i>'
-            : '') +
-          '</span><b class="valor-mascarado">' +
-          esc(formatarMoeda(l.valor)) +
-          (l.limite
-            ? '<small class="ctrl-cat-limtxt">' + esc(ctrlCatLimiteTexto(l)) + '</small>'
-            : '') +
-          '</b></button>'
-      )
-      .join('') + mais;
 }
 
 /** "de R$ 280 · 85%" / "passou R$ 40" — a linha de baixo do valor. */
 function ctrlCatLimiteTexto(l) {
   if (!l || !l.limite) return '';
   if (l.limiteEstado === 'passou') return 'passou ' + formatarMoeda(l.valor - l.limite);
-  return 'de ' + formatarMoeda(l.limite) + ' · ' + l.limitePct + '%';
+  const ritmo = textoRitmoLimite(l.ritmo);
+  return 'de ' + formatarMoeda(l.limite) + ' · ' + (ritmo || l.limitePct + '%');
 }
 
 /**
@@ -5167,8 +6379,9 @@ function atualizarTelaControle() {
         slug: k,
       }));
       despesas.sort((a, b) => b.valor - a.valor);
-      despesas.forEach((d, i) => {
-        d.cor = PALETA_CATEGORIA_DESPESA[i % PALETA_CATEGORIA_DESPESA.length];
+      despesas.forEach((d) => {
+        // Cor fixa da categoria: a mesma no plano, nas barras e no celular.
+        d.cor = corCategoriaDespesa(d.slug);
       });
       // Barras de referência: Receita (e Resgate, se houver) e Sobra.
       dadosGrafico = [{ label: 'Receita', valor: rPizza.receita, cor: '#10b981' }];
@@ -5542,31 +6755,71 @@ function atualizarTelaControle() {
 var extratoCategoriaAtiva = '';
 var extratoTipoAtivo = 'todos';
 
+// Os VALORES dos chips seguem a aba de cima (e a conta escolhida): em
+// "Saídas" eles somam só saídas. Antes somavam o mês inteiro, e "Todas" virava
+// receita + despesa — um número que não responde nada, e um chip "Receita"
+// aparecia no meio das saídas. Em "Todos", o chip "Todas" fica sem valor pelo
+// mesmo motivo; cada categoria continua com o seu (ela é de um tipo só).
+// A busca não entra na conta: digitar não deve fazer a linha de chips pular.
+
+/** Totais por categoria para a aba e a conta ativas (pura, testável).
+ *  itens: [{ tipo, cat, origem, valor }] (valor com sinal ou não).
+ *  Devolve [[cat, total]] do maior para o menor, só com total > 0. */
+function extratoTotaisCategoria(itens, tipo, origem) {
+  const tot = new Map();
+  (itens || []).forEach((it) => {
+    if (!it || !it.cat) return;
+    if (tipo && tipo !== 'todos' && it.tipo !== tipo) return;
+    if (origem && it.origem !== origem) return;
+    tot.set(it.cat, (tot.get(it.cat) || 0) + Math.abs(Number(it.valor) || 0));
+  });
+  return Array.from(tot.entries())
+    .filter(([, v]) => v > 0.005)
+    .sort((a, b) => b[1] - a[1]);
+}
+
 function renderizarChipsCategoriaExtrato(mapa) {
+  extratoCatsDoMes = mapa;
+  aplicarFiltrosExtrato();
+}
+
+// Chamada por aplicarFiltrosExtrato, ANTES de filtrar a lista: se a categoria
+// escolhida não existe na aba nova, ela volta para "Todas" aqui, em vez de a
+// lista ficar vazia.
+function desenharChipsCategoriaExtrato() {
   const wrap = document.getElementById('extratoCategorias');
   if (!wrap) return;
-  const cats = Array.from(mapa.entries()).sort((a, b) => b[1].total - a[1].total);
-  extratoCatsDoMes = mapa;
+  const lista = document.getElementById('extratoUnificado');
+  const itens = lista
+    ? Array.from(lista.querySelectorAll('.extrato-item:not(.ext-fatura-linha)')).map((el) => ({
+        tipo: el.dataset.extTipo,
+        cat: el.dataset.extCat,
+        origem: el.dataset.extOrigem,
+        valor: el.dataset.extValor,
+      }))
+    : [];
+  const cats = extratoTotaisCategoria(itens, extratoTipoAtivo, extratoOrigemAtiva);
 
   // Um chip só não é filtro — é rótulo. Nesse caso a linha não aparece.
   if (cats.length < 2) {
     wrap.style.display = 'none';
     wrap.innerHTML = '';
     extratoCategoriaAtiva = '';
-    aplicarFiltrosExtrato();
     return;
   }
-  if (extratoCategoriaAtiva && !mapa.has(extratoCategoriaAtiva)) extratoCategoriaAtiva = '';
+  if (extratoCategoriaAtiva && !cats.some(([k]) => k === extratoCategoriaAtiva))
+    extratoCategoriaAtiva = '';
 
-  const total = cats.reduce((s, [, c]) => s + c.total, 0);
+  const misturaTipos = !extratoTipoAtivo || extratoTipoAtivo === 'todos';
+  const total = cats.reduce((s, [, v]) => s + v, 0);
   let html =
     '<button type="button" class="ext-cat' +
     (extratoCategoriaAtiva ? '' : ' on') +
     '" data-ext-chip="" onclick="filtrarExtratoPorCategoria(\'\')">Todas' +
-    '<span class="ext-cat-val">' +
-    formatarMoeda(total) +
-    '</span></button>';
-  for (const [slug, c] of cats) {
+    (misturaTipos ? '' : '<span class="ext-cat-val">' + formatarMoeda(total) + '</span>') +
+    '</button>';
+  for (const [slug, v] of cats) {
+    const c = extratoCatsDoMes.get(slug);
     html +=
       '<button type="button" class="ext-cat' +
       (extratoCategoriaAtiva === slug ? ' on' : '') +
@@ -5575,14 +6828,16 @@ function renderizarChipsCategoriaExtrato(mapa) {
       '" onclick="filtrarExtratoPorCategoria(\'' +
       slug.replace(/\\/g, '\\\\').replace(/'/g, "\\'") +
       '\')">' +
-      c.rotulo +
+      (c ? c.rotulo : slug) +
       '<span class="ext-cat-val">' +
-      formatarMoeda(c.total) +
+      formatarMoeda(v) +
       '</span></button>';
   }
+  // Trocar de aba redesenha a linha; a rolagem lateral fica onde estava.
+  const rolagem = wrap.scrollLeft || 0;
   wrap.innerHTML = html;
   wrap.style.display = 'flex';
-  aplicarFiltrosExtrato();
+  if (rolagem) wrap.scrollLeft = rolagem;
 }
 
 function filtrarExtratoPorCategoria(slug) {
@@ -5934,6 +7189,7 @@ function filtrarExtratoPorOrigem(chave) {
 function aplicarFiltrosExtrato() {
   const lista = document.getElementById('extratoUnificado');
   if (!lista) return;
+  desenharChipsCategoriaExtrato();
   let visiveis = 0;
   let entrou = 0;
   let saiu = 0;

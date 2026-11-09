@@ -143,7 +143,8 @@ test('cada item carrega a categoria que o sub-filtro usa', () => {
 });
 
 test('os chips saem do maior total para o menor', () => {
-  assert.match(CF, /\.sort\(\(a, b\) => b\[1\]\.total - a\[1\]\.total\)/);
+  // Os totais saem de extratoTotaisCategoria, que segue a aba de cima.
+  assert.match(CF, /\.sort\(\(a, b\) => b\[1\] - a\[1\]\)/);
 });
 
 test('um chip só não vira filtro', () => {
@@ -154,8 +155,8 @@ test('um chip só não vira filtro', () => {
 test('trocar de mês não deixa o extrato preso num filtro que não existe mais', () => {
   assert.match(
     CF,
-    /if \(extratoCategoriaAtiva && !mapa\.has\(extratoCategoriaAtiva\)\) extratoCategoriaAtiva = ''/,
-    'categoria ausente no mês novo tem de voltar para "Todas", não mostrar lista vazia'
+    /if \(extratoCategoriaAtiva && !cats\.some\(\(\[k\]\) => k === extratoCategoriaAtiva\)\)\s*extratoCategoriaAtiva = ''/,
+    'categoria ausente no mês (ou na aba) nova tem de voltar para "Todas", não mostrar lista vazia'
   );
 });
 
