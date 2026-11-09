@@ -989,77 +989,52 @@ function _mobCartaoProjecao() {
  * resumo que o Controle já calculou (d.resumo = calcularResumoMes).
  */
 function _mobDestinoNoCartao(d) {
-  // O cartão do topo responde "estou bem?" sozinho: o que entrou, cada saída
-  // que teve valor e a sobra, numa lista só. Absorveu "O mês por tipo", que
-  // repetia esses números logo abaixo com três linhas de "R$ 0,00 · nada
-  // neste mês" (reorganização de nov/2026). Os tipos zerados viram uma linha.
+  // O cartão do topo responde "estou bem?" sozinho: a barra do destino do
+  // dinheiro, o mês por tipo (Receitas, Despesas, Cartão, Investimentos,
+  // Sonhos — com a variação e a mini-linha, ctlTiposHtml) e a sobra fechando
+  // a conta. "O mês por tipo" era um cartão à parte logo abaixo; desde nov/2026
+  // mora aqui, onde os números se explicam juntos.
   const r = d && d.resumo;
   if (!r) return '';
   const n = (v) => Number(v) || 0;
   const entrou = n(r.receita) + n(r.resgate);
+  // As cores dos ícones de cada tipo: a barra é a legenda da lista abaixo.
   const partes = [
-    ['Contas fixas', n(r.despFixa), '#f97316', 'despesa', ''],
-    ['Gastos variáveis', n(r.despVar), '#e11d48', 'despesa', ''],
-    ['Cartão', n(r.cartao), '#f59e0b', 'cartao', 'cartão'],
-    ['Investido', n(r.invFixo) + n(r.invVar), '#2563eb', 'investimento', 'investimentos'],
-    ['Sonhos', n(r.sonho), '#7c3aed', 'sonho', 'sonhos'],
+    ['Despesas', n(r.despFixa) + n(r.despVar), '#e11d48'],
+    ['Cartão', n(r.cartao), '#f59e0b'],
+    ['Investido', n(r.invFixo) + n(r.invVar), '#2563eb'],
+    ['Sonhos', n(r.sonho), '#7c3aed'],
   ];
   const saiu = partes.reduce((a, p) => a + p[1], 0);
   const sobra = entrou - saiu;
-  const visiveis = partes.filter((p) => p[1] > 0.005);
-  const zerados = partes.filter((p) => p[4] && p[1] <= 0.005).map((p) => p[4]);
-  if (!visiveis.length && entrou <= 0.005) return '';
+  if (saiu <= 0.005 && entrou <= 0.005 && !d.tiposHtml) return '';
   const base = Math.max(entrou, saiu) || 1;
-  const fmt = (v) => _mobEsc(_mobDreFmt(v));
-  const pct = (v) => (entrou > 0 ? Math.round((v / entrou) * 100) + '%' : '');
-  const linha = (cls, cor, nome, valor, sinal, p, tipo) =>
-    '<button type="button" class="mi-dl' +
-    (cls ? ' ' + cls : '') +
-    '" onclick="mobVerNoExtrato(\'' +
-    tipo +
-    "','')\"><span><i style=\"background:" +
-    cor +
-    '"></i>' +
-    nome +
-    '</span><b class="valor-mascarado">' +
-    sinal +
-    fmt(Math.abs(valor)) +
-    '</b><small>' +
-    p +
-    '</small></button>';
-  const barra = visiveis
+  const barra = partes
     .concat(sobra > 0.005 ? [['Sobra', sobra, '#10b981']] : [])
+    .filter((p) => p[1] > 0.005)
     .map(
       (p) =>
-        '<span style="background:' +
+        '<span title="' +
+        p[0] +
+        '" style="background:' +
         p[2] +
         ';width:' +
         ((p[1] / base) * 100).toFixed(2) +
         '%"></span>'
     )
     .join('');
-  const zeradosTxt = zerados.length
-    ? zerados.join(', ').replace(/, ([^,]*)$/, ' e $1') + ': nada neste mês'
-    : '';
   return (
-    '<div class="mc-barra mi-destino-barra" aria-hidden="true">' +
-    barra +
-    '</div><div class="mi-dlista">' +
-    (entrou > 0.005 ? linha('ent', '#10b981', 'Entrou', entrou, '+', '', 'receita') : '') +
-    visiveis.map((p) => linha('', p[2], p[0], p[1], '−', pct(p[1]), p[3])).join('') +
+    (barra ? '<div class="mc-barra mi-destino-barra" aria-hidden="true">' + barra + '</div>' : '') +
+    (d.tiposHtml ? '<div class="mi-tipos mi-tipos-hero">' + d.tiposHtml + '</div>' : '') +
     '<div class="mi-dl tot' +
     (sobra < 0 ? ' neg' : '') +
     '"><span>' +
-    (sobra < 0 ? 'Faltou' : 'Sobra') +
+    (sobra < 0 ? 'Faltou no mês' : 'Sobra do mês') +
     '</span><b class="valor-mascarado">' +
-    fmt(sobra) +
+    _mobEsc(_mobDreFmt(sobra)) +
     '</b><small>' +
-    pct(Math.abs(sobra)) +
-    '</small></div>' +
-    (zeradosTxt
-      ? '<p class="mi-dzero">' + zeradosTxt.charAt(0).toUpperCase() + zeradosTxt.slice(1) + '</p>'
-      : '') +
-    '</div>'
+    (entrou > 0 ? Math.round((Math.abs(sobra) / entrou) * 100) + '%' : '') +
+    '</small></div>'
   );
 }
 

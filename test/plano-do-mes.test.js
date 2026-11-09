@@ -193,28 +193,35 @@ test('formatarMoedaCurta arredonda para reais e mantém o sinal', () => {
   assert.equal(s.formatarMoedaCurta(-421.67), '−R$ 422');
 });
 
-test('celular: o topo traz entrou, as saídas com valor e a sobra; zerados numa linha', () => {
+test('celular: o cartão da sobra traz o mês por tipo e fecha com a sobra', () => {
   const s = carregarApp({}, ORDEM_CONTROLE.concat(['web/appliquei-mobile.js']));
+  const resumo = {
+    receita: 6700,
+    resgate: 0,
+    despFixa: 3624.82,
+    despVar: 1883.73,
+    cartao: 0,
+    invFixo: 0,
+    invVar: 0,
+    sonho: 0,
+  };
   const html = s._mobDestinoNoCartao({
     mes: NOV,
     ano: ANO,
-    resumo: {
-      receita: 6700,
-      resgate: 0,
-      despFixa: 3624.82,
-      despVar: 1883.73,
-      cartao: 0,
-      invFixo: 0,
-      invVar: 0,
-      sonho: 0,
-    },
+    resumo,
+    tiposHtml: s.ctlTiposHtml(NOV, ANO),
   });
-  assert.match(html, /Entrou/);
-  assert.match(html, /Contas fixas/);
-  assert.match(html, /Gastos variáveis/);
-  assert.match(html, /mi-dl tot/);
-  assert.match(html, /Cartão, investimentos e sonhos: nada neste mês/);
-  assert.doesNotMatch(html, /mi-dl[^"]*"[^>]*>[^<]*<span><i[^>]*><\/i>Cartão/);
+  assert.match(html, /class="mi-tipos mi-tipos-hero"/);
+  for (const rot of ['Receitas', 'Despesas', 'Cartão', 'Investimentos', 'Sonhos'])
+    assert.match(html, new RegExp(rot));
+  assert.match(html, /Sobra do mês/);
+  assert.match(html, /title="Despesas"/, 'a barra usa os mesmos tipos da lista');
+  const faltou = s._mobDestinoNoCartao({
+    mes: NOV,
+    ano: ANO,
+    resumo: Object.assign({}, resumo, { despVar: 5000 }),
+  });
+  assert.match(faltou, /Faltou no mês/);
 });
 
 test('celular: sem botões rápidos nem "O mês por tipo" no Resumo', () => {
@@ -226,7 +233,11 @@ test('celular: sem botões rápidos nem "O mês por tipo" no Resumo', () => {
     MOB.indexOf('function _mobPreencherPrecisaNotamos(')
   );
   assert.doesNotMatch(corpo, /mi-atalhos/);
-  assert.doesNotMatch(corpo, /O mês por tipo/);
+  assert.doesNotMatch(
+    corpo,
+    /<h2 class="mi-h2">O mês por tipo/,
+    'o mês por tipo mora no cartão da sobra'
+  );
   assert.match(corpo, /_mobPlanoNoCartao\(d\)/);
   assert.match(corpo, /_mobCategorias\(d\)/);
 });

@@ -1744,6 +1744,9 @@
             .mi-dl.tot > b, .mi-dl.tot > small { color: var(--cor-primaria); font-weight: 700; }
             .mi-dl.tot.neg, .mi-dl.tot.neg > b, .mi-dl.tot.neg > small { color: var(--cor-erro); }
             .mi-dzero { margin: 4px 0 0; font-size: 12.5px; color: var(--cor-texto-mutado); }
+            .mi-tipos.mi-tipos-hero { padding: 0; margin: 6px 0 0; }
+            .mi-tipos-hero .ctl-tp { padding: 10px 0; }
+            .mi-tipos-hero + .mi-dl.tot { margin-top: 0; }
             .mi-plano-pe { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 52px; margin-top: 12px; padding: 8px 12px; border: 0; border-radius: 12px; font: 700 14px 'Figtree', sans-serif; text-align: left; cursor: pointer; }
             .mi-plano-pe small { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 500; opacity: .9; }
             .mi-plano-pe.passou { background: var(--cor-bg-erro); color: var(--cor-txt-erro); }
@@ -15718,6 +15721,10 @@
                 <div id="listaVencimentosContainer" class="vencimentos-grid"></div>
             </div>
 
+            <!-- O mês por tipo (Receitas, Despesas, Cartão, Investimentos,
+                 Sonhos), logo abaixo da sobra: é a explicação dela. No celular
+                 a mesma lista mora dentro do cartão da sobra. -->
+            <section id="ctlTipos" class="card-container ctl-tipos ctl-web" aria-label="O mês por tipo"></section>
             <!-- Por categoria + Seu plano do mês, logo depois dos números e do
                  que vence (reorganização de nov/2026): "onde estou estourando"
                  é a terceira pergunta de quem abre o Controle, e estava no fim
@@ -16068,10 +16075,6 @@
 
             <div id="mobInicioFim" class="mob-inicio" data-mob-aba="resumo"></div>
 
-            <!-- O mês por tipo: abaixo do extrato desde nov/2026. Os totais já
-                 estão no cartão do topo; aqui ficam a variação e a mini-linha,
-                 que são consulta, não o que se olha ao abrir. -->
-            <section id="ctlTipos" class="card-container ctl-tipos ctl-web" aria-label="O mês por tipo"></section>
             <!-- Fim da página no web: a projeção dos próximos meses. -->
             <div class="ctl-linha ctl-linha-fim">
                 <section class="card-container ctl-proj" data-mob-aba="projecao" aria-label="Próximos meses">
