@@ -559,8 +559,15 @@ function obterLimiteCategoria(v) {
 
 function definirLimiteCategoria(v, valor) {
   if (!v) return;
-  const n = Number(valor);
   const ajustes = obterCategoriasDespesaCustom();
+  _ajustarLimiteNoArray(ajustes, v, valor);
+  salvarCategoriasDespesaCustom(ajustes);
+}
+
+/** O mesmo de definirLimiteCategoria, sem gravar: a montagem do plano muda
+ *  vários limites e grava UMA vez (um sync, não doze). */
+function _ajustarLimiteNoArray(ajustes, v, valor) {
+  const n = Number(valor);
   let a = ajustes.find((x) => x && x.v === v);
   if (n > 0) {
     if (!a) {
@@ -573,6 +580,12 @@ function definirLimiteCategoria(v, valor) {
     // Padrão sem rótulo próprio nem oculta: o ajuste só existia pelo limite.
     if (ehCategoriaDespesaPadrao(v) && !a.label && !a.oculta) ajustes.splice(ajustes.indexOf(a), 1);
   }
+}
+
+/** Grava vários limites de uma vez. valores: { slug: número } (0 = sem limite). */
+function aplicarLimitesEmLote(valores) {
+  const ajustes = obterCategoriasDespesaCustom();
+  Object.keys(valores || {}).forEach((v) => _ajustarLimiteNoArray(ajustes, v, valores[v]));
   salvarCategoriasDespesaCustom(ajustes);
 }
 
@@ -850,7 +863,7 @@ function htmlPlanoDoMes(p, opts) {
   const esc = _escCategoria;
   const m = (v) => esc(o.curto ? formatarMoedaCurta(v) : formatarMoeda(v));
   const ajustar =
-    '<button type="button" class="plano-ajustar" onclick="abrirModalConfig(\'categorias\')">' +
+    '<button type="button" class="plano-ajustar" onclick="abrirMontarPlano()">' +
     (p && p.cats.length ? 'Ajustar limites' : 'Montar meu plano') +
     '</button>';
   if (!p || !p.cats.length) {
@@ -1160,8 +1173,504 @@ function verCategoriaNoExtrato(slug) {
 
 /** "+ Limite": Configurações → Categorias, já no limite desta categoria. */
 function definirLimiteRapido(slug) {
-  if (typeof abrirModalConfig === 'function') abrirModalConfig('categorias');
-  if (slug) abrirLimiteCategoriaConfig(slug);
+  abrirMontarPlano(slug);
+}
+
+// --- Montagem do plano: o cálculo ---------------------------------------------
+// A tela de montar o plano (abrirMontarPlano, mais abaixo) mostra todas as
+// categorias com o campo do limite e a soma AO VIVO no topo. Antes o limite
+// era editado um por vez em Configurações, e para saber o total era preciso
+// voltar ao Resumo. Aqui fica a parte que não depende de tela.
+
+/** Média dos 3 meses anteriores, total e só a parte variável. Conta só os
+ *  meses em que houve algum gasto, como gastosPorCategoriaComMedia. */
+function mediasCategoria(slug, mes, ano) {
+  let meses = 0;
+  let total = 0;
+  let variavel = 0;
+  for (let k = 1; k <= 3; k++) {
+    const d = new Date(ano, mes - k, 1);
+    const m = d.getMonth();
+    const a = d.getFullYear();
+    if (!Object.keys(calcularDespesasPorCategoria(m, a)).length) continue;
+    meses++;
+    const fv = fixoVariavelCategoria(slug, m, a);
+    total += fv.fixo + fv.variavel;
+    variavel += fv.variavel;
+  }
+  return meses ? { total: total / meses, variavel: variavel / meses } : { total: 0, variavel: 0 };
+}
+
+/** Limite sugerido: as contas fixas do mês mais a média do variável; sem
+ *  fixas, a média total; sem histórico, o gasto do mês. Arredonda para cima
+ *  de 10 em 10 — limite com centavos não é plano, é extrato. */
+function sugestaoLimiteCategoria(slug, mes, ano) {
+  const fv = fixoVariavelCategoria(slug, mes, ano);
+  const med = mediasCategoria(slug, mes, ano);
+  let base = fv.fixo > 0.005 ? fv.fixo + med.variavel : med.total;
+  if (base <= 0.005) base = fv.fixo + fv.variavel;
+  return base > 0.005 ? Math.ceil(base / 10) * 10 : 0;
+}
+
+/** Tudo o que a tela de montar precisa, para o mês em visão. */
+function dadosMontagemPlano(mes, ano) {
+  const r = calcularResumoMes(mes, ano);
+  let renda = (Number(r.receita) || 0) + (Number(r.resgate) || 0);
+  let rendaRotulo = 'da renda de';
+  if (renda <= 0.005) {
+    // Mês sem receita lançada ainda: a referência é a média dos 3 anteriores.
+    let soma = 0;
+    let n = 0;
+    for (let k = 1; k <= 3; k++) {
+      const d = new Date(ano, mes - k, 1);
+      const rr = calcularResumoMes(d.getMonth(), d.getFullYear());
+      const v = (Number(rr.receita) || 0) + (Number(rr.resgate) || 0);
+      if (v > 0.005) {
+        soma += v;
+        n++;
+      }
+    }
+    renda = n ? soma / n : 0;
+    rendaRotulo = 'da renda média de';
+  }
+  const ant = new Date(ano, mes - 1, 1);
+  const gastoAnt = calcularDespesasPorCategoria(ant.getMonth(), ant.getFullYear());
+  const cats = obterCategoriasDespesa().map((c) => {
+    const fv = fixoVariavelCategoria(c.v, mes, ano);
+    const med = mediasCategoria(c.v, mes, ano);
+    const limite = obterLimiteCategoria(c.v);
+    const gastoMes = fv.fixo + fv.variavel;
+    const grupo =
+      fv.fixo > 0.005 && fv.fixo >= med.variavel
+        ? 'fixas'
+        : med.total > 0.005 || gastoMes > 0.005 || limite > 0
+          ? 'dia'
+          : 'sem';
+    return {
+      slug: c.v,
+      rotulo: c.label,
+      cor: corCategoriaDespesa(c.v),
+      limite,
+      sugestao: sugestaoLimiteCategoria(c.v, mes, ano),
+      media: med.total,
+      mesPassado: Number(gastoAnt[c.v]) || 0,
+      gastoMes,
+      fixoMes: fv.fixo,
+      grupo,
+    };
+  });
+  return { mes, ano, renda, rendaRotulo, cats };
+}
+
+/** Soma ao vivo. valores: { slug: número }. */
+function resumoMontagemPlano(dados, valores) {
+  const planejado = dados.cats.reduce((s, c) => s + (Number(valores[c.slug]) || 0), 0);
+  const sobra = dados.renda - planejado;
+  return {
+    planejado,
+    sobra,
+    pct: dados.renda > 0 ? Math.round((planejado / dados.renda) * 100) : null,
+    passou: dados.renda > 0 && sobra < -0.005,
+  };
+}
+
+/** Onde dá para cortar: a categoria cujo limite mais passa da própria média. */
+function ondeCortarPlano(dados, valores) {
+  let melhor = null;
+  dados.cats.forEach((c) => {
+    const v = Number(valores[c.slug]) || 0;
+    if (!(c.media > 0.005) || v <= c.media) return;
+    const excesso = v - c.media;
+    if (!melhor || excesso > melhor.excesso)
+      melhor = { slug: c.slug, rotulo: c.rotulo, excesso, media: c.media, valor: v };
+  });
+  return melhor;
+}
+
+/** Limite muito acima do costume: aviso na linha (2× a média ou mais). */
+function vezesDaMedia(valor, media) {
+  return media > 0.005 && valor >= media * 2 ? valor / media : 0;
+}
+
+// --- Montagem do plano: a tela -----------------------------------------------
+// Uma folha (tela cheia no celular, painel no web) com o resumo FIXO no topo —
+// planejado, % da renda, a barra e a sobra prevista mudam a cada número
+// digitado — e todas as categorias com o campo do limite. Nada é gravado até
+// "Salvar plano", e aí tudo vai de uma vez (aplicarLimitesEmLote).
+
+var pmEstado = null;
+
+function _pmInt(txt) {
+  const d = String(txt == null ? '' : txt).replace(/\D/g, '');
+  return d ? parseInt(d, 10) : 0;
+}
+function _pmFmtInput(n) {
+  return n > 0 ? Math.round(n).toLocaleString('pt-BR') : '';
+}
+
+/** Abre a montagem. foco: slug da categoria para já deixar em edição. */
+function abrirMontarPlano(foco) {
+  const mes = typeof visaoMes !== 'undefined' ? visaoMes : new Date().getMonth();
+  const ano = typeof visaoAno !== 'undefined' ? visaoAno : new Date().getFullYear();
+  const dados = dadosMontagemPlano(mes, ano);
+  const valores = {};
+  dados.cats.forEach((c) => {
+    valores[c.slug] = c.limite || 0;
+  });
+  pmEstado = { dados, valores, iniciais: Object.assign({}, valores), delta: 0, valorNoFoco: 0 };
+  let ov = document.getElementById('pmOverlay');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'pmOverlay';
+    ov.className = 'pm-ov';
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-modal', 'true');
+    ov.setAttribute('aria-label', 'Montar o plano');
+    ov.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') fecharMontarPlano();
+    });
+    ov.addEventListener('click', (e) => {
+      if (e.target === ov) fecharMontarPlano();
+    });
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML = _pmHtml();
+  ov.hidden = false;
+  document.body.classList.add('pm-aberto');
+  _pmAtualizar();
+  const alvo =
+    (foco && ov.querySelector('.pm-inp[data-slug="' + foco + '"]')) || ov.querySelector('.pm-inp');
+  if (alvo && foco) {
+    const sec = alvo.closest('details');
+    if (sec) sec.open = true;
+    if (typeof alvo.scrollIntoView === 'function') alvo.scrollIntoView({ block: 'center' });
+    alvo.focus();
+  }
+}
+
+function _pmMudou() {
+  const e = pmEstado;
+  return !!e && Object.keys(e.valores).some((k) => (e.valores[k] || 0) !== (e.iniciais[k] || 0));
+}
+
+function fecharMontarPlano(forcar) {
+  if (!forcar && _pmMudou() && !window.confirm('Sair sem salvar o plano?')) return;
+  const ov = document.getElementById('pmOverlay');
+  if (ov) {
+    ov.hidden = true;
+    ov.innerHTML = '';
+  }
+  document.body.classList.remove('pm-aberto');
+  pmEstado = null;
+}
+
+function _pmHtml() {
+  const e = pmEstado;
+  const esc = _escCategoria;
+  const nomeMes = new Date(e.dados.ano, e.dados.mes, 1).toLocaleDateString('pt-BR', {
+    month: 'long',
+  });
+  const linha = (c) => {
+    const det =
+      c.grupo === 'fixas'
+        ? 'contas fixas do mês <b>' +
+          esc(formatarMoedaCurta(c.fixoMes)) +
+          '</b>' +
+          (c.gastoMes - c.fixoMes > 0.005
+            ? ' · variável <b>' + esc(formatarMoedaCurta(c.gastoMes - c.fixoMes)) + '</b>'
+            : '')
+        : (c.gastoMes > 0.005
+            ? 'este mês <b>' + esc(formatarMoedaCurta(c.gastoMes)) + '</b>'
+            : 'nada este mês') +
+          (c.media > 0.005 ? ' · média <b>' + esc(formatarMoedaCurta(c.media)) + '</b>' : '');
+    // Atalhos de um toque, de 10 em 10 e sem repetir valor: Moradia com
+    // sugestão, média e mês passado todos em R$ 2.290 vira um botão só.
+    const dez = (v) => Math.ceil(v / 10) * 10;
+    const chips = [];
+    const ja = new Set();
+    [
+      ['Sugestão', c.sugestao],
+      ['Média', c.media > 0.005 ? dez(c.media) : 0],
+      ['Mês passado', c.mesPassado > 0.005 ? dez(c.mesPassado) : 0],
+    ].forEach((x) => {
+      if (x[1] > 0 && !ja.has(x[1])) {
+        ja.add(x[1]);
+        chips.push(x);
+      }
+    });
+    return (
+      '<div class="pm-it" data-slug="' +
+      esc(c.slug) +
+      '"><div class="pm-l1"><label class="pm-nome" for="pmInp-' +
+      esc(c.slug) +
+      '"><i style="background:' +
+      c.cor +
+      '"></i>' +
+      esc(c.rotulo) +
+      '</label><span class="pm-campo"><small>R$</small><input id="pmInp-' +
+      esc(c.slug) +
+      '" class="pm-inp" type="text" inputmode="numeric" autocomplete="off" placeholder="sem limite" data-slug="' +
+      esc(c.slug) +
+      '" value="' +
+      _pmFmtInput(e.valores[c.slug]) +
+      '" onfocus="pmFoco(this)" oninput="pmDigitar(this)"></span></div><div class="pm-l2">' +
+      det +
+      '</div>' +
+      (chips.length
+        ? '<div class="pm-chips">' +
+          chips
+            .map(
+              (x) =>
+                '<button type="button" class="pm-chip" data-valor="' +
+                x[1] +
+                '" onclick="pmUsar(\'' +
+                esc(c.slug) +
+                "'," +
+                x[1] +
+                ')">' +
+                x[0] +
+                ' ' +
+                esc(formatarMoedaCurta(x[1])) +
+                '</button>'
+            )
+            .join('') +
+          (e.valores[c.slug] > 0 || c.limite > 0
+            ? '<button type="button" class="pm-chip sem" onclick="pmUsar(\'' +
+              esc(c.slug) +
+              '\',0)">Sem limite</button>'
+            : '') +
+          '</div>'
+        : '') +
+      '<div class="pm-av" id="pmAv-' +
+      esc(c.slug) +
+      '"></div></div>'
+    );
+  };
+  const grupo = (g) => e.dados.cats.filter((c) => c.grupo === g);
+  const sec = (tit, lista) =>
+    lista.length ? '<div class="pm-sec">' + tit + '</div>' + lista.map(linha).join('') : '';
+  const sem = grupo('sem');
+  return (
+    '<div class="pm-caixa"><div class="pm-cab"><button type="button" class="pm-voltar" onclick="fecharMontarPlano()" aria-label="Fechar">‹</button><h2>Seu plano</h2><span class="pm-cab-mes">números de ' +
+    nomeMes +
+    '</span></div><div class="pm-corpo"><div class="pm-res" id="pmResumo"></div>' +
+    '<div id="pmSugestao"></div>' +
+    sec('Contas fixas (já sabidas)', grupo('fixas')) +
+    sec('Gasto do dia a dia', grupo('dia')) +
+    (sem.length
+      ? '<details class="pm-mais"><summary>Sem gasto nos últimos meses (' +
+        sem.length +
+        ')</summary>' +
+        sem.map(linha).join('') +
+        '</details>'
+      : '') +
+    '</div><div class="pm-rod"><button type="button" class="pm-salvar" onclick="salvarMontarPlano()">Salvar plano</button>' +
+    '<span>O plano vale para todos os meses até você mudar.</span></div></div>'
+  );
+}
+
+/** Redesenha só o que muda ao digitar: resumo, aviso, sugestão e os avisos das linhas. */
+function _pmAtualizar() {
+  const e = pmEstado;
+  if (!e) return;
+  const esc = _escCategoria;
+  const m = formatarMoedaCurta;
+  const r = resumoMontagemPlano(e.dados, e.valores);
+  const base = Math.max(e.dados.renda, r.planejado) || 1;
+  const segs =
+    e.dados.cats
+      .filter((c) => e.valores[c.slug] > 0)
+      .sort((a, b) => e.valores[b.slug] - e.valores[a.slug])
+      .map(
+        (c) =>
+          '<span title="' +
+          esc(c.rotulo) +
+          '" style="background:' +
+          c.cor +
+          ';width:' +
+          ((e.valores[c.slug] / base) * 100).toFixed(2) +
+          '%"></span>'
+      )
+      .join('') +
+    (r.sobra > 0.005
+      ? '<span class="plano-seg-sobra" style="width:' +
+        ((r.sobra / base) * 100).toFixed(2) +
+        '%"></span>'
+      : '');
+  const res = document.getElementById('pmResumo');
+  if (res) {
+    res.className = 'pm-res' + (r.passou ? ' passou' : '');
+    res.innerHTML =
+      (Math.abs(e.delta) > 0.5
+        ? '<span class="pm-delta' +
+          (e.delta < 0 ? ' menos' : '') +
+          '">' +
+          (e.delta > 0 ? '+' : '−') +
+          esc(m(Math.abs(e.delta))) +
+          ' agora</span>'
+        : '') +
+      '<div class="pm-res-lin"><span>Planejado</span><span>' +
+      (r.pct != null
+        ? '<b class="pm-pct">' +
+          r.pct +
+          '%</b> ' +
+          e.dados.rendaRotulo +
+          ' <b class="valor-mascarado">' +
+          esc(m(e.dados.renda)) +
+          '</b>'
+        : 'sem renda lançada') +
+      '</span></div><div class="pm-res-v valor-mascarado">' +
+      esc(m(r.planejado)) +
+      '</div><div class="plano-dist" aria-hidden="true">' +
+      segs +
+      '</div>' +
+      (e.dados.renda > 0
+        ? '<div class="pm-res-sobra' +
+          (r.passou ? ' falta' : '') +
+          '"><span>' +
+          (r.passou ? 'Passa da renda em' : 'Sobra prevista') +
+          '</span><b class="valor-mascarado">' +
+          esc(m(Math.abs(r.sobra))) +
+          (r.passou ? '' : ' · ' + Math.round((r.sobra / e.dados.renda) * 100) + '%') +
+          '</b></div>'
+        : '');
+  }
+  // Onde cortar mora DENTRO do resumo fixo: o aviso aparece enquanto se
+  // edita lá embaixo, e não só para quem rolar de volta ao topo.
+  const corte = r.passou ? ondeCortarPlano(e.dados, e.valores) : null;
+  if (res && corte) {
+    const alvo = Math.ceil(corte.media / 10) * 10;
+    res.insertAdjacentHTML(
+      'beforeend',
+      '<div class="pm-cortar"><span><b>Onde cortar:</b> ' +
+        esc(corte.rotulo) +
+        ' está ' +
+        esc(m(corte.excesso)) +
+        ' acima da sua média.</span><button type="button" class="pm-chip" onclick="pmUsar(\'' +
+        esc(corte.slug) +
+        "'," +
+        alvo +
+        ')">Voltar para ' +
+        esc(m(alvo)) +
+        '</button></div>'
+    );
+  }
+  const sug = document.getElementById('pmSugestao');
+  if (sug) {
+    const vs = {};
+    e.dados.cats.forEach((c) => {
+      vs[c.slug] = c.sugestao;
+    });
+    const rs = resumoMontagemPlano(e.dados, vs);
+    const igual = e.dados.cats.every((c) => (e.valores[c.slug] || 0) === c.sugestao);
+    const temPlano = e.dados.cats.some((c) => e.valores[c.slug] > 0);
+    sug.innerHTML =
+      rs.planejado > 0 && !igual
+        ? '<div class="pm-card pm-sug"><b>' +
+          (temPlano ? 'Sugestão com os seus números:' : 'Comece pronto:') +
+          '</b> contas fixas pelo valor do mês, o dia a dia pela sua média.<br>Planejado <b class="valor-mascarado">' +
+          esc(m(rs.planejado)) +
+          '</b>' +
+          (e.dados.renda > 0
+            ? ' · ' +
+              (rs.sobra >= 0 ? 'sobra prevista' : 'passa da renda em') +
+              ' <b class="valor-mascarado">' +
+              esc(m(Math.abs(rs.sobra))) +
+              '</b>'
+            : '') +
+          '<div class="pm-chips"><button type="button" class="pm-chip forte" onclick="pmUsarSugestao()">Usar a sugestão</button>' +
+          (temPlano
+            ? '<button type="button" class="pm-chip" onclick="pmDesfazerTudo()">Voltar ao plano atual</button>'
+            : '') +
+          '<button type="button" class="pm-chip sem" onclick="pmLimparTudo()">Em branco</button></div></div>'
+        : '';
+  }
+  e.dados.cats.forEach((c) => {
+    const v = e.valores[c.slug] || 0;
+    const av = document.getElementById('pmAv-' + c.slug);
+    if (av) {
+      const x = vezesDaMedia(v, c.media);
+      av.textContent = x
+        ? '⚠ ' + x.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '× a sua média'
+        : '';
+    }
+    const it = document.querySelector('.pm-it[data-slug="' + c.slug + '"]');
+    if (it)
+      it.querySelectorAll('.pm-chip[data-valor]').forEach((b) => {
+        b.classList.toggle('on', Number(b.dataset.valor) === v);
+      });
+  });
+}
+
+function pmFoco(inp) {
+  if (!pmEstado) return;
+  pmEstado.valorNoFoco = pmEstado.valores[inp.dataset.slug] || 0;
+}
+
+function pmDigitar(inp) {
+  if (!pmEstado) return;
+  const n = _pmInt(inp.value);
+  inp.value = _pmFmtInput(n);
+  pmEstado.valores[inp.dataset.slug] = n;
+  pmEstado.delta = n - (pmEstado.valorNoFoco || 0);
+  _pmAtualizar();
+}
+
+function pmUsar(slug, valor) {
+  if (!pmEstado) return;
+  const antes = pmEstado.valores[slug] || 0;
+  pmEstado.valores[slug] = Math.max(0, Math.round(Number(valor) || 0));
+  pmEstado.delta = pmEstado.valores[slug] - antes;
+  const inp = document.getElementById('pmInp-' + slug);
+  if (inp) inp.value = _pmFmtInput(pmEstado.valores[slug]);
+  _pmAtualizar();
+}
+
+function _pmTodos(fn) {
+  if (!pmEstado) return;
+  const r0 = resumoMontagemPlano(pmEstado.dados, pmEstado.valores).planejado;
+  pmEstado.dados.cats.forEach((c) => {
+    pmEstado.valores[c.slug] = fn(c);
+    const inp = document.getElementById('pmInp-' + c.slug);
+    if (inp) inp.value = _pmFmtInput(pmEstado.valores[c.slug]);
+  });
+  pmEstado.delta = resumoMontagemPlano(pmEstado.dados, pmEstado.valores).planejado - r0;
+  _pmAtualizar();
+}
+function pmUsarSugestao() {
+  _pmTodos((c) => c.sugestao);
+}
+function pmLimparTudo() {
+  _pmTodos(() => 0);
+}
+function pmDesfazerTudo() {
+  _pmTodos((c) => pmEstado.iniciais[c.slug] || 0);
+}
+
+function salvarMontarPlano() {
+  if (!pmEstado) return;
+  const mudados = {};
+  Object.keys(pmEstado.valores).forEach((k) => {
+    if ((pmEstado.valores[k] || 0) !== (pmEstado.iniciais[k] || 0))
+      mudados[k] = pmEstado.valores[k] || 0;
+  });
+  const r = resumoMontagemPlano(pmEstado.dados, pmEstado.valores);
+  const renda = pmEstado.dados.renda;
+  if (Object.keys(mudados).length) aplicarLimitesEmLote(mudados);
+  fecharMontarPlano(true);
+  if (typeof renderizarListaCategoriasConfig === 'function') renderizarListaCategoriasConfig();
+  if (typeof atualizarTelaControle === 'function') atualizarTelaControle();
+  mostrarToast(
+    'Plano salvo: ' +
+      formatarMoedaCurta(r.planejado) +
+      ' planejados' +
+      (renda > 0
+        ? r.sobra >= 0
+          ? ', sobra prevista ' + formatarMoedaCurta(r.sobra) + '.'
+          : ', ' + formatarMoedaCurta(-r.sobra) + ' acima da renda.'
+        : '.'),
+    r.sobra < 0 && renda > 0 ? 'aviso' : 'sucesso'
+  );
 }
 
 var categoriaConfigLimite = null;
@@ -1318,7 +1827,12 @@ function renderizarListaCategoriasConfig() {
     }
     categoriaConfigLimite = null;
   }
-  container.innerHTML = visiveis.map(linhaVisivel).join('') + ocultas.map(linhaOculta).join('');
+  // A montagem do plano (todas as categorias, soma ao vivo) começa daqui
+  // também; o botão "Limite" de cada linha continua para o ajuste avulso.
+  container.innerHTML =
+    '<button type="button" class="btn-acao cat-cfg-plano" onclick="abrirMontarPlano()"><i class="ph ph-chart-pie-slice"></i> Montar o plano (todos os limites com a soma)</button>' +
+    visiveis.map(linhaVisivel).join('') +
+    ocultas.map(linhaOculta).join('');
 }
 
 function abrirNovaCategoriaConfig() {

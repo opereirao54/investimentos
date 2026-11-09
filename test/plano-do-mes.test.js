@@ -85,7 +85,7 @@ test('cartão do plano: valores, sobra, aviso de passar e o caminho para ajustar
   assert.match(html, /Fora do plano/);
   assert.match(html, /1 sem limite/);
   assert.match(html, /planoIrParaCategorias\(\)/, 'os selos levam à lista');
-  assert.match(html, /abrirModalConfig\('categorias'\)/);
+  assert.match(html, /abrirMontarPlano\(\)/, 'Ajustar abre a montagem do plano');
   assert.doesNotMatch(html, /<details class="plano-div" open/, 'divisão fechada por padrão');
   assert.match(
     s.htmlPlanoDoMes(s.planoDoMes(NOV, ANO, DIA9), { aberta: true }),
@@ -193,7 +193,7 @@ test('formatarMoedaCurta arredonda para reais e mantém o sinal', () => {
   assert.equal(s.formatarMoedaCurta(-421.67), '−R$ 422');
 });
 
-test('celular: o cartão da sobra traz o mês por tipo e fecha com a sobra', () => {
+test('celular: o cartão da sobra tem as duas visões (por tipo e fixas × variáveis)', () => {
   const s = carregarApp({}, ORDEM_CONTROLE.concat(['web/appliquei-mobile.js']));
   const resumo = {
     receita: 6700,
@@ -205,17 +205,27 @@ test('celular: o cartão da sobra traz o mês por tipo e fecha com a sobra', () 
     invVar: 0,
     sonho: 0,
   };
-  const html = s._mobDestinoNoCartao({
-    mes: NOV,
-    ano: ANO,
-    resumo,
-    tiposHtml: s.ctlTiposHtml(NOV, ANO),
-  });
-  assert.match(html, /class="mi-tipos mi-tipos-hero"/);
-  for (const rot of ['Receitas', 'Despesas', 'Cartão', 'Investimentos', 'Sonhos'])
+  const html = s._mobDestinoNoCartao({ mes: NOV, ano: ANO, resumo });
+  assert.match(html, /mi-visao-seg/);
+  assert.match(html, /data-v="tipo"/);
+  assert.match(html, /data-v="fv"/);
+  for (const rot of [
+    'Receitas',
+    'Despesas',
+    'Cartão',
+    'Investimentos',
+    'Sonhos',
+    'Entrou',
+    'Contas fixas',
+    'Gastos variáveis',
+  ])
     assert.match(html, new RegExp(rot));
-  assert.match(html, /Sobra do mês/);
-  assert.match(html, /title="Despesas"/, 'a barra usa os mesmos tipos da lista');
+  assert.equal((html.match(/Sobra do mês/g) || []).length, 2, 'as duas visões fecham na sobra');
+  // Na visão fixas × variáveis, cartão zerado não aparece; na por tipo, sim (cinza).
+  const v = s.mobVisoesDaSobra(resumo);
+  assert.equal(v.sobra.toFixed(2), '1191.45');
+  assert.equal(v.tipo.find((p) => p[0] === 'Cartão')[4], true);
+  assert.equal(v.fv.find((p) => p[0] === 'Cartão')[4], false);
   const faltou = s._mobDestinoNoCartao({
     mes: NOV,
     ano: ANO,
@@ -240,4 +250,115 @@ test('celular: sem botões rápidos nem "O mês por tipo" no Resumo', () => {
   );
   assert.match(corpo, /_mobPlanoNoCartao\(d\)/);
   assert.match(corpo, /_mobCategorias\(d\)/);
+});
+
+// ---------------------------------------------------------------------------
+// Montagem do plano (nov/2026): sugestão, soma ao vivo, onde cortar, lote.
+// ---------------------------------------------------------------------------
+
+function comHistorico() {
+  const s = mundo();
+  for (let k = 1; k <= 3; k++) {
+    const d = new Date(ANO, NOV - k, 1);
+    const L = (id, valor, categoria, categoriaDespesa, extra) =>
+      s.transacoes.push(
+        Object.assign(
+          {
+            id: id + k,
+            descricao: id,
+            valor,
+            categoria,
+            categoriaDespesa,
+            mes: d.getMonth(),
+            ano: d.getFullYear(),
+          },
+          extra || {}
+        )
+      );
+    L('r', 6700, 'receita');
+    L('fin', 2288.92, 'despesa_fixa', 'moradia', { groupId: 'g1' });
+    L('merc', 1000 + k * 100, 'despesa_variavel', 'alimentacao');
+    L('plano', 659.9, 'despesa_fixa', 'saude', { groupId: 'g3' });
+    L('farm', 150, 'despesa_variavel', 'saude');
+  }
+  s.transacoes.push({
+    id: 'planoNov',
+    descricao: 'Plano',
+    valor: 659.9,
+    categoria: 'despesa_fixa',
+    categoriaDespesa: 'saude',
+    groupId: 'g3',
+    mes: NOV,
+    ano: ANO,
+  });
+  return s;
+}
+
+test('sugestão: fixas do mês + média do variável, de 10 em 10; sem fixas, a média', () => {
+  const s = comHistorico();
+  // Saúde: plano 659,90 neste mês + farmácia 150 de média → 809,90 → 810.
+  assert.equal(s.sugestaoLimiteCategoria('saude', NOV, ANO), 810);
+  // Alimentação: média de 1.100, 1.200 e 1.300 = 1.200.
+  assert.equal(s.sugestaoLimiteCategoria('alimentacao', NOV, ANO), 1200);
+  // Sem histórico nem gasto: sem sugestão.
+  assert.equal(s.sugestaoLimiteCategoria('pets', NOV, ANO), 0);
+});
+
+test('dados da montagem: renda, grupos e a renda média quando o mês não tem receita', () => {
+  const s = comHistorico();
+  let d = s.dadosMontagemPlano(NOV, ANO);
+  assert.equal(d.renda, 6700, 'mundo() lança 6.700 de renda em novembro');
+  const por = (slug) => d.cats.find((c) => c.slug === slug);
+  assert.equal(por('saude').grupo, 'fixas');
+  assert.equal(por('alimentacao').grupo, 'dia');
+  assert.equal(por('pets').grupo, 'sem');
+  s.transacoes.splice(
+    s.transacoes.findIndex((t) => t.id === 'renda'),
+    1
+  );
+  d = s.dadosMontagemPlano(NOV, ANO);
+  assert.equal(d.renda, 6700);
+  assert.equal(d.rendaRotulo, 'da renda média de');
+});
+
+test('resumo ao vivo e onde cortar quando passa da renda', () => {
+  const s = comHistorico();
+  const d = s.dadosMontagemPlano(NOV, ANO);
+  const v = { moradia: 2300, alimentacao: 1200, saude: 810 };
+  let r = s.resumoMontagemPlano(d, v);
+  assert.equal(r.planejado, 4310);
+  assert.equal(r.sobra, 2390);
+  assert.equal(r.passou, false);
+  assert.equal(s.ondeCortarPlano(d, v).slug, 'moradia', 'o maior excesso sobre a média');
+  v.alimentacao = 4000;
+  r = s.resumoMontagemPlano(d, v);
+  assert.equal(r.passou, true);
+  const c = s.ondeCortarPlano(d, v);
+  assert.equal(c.slug, 'alimentacao');
+  assert.equal(Math.round(c.excesso), 2800);
+  assert.ok(s.vezesDaMedia(4000, 1200) > 3);
+  assert.equal(s.vezesDaMedia(1300, 1200), 0);
+});
+
+test('salvar em lote grava todos de uma vez e "0" tira o limite', () => {
+  const s = comHistorico();
+  s.definirLimiteCategoria('lazer', 300);
+  s.aplicarLimitesEmLote({ moradia: 2300, alimentacao: 1200, lazer: 0 });
+  assert.equal(s.obterLimiteCategoria('moradia'), 2300);
+  assert.equal(s.obterLimiteCategoria('alimentacao'), 1200);
+  assert.equal(s.obterLimiteCategoria('lazer'), 0);
+  const aj = JSON.parse(s.localStorage.getItem('futurorico_categoriasDespesa'));
+  assert.ok(!aj.some((a) => a.v === 'lazer'), 'sem ajuste vazio sobrando');
+});
+
+test('"+ Limite" e "Ajustar limites" abrem a montagem do plano', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const CF = fs.readFileSync(
+    path.join(__dirname, '..', 'web', 'appliquei-aba-controle-financeiro.js'),
+    'utf8'
+  );
+  assert.match(CF, /function definirLimiteRapido\(slug\) \{\s*abrirMontarPlano\(slug\);/);
+  assert.match(CF, /class="plano-ajustar" onclick="abrirMontarPlano\(\)"/);
+  assert.match(CF, /Montar o plano \(todos os limites com a soma\)/);
 });

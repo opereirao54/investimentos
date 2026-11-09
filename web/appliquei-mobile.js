@@ -988,53 +988,147 @@ function _mobCartaoProjecao() {
  * linha por destino com valor e fatia do que entrou. Os números são os do
  * resumo que o Controle já calculou (d.resumo = calcularResumoMes).
  */
-function _mobDestinoNoCartao(d) {
-  // O cartão do topo responde "estou bem?" sozinho: a barra do destino do
-  // dinheiro, o mês por tipo (Receitas, Despesas, Cartão, Investimentos,
-  // Sonhos — com a variação e a mini-linha, ctlTiposHtml) e a sobra fechando
-  // a conta. "O mês por tipo" era um cartão à parte logo abaixo; desde nov/2026
-  // mora aqui, onde os números se explicam juntos.
-  const r = d && d.resumo;
-  if (!r) return '';
+// Visão do cartão da sobra, por aparelho (não é dado financeiro, não sincroniza).
+var _mobHeroVisao = (function () {
+  try {
+    return localStorage.getItem('ui_heroVisao') === 'fv' ? 'fv' : 'tipo';
+  } catch (_e) {
+    return 'tipo';
+  }
+})();
+
+/** Troca a visão sem redesenhar: as duas listas já estão no cartão. */
+function mobHeroVisao(v) {
+  _mobHeroVisao = v === 'fv' ? 'fv' : 'tipo';
+  try {
+    localStorage.setItem('ui_heroVisao', _mobHeroVisao);
+  } catch (_e) {}
+  const el = document.querySelector('.mi-visoes');
+  if (el) el.dataset.visao = _mobHeroVisao;
+  document.querySelectorAll('.mi-visao-seg button').forEach((b) => {
+    b.setAttribute('aria-pressed', String(b.dataset.v === _mobHeroVisao));
+  });
+}
+
+/** Números das duas visões do cartão da sobra (pura). */
+function mobVisoesDaSobra(r) {
   const n = (v) => Number(v) || 0;
   const entrou = n(r.receita) + n(r.resgate);
-  // As cores dos ícones de cada tipo: a barra é a legenda da lista abaixo.
-  const partes = [
-    ['Despesas', n(r.despFixa) + n(r.despVar), '#e11d48'],
-    ['Cartão', n(r.cartao), '#f59e0b'],
-    ['Investido', n(r.invFixo) + n(r.invVar), '#2563eb'],
-    ['Sonhos', n(r.sonho), '#7c3aed'],
+  const cartao = n(r.cartao);
+  const invest = n(r.invFixo) + n(r.invVar);
+  const sonho = n(r.sonho);
+  const despesas = n(r.despFixa) + n(r.despVar);
+  const sobra = entrou - (despesas + cartao + invest + sonho);
+  // [rótulo, valor, cor, filtro do extrato, sempre visível]
+  const tipo = [
+    ['Despesas', despesas, '#e11d48', 'despesa', true],
+    ['Cartão', cartao, '#f59e0b', 'cartao', true],
+    ['Investimentos', invest, '#2563eb', 'investimento', true],
+    ['Sonhos', sonho, '#7c3aed', 'sonho', true],
   ];
-  const saiu = partes.reduce((a, p) => a + p[1], 0);
-  const sobra = entrou - saiu;
-  if (saiu <= 0.005 && entrou <= 0.005 && !d.tiposHtml) return '';
-  const base = Math.max(entrou, saiu) || 1;
-  const barra = partes
-    .concat(sobra > 0.005 ? [['Sobra', sobra, '#10b981']] : [])
-    .filter((p) => p[1] > 0.005)
-    .map(
-      (p) =>
-        '<span title="' +
-        p[0] +
-        '" style="background:' +
+  // Fixas × variáveis: o cartão, o investimento e o sonho só entram quando
+  // têm valor — sem eles a conta "entrou − saiu = sobra" não fecharia.
+  const fv = [
+    ['Contas fixas', n(r.despFixa), '#f97316', 'despesa', true],
+    ['Gastos variáveis', n(r.despVar), '#e11d48', 'despesa', true],
+    ['Cartão', cartao, '#f59e0b', 'cartao', false],
+    ['Investimentos', invest, '#2563eb', 'investimento', false],
+    ['Sonhos', sonho, '#7c3aed', 'sonho', false],
+  ];
+  return { entrou, sobra, tipo, fv };
+}
+
+function _mobDestinoNoCartao(d) {
+  // O cartão do topo responde "estou bem?" sozinho, em duas leituras à
+  // escolha (ideia C, nov/2026): POR TIPO (receitas, despesas, cartão,
+  // investimentos, sonhos) ou FIXAS × VARIÁVEIS. As duas no estilo da lista
+  // compacta — bolinha, valor, % da receita — e fechando na sobra. A barra
+  // muda junto, porque ela é a legenda da lista.
+  const r = d && d.resumo;
+  if (!r) return '';
+  const v = mobVisoesDaSobra(r);
+  if (v.entrou <= 0.005 && !v.tipo.some((p) => p[1] > 0.005)) return '';
+  const fmt = (x) => _mobEsc(_mobDreFmt(x));
+  const pct = (x) => (v.entrou > 0 ? Math.round((Math.abs(x) / v.entrou) * 100) + '%' : '');
+  const base = Math.max(v.entrou, v.entrou - v.sobra) || 1;
+  const barra = (partes) =>
+    '<div class="mc-barra mi-destino-barra" aria-hidden="true">' +
+    partes
+      .concat(v.sobra > 0.005 ? [['Sobra', v.sobra, '#10b981']] : [])
+      .filter((p) => p[1] > 0.005)
+      .map(
+        (p) =>
+          '<span title="' +
+          p[0] +
+          '" style="background:' +
+          p[2] +
+          ';width:' +
+          ((p[1] / base) * 100).toFixed(2) +
+          '%"></span>'
+      )
+      .join('') +
+    '</div>';
+  const linha = (p) =>
+    p[1] > 0.005 || p[4]
+      ? '<button type="button" class="mi-dl' +
+        (p[1] > 0.005 ? '' : ' zero') +
+        '" onclick="mobVerNoExtrato(\'' +
+        p[3] +
+        "','')\"><span><i style=\"background:" +
         p[2] +
-        ';width:' +
-        ((p[1] / base) * 100).toFixed(2) +
-        '%"></span>'
-    )
-    .join('');
-  return (
-    (barra ? '<div class="mc-barra mi-destino-barra" aria-hidden="true">' + barra + '</div>' : '') +
-    (d.tiposHtml ? '<div class="mi-tipos mi-tipos-hero">' + d.tiposHtml + '</div>' : '') +
+        '"></i>' +
+        p[0] +
+        '</span><b class="valor-mascarado">' +
+        (p[1] > 0.005 ? '−' + fmt(p[1]) : fmt(0)) +
+        '</b><small>' +
+        (p[1] > 0.005 ? pct(p[1]) : '—') +
+        '</small></button>'
+      : '';
+  const entrou = (rot) =>
+    '<button type="button" class="mi-dl ent" onclick="mobVerNoExtrato(\'receita\',\'\')"><span><i style="background:#10b981"></i>' +
+    rot +
+    '</span><b class="valor-mascarado">+' +
+    fmt(v.entrou) +
+    '</b><small></small></button>';
+  const tot =
     '<div class="mi-dl tot' +
-    (sobra < 0 ? ' neg' : '') +
+    (v.sobra < 0 ? ' neg' : '') +
     '"><span>' +
-    (sobra < 0 ? 'Faltou no mês' : 'Sobra do mês') +
+    (v.sobra < 0 ? 'Faltou no mês' : 'Sobra do mês') +
     '</span><b class="valor-mascarado">' +
-    _mobEsc(_mobDreFmt(sobra)) +
+    fmt(v.sobra) +
     '</b><small>' +
-    (entrou > 0 ? Math.round((Math.abs(sobra) / entrou) * 100) + '%' : '') +
-    '</small></div>'
+    pct(v.sobra) +
+    '</small></div>';
+  const seg = (val, rot) =>
+    '<button type="button" data-v="' +
+    val +
+    '" aria-pressed="' +
+    (_mobHeroVisao === val) +
+    '" onclick="mobHeroVisao(\'' +
+    val +
+    '\')">' +
+    rot +
+    '</button>';
+  return (
+    '<div class="mi-visao-seg" role="group" aria-label="Como ver o mês">' +
+    seg('tipo', 'Por tipo') +
+    seg('fv', 'Fixas × variáveis') +
+    '</div><div class="mi-visoes" data-visao="' +
+    _mobHeroVisao +
+    '"><div class="mi-visao" data-v="tipo">' +
+    barra(v.tipo) +
+    '<div class="mi-dlista">' +
+    entrou('Receitas') +
+    v.tipo.map(linha).join('') +
+    tot +
+    '</div></div><div class="mi-visao" data-v="fv">' +
+    barra(v.fv) +
+    '<div class="mi-dlista">' +
+    entrou('Entrou') +
+    v.fv.map(linha).join('') +
+    tot +
+    '</div></div></div>'
   );
 }
 
