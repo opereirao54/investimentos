@@ -989,56 +989,138 @@ function _mobCartaoProjecao() {
  * resumo que o Controle já calculou (d.resumo = calcularResumoMes).
  */
 function _mobDestinoNoCartao(d) {
+  // O cartão do topo responde "estou bem?" sozinho: o que entrou, cada saída
+  // que teve valor e a sobra, numa lista só. Absorveu "O mês por tipo", que
+  // repetia esses números logo abaixo com três linhas de "R$ 0,00 · nada
+  // neste mês" (reorganização de nov/2026). Os tipos zerados viram uma linha.
   const r = d && d.resumo;
   if (!r) return '';
   const n = (v) => Number(v) || 0;
   const entrou = n(r.receita) + n(r.resgate);
   const partes = [
-    ['Fixas', n(r.despFixa), '#f97316'],
-    ['Variáveis', n(r.despVar), '#e11d48'],
-    ['Cartão', n(r.cartao), '#f59e0b'],
-    ['Investido', n(r.invFixo) + n(r.invVar), '#2563eb'],
-    ['Sonhos', n(r.sonho), '#7c3aed'],
+    ['Contas fixas', n(r.despFixa), '#f97316', 'despesa', ''],
+    ['Gastos variáveis', n(r.despVar), '#e11d48', 'despesa', ''],
+    ['Cartão', n(r.cartao), '#f59e0b', 'cartao', 'cartão'],
+    ['Investido', n(r.invFixo) + n(r.invVar), '#2563eb', 'investimento', 'investimentos'],
+    ['Sonhos', n(r.sonho), '#7c3aed', 'sonho', 'sonhos'],
   ];
   const saiu = partes.reduce((a, p) => a + p[1], 0);
-  partes.push(['Sobra', Math.max(0, entrou - saiu), '#10b981']);
+  const sobra = entrou - saiu;
   const visiveis = partes.filter((p) => p[1] > 0.005);
-  if (!visiveis.length) return '';
+  const zerados = partes.filter((p) => p[4] && p[1] <= 0.005).map((p) => p[4]);
+  if (!visiveis.length && entrou <= 0.005) return '';
   const base = Math.max(entrou, saiu) || 1;
-  const aPagar = typeof saidasAPagarDoMes === 'function' ? saidasAPagarDoMes(d.mes, d.ano) : 0;
+  const fmt = (v) => _mobEsc(_mobDreFmt(v));
+  const pct = (v) => (entrou > 0 ? Math.round((v / entrou) * 100) + '%' : '');
+  const linha = (cls, cor, nome, valor, sinal, p, tipo) =>
+    '<button type="button" class="mi-dl' +
+    (cls ? ' ' + cls : '') +
+    '" onclick="mobVerNoExtrato(\'' +
+    tipo +
+    "','')\"><span><i style=\"background:" +
+    cor +
+    '"></i>' +
+    nome +
+    '</span><b class="valor-mascarado">' +
+    sinal +
+    fmt(Math.abs(valor)) +
+    '</b><small>' +
+    p +
+    '</small></button>';
+  const barra = visiveis
+    .concat(sobra > 0.005 ? [['Sobra', sobra, '#10b981']] : [])
+    .map(
+      (p) =>
+        '<span style="background:' +
+        p[2] +
+        ';width:' +
+        ((p[1] / base) * 100).toFixed(2) +
+        '%"></span>'
+    )
+    .join('');
+  const zeradosTxt = zerados.length
+    ? zerados.join(', ').replace(/, ([^,]*)$/, ' e $1') + ': nada neste mês'
+    : '';
   return (
-    (aPagar > 0.005
-      ? '<p class="mi-falta">falta pagar <b class="valor-mascarado">' +
-        _mobEsc(_mobDreFmt(aPagar)) +
-        '</b> este mês</p>'
-      : '') +
     '<div class="mc-barra mi-destino-barra" aria-hidden="true">' +
-    visiveis
-      .map(
-        (p) =>
-          '<span style="background:' +
-          p[2] +
-          ';width:' +
-          ((p[1] / base) * 100).toFixed(2) +
-          '%"></span>'
-      )
-      .join('') +
-    '</div><div class="mi-destino">' +
-    visiveis
-      .map(
-        (p) =>
-          '<div><i style="background:' +
-          p[2] +
-          '"></i><span>' +
-          p[0] +
-          '</span><b class="valor-mascarado">' +
-          _mobEsc(_mobDreFmt(p[1])) +
-          '</b><small>' +
-          (entrou > 0 ? Math.round((p[1] / entrou) * 100) + '%' : '') +
-          '</small></div>'
-      )
-      .join('') +
+    barra +
+    '</div><div class="mi-dlista">' +
+    (entrou > 0.005 ? linha('ent', '#10b981', 'Entrou', entrou, '+', '', 'receita') : '') +
+    visiveis.map((p) => linha('', p[2], p[0], p[1], '−', pct(p[1]), p[3])).join('') +
+    '<div class="mi-dl tot' +
+    (sobra < 0 ? ' neg' : '') +
+    '"><span>' +
+    (sobra < 0 ? 'Faltou' : 'Sobra') +
+    '</span><b class="valor-mascarado">' +
+    fmt(sobra) +
+    '</b><small>' +
+    pct(Math.abs(sobra)) +
+    '</small></div>' +
+    (zeradosTxt
+      ? '<p class="mi-dzero">' + zeradosTxt.charAt(0).toUpperCase() + zeradosTxt.slice(1) + '</p>'
+      : '') +
     '</div>'
+  );
+}
+
+/** Pé do cartão do topo: a situação do plano, em uma linha que leva à lista. */
+function _mobPlanoNoCartao(d) {
+  if (typeof planoDoMes !== 'function') return '';
+  const p = planoDoMes(d.mes, d.ano);
+  if (!p.cats.length) return '';
+  const passou = p.gastoNoPlano - p.planejado;
+  let cls = 'ok';
+  let tit = '';
+  let sub = '';
+  if (p.passou) {
+    cls = 'passou';
+    tit =
+      '<i class="ph-bold ph-x"></i> ' +
+      p.passou +
+      (p.passou === 1 ? ' categoria passou do limite' : ' categorias passaram do limite');
+    sub = (passou > 0.005 ? _mobDreFmt(passou) + ' acima do plano · ' : '') + 'ver quais';
+  } else if (p.atencao) {
+    cls = 'perto';
+    tit =
+      '<i class="ph-bold ph-warning"></i> ' +
+      p.atencao +
+      (p.atencao === 1 ? ' categoria em atenção' : ' categorias em atenção');
+    sub = 'restam ' + _mobDreFmt(-passou) + ' do plano · ver quais';
+  } else {
+    tit = '<i class="ph-bold ph-check"></i> Plano em dia';
+    sub = 'restam ' + _mobDreFmt(-passou) + ' do plano';
+  }
+  return (
+    '<button type="button" class="mi-plano-pe ' +
+    cls +
+    '" onclick="planoIrParaCategorias()"><span>' +
+    tit +
+    '<small>' +
+    _mobEsc(sub) +
+    '</small></span><i class="ph ph-caret-right"></i></button>'
+  );
+}
+
+/** Por categoria: a mesma linha do web (htmlListaCategorias), em valores redondos. */
+function _mobCategorias(d) {
+  if (typeof htmlListaCategorias !== 'function') return _mobComposicao(d.composicao);
+  const g =
+    typeof calcularDespesasPorCategoria === 'function'
+      ? calcularDespesasPorCategoria(d.mes, d.ano)
+      : {};
+  const total = Object.keys(g).reduce((a, k) => a + (Number(g[k]) || 0), 0);
+  if (total <= 0.005 && !(typeof planoDoMes === 'function' && planoDoMes(d.mes, d.ano).cats.length))
+    return '';
+  return (
+    '<section class="mi-card mc" id="mobCategorias"><div class="mi-tit-linha"><h2 class="mi-h2">Por categoria</h2><span class="mc-total">gasto <b class="valor-mascarado">' +
+    _mobEsc(_mobDreFmt(total)) +
+    '</b></span></div>' +
+    htmlListaCategorias(d.mes, d.ano, {
+      curto: true,
+      todas: _mobCompTodas,
+      alternar: 'mobCompAlternarTodas()',
+    }) +
+    '</section>'
   );
 }
 
@@ -1085,14 +1167,15 @@ function mobRenderInicio(d) {
   const livre = (Number(d.saldoLivre) || 0) - (Number(d.carregado) || 0);
   const nomeMes = new Date(d.ano, d.mes, 1).toLocaleDateString('pt-BR', { month: 'long' });
   const rotulo = 'Sobra de ' + nomeMes;
+  const aPagarMes = typeof saidasAPagarDoMes === 'function' ? saidasAPagarDoMes(d.mes, d.ano) : 0;
   const origem =
     livre < 0
       ? 'Saiu mais do que entrou.'
       : Math.abs(livre) < 0.005
         ? 'Tudo o que entrou já tem destino.'
-        : 'O que entrou menos o que sai' +
-          (noMes ? ' neste mês' : ' no mês') +
-          ', já contando o que falta pagar.';
+        : aPagarMes > 0.005
+          ? 'Já contando ' + _mobDreFmt(aPagarMes) + ' de contas que ainda vão vencer.'
+          : 'O que entrou menos o que sai' + (noMes ? ' neste mês.' : ' no mês.');
 
   const scoreEl = document.getElementById('termChipScore');
   const rotEl = document.getElementById('termChipRotulo');
@@ -1114,26 +1197,9 @@ function mobRenderInicio(d) {
         _mobEsc(_mobDreFmt(d.saldoConta)) +
         '</b></span><span class="mi-link">Por banco <i class="ph ph-caret-right"></i></span></button>';
 
-  const atalhos = [
-    ['despesa', 'Despesa', 'ph-minus', 'erro'],
-    ['receita', 'Receita', 'ph-plus', 'ok'],
-    ['pagar', 'Pagar', 'ph-check', 'ambar'],
-    ['aporte', 'Aporte', 'ph-trend-up', 'info'],
-    ['transferir', 'Transferir', 'ph-arrows-left-right', 'neutro'],
-  ]
-    .map(
-      (x) =>
-        '<button type="button" class="mi-atalho" onclick="mobAcaoRapida(\'' +
-        x[0] +
-        '\')"><span class="mi-atalho-ic ' +
-        x[3] +
-        '"><i class="ph-bold ' +
-        x[2] +
-        '"></i></span><span>' +
-        x[1] +
-        '</span></button>'
-    )
-    .join('');
+  // Os botões rápidos (Despesa, Receita, Pagar, Aporte, Transferir) saíram:
+  // o + da barra de baixo já lança tudo, e Pagar mora em cada conta de
+  // "Precisa de você", onde ele faz sentido (reorganização de nov/2026).
 
   topo.innerHTML =
     '<section class="mi-card mi-hero">' +
@@ -1153,35 +1219,27 @@ function mobRenderInicio(d) {
     _mobDestinoNoCartao(d) +
     _mobLinhaCarregado(d) +
     conta +
-    '</section>' +
-    '<nav class="mi-atalhos" aria-label="Atalhos">' +
-    atalhos +
-    '</nav>' +
-    // Receitas, despesas, cartão, investimentos e sonhos: lista vertical.
-    (d.tiposHtml
-      ? '<section class="mi-card mi-tipos" aria-label="O mês por tipo"><div class="mi-tit-linha"><h2 class="mi-h2">O mês por tipo</h2></div>' +
-        d.tiposHtml +
-        '</section>'
-      : '');
+    _mobPlanoNoCartao(d) +
+    '</section>';
 
-  // "Para onde foi" entrou no cartão do topo (_mobDestinoNoCartao); a
-  // projeção mora na aba Projeção. Ordem do canvas: O que notamos, Falta
-  // pagar, Por categoria, Movimentações.
+  // A ordem é a das perguntas de quem abre o app (nov/2026):
+  //   1. Estou bem?            — o cartão do topo (sobra + situação do plano)
+  //   2. Precisa de você       — contas a vencer e "O que notamos"
+  //   3. Onde estou estourando — Por categoria, quem passou primeiro
+  //   4. Como planejei a renda — Seu plano do mês
+  //   5. O que lancei          — Movimentações (mobInicioFim)
   const comp = document.getElementById('mobComposicao');
-  if (comp) comp.innerHTML = '';
+  if (comp) comp.innerHTML = _mobProximos(d.vencimentos, d.hojeStr, '');
+  _mobPreencherPrecisaNotamos();
   const prox = document.getElementById('mobProximos');
   if (prox)
     prox.innerHTML =
-      _mobNotamosCartao() +
-      _mobProximos(d.vencimentos, d.hojeStr) +
-      // Seu plano do mês: a soma dos limites contra a renda, e como ela se
-      // divide — logo antes do "Para onde foi", que mostra cada categoria.
+      _mobCategorias(d) +
       (typeof planoDoMes === 'function' && typeof htmlPlanoDoMes === 'function'
-        ? '<div class="mi-card mi-plano">' + htmlPlanoDoMes(planoDoMes(d.mes, d.ano)) + '</div>'
-        : '') +
-      // "Para onde foi" completo (todas as categorias, com "Ver todas"), como
-      // era antes; "Destino do dinheiro" mostra fixas, variáveis, cartão etc.
-      _mobComposicao(d.composicao);
+        ? '<div class="mi-card mi-plano">' +
+          htmlPlanoDoMes(planoDoMes(d.mes, d.ano), { curto: true }) +
+          '</div>'
+        : '');
 
   const movs = _mobMovimentos(d.mes, d.ano);
   fim.innerHTML =
@@ -1211,8 +1269,33 @@ function _mobInsights() {
     : [];
 }
 
+/** "O que notamos" mora em "Precisa de você" no celular (nov/2026). Chamada
+ *  pelos dois lados, porque a ordem do render varia: mobRenderStories (fim de
+ *  insightsUiRenderizar) e mobRenderInicio (que recria a seção depois). */
+function _mobPreencherPrecisaNotamos() {
+  const slot = document.getElementById('mobPrecisaNotamos');
+  if (slot) {
+    // Sem aviso na lista, ainda pode haver o "não consigo prever o seu
+    // caixa" (insightsUiSemProjecao) — ele pede um cadastro, então é tarefa.
+    const painel = document.getElementById('painelInsights');
+    const semProjecao = painel
+      ? Array.from(painel.querySelectorAll('.ins-vazio')).find((el) =>
+          el.querySelector('.ph-warning-circle')
+        )
+      : null;
+    slot.innerHTML =
+      _mobNotamosCartao() ||
+      (semProjecao
+        ? '<div class="mi-card mi-notamos-aviso">' + semProjecao.outerHTML + '</div>'
+        : '');
+    const sec = document.getElementById('mobPrecisa');
+    if (sec) sec.hidden = !slot.innerHTML && !sec.querySelector('.mp-card');
+  }
+}
+
 /** Chamada no fim de insightsUiRenderizar: refaz a fileira de histórias. */
 function mobRenderStories() {
+  _mobPreencherPrecisaNotamos();
   const host = document.getElementById('painelInsights');
   if (!host) return;
   const lista = _mobInsights();
@@ -1689,8 +1772,23 @@ function _mobDiaVenc(data, hojeStr) {
   return { rot: sem + ' ' + d, estado: 'normal' };
 }
 
-function _mobProximos(itens, hojeStr) {
-  if (!Array.isArray(itens) || !itens.length || !hojeStr) return '';
+function _mobProximos(itens, hojeStr, extra) {
+  // "Precisa de você": as contas a vencer e, embaixo, o que o app notou. Só
+  // aparece quando há o que fazer.
+  // Os avisos chegam depois (insightsUiRenderizar roda no fim do render): a
+  // seção sempre existe, escondida quando vazia, e mobRenderStories preenche
+  // o espaço #mobPrecisaNotamos e a mostra.
+  const temItens = Array.isArray(itens) && itens.length > 0 && !!hojeStr;
+  const slot = '<div id="mobPrecisaNotamos">' + (extra || '') + '</div>';
+  if (!temItens) {
+    return (
+      '<section class="mp mi-precisa" id="mobPrecisa"' +
+      (extra ? '' : ' hidden') +
+      '><div class="mi-tit-linha"><h2 class="mi-h2">Precisa de você</h2></div>' +
+      slot +
+      '</section>'
+    );
+  }
   let total = 0;
   const cards = itens
     .map((it) => {
@@ -1755,7 +1853,7 @@ function _mobProximos(itens, hojeStr) {
   return (
     // Lista vertical com os dois próximos (canvas); o resto atrás de "+ N".
     // O carrossel escondia do terceiro em diante.
-    '<section class="mp"><div class="mi-tit-linha"><h2 class="mi-h2">Falta pagar</h2><span class="mc-total"><b class="valor-mascarado">' +
+    '<section class="mp mi-precisa" id="mobPrecisa"><div class="mi-tit-linha"><h2 class="mi-h2">Precisa de você</h2><span class="mc-total">a pagar <b class="valor-mascarado">' +
     _mobEsc(_mobDreFmt(total)) +
     '</b></span></div><div class="mi-card mp-fila mp-lista">' +
     cards +
@@ -1764,7 +1862,9 @@ function _mobProximos(itens, hojeStr) {
         (itens.length - 2) +
         ' até o fim do mês</button>'
       : '') +
-    '</div></section>'
+    '</div>' +
+    slot +
+    '</section>'
   );
 }
 

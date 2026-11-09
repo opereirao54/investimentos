@@ -77,12 +77,20 @@ test('cartão do plano: valores, sobra, aviso de passar e o caminho para ajustar
   const s = mundo();
   const html = s.htmlPlanoDoMes(s.planoDoMes(NOV, ANO, DIA9));
   assert.match(html, /Seu plano do mês/);
-  assert.match(html, /planejados de/);
-  assert.match(html, /Sobra planejada/);
-  assert.match(html, /acima do planejado/);
+  assert.match(html, /com destino, <b>46%<\/b> da renda/);
+  assert.match(html, /Sobra prevista no plano/);
+  assert.match(html, /passou R\$/);
+  assert.match(html, /class="cem"/, 'a marca do 100%');
   assert.match(html, /1 passou/);
   assert.match(html, /Fora do plano/);
+  assert.match(html, /1 sem limite/);
+  assert.match(html, /planoIrParaCategorias\(\)/, 'os selos levam à lista');
   assert.match(html, /abrirModalConfig\('categorias'\)/);
+  assert.doesNotMatch(html, /<details class="plano-div" open/, 'divisão fechada por padrão');
+  assert.match(
+    s.htmlPlanoDoMes(s.planoDoMes(NOV, ANO, DIA9), { aberta: true }),
+    /<details class="plano-div" open/
+  );
 });
 
 test('plano maior que a renda vira aviso; sem limite nenhum, o convite para montar', () => {
@@ -90,7 +98,7 @@ test('plano maior que a renda vira aviso; sem limite nenhum, o convite para mont
   s.definirLimiteCategoria('moradia', 9000);
   const p = s.planoDoMes(NOV, ANO, DIA9);
   assert.ok(p.sobraPlanejada < 0);
-  assert.match(s.htmlPlanoDoMes(p), /Plano passa da renda/);
+  assert.match(s.htmlPlanoDoMes(p), /O plano passa da renda/);
   ['moradia', 'alimentacao', 'transporte'].forEach((c) => s.definirLimiteCategoria(c, 0));
   assert.match(s.htmlPlanoDoMes(s.planoDoMes(NOV, ANO, DIA9)), /Montar meu plano/);
 });
@@ -101,4 +109,124 @@ test('categoria quase toda fixa não mostra "cabe R$ 3 por semana"', () => {
   assert.equal(r.estado, 'ok');
   assert.equal(s.ritmoTemFolgaUtil(r), false);
   assert.equal(s.textoRitmoLimite(r), '');
+});
+
+// ---------------------------------------------------------------------------
+// Reorganização de nov/2026: cor fixa, ordem por situação, sobra prevista,
+// linha de categoria e o cartão do topo do celular.
+// ---------------------------------------------------------------------------
+
+test('sobra prevista desconta o que já saiu fora do plano; sobra real é a do topo', () => {
+  const s = mundo();
+  const p = s.planoDoMes(NOV, ANO, DIA9);
+  assert.equal(p.sobraPrevista, 6700 - 3091 - 189.99);
+  assert.equal(
+    Math.round(p.sobraReal * 100),
+    Math.round((6700 - 2288.92 - 860.84 - 284 - 189.99) * 100)
+  );
+  assert.equal(p.semLimite, 1);
+});
+
+test('cor fixa: a mesma categoria tem a mesma cor em qualquer ordem, e as criadas não repetem', () => {
+  const s = mundo();
+  s.salvarCategoriasDespesaCustom(
+    s.obterCategoriasDespesaCustom().concat([
+      { v: 'dizimo', label: '💡 Dizimo' },
+      { v: 'combustivel', label: '⛽ Comb' },
+    ])
+  );
+  const corPlano = s.planoDoMes(NOV, ANO, DIA9).cats.find((c) => c.slug === 'moradia').cor;
+  assert.equal(corPlano, s.corCategoriaDespesa('moradia'));
+  const cores = ['moradia', 'alimentacao', 'transporte', 'saude', 'dizimo', 'combustivel'].map(
+    (c) => s.corCategoriaDespesa(c)
+  );
+  assert.equal(new Set(cores).size, cores.length, 'cores distintas');
+  assert.equal(new Set(s.PALETA_CATEGORIA_DESPESA).size, 12);
+  assert.equal(s.corCategoriaDespesa('__sem_categoria__'), '#9aa7a0');
+});
+
+test('lista por categoria: quem passou primeiro, depois atenção, dentro e sem limite', () => {
+  const s = mundo();
+  const ordem = s.linhasCategoriaMes(NOV, ANO).map((l) => l.slug);
+  assert.deepEqual(JSON.parse(JSON.stringify(ordem)), [
+    'alimentacao',
+    'transporte',
+    'moradia',
+    'cuidados_pessoais',
+  ]);
+});
+
+test('categoria com limite e sem gasto ainda aparece na lista (faz parte do plano)', () => {
+  const s = mundo();
+  s.definirLimiteCategoria('lazer', 200);
+  const l = s.linhasCategoriaMes(NOV, ANO).find((x) => x.slug === 'lazer');
+  assert.ok(l);
+  assert.equal(l.valor, 0);
+});
+
+test('frases da linha: curta no web, com o limite no celular', () => {
+  const s = mundo();
+  const linhas = s.linhasCategoriaMes(NOV, ANO);
+  const por = (slug) => linhas.find((l) => l.slug === slug);
+  assert.equal(
+    s.fraseLinhaCategoria(por('alimentacao'), NOV, ANO, true),
+    'Passou R$ 370 do limite de R$ 491'
+  );
+  assert.match(s.fraseLinhaCategoria(por('alimentacao'), NOV, ANO, false), /^Passou R\$\s369,84$/);
+  assert.match(s.fraseLinhaCategoria(por('moradia'), NOV, ANO, true), /só contas fixas$/);
+  assert.match(s.fraseLinhaCategoria(por('cuidados_pessoais'), NOV, ANO, true), /^Sem limite/);
+});
+
+test('linha HTML: pílula com % do limite; sem limite oferece "+ Limite" sem abrir o extrato', () => {
+  const s = mundo();
+  const html = s.htmlListaCategorias(NOV, ANO, { curto: true });
+  assert.match(html, /class="cat-lista curta"/);
+  assert.match(html, /class="cat-row passou"[^]*?175%/);
+  assert.match(html, /event\.stopPropagation\(\);definirLimiteRapido\('cuidados_pessoais'\)/);
+  assert.match(html, /\+ Limite/);
+  assert.match(s.htmlListaCategorias(NOV, ANO, {}), />Definir</);
+});
+
+test('formatarMoedaCurta arredonda para reais e mantém o sinal', () => {
+  const s = mundo();
+  assert.equal(s.formatarMoedaCurta(4712.9), 'R$ 4.713');
+  assert.equal(s.formatarMoedaCurta(-421.67), '−R$ 422');
+});
+
+test('celular: o topo traz entrou, as saídas com valor e a sobra; zerados numa linha', () => {
+  const s = carregarApp({}, ORDEM_CONTROLE.concat(['web/appliquei-mobile.js']));
+  const html = s._mobDestinoNoCartao({
+    mes: NOV,
+    ano: ANO,
+    resumo: {
+      receita: 6700,
+      resgate: 0,
+      despFixa: 3624.82,
+      despVar: 1883.73,
+      cartao: 0,
+      invFixo: 0,
+      invVar: 0,
+      sonho: 0,
+    },
+  });
+  assert.match(html, /Entrou/);
+  assert.match(html, /Contas fixas/);
+  assert.match(html, /Gastos variáveis/);
+  assert.match(html, /mi-dl tot/);
+  assert.match(html, /Cartão, investimentos e sonhos: nada neste mês/);
+  assert.doesNotMatch(html, /mi-dl[^"]*"[^>]*>[^<]*<span><i[^>]*><\/i>Cartão/);
+});
+
+test('celular: sem botões rápidos nem "O mês por tipo" no Resumo', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const MOB = fs.readFileSync(path.join(__dirname, '..', 'web', 'appliquei-mobile.js'), 'utf8');
+  const corpo = MOB.slice(
+    MOB.indexOf('function mobRenderInicio('),
+    MOB.indexOf('function _mobPreencherPrecisaNotamos(')
+  );
+  assert.doesNotMatch(corpo, /mi-atalhos/);
+  assert.doesNotMatch(corpo, /O mês por tipo/);
+  assert.match(corpo, /_mobPlanoNoCartao\(d\)/);
+  assert.match(corpo, /_mobCategorias\(d\)/);
 });
