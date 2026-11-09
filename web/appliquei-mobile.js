@@ -1843,6 +1843,32 @@ function _mobDiaVenc(data, hojeStr) {
   return { rot: sem + ' ' + d, estado: 'normal' };
 }
 
+// "Precisa de você" mostra as duas primeiras contas; o resto abre e RECOLHE
+// pelo mesmo botão. Antes ele só abria (e sumia), sem caminho de volta. A
+// escolha vale enquanto o app está aberto: o Resumo é redesenhado a cada
+// lançamento, e a lista não deve fechar sozinha no meio do uso.
+var _mobPrecisaAberta = false;
+
+function _mobPrecisaRotulo(aberta, n) {
+  return aberta
+    ? 'Recolher <i class="ph ph-caret-up" aria-hidden="true"></i>'
+    : '+ ' + n + ' até o fim do mês <i class="ph ph-caret-down" aria-hidden="true"></i>';
+}
+
+function mobPrecisaAlternar(btn) {
+  _mobPrecisaAberta = !_mobPrecisaAberta;
+  const lista = btn.closest('.mp-lista');
+  if (lista) lista.classList.toggle('todos', _mobPrecisaAberta);
+  btn.setAttribute('aria-expanded', String(_mobPrecisaAberta));
+  btn.innerHTML = _mobPrecisaRotulo(_mobPrecisaAberta, Number(btn.dataset.n) || 0);
+  // Ao recolher, a lista encolhe para cima: o título volta à vista.
+  if (!_mobPrecisaAberta) {
+    const sec = document.getElementById('mobPrecisa');
+    if (sec && sec.getBoundingClientRect().top < 0 && typeof sec.scrollIntoView === 'function')
+      sec.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+}
+
 function _mobProximos(itens, hojeStr, extra) {
   // "Precisa de você": as contas a vencer e, embaixo, o que o app notou. Só
   // aparece quando há o que fazer.
@@ -1926,12 +1952,18 @@ function _mobProximos(itens, hojeStr, extra) {
     // O carrossel escondia do terceiro em diante.
     '<section class="mp mi-precisa" id="mobPrecisa"><div class="mi-tit-linha"><h2 class="mi-h2">Precisa de você</h2><span class="mc-total">a pagar <b class="valor-mascarado">' +
     _mobEsc(_mobDreFmt(total)) +
-    '</b></span></div><div class="mi-card mp-fila mp-lista">' +
+    '</b></span></div><div class="mi-card mp-fila mp-lista' +
+    (_mobPrecisaAberta ? ' todos' : '') +
+    '">' +
     cards +
     (itens.length > 2
-      ? '<button type="button" class="mp-mais" onclick="this.parentNode.classList.add(\'todos\');this.remove()">+ ' +
+      ? '<button type="button" class="mp-mais" data-n="' +
         (itens.length - 2) +
-        ' até o fim do mês</button>'
+        '" aria-expanded="' +
+        _mobPrecisaAberta +
+        '" onclick="mobPrecisaAlternar(this)">' +
+        _mobPrecisaRotulo(_mobPrecisaAberta, itens.length - 2) +
+        '</button>'
       : '') +
     '</div>' +
     slot +
