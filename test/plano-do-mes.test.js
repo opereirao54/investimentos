@@ -362,3 +362,25 @@ test('"+ Limite" e "Ajustar limites" abrem a montagem do plano', () => {
   assert.match(CF, /class="plano-ajustar" onclick="abrirMontarPlano\(\)"/);
   assert.match(CF, /Montar o plano \(todos os limites com a soma\)/);
 });
+
+test('Precisa de você: o botão abre e recolhe a lista (não só abre)', () => {
+  const s = carregarApp({}, ORDEM_CONTROLE.concat(['web/appliquei-mobile.js']));
+  const hoje = '2026-11-09';
+  const itens = [10, 12, 15, 20].map((d, i) => ({
+    tipo: 'conta',
+    dataVencimento: '2026-11-' + d,
+    conta: { id: 'c' + i, descricao: 'Conta ' + i, valor: 100, categoria: 'despesa_fixa' },
+  }));
+  s._mobPrecisaAberta = false;
+  let html = s._mobProximos(itens, hoje, '');
+  assert.match(html, /class="mi-card mp-fila mp-lista"/);
+  assert.match(html, /onclick="mobPrecisaAlternar\(this\)"/);
+  assert.match(html, /\+ 2 até o fim do mês/);
+  assert.match(html, /aria-expanded="false"/);
+  assert.doesNotMatch(html, /this\.remove\(\)/, 'o botão não some mais');
+  s._mobPrecisaAberta = true;
+  html = s._mobProximos(itens, hoje, '');
+  assert.match(html, /mp-lista todos/);
+  assert.match(html, /Recolher/);
+  assert.match(html, /aria-expanded="true"/);
+});
