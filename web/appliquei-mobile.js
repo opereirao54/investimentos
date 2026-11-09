@@ -1044,6 +1044,8 @@ function _mobDestinoNoCartao(d) {
   // investimentos, sonhos) ou FIXAS × VARIÁVEIS. As duas no estilo da lista
   // compacta — bolinha, valor, % da receita — e fechando na sobra. A barra
   // muda junto, porque ela é a legenda da lista.
+  // Tocar numa linha abre o extrato no tipo — a mesma ação (ctlIrParaTipo)
+  // de "O mês por tipo" do computador; o teste de paridade exige as duas.
   const r = d && d.resumo;
   if (!r) return '';
   const v = mobVisoesDaSobra(r);
@@ -1072,9 +1074,9 @@ function _mobDestinoNoCartao(d) {
     p[1] > 0.005 || p[4]
       ? '<button type="button" class="mi-dl' +
         (p[1] > 0.005 ? '' : ' zero') +
-        '" onclick="mobVerNoExtrato(\'' +
+        '" onclick="ctlIrParaTipo(\'' +
         p[3] +
-        "','')\"><span><i style=\"background:" +
+        '\')"><span><i style="background:' +
         p[2] +
         '"></i>' +
         p[0] +
@@ -1085,7 +1087,7 @@ function _mobDestinoNoCartao(d) {
         '</small></button>'
       : '';
   const entrou = (rot) =>
-    '<button type="button" class="mi-dl ent" onclick="mobVerNoExtrato(\'receita\',\'\')"><span><i style="background:#10b981"></i>' +
+    '<button type="button" class="mi-dl ent" onclick="ctlIrParaTipo(\'receita\')"><span><i style="background:#10b981"></i>' +
     rot +
     '</span><b class="valor-mascarado">+' +
     fmt(v.entrou) +
