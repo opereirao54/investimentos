@@ -305,3 +305,12 @@ test('lançar a diferença como entrada quando o banco tem mais', () => {
   assert.equal(Math.round(s.conferirSaldoApp(conta.id, Date.now()) * 100) / 100, antes + 50);
   assert.equal(s.conferirLancarDiferenca(conta.id, antes + 50), null, 'sem diferença, nada');
 });
+
+test('entrada com data de hoje conta no caixa desde o começo do dia, não só ao meio-dia', () => {
+  // "Já caiu" grava a data sem hora; lida ao meio-dia, de manhã a entrada
+  // ainda não contava (o teste acima falhava antes das 12h).
+  const { s } = cenario();
+  const t = { categoria: 'receita', valor: 100, dataVencimento: '2026-11-09' };
+  assert.equal(s.mpTransacaoComputaCaixa(t, new Date(2026, 10, 9, 8, 0).getTime()), true);
+  assert.equal(s.mpTransacaoComputaCaixa(t, new Date(2026, 10, 8, 23, 59).getTime()), false);
+});
