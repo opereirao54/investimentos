@@ -247,6 +247,86 @@ Conteúdo educacional. Valores ilustrativos, sem rendimento. Personagens fictíc
 
 ---
 
+## QUARTA 11/11 · Faltam 52 dias · Appliquei News
+
+Notícia de 09/11: o imposto federal da gasolina segue zerado (R$ 0,89 por
+litro), mas só até 09/12. Voz Charon, 35 s, **sem vinheta**: o vídeo já começa
+com o contador subindo (achado do Reel da garantia: 86% pularam nos 2
+primeiros segundos com a tela parada).
+
+**Antes de postar:** conferir que o vídeo é o do tanque ("Dia 9/12 o tanque
+pode ficar R$ 35 mais caro") e que a 1ª linha da legenda é a mesma frase.
+Mandar o arquivo original (AirDrop, Drive/iCloud ou WhatsApp como
+**Documento**). **Postar às 19h** (o de 06/11 saiu às 6h; se não der para
+estar no celular às 19h, agendar no próprio Instagram).
+
+**19h · INSTAGRAM (Reel)** · vídeo do tanque de gasolina
+
+1. Novo Reel › escolher o vídeo do tanque.
+2. Capa: Editar capa › Adicionar da galeria › a imagem vermelha "Dia 9/12 o tanque pode ficar R$ 35 mais caro".
+3. Configurações avançadas: "Carregar na qualidade mais alta" ligado.
+4. Colar a legenda e publicar às 19h.
+5. Fixar o comentário: `Você já contou a gasolina de dezembro no orçamento? Quantas vezes você enche o tanque por mês? 👇` e responder todos na 1ª hora.
+6. **Até 20h (fundador e sócio):** mandar o **link** do Reel no status do WhatsApp e em 3–5 grupos (família, trabalho, condomínio, quem tem carro ou é motorista de app) com a frase `Dia 9/12 a gasolina pode subir. Faz essa conta antes 👇`.
+
+```
+Dia 9/12 o tanque pode ficar R$ 35 mais caro. ⛽
+
+O imposto federal da gasolina está zerado: R$ 0,89 a menos por litro. Mas só até 9 de dezembro.
+
+Num tanque de 40 litros, são R$ 35,60. Enchendo toda semana, R$ 142 por mês.
+
+O Mateus fez o orçamento de dezembro com a gasolina de hoje. Se o imposto voltar, falta dinheiro bem no Natal.
+O Caio conta com o preço cheio. Se o desconto continuar, sobra.
+
+📌 Regra de bolso: desconto com data pra acabar não é folga no orçamento.
+
+Manda pra quem enche o tanque toda semana. 🔁
+
+📰 Appliquei News: a notícia da semana no seu bolso, toda quarta. Sexta tem o Explica: quanto o seu delivery custa em um ano. Segue pra não perder.
+
+⏳ Faltam 52 dias para o que estamos preparando pra 2027.
+
+Conteúdo educacional e apartidário, sem recomendação. PIS/Cofins (R$ 0,79) e Cide (R$ 0,10) zerados na gasolina, R$ 0,89 por litro, até 09/12/2026 (Decreto 13.159/2026). O posto não é obrigado a repassar a diferença no preço. Personagens fictícios.
+
+#educacaofinanceira #gasolina #financaspessoais #orcamento #dinheiro
+```
+
+**19h · TIKTOK** · o mesmo vídeo do tanque
+
+1. Enviar o vídeo original; capa = primeiro quadro (já é a capa).
+2. "Permitir upload em alta qualidade" ligado.
+3. Colar a legenda e publicar às 19h.
+
+```
+Dia 9/12 o tanque pode ficar R$ 35 mais caro. ⛽ O imposto zerado da gasolina (R$ 0,89 por litro) vai só até lá: desconto com data pra acabar não é folga no orçamento. Segue pra não perder. ⏳ Faltam 52 dias.
+
+#educacaofinanceira #gasolina #financaspessoais #orcamento #dinheiro
+```
+
+**19h · YOUTUBE SHORTS** · o mesmo vídeo do tanque
+
+1. Enviar o vídeo original; no app do YouTube, escolher o primeiro quadro como capa.
+2. Título e descrição abaixo; publicar às 19h.
+
+Título:
+
+```
+Dia 9/12 a gasolina pode subir: quanto isso pesa no seu tanque? #shorts
+```
+
+Descrição:
+
+```
+O imposto federal da gasolina está zerado (R$ 0,89 por litro) só até 9 de dezembro. Num tanque de 40 litros, são R$ 35,60; enchendo toda semana, R$ 142 por mês. Regra de bolso: desconto com data pra acabar não é folga no orçamento. Inscreva-se pra mais contas assim. ⏳ Faltam 52 dias.
+
+Conteúdo educacional e apartidário, sem recomendação. Decreto 13.159/2026. Personagens fictícios.
+
+#educacaofinanceira #gasolina #financaspessoais #orcamento
+```
+
+---
+
 ## Assinaturas das séries na legenda (desde 04/11)
 
 - `💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta.`
