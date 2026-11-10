@@ -62,6 +62,11 @@
       "inicio": "R$ 900 à vista ou 10× de R$ 100",
       "seg": 32.2,
       "serie": "explica"
+    },
+    {
+      "inicio": "Só mais R$ 40 na parcela",
+      "seg": 40,
+      "serie": "explica"
     }
   ]
 }
