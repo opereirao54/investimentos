@@ -161,6 +161,8 @@ true`), mesmo modelo do News.
   chegou aos 65 com mais?" saiu com a legenda do "R$ 30 ou R$ 300", às 8h30.
   O pacote traz o gancho do vídeo na 1ª linha da legenda para quem posta
   bater um com o outro, e o horário é 19h.
+  Em 06/11 o "salário cai até amanhã" saiu às **6h** (09h UTC), com alcance
+  de 5 pessoas: reforçar com quem posta que é 19h, ou agendar no app.
 
 - **Métricas:** pedir os números de cada Reel no dia seguinte (visualizações,
   retenção, salvamentos, compartilhamentos) e anotar no calendário. Revisão
