@@ -2359,7 +2359,22 @@ function mobConfirmarBaixa(id) {
 // gestão (Minhas contas, Meus bens) seguem os do desktop, logo abaixo.
 
 // liquido: null até o primeiro desenho — abre em Líquido quando há dívida.
-var _mobPat = { dados: null, serie: null, liquido: null, periodo: 12, aberta: null };
+var _mobPat = {
+  dados: null,
+  serie: null,
+  liquido: null,
+  periodo: 12,
+  aberta: null,
+  // Linhas do balanço abertas: 'conta', 'inv', 'bens'.
+  partes: {},
+};
+// Os blocos que cada linha do balanço abre no lugar. Eles continuam sendo os
+// mesmos elementos de sempre (desenhados por id); só mudam de lugar na página.
+var MOB_PAT_BLOCOS = {
+  conta: ['mpMobCarteiras', 'mpMobContas'],
+  inv: ['mpMobClasses', 'mpMobProventos'],
+  bens: ['mpMobBens'],
+};
 var MOB_PAT_CORES = ['#047857', '#1d4ed8', '#6d28d9', '#b45309', '#0e7490', '#be185d'];
 var MOB_PAT_PERIODOS = [
   [1, '1M'],
@@ -2541,11 +2556,11 @@ function _mobPatDesenharTopo() {
         '" onclick="mobPatAlternarLiquido(false)">Bruto</button></div>'
       : '';
   const nota = liquido
-    ? '<p class="mpm-nota">Você tem <b class="valor-mascarado">' +
+    ? '<p class="mpm-nota">Você tem <b class="valor-mascarado mpm-tem">' +
       _mobEsc(_mobPatFmt(k.total)) +
       '</b> e deve <b class="valor-mascarado">' +
       _mobEsc(_mobPatFmt(divida)) +
-      '</b> (financiamentos e faturas em aberto). O gráfico mostra o que você tem.</p>'
+      '</b>. O gráfico mostra o que você tem.</p>'
     : '';
   const periodos = MOB_PAT_PERIODOS.map(
     (p) =>
@@ -2560,18 +2575,18 @@ function _mobPatDesenharTopo() {
 
   // Do que ele é feito
   const partes = [
-    ['Saldo em conta', k.saldo, 'var(--cor-primaria)', 'mpMobCarteiras'],
-    ['Investimentos', k.investido, 'var(--cor-patrimonio)', 'mpMobClasses'],
-    ['Imóveis', k.imoveis, 'var(--cor-cartao)', 'listaBens'],
-    ['Veículos', k.veiculos, '#64748b', 'listaBens'],
+    ['Saldo em conta', k.saldo, 'var(--cor-primaria)', 'conta'],
+    ['Investimentos', k.investido, 'var(--cor-patrimonio)', 'inv'],
+    ['Imóveis', k.imoveis, 'var(--cor-cartao)', 'bens'],
+    ['Veículos', k.veiculos, '#64748b', 'bens'],
   ].filter((p) => Math.abs(p[1]) > 0.005);
   // Dívida é linha da composição, em vermelho: fica à vista sem precisar
   // trocar para Líquido. Fora da barra (a barra é só o que você tem).
   const chipDivida =
     divida > 0
-      ? '<button type="button" class="mpm-chip mpm-lin mpm-chip-divida" onclick="mobPatIrPara(\'mpMobBens\')"><span class="mpm-chip-dot" style="background:var(--cor-erro)"></span><span class="mpm-chip-txt"><small>Dívidas</small><b class="valor-mascarado">−' +
+      ? '<button type="button" class="mpm-chip mpm-lin mpm-chip-divida" data-mpm-parte="bens" aria-expanded="false" onclick="mobPatAbrirParte(\'bens\')"><span class="mpm-chip-dot" style="background:var(--cor-erro)"></span><span class="mpm-chip-txt"><small>Dívidas</small><b class="valor-mascarado">−' +
         _mobEsc(_mobPatFmt(divida)) +
-        '</b></span><i class="ph ph-caret-right" aria-hidden="true"></i></button>'
+        '</b></span><i class="ph ph-caret-down" aria-hidden="true"></i></button>'
       : '';
   const soma = partes.reduce((a, p) => a + Math.max(0, p[1]), 0);
   const barra = partes
@@ -2587,11 +2602,22 @@ function _mobPatDesenharTopo() {
     .join('');
   // Composição em lista, como o canvas: ponto, nome, valor e seta; a linha
   // de dívidas fecha a lista (chipDivida).
+  // Tocar numa linha abre o detalhe dela ALI MESMO (bancos, classes, bens):
+  // antes a linha rolava a página até um bloco lá embaixo, que repetia o
+  // número. O espaço de cada detalhe vem logo depois da última linha que o
+  // abre — Imóveis, Veículos e Dívidas dividem o mesmo (os bens).
+  const ultimaDe = {};
+  partes.forEach((p, i) => {
+    ultimaDe[p[3]] = i;
+  });
+  const espaco = (qual) => '<div class="mpm-slot" data-mpm-slot="' + qual + '" hidden></div>';
   const chips =
     partes
       .map(
-        (p) =>
-          '<button type="button" class="mpm-chip mpm-lin" onclick="mobPatIrPara(\'' +
+        (p, i) =>
+          '<button type="button" class="mpm-chip mpm-lin" data-mpm-parte="' +
+          p[3] +
+          '" aria-expanded="false" onclick="mobPatAbrirParte(\'' +
           p[3] +
           '\')"><span class="mpm-chip-dot" style="background:' +
           p[2] +
@@ -2600,10 +2626,17 @@ function _mobPatDesenharTopo() {
           (soma > 0 ? ' · ' + Math.round((Math.max(0, p[1]) / soma) * 100) + '%' : '') +
           '</small><b class="valor-mascarado">' +
           _mobEsc(_mobPatFmt(p[1])) +
-          '</b></span><i class="ph ph-caret-right" aria-hidden="true"></i></button>'
+          '</b></span><i class="ph ph-caret-down" aria-hidden="true"></i></button>' +
+          // Com dívida, o espaço dos bens vai depois da linha "Dívidas".
+          (ultimaDe[p[3]] === i && !(p[3] === 'bens' && chipDivida) ? espaco(p[3]) : '')
       )
-      .join('') + chipDivida;
+      .join('') +
+    chipDivida +
+    (chipDivida ? espaco('bens') : '');
 
+  // Os blocos podem estar dentro do topo (linha aberta): saem antes de o
+  // topo ser redesenhado, senão seriam apagados junto.
+  _mobPatGuardarBlocos();
   topo.innerHTML =
     '<div class="mpm-cab"><p class="mpm-tit">Patrimônio ' +
     (liquido ? 'líquido' : 'total') +
@@ -2633,6 +2666,7 @@ function _mobPatDesenharTopo() {
         '</div></div></section>'
       : '') +
     _mobPatFolegoHtml(d.folego);
+  _mobPatEncaixarBlocos();
   _mobPatTitulo(total, quando, delta);
   if (g.svg) _mobPatLigarScrub(serie, g, total, quando, delta);
 }
@@ -2692,7 +2726,9 @@ function _mobPatLigarScrub(serie, g, total, quando, delta) {
 
 /** Por que mudou, em três linhas: contas, valorização e bens (mpMudancaDoMes). */
 function _mobPatMudouHtml() {
-  const meses = typeof mpWeb !== 'undefined' ? mpWeb.mudouMeses : 1;
+  // Um período só na tela: o do gráfico (1M … Tudo). Havia um seletor próprio
+  // (Mês/12M) e os dois números de variação não batiam.
+  const meses = Math.max(1, _mobPatSerieVisivel().length - 1);
   const m = typeof mpMudancaDoMes === 'function' ? mpMudancaDoMes(_mobPat.serie, meses) : null;
   if (!m) return '';
   const num = (v) =>
@@ -2709,7 +2745,6 @@ function _mobPatMudouHtml() {
   ].filter((l, i) => i === 0 || Math.abs(l[1]) > 0.005);
   return (
     '<section class="mpm-mudou"><div class="mi-tit-linha"><h2 class="mi-h2">Por que mudou</h2>' +
-    (typeof mpdMudouSeletorHtml === 'function' ? mpdMudouSeletorHtml() : '') +
     '</div><div class="mpm-mudou-sub"><span class="mpm-mudou-tot">' +
     num(m.total) +
     ' desde ' +
@@ -2760,6 +2795,41 @@ function _mobPatFolegoHtml(f) {
       .join('') +
     '</section>'
   );
+}
+
+/** Devolve os blocos ao lugar de origem (logo antes de #mpMobFim), na ordem. */
+function _mobPatGuardarBlocos() {
+  const fim = document.getElementById('mpMobFim');
+  if (!fim || !fim.parentNode) return;
+  ['mpMobCarteiras', 'mpMobClasses', 'mpMobProventos', 'mpMobContas', 'mpMobBens'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) fim.parentNode.insertBefore(el, fim);
+  });
+}
+
+/** Põe cada bloco dentro do espaço da linha que o abre, se a linha existir. */
+function _mobPatEncaixarBlocos() {
+  const topo = document.getElementById('mpMob');
+  if (!topo || typeof topo.querySelector !== 'function') return;
+  Object.keys(MOB_PAT_BLOCOS).forEach((qual) => {
+    const slot = topo.querySelector('[data-mpm-slot="' + qual + '"]');
+    if (!slot) return; // sem a linha, o bloco fica onde sempre esteve
+    MOB_PAT_BLOCOS[qual].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) slot.appendChild(el);
+    });
+    const aberto = !!_mobPat.partes[qual];
+    slot.hidden = !aberto;
+    topo.querySelectorAll('[data-mpm-parte="' + qual + '"]').forEach((b) => {
+      b.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+    });
+  });
+}
+
+/** Abre ou fecha, no lugar, o detalhe de uma linha do balanço. */
+function mobPatAbrirParte(qual) {
+  _mobPat.partes[qual] = !_mobPat.partes[qual];
+  _mobPatEncaixarBlocos();
 }
 
 function mobPatIrPara(id) {

@@ -1424,7 +1424,7 @@ function mpLimparTxOrigemOrfas() {
 // === Meu patrimônio · web: dívidas, herói, balanço, mudança ===
 // ============================================================
 
-var mpWeb = { liquido: null, periodo: 12, mudouMeses: 1 };
+var mpWeb = { liquido: null, periodo: 12, mudouMeses: 1, detalhe: 'conta' };
 var MP_WEB_PERIODOS = [
   [1, '1M'],
   [6, '6M'],
@@ -1700,7 +1700,31 @@ function mpWebAlternarLiquido(liq) {
 
 function mpWebPeriodo(meses) {
   mpWeb.periodo = Number(meses) || 0;
-  if (mpEstado._web) mpRenderHeroiWeb(mpEstado._web);
+  if (mpEstado._web) {
+    mpRenderHeroiWeb(mpEstado._web);
+    // Um período só na tela: o "Por que mudou" explica a mesma variação que o
+    // número e o gráfico mostram.
+    mpRenderMudouWeb(mpEstado._web);
+  }
+}
+
+/**
+ * Qual detalhe do balanço está aberto ao lado: 'conta' (bancos e corretoras),
+ * 'inv' (classes) ou 'bens' (imóveis, veículos e os financiamentos deles). As
+ * três listas eram cartões fixos na página e repetiam os números do balanço;
+ * agora uma aparece por vez, a da linha escolhida. O CSS esconde as outras
+ * pelo atributo da seção — só no computador.
+ */
+function mpWebDetalhe(qual) {
+  if (qual) mpWeb.detalhe = qual;
+  const secao = document.getElementById('meu_patrimonio');
+  if (secao) secao.setAttribute('data-mp-detalhe', mpWeb.detalhe);
+  document.querySelectorAll('#mpwBalanco [data-mp-det]').forEach((b) => {
+    b.setAttribute(
+      'aria-pressed',
+      b.getAttribute('data-mp-det') === mpWeb.detalhe ? 'true' : 'false'
+    );
+  });
 }
 
 /** O número principal, a variação e a linha do tempo. */
@@ -1865,6 +1889,9 @@ function mpRenderBalancoWeb(d) {
   if (!partes.length && !(d.dividas.total > 0)) {
     el.innerHTML =
       '<h3 style="margin:0 0 6px;font-size:14px">Do que ele é feito</h3><p class="mpd-vazio">Cadastre uma conta, um investimento ou um bem para ver o balanço.</p>';
+    // Sem balanço não há linha para escolher: fica o cartão das contas, que é
+    // por onde se começa.
+    mpWebDetalhe('conta');
     return;
   }
   const positivo = partes.reduce((a, p) => a + Math.max(0, p[1]), 0);
@@ -1882,10 +1909,16 @@ function mpRenderBalancoWeb(d) {
         '"></span>'
     )
     .join('');
-  const linha = (nome, v, cor, pct, neg) =>
-    '<div class="mpd-lin' +
+  // Com `det`, a linha é um botão que abre o detalhe dela ao lado.
+  const linha = (nome, v, cor, pct, neg, det) =>
+    '<' +
+    (det
+      ? 'button type="button" data-mp-det="' + det + '" onclick="mpWebDetalhe(\'' + det + '\')"'
+      : 'div') +
+    ' class="mpd-lin' +
     (pct == null ? ' sem-pct' : '') +
     (neg ? ' neg' : '') +
+    (det ? ' mpd-lin-abre' : '') +
     '"><i style="background:' +
     cor +
     '"></i><span>' +
@@ -1895,21 +1928,34 @@ function mpRenderBalancoWeb(d) {
     mpEsc(mpFmtBRL(Math.abs(v))) +
     '</span>' +
     (pct == null ? '' : '<span class="mpd-pct">' + mpPctBR(pct) + '</span>') +
-    '</div>';
+    (det ? '<span class="mpd-lin-seta" aria-hidden="true">›</span>' : '') +
+    '</' +
+    (det ? 'button' : 'div') +
+    '>';
+  const DET = {
+    'Saldo em conta': 'conta',
+    Investimentos: 'inv',
+    Imóveis: 'bens',
+    'Veículos e outros bens': 'bens',
+  };
   let html =
-    '<h3 style="margin:0;font-size:14px">Do que ele é feito</h3><div class="mpd-barra" aria-hidden="true">' +
+    '<div class="mpd-topo"><h3 style="margin:0;font-size:14px">Do que ele é feito</h3><span class="mpd-sub">clique numa linha para ver o detalhe</span></div><div class="mpd-barra" aria-hidden="true">' +
     barra +
     '</div>' +
     '<div class="mpd-grupo"><span>O que você tem</span><b class="mpd-oculta">' +
     mpEsc(mpFmtBRL(k.total)) +
     '</b></div>' +
-    partes.map((p) => linha(p[0], p[1], p[2], mpFatiaDoTotal(p[1], k.total), false)).join('');
+    partes
+      .map((p) => linha(p[0], p[1], p[2], mpFatiaDoTotal(p[1], k.total), false, DET[p[0]]))
+      .join('');
   if (d.dividas.total > 0.005) {
     html +=
       '<div class="mpd-grupo"><span>O que você deve</span><b class="mpd-oculta">' +
       mpEsc(mpFmtBRL(d.dividas.total)) +
       '</b></div>' +
-      d.dividas.bens.map((x) => linha(x.nome, x.valor, 'var(--cor-erro)', null, true)).join('') +
+      d.dividas.bens
+        .map((x) => linha(x.nome, x.valor, 'var(--cor-erro)', null, true, 'bens'))
+        .join('') +
       d.dividas.cartoes
         .map((x) => linha('Fatura · ' + x.nome, x.valor, 'var(--cor-erro)', null, true))
         .join('');
@@ -1921,13 +1967,24 @@ function mpRenderBalancoWeb(d) {
     mpEsc(mpFmtBRL(k.total - d.dividas.total)) +
     '</span></div>';
   el.innerHTML = html;
+  // O detalhe aberto tem de existir no balanço: sem saldo em conta, por
+  // exemplo, abre a primeira linha que houver.
+  const disponiveis = Array.from(el.querySelectorAll('[data-mp-det]')).map((b) =>
+    b.getAttribute('data-mp-det')
+  );
+  if (disponiveis.length && disponiveis.indexOf(mpWeb.detalhe) === -1)
+    mpWeb.detalhe = disponiveis[0];
+  mpWebDetalhe();
 }
 
 /** Por que mudou: a variação do último mês, parcela por parcela. */
 function mpRenderMudouWeb(d) {
   const el = document.getElementById('mpwMudou');
   if (!el) return;
-  const m = mpMudancaDoMes(d && d.serie, mpWeb.mudouMeses);
+  // No computador o período é o do gráfico (1M … Tudo): a variação explicada
+  // aqui é a mesma que aparece ao lado do número.
+  const visivel = _mpWebSerieVisivel((d && d.serie) || []);
+  const m = mpMudancaDoMes(d && d.serie, Math.max(1, visivel.length - 1));
   if (!m) {
     el.innerHTML =
       '<h3 style="margin:0 0 6px;font-size:14px">Por que mudou</h3><p class="mpd-vazio">A partir do segundo mês, mostramos aqui quanto veio do que sobrou nas contas e quanto veio da valorização.</p>';
@@ -1957,14 +2014,16 @@ function mpRenderMudouWeb(d) {
     ],
     ['Bens', 'nova avaliação, compra ou venda', m.bens],
   ];
+  // Parcela zerada não explica nada: sai da lista e vira uma frase só.
+  const comValor = linhas.filter((l) => Math.abs(l[2]) > 0.005);
+  const zeradas = linhas.filter((l) => Math.abs(l[2]) <= 0.005).map((l) => l[0].toLowerCase());
   el.innerHTML =
-    '<div class="mpd-topo"><h3 style="margin:0;font-size:14px">Por que mudou</h3>' +
-    mpdMudouSeletorHtml() +
-    '</div>' +
+    '<div class="mpd-topo"><h3 style="margin:0;font-size:14px">Por que mudou</h3></div>' +
     '<span class="mpd-sub">De ' +
     _mpWebRotuloMes(m.de) +
-    ' até hoje</span>' +
-    linhas
+    ' até hoje, no que você tem</span>' +
+    (comValor.length ? '' : '<p class="mpd-vazio">Nada mudou neste período.</p>') +
+    comValor
       .map(
         (l) =>
           '<div class="mpd-mud"><span>' +
@@ -1976,9 +2035,14 @@ function mpRenderMudouWeb(d) {
           '</small></div>'
       )
       .join('') +
-    '<div class="mpd-total"><span>Variação</span>' +
-    num(m.total) +
-    '</div>';
+    (comValor.length && zeradas.length
+      ? '<p class="mpd-sub" style="margin:6px 0 0">Sem mudança em: ' +
+        mpEsc(zeradas.join(', ')) +
+        '.</p>'
+      : '') +
+    (comValor.length > 1
+      ? '<div class="mpd-total"><span>Variação</span>' + num(m.total) + '</div>'
+      : '');
 }
 
 /** Mês / 12M do "Por que mudou" — o mesmo seletor no web e no celular. */
