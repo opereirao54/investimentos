@@ -87,8 +87,29 @@ O código está pronto (26/10/2026); o resto é painel. Passo a passo completo e
       (07/11/2026): liquidez da renda fixa (falta o campo de prazo de
       resgate); "por que mudou" separando proventos e amortização; gráfico do
       líquido no passado (reconstruir o saldo devedor pelo contrato).
+- [ ] **Controle financeiro — o que a avaliação de UX apontou e ainda não
+      entrou** (11/11/2026): data do lançamento já preenchida com hoje (mexe
+      na competência quando se olha outro mês: decidir a regra antes); tirar o
+      "Cartão principal" criado sozinho no primeiro acesso; tela de conta
+      vazia com os três primeiros passos no computador; janela própria no
+      lugar do `prompt()` do navegador em "Ajustar" o saldo anterior; mesmo
+      nome para o botão de pagar ("Pagar" no computador, "Baixar" no celular)
+      e para os tipos ("Saída/Entrada" no formulário, "Despesa/Receita" no
+      menu do "+"); botão flutuante "+" sobre o conteúdo no computador; eixo
+      da projeção de 24 a 48 meses sem o ano.
 
 ## Feito
+
+- 11/11/2026 · branch `claude/quirky-knuth-dsn1kf` — Avaliação de UX do
+  Controle financeiro, 1ª leva: o "Pagar" do painel Falta pagar não fazia
+  nada no computador (agora abre valor e dia na própria linha); selo
+  "ATRASOU" legível no celular; extrato sem rolagem interna e com as ações à
+  vista; erro de validação no próprio campo do lançamento; alerta de conta
+  vencida com nome, valor, data e atalho; "Adiar" com Desfazer; extrato vazio
+  por filtro com o caminho de volta; botões de excluir em vermelho; números
+  da Saúde do mês em formato brasileiro e texto quando não há dados; títulos
+  da projeção no passado; "Transferir" na cor primária; rótulos por extenso
+  no cartão e texto das Metas sem contradição.
 
 - 07/11/2026 · branch `claude/intelligent-ritchie-6o5r6m` (2ª leva) — Faturas
   do cartão no layout novo (limite, parcela, comprometido); folha do

@@ -57,6 +57,9 @@ function mudarMesesDRE(e, meses, offset = 0) {
   const escopo = grupoBotoes || document;
   escopo.querySelectorAll('.btn-tab-dre').forEach((btn) => btn.classList.remove('ativo'));
   e.currentTarget.classList.add('ativo');
+  // "12 passados" deixava o título "Próximos meses" sobre meses que já foram.
+  const tit = document.getElementById('tituloProjecao');
+  if (tit) tit.textContent = offset < 0 ? 'Últimos ' + meses + ' meses' : 'Próximos meses';
   atualizarTelaControle();
 }
 
@@ -2964,7 +2967,7 @@ function prepararEdicao(id) {
   document.getElementById('btnSalvarControle').style.display = 'flex';
   document.getElementById('opcoesEdicaoRecorrente').style.display = 'none';
   document.getElementById('btnSalvarControle').innerHTML =
-    '<i class="ph-bold ph-pencil-simple"></i> Atualizar Lançamento';
+    '<i class="ph-bold ph-pencil-simple"></i> Salvar alterações';
   document.getElementById('btnSalvarControle').style.backgroundColor = 'var(--cor-info)';
   document.getElementById('btnCancelarEdicao').style.display = 'block';
   const btnExcluir = document.getElementById('btnExcluirEdicao');
@@ -3010,7 +3013,7 @@ function prepararEdicao(id) {
   document.getElementById('descTransacao').focus();
 
   document.getElementById('tituloPainelControle').innerHTML =
-    '<i class="ph ph-pencil-simple" style="color: var(--cor-info);"></i> Editando Operação';
+    '<i class="ph ph-pencil-simple" style="color: var(--cor-info);"></i> Editar lançamento';
 
   // Abre o drawer/bottom-sheet automaticamente ao iniciar edição
   abrirPainelLancamento();
@@ -3053,6 +3056,47 @@ function cancelarEdicaoControle() {
   if (typeof lancUiReiniciar === 'function') lancUiReiniciar();
 }
 
+// Erro de validação no PRÓPRIO campo: borda, texto logo abaixo e foco. O aviso
+// único no canto ("Preencha a descrição e o valor, e escolha o tipo…") não
+// dizia qual dos três faltava e ainda cobria o botão Salvar.
+function lancMarcarErro(idCampo, msg) {
+  try {
+    const campo = document.getElementById(idCampo);
+    if (!campo || typeof campo.closest !== 'function') return false;
+    const grupo = campo.closest('.form-group') || campo.parentNode;
+    if (!grupo || typeof grupo.appendChild !== 'function') return false;
+    campo.setAttribute('aria-invalid', 'true');
+    grupo.classList.add('lanc-campo-erro');
+    let aviso = grupo.querySelector('.lanc-erro');
+    if (!aviso) {
+      aviso = document.createElement('small');
+      aviso.className = 'lanc-erro';
+      aviso.setAttribute('role', 'alert');
+      grupo.appendChild(aviso);
+      campo.addEventListener('input', function limpar() {
+        campo.removeEventListener('input', limpar);
+        campo.removeAttribute('aria-invalid');
+        grupo.classList.remove('lanc-campo-erro');
+        if (aviso.parentNode) aviso.remove();
+      });
+    }
+    aviso.textContent = msg;
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function lancLimparErros() {
+  try {
+    document.querySelectorAll('#painelNovoLancamento .lanc-campo-erro').forEach((g) => {
+      g.classList.remove('lanc-campo-erro');
+      g.querySelectorAll('.lanc-erro').forEach((a) => a.remove());
+      g.querySelectorAll('[aria-invalid]').forEach((c) => c.removeAttribute('aria-invalid'));
+    });
+  } catch (_) {}
+}
+
 function tentarSalvarTransacao() {
   const desc = (document.getElementById('descTransacao').value || '').trim();
   const valorTotal = Number(parseBRL(document.getElementById('valorTransacao').value));
@@ -3072,11 +3116,24 @@ function tentarSalvarTransacao() {
   const emEdicaoSonho = transacaoEmEdicao();
   if (transacaoEhSonho(emEdicaoSonho)) return salvarEdicaoSonhoDoControle(emEdicaoSonho);
 
-  if (!desc || !Number.isFinite(valorTotal) || valorTotal <= 0 || !categoria)
+  lancLimparErros();
+  const valorRuim = !Number.isFinite(valorTotal) || valorTotal <= 0;
+  if (!desc || valorRuim || !categoria) {
+    // Marca cada campo que falta; o foco vai para o primeiro. Sem tipo
+    // escolhido (ou sem onde marcar), vale o aviso geral de antes.
+    const marcouDesc = !desc && lancMarcarErro('descTransacao', 'Dê um nome a este lançamento.');
+    const marcouValor =
+      valorRuim && lancMarcarErro('valorTransacao', 'Informe um valor maior que zero.');
+    if (categoria && (marcouDesc || marcouValor)) {
+      const primeiro = document.getElementById(marcouValor ? 'valorTransacao' : 'descTransacao');
+      if (primeiro && typeof primeiro.focus === 'function') primeiro.focus();
+      return;
+    }
     return mostrarToast(
       'Preencha a descrição e o valor, e escolha o tipo: Entrada, Saída ou Cartão.',
       'erro'
     );
+  }
 
   if (controleBancoObrigatorio(categoria)) {
     const bancoEl = document.getElementById('bancoTransacao');
@@ -4162,6 +4219,69 @@ function pintarResumoDaSobra(r) {
 }
 
 /**
+ * "Pagar" do painel Falta pagar. O botão chamava confirmarPagamento direto, mas
+ * ela lê o valor e o dia de dois campos (input-pago-<id>) que só existem depois
+ * de prepararPagamento — o clique estourava em silêncio e nada acontecia. Aqui
+ * o botão vira, na própria linha, o valor e o dia para confirmar.
+ */
+function ctlFaltaPagarAbrir(id, btn) {
+  const t = transacoes.find((x) => x.id === id);
+  if (!t || !btn || !btn.parentNode) return;
+  // confirmarPagamento acha os campos por id: se o extrato já tinha aberto a
+  // baixa desta mesma conta, aquele formulário sai para não haver dois.
+  Array.from(document.querySelectorAll('input'))
+    .filter((el) => el.id === 'input-pago-' + id)
+    .forEach((el) => {
+      if (el.parentNode && el.parentNode.parentNode) el.parentNode.remove();
+    });
+  const hoje = hojeYmdLocal();
+  const caixa = document.createElement('span');
+  caixa.className = 'ctl-pagar-form';
+  const valor = document.createElement('input');
+  valor.type = 'text';
+  valor.inputMode = 'decimal';
+  valor.id = 'input-pago-' + id;
+  valor.value = formatarBRLInput(t.valor);
+  valor.setAttribute('aria-label', 'Valor pago');
+  valor.addEventListener('input', () => aplicarMascaraBRL(valor));
+  const dia = document.createElement('input');
+  dia.type = 'date';
+  dia.id = 'input-pago-dia-' + id;
+  dia.value = hoje;
+  dia.max = hoje;
+  dia.setAttribute('aria-label', 'Dia em que foi pago');
+  const ok = document.createElement('button');
+  ok.type = 'button';
+  ok.className = 'ctl-pagar ctl-pagar-ok';
+  ok.textContent = 'Confirmar';
+  ok.addEventListener('click', () => confirmarPagamento(id));
+  const nao = document.createElement('button');
+  nao.type = 'button';
+  nao.className = 'ctl-pagar ctl-pagar-x';
+  nao.textContent = 'Cancelar';
+  nao.addEventListener('click', () => atualizarTelaControle());
+  caixa.append(valor, dia, ok, nao);
+  const linha = btn.closest('.ctl-falta-lin');
+  if (linha) linha.classList.add('pagando');
+  btn.replaceWith(caixa);
+  valor.focus();
+  valor.select();
+}
+
+/** Leva até a lista do que falta pagar (botão do alerta de conta vencida). */
+function ctlIrParaFaltaPagar() {
+  const alvos = [
+    document.querySelector('#controle .mp-card.atraso'),
+    document.getElementById('ctlFaltaPagar'),
+    document.getElementById('painelVencimentos'),
+  ];
+  if (typeof mobEhCelular === 'function' && mobEhCelular() && typeof mobSegControle === 'function')
+    mobSegControle('resumo');
+  const alvo = alvos.find((el) => el && el.offsetParent !== null);
+  if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/**
  * "Falta pagar" no web: as contas e faturas em aberto (os mesmos itens do
  * painel de vencimentos) e, embaixo, cada cartão com a fatura aberta, o
  * vencimento e o uso do limite.
@@ -4223,7 +4343,7 @@ function renderFaltaPagar(itens, hojeStr) {
         (atraso ? ' · venceu ' + dd : t.banco ? ' · ' + esc(t.banco) : '') +
         '</small></span><button type="button" class="ctl-pagar" data-id="' +
         esc(t.id) +
-        '" onclick="confirmarPagamento(this.dataset.id)">Pagar</button></div>'
+        '" onclick="ctlFaltaPagarAbrir(this.dataset.id, this)">Pagar</button></div>'
       );
     })
     .join('');
@@ -5178,13 +5298,13 @@ function deletarTransacao(idStr) {
   const msg = document.getElementById('modalMensagem');
   const acoes = document.getElementById('modalAcoes');
 
-  titulo.innerHTML = `<i class="ph-fill ph-warning-circle" style="color: var(--cor-erro);"></i> Excluir Lançamento`;
+  titulo.innerHTML = `<i class="ph-fill ph-warning-circle" style="color: var(--cor-erro);"></i> Excluir lançamento`;
 
   if (transacao.groupId) {
-    msg.innerHTML = `O lançamento <strong>"${transacao.descricao}"</strong> é uma conta fixa/parcelada.<br>Como deseja realizar a exclusão?`;
+    msg.innerHTML = `O lançamento <strong>"${transacao.descricao}"</strong> se repete em outros meses.<br>O que você quer apagar?`;
     acoes.innerHTML = `
-            <button class="btn-acao" style="background-color: var(--cor-texto-principal);" onclick="executarDelecao('unica')"><i class="ph ph-target"></i> Excluir apenas este mês</button>
-            <button class="btn-acao" style="background-color: var(--cor-erro);" onclick="executarDelecao('todas')"><i class="ph ph-trash"></i> Excluir este e os futuros</button>
+            <button class="btn-acao btn-perigo-contorno" onclick="executarDelecao('unica')"><i class="ph ph-target"></i> Excluir apenas este mês</button>
+            <button class="btn-acao btn-perigo" onclick="executarDelecao('todas')"><i class="ph ph-trash"></i> Excluir este e os futuros</button>
         `;
   } else if (controleExclusaoDesfazivel(transacao)) {
     // Avulso: exclui na hora e oferece "Desfazer" no aviso (a confirmação
@@ -5463,7 +5583,7 @@ function oferecerAlternativaBaixaZero(t) {
     `Marcar como paga com R$ 0 tiraria a conta de "a pagar" sem que nada tenha sido pago. O que você quer fazer?`;
   document.getElementById('modalAcoes').innerHTML = `
         <button class="btn-acao" style="background:#f59e0b;" onclick="adiarLancamentoUmMes('${t.id}')"><i class="ph-bold ph-calendar-plus"></i> Passar para ${nomeMes}</button>
-        <button class="btn-acao" style="background-color: var(--cor-erro);" onclick="executarDelecao('unica')"><i class="ph ph-trash"></i> Não vou pagar — excluir este mês</button>
+        <button class="btn-acao btn-perigo" onclick="executarDelecao('unica')"><i class="ph ph-trash"></i> Não vou pagar — excluir este mês</button>
         <button class="btn-secundario" onclick="fecharModal()">Continua a pagar</button>`;
   document.getElementById('modalConfirmacao').style.display = 'flex';
 }
@@ -5473,6 +5593,9 @@ function adiarLancamentoUmMes(id) {
   const t = transacoes.find((x) => x.id === id);
   fecharModal();
   if (!t || t.pago) return;
+  // Adiar mexe no mês e no vencimento num toque só, sem confirmação: o aviso
+  // tem de oferecer a volta.
+  const antes = { mes: t.mes, ano: t.ano, dataVencimento: t.dataVencimento };
   const m = t.mes + 1;
   t.mes = m % 12;
   t.ano = t.ano + Math.floor(m / 12);
@@ -5484,7 +5607,22 @@ function adiarLancamentoUmMes(id) {
   }
   salvarTransacoes();
   const nomeMes = new Date(t.ano, t.mes, 1).toLocaleDateString('pt-BR', { month: 'long' });
-  mostrarToast(`"${t.descricao}" passou para ${nomeMes} e continua a pagar.`, 'sucesso');
+  const aviso = `"${escaparHtmlAtivo(t.descricao || 'Conta')}" passou para ${nomeMes} e continua a pagar.`;
+  const desfazer = () => {
+    const alvo = transacoes.find((x) => x.id === id);
+    if (!alvo || alvo.pago) return;
+    alvo.mes = antes.mes;
+    alvo.ano = antes.ano;
+    alvo.dataVencimento = antes.dataVencimento;
+    salvarTransacoes();
+    atualizarTelaControle();
+  };
+  const el =
+    typeof mostrarToastDesfazer === 'function' ? mostrarToastDesfazer(aviso, desfazer) : null;
+  if (el) {
+    const ic = el.querySelector('i');
+    if (ic) ic.className = 'ph-fill ph-calendar-plus';
+  } else mostrarToast(aviso, 'sucesso');
   atualizarTelaControle();
 }
 
@@ -5767,7 +5905,10 @@ function pintarSaudeDoMes(t) {
   const lista = document.getElementById('saudeCriterios');
   const nota = document.getElementById('saudeScore');
   if (!t) {
-    if (lista) lista.innerHTML = '';
+    // Sem dados o card ficava em branco, sem dizer o que falta para a nota.
+    if (lista)
+      lista.innerHTML =
+        '<p class="saude-vazio">A nota do mês aparece quando houver pelo menos uma entrada e uma saída lançadas.</p>';
     if (nota) nota.hidden = true;
     return;
   }
@@ -6076,7 +6217,40 @@ function atualizarTelaControle() {
     ),
   });
   if (bannerAlertaHoje) bannerAlertaHoje.style.display = temVencimentoHoje ? 'flex' : 'none';
-  if (bannerAlertaAtraso) bannerAlertaAtraso.style.display = temContaVencida ? 'flex' : 'none';
+  if (bannerAlertaAtraso) {
+    bannerAlertaAtraso.style.display = temContaVencida ? 'flex' : 'none';
+    if (temContaVencida) {
+      const vencidas = itensRender.filter((it) => it.dataVencimento < hojeStr);
+      const nomeDe = (it) =>
+        it.tipo === 'cartao'
+          ? 'Fatura ' +
+            ((cartoes.find((c) => c.id === it.grupo.cartaoId) || {}).nome || 'do cartão')
+          : it.conta.descricao || 'Conta';
+      const valorDe = (it) => (it.tipo === 'cartao' ? it.grupo.total : Number(it.conta.valor) || 0);
+      const ddmm = (d) => d.slice(8, 10) + '/' + d.slice(5, 7);
+      const soma = vencidas.reduce((a, it) => a + valorDe(it), 0);
+      const texto =
+        vencidas.length === 1
+          ? '<strong>1 conta vencida:</strong> ' +
+            escaparHtmlAtivo(nomeDe(vencidas[0])) +
+            ', <span class="valor-mascarado">' +
+            formatarMoeda(soma) +
+            '</span>, venceu em ' +
+            ddmm(vencidas[0].dataVencimento) +
+            '.'
+          : '<strong>' +
+            vencidas.length +
+            ' contas vencidas</strong>, somando <span class="valor-mascarado">' +
+            formatarMoeda(soma) +
+            '</span>. A mais antiga venceu em ' +
+            ddmm(vencidas[0].dataVencimento) +
+            '.';
+      bannerAlertaAtraso.innerHTML =
+        '<i class="ph-fill ph-warning-octagon"></i><span>' +
+        texto +
+        '</span><button type="button" class="alert-acao" onclick="ctlIrParaFaltaPagar()">Ver e pagar</button>';
+    }
+  }
 
   // Sonho tem totalizador PRÓPRIO. Guardar o aporte de uma meta junto das
   // despesas dizia que poupar é gastar: a pessoa via "Total de despesas" subir
@@ -7285,9 +7459,53 @@ function aplicarFiltrosExtrato() {
   }
   const temAlgum = lista.querySelectorAll('.extrato-item').length > 0;
   vazio.style.display = 'flex';
-  vazio.innerHTML = temAlgum
-    ? '<i class="ph ph-funnel"></i>Nenhum lançamento com este filtro'
-    : '<i class="ph ph-tray"></i>Nenhum lançamento neste mês';
+  if (!temAlgum) {
+    vazio.innerHTML = '<i class="ph ph-tray"></i>Nenhum lançamento neste mês';
+    return;
+  }
+  // Com filtro: o motivo e a saída. Investimentos e sonhos não se lançam por
+  // aqui — a mensagem leva até a tela onde isso é feito.
+  const outraTela =
+    !extratoBusca && extratoTipoAtivo === 'investimento'
+      ? {
+          txt: 'Compras e aportes são lançados em Meus investimentos e aparecem aqui sozinhos.',
+          rot: 'Ir para Meus investimentos',
+          aba: 'patrimonio',
+        }
+      : !extratoBusca && extratoTipoAtivo === 'sonho'
+        ? {
+            txt: 'O que você guarda para uma meta é lançado em Meus sonhos e aparece aqui sozinho.',
+            rot: 'Ir para Meus sonhos',
+            aba: 'meus_sonhos',
+          }
+        : null;
+  vazio.innerHTML =
+    '<i class="ph ph-funnel"></i>Nenhum lançamento com este filtro' +
+    (outraTela
+      ? '<small>' +
+        outraTela.txt +
+        '</small><button type="button" class="ext-vazio-acao" onclick="ppNavegarPara(\'' +
+        outraTela.aba +
+        '\')">' +
+        outraTela.rot +
+        '</button>'
+      : '') +
+    '<button type="button" class="ext-vazio-acao' +
+    (outraTela ? ' sec' : '') +
+    '" onclick="extratoLimparTudo()">' +
+    (extratoBusca ? 'Limpar a busca e os filtros' : 'Ver todos os lançamentos') +
+    '</button>';
+}
+
+/** Volta o extrato ao estado inicial: sem busca, tipo "Todos", sem filtros. */
+function extratoLimparTudo() {
+  extratoBusca = '';
+  const campo = document.getElementById('extratoBusca');
+  if (campo) campo.value = '';
+  extratoTipoAtivo = 'todos';
+  document.querySelectorAll('.ext-tab').forEach((t, i) => t.classList.toggle('on', i === 0));
+  limparFiltrosExtrato();
+  aplicarFiltrosExtrato();
 }
 
 // ---------------------------------------------------------------------------

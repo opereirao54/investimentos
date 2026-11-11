@@ -1113,7 +1113,7 @@ function abrirTransferenciaModal() {
     ) +
     '</div>';
   document.getElementById('modalAcoes').innerHTML =
-    '<button class="btn-acao" style="background:var(--cor-info);" onclick="confirmarTransferencia()"><i class="ph ph-check"></i> Transferir</button>';
+    '<button class="btn-acao" onclick="confirmarTransferencia()"><i class="ph ph-check"></i> Transferir</button>';
   // destino != origem por padrão: origem nasce na conta de maior saldo.
   const origemDefault = comSaldo[0].conta.id;
   const dst = document.getElementById('transfDestino');

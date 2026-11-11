@@ -602,6 +602,14 @@ function selecionarChipTipo(tipo) {
   if (!sel || !cat) return;
   // Já em Saída, tocar de novo não desfaz "Fixa".
   if (!(tipo === 'saida' && sel.value === 'despesa_fixa')) sel.value = cat;
+  // O exemplo do campo acompanha o tipo: "Salário" não ajuda quem lança saída.
+  const desc = document.getElementById('descTransacao');
+  if (desc)
+    desc.placeholder = {
+      entrada: 'Ex: Salário, Freelance',
+      saida: 'Ex: Mercado, Conta de luz',
+      cartao: 'Ex: Farmácia, Assinatura',
+    }[tipo];
   verificarRegraCartao();
   // Lançamento novo: a conta do último lançamento deste tipo já vem escolhida.
   if (typeof lancUiAplicarContaLembrada === 'function') lancUiAplicarContaLembrada();
