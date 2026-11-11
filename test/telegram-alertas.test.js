@@ -27,7 +27,7 @@ const CHAT = 5550001;
 // 08/10/2026 08:30 em Brasília (janela da manhã) e 20:30 (janela da noite).
 const MANHA = new Date('2026-10-08T11:30:00Z');
 const NOITE = new Date('2026-10-08T23:30:00Z');
-const FORA = new Date('2026-10-08T17:00:00Z'); // 14h em Brasília
+const FORA = new Date('2026-10-08T07:00:00Z'); // 04h em Brasília (madrugada, fora das duas janelas)
 let updateSeq = 5000;
 
 function tx(o) {
@@ -168,14 +168,17 @@ test.beforeEach(() => reset());
 
 // ─── regras ─────────────────────────────────────────────────────────────────
 
-test('janelas: 7–12h manhã, 18–23h noite, fora disso nada (horário de Brasília)', () => {
+test('janelas: 7–17h manhã, 18–23h noite, fora disso nada (horário de Brasília)', () => {
   const C = require(path.join(ROOT, 'api/_lib/telegram-consultas.js'));
   const h = (iso) => A.janelaDaHora(C.agoraBrasilia(new Date(iso)));
   assert.equal(h('2026-10-08T09:59:00Z'), null); // 06:59
   assert.equal(h('2026-10-08T10:00:00Z'), 'manha'); // 07:00
   assert.equal(h('2026-10-08T15:59:00Z'), 'manha'); // 12:59
-  assert.equal(h('2026-10-08T16:00:00Z'), null); // 13:00
-  assert.equal(h('2026-10-08T20:59:00Z'), null); // 17:59
+  // Rodadas da manhã que o GitHub atrasou (medido de 06 a 10/11/2026): com a
+  // janela até 12h59 elas caíam fora e nenhum alerta da manhã saía.
+  assert.equal(h('2026-11-07T16:13:00Z'), 'manha'); // 13:13
+  assert.equal(h('2026-11-10T17:36:00Z'), 'manha'); // 14:36
+  assert.equal(h('2026-10-08T20:59:00Z'), 'manha'); // 17:59
   assert.equal(h('2026-10-08T21:00:00Z'), 'noite'); // 18:00
   // A rodada das 22:17 que o GitHub só disparou às 23:56 (medido em produção)
   // agora ainda cai na noite.

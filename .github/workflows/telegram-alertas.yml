@@ -8,9 +8,12 @@ name: Alertas do Telegram
 #   E à noite.
 #
 # COMO FUNCIONA
-#   Roda de hora em hora no começo de cada janela (horário de Brasília = UTC−3):
-#     manhã: 07:07 a 11:07 → 10h–14h UTC   (janela aceita 07h–12h59)
-#     noite: 18:07 a 22:07 → 21h–01h UTC   (janela aceita 18h–23h59)
+#   Roda de hora em hora durante cada janela (horário de Brasília = UTC−3):
+#     manhã: 07:07 a 17:07 → 10h–20h UTC   (janela aceita 07h–17h59)
+#     noite: 18:07 a 23:07 → 21h–02h UTC   (janela aceita 18h–23h59)
+#   Medido de 06 a 10/11/2026: chegavam ~2 das 10 rodadas por dia, as da manhã
+#   entre 13h13 e 14h36 — fora da janela antiga (até 12h59), e nenhum alerta
+#   da manhã saiu. Por isso a manhã vai até 17h59 e há rodada a cada hora.
 #   O servidor manda cada janela UMA vez por dia por usuário, na primeira
 #   rodada que cair nela. As outras rodadas só cobrem o agendador do GitHub,
 #   que atrasa HORAS e pula execuções (medido: 22:17 chegou às 23:56; 8:17 e
@@ -27,7 +30,7 @@ name: Alertas do Telegram
 
 on:
   schedule:
-    - cron: '7 10,11,12,13,14,21,22,23,0,1 * * *'
+    - cron: '7 10,11,12,13,14,15,16,17,18,19,20,21,22,23,0,1,2 * * *'
   workflow_dispatch:
     inputs:
       janela:
