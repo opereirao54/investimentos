@@ -236,9 +236,11 @@ porque o cron da Vercel Hobby só roda uma vez por dia e as duas vagas estão
 ocupadas. Ele chama `POST /api/user?op=telegram-alertas` com o `CRON_SECRET`.
 
 O GitHub atrasa o agendamento em horas e às vezes pula rodadas. Por isso a
-rodada sai de hora em hora desde cedo (manhã 07:07–11:07, noite 18:07–22:07)
-e cada janela aceita até o fim do período (manhã 7h–12h59, noite 18h–23h59):
-a primeira rodada que chegar manda, as outras não repetem.
+rodada sai de hora em hora durante as janelas (manhã 07:07–17:07, noite
+18:07–23:07) e cada janela aceita até o fim do período (manhã 7h–17h59, noite
+18h–23h59): a primeira rodada que chegar manda, as outras não repetem. A manhã
+ia só até 12h59, mas de 06 a 10/11/2026 as rodadas chegaram entre 13h e 14h30
+e nenhum alerta da manhã (contas vencidas, vencendo, faturas) saiu.
 
 ### Ligar (uma vez, 5 min, só no navegador)
 

@@ -37,8 +37,11 @@ const TIPO_POR_ID = Object.fromEntries(TIPOS.map((t) => [t.id, t]));
 // das 22:17 chegou às 23:56; as das 8:17 e 9:17 nem vieram). A janela sai
 // uma vez por dia, na primeira rodada que cair aqui — então a largura só
 // serve para um atraso não fazer o alerta do dia se perder.
+// A manhã vai até 17h59 (era 12h59): de 06 a 10/11/2026 as rodadas da manhã
+// chegaram entre 13h13 e 14h36 e nenhum alerta da manhã saiu — contas
+// vencidas, vencendo, faturas e saldo negativo ficaram 5 dias em silêncio.
 const JANELAS = {
-  manha: { de: 7, ate: 12, titulo: '☀️ <b>Bom dia!</b>' },
+  manha: { de: 7, ate: 17, titulo: '☀️ <b>Bom dia!</b>' },
   noite: { de: 18, ate: 23, titulo: '🌙 <b>Boa noite!</b>' },
 };
 
