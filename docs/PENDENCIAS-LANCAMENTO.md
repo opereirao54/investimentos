@@ -95,12 +95,10 @@ O código está pronto (26/10/2026); o resto é painel. Passo a passo completo e
       um aviso único com botão; data já preenchida só vale para saída
       variável no mês corrente (nos outros casos a data muda o vencimento ou
       o mês do lançamento: decidir a regra antes de ampliar).
-- [ ] **Meu patrimônio — o que sobrou da avaliação de UX** (11/11/2026): no
-      celular os blocos de instituições, classes e bens continuam todos
-      abertos abaixo do balanço (no computador abre um por vez); a variação
-      ao lado do patrimônio líquido ainda é a do bruto ("no que você tem"),
-      porque não há histórico do saldo devedor; o eixo do gráfico não começa
-      em zero.
+- [ ] **Meu patrimônio — o que sobrou da avaliação de UX** (11/11/2026): a
+      variação ao lado do patrimônio líquido ainda é a do bruto ("no que você
+      tem"), porque não há histórico do saldo devedor; o eixo do gráfico não
+      começa em zero.
 
 ## Feito
 
@@ -109,6 +107,9 @@ O código está pronto (26/10/2026); o resto é painel. Passo a passo completo e
   gráfico, Por que mudou e Fôlego) mais o balanço, que abre um detalhe por vez
   ao lado — bancos, classes ou bens; "Por que mudou" segue o período do
   gráfico e não lista parcela zerada; no celular, "Você tem" saiu do vermelho.
+  No celular: as linhas do balanço abrem o detalhe no lugar (bancos, classes,
+  bens) e os três blocos repetidos abaixo saíram; "Por que mudou" também
+  segue o período do gráfico.
 
 - 11/11/2026 · branch `claude/quirky-knuth-dsn1kf` — Avaliação de UX do
   Controle financeiro, 1ª leva: o "Pagar" do painel Falta pagar não fazia

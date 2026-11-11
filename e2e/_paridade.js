@@ -122,7 +122,7 @@ const EQUIVALENTES = {
   'fn:ctlFaltaPagarAbrir':
     '"Pagar" no Falta pagar do web abre o valor e o dia na própria linha; no celular o "Pagar" do Início abre a folha com os mesmos dois campos (mobBaixarConta → mobConfirmarBaixa → confirmarPagamento)',
   'fn:mpWebDetalhe':
-    'linha do balanço no web abre o detalhe dela ao lado (bancos, classes ou bens); no celular a mesma linha de "Do que ele é feito" leva ao bloco correspondente, que lá fica sempre aberto (mobPatIrPara)',
+    'linha do balanço no web abre o detalhe dela ao lado (bancos, classes ou bens); no celular a mesma linha de "Do que ele é feito" abre o bloco correspondente ali mesmo (mobPatAbrirParte)',
   'fn:mpdMenuInstituicao':
     'menu ⋯ de cada instituição no web; no celular tocar na linha da instituição abre as mesmas ações (mobPatAbrirCarteira)',
   'fn:ctrlDreSelecionar':
@@ -203,6 +203,15 @@ function abrirRecolhiveisNaPagina() {
   sec.querySelectorAll('details').forEach((d) => (d.open = true));
   sec.querySelectorAll('[data-aberto]').forEach((d) => (d.dataset.aberto = '1'));
   sec.querySelectorAll('.rich-expand').forEach((d) => d.classList.add('aberto'));
+  // Linhas do balanço do Patrimônio no celular: cada uma abre o seu detalhe
+  // (bancos, classes, bens) no lugar. Um clique por detalhe ainda fechado.
+  const vistos = new Set();
+  sec.querySelectorAll('[data-mpm-parte][aria-expanded="false"]').forEach((b) => {
+    const qual = b.getAttribute('data-mpm-parte');
+    if (vistos.has(qual)) return;
+    vistos.add(qual);
+    b.click();
+  });
 }
 
 /** Roda NA PÁGINA: troca de aba pelo botão da sidebar (o caminho real). */

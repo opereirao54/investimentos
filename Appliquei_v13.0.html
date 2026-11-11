@@ -13507,7 +13507,17 @@
             .mpm-lista .mpm-chip-txt { flex-direction: row !important; justify-content: space-between; align-items: center; }
             .mpm-lista .mpm-chip-txt small { font-size: 14px !important; color: var(--cor-texto-principal) !important; font-weight: 500 !important; }
             .mpm-lista .mpm-chip-txt b { font-size: 14px !important; }
-            .mpm-lista .mpm-lin > i { color: var(--cor-texto-mutado); }
+            .mpm-lista .mpm-lin > i { color: var(--cor-texto-mutado); transition: transform .15s; }
+            .mpm-lista .mpm-lin[aria-expanded="true"] > i { transform: rotate(180deg); }
+            .mpm-lista .mpm-lin[aria-expanded="true"] .mpm-chip-txt small { font-weight: 700 !important; }
+            /* Detalhe aberto dentro da linha: sem o título do bloco (a linha
+               já diz o que é), com as ações dele à direita. */
+            .mpm-slot { padding: 2px 0 14px; }
+            .mpm-slot > .mob-pat { margin: 0 !important; padding: 0 !important; }
+            .mpm-slot > .mob-pat + .mob-pat:not(:empty) { margin-top: 10px !important; }
+            .mpm-slot .mi-tit-linha > .mi-h2 { display: none; }
+            .mpm-slot .mi-tit-linha { justify-content: flex-end; margin: 0 0 8px; min-height: 0; }
+            .mpm-slot .mi-tit-linha:empty { display: none; }
             .mpm-mudou-sub { margin: -4px 0 8px; }
             /* Início no canvas: "para onde foi" dentro do cartão, sem os anéis
                nem as histórias; Falta pagar em lista; Por categoria. */
@@ -17093,6 +17103,11 @@
             <div id="mpMobProventos" class="mob-inicio mob-pat"></div>
             <div id="mpMobContas" class="mob-inicio mob-pat"></div>
             <div id="mpMobBens" class="mob-inicio mob-pat"></div>
+            <!-- Marca o lugar de origem dos cinco blocos acima. No celular eles
+                 vão para dentro da linha do balanço que os abre
+                 (_mobPatEncaixarBlocos) e voltam para cá antes de cada
+                 redesenho do topo. -->
+            <span id="mpMobFim" hidden></span>
 
             <!-- Onde está o dinheiro: cada banco/corretora UMA vez, com caixa,
                  investido e as ações da conta (conferir, editar, arquivar) no
