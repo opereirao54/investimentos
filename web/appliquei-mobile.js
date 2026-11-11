@@ -1943,7 +1943,7 @@ function _mobProximos(itens, hojeStr, extra) {
         _mobEsc(_mobDreFmt(t.valor)) +
         '</span></div><button type="button" class="mp-btn" onclick="mobBaixarConta(\'' +
         _mobEsc(String(t.id)) +
-        '\')">Baixar</button></article>'
+        '\')">Pagar</button></article>'
       );
     })
     .join('');
@@ -2291,7 +2291,7 @@ function mobBaixarConta(id) {
   const html =
     '<div class="mf-cab"><p class="mf-sobre">Vence ' +
     _mobEsc(dd) +
-    '</p><h3 class="mf-tit">Baixar ' +
+    '</p><h3 class="mf-tit">Pagar ' +
     _mobEsc(t.descricao || 'conta') +
     '</h3><p class="mf-txt">Pagou outro valor, com juros ou desconto? Corrija antes de confirmar.</p></div>' +
     '<label class="mf-campo" for="input-pago-' +
@@ -2327,7 +2327,7 @@ function mobBaixarConta(id) {
         '\')"><i class="ph ph-skip-forward"></i> Não vou guardar este mês</button>'
       : '') +
     '<button type="button" class="mf-btn2" onclick="mobFolhaFechar()">Cancelar</button>';
-  mobFolhaAbrir(html, 'Baixar ' + (t.descricao || 'conta'));
+  mobFolhaAbrir(html, 'Pagar ' + (t.descricao || 'conta'));
 }
 
 function mobConfirmarBaixa(id) {

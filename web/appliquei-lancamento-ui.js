@@ -20,6 +20,9 @@ var lancUiCatAberta = false;
 var lancUiContaOutra = false;
 var lancUiObsAberta = false;
 var lancUiAgendado = false;
+// Data que a camada preencheu sozinha (hoje) e se a pessoa já mexeu no campo.
+var lancUiDataAuto = '';
+var lancUiDataTocada = false;
 
 function _lancEl(id) {
   return document.getElementById(id);
@@ -353,6 +356,11 @@ function lancUiCartoesPagouCom(tipo) {
   if (((_lancEl('editTransacaoId') || {}).value || '').trim()) return [];
   if ((_lancEl('transacaoFixa') || {}).checked) return [];
   var lista = typeof cartoesAtivos === 'function' ? cartoesAtivos() : [];
+  // O "Cartão principal" criado sozinho e nunca usado não é oferecido aqui.
+  if (typeof cartaoEhFantasma === 'function')
+    lista = lista.filter(function (c) {
+      return !cartaoEhFantasma(c);
+    });
   return lista.slice(0, LANC_UI_MAX_CHIPS);
 }
 
@@ -562,6 +570,7 @@ function lancUiSincronizar() {
   var bloco = _lancEl('lancBloco');
   if (bloco) bloco.hidden = tipo === 'cartao' || painel.classList.contains('modo-sonho');
 
+  _lancDataDeHoje(tipo, cat, painel);
   _lancRenderCategorias();
   _lancRenderContas(tipo);
   if (tipo === 'cartao') {
@@ -584,6 +593,49 @@ function lancUiSincronizar() {
   }
 }
 
+/**
+ * Saída variável nova, olhando o mês corrente: a data já vem com hoje. O campo
+ * vazio queria dizer exatamente isso ("hoje, já pago"), mas não dizia. Só neste
+ * caso: em conta fixa, entrada ou outro mês em visão, uma data preenchida muda
+ * o vencimento ou o mês em que o lançamento cai — ali o campo segue em branco.
+ */
+function _lancDataDeHoje(tipo, cat, painel) {
+  var el = _lancEl('dataVencimento');
+  if (!el || typeof el.addEventListener !== 'function') return;
+  if (!el.dataset.lancData) {
+    el.dataset.lancData = '1';
+    el.addEventListener('input', function () {
+      lancUiDataTocada = true;
+    });
+  }
+  var h = new Date();
+  var hoje =
+    h.getFullYear() +
+    '-' +
+    String(h.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(h.getDate()).padStart(2, '0');
+  var mesCorrente =
+    typeof visaoMes !== 'undefined' &&
+    typeof visaoAno !== 'undefined' &&
+    visaoMes === h.getMonth() &&
+    visaoAno === h.getFullYear();
+  var cabe =
+    tipo === 'saida' &&
+    cat === 'despesa_variavel' &&
+    mesCorrente &&
+    !((_lancEl('editTransacaoId') || {}).value || '').trim() &&
+    !(_lancEl('transacaoFixa') || {}).checked &&
+    !painel.classList.contains('modo-sonho');
+  if (cabe && !el.value && !lancUiDataTocada) {
+    el.value = hoje;
+    lancUiDataAuto = hoje;
+  } else if (!cabe && lancUiDataAuto && el.value === lancUiDataAuto) {
+    el.value = '';
+    lancUiDataAuto = '';
+  }
+}
+
 /** Depois de um clique/tecla no painel: redesenha quando os handlers terminarem. */
 function lancUiAgendar() {
   if (lancUiAgendado) return;
@@ -598,6 +650,8 @@ function lancUiReiniciar() {
   lancUiObsAberta = false;
   lancUiContaAuto = false;
   lancUiContaTocada = false;
+  lancUiDataAuto = '';
+  lancUiDataTocada = false;
   var grupo = _lancEl('grupoParcelaInicial');
   if (grupo) grupo.dataset.aberto = '';
   lancUiSincronizar();

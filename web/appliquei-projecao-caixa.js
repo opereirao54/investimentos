@@ -428,7 +428,10 @@ function _projRotulosEixo(d) {
           (i === d.idxHoje ? 'hoje' : '') +
           (i === d.resumo.primeiroNeg ? ' neg' : '') +
           '">' +
-          (i % passo === 0 || i === d.idxHoje || i === n - 1 ? PROJ_MESES[m.mes] : '') +
+          // Acima de 12 meses o mesmo mês aparece mais de uma vez: vai o ano.
+          (i % passo === 0 || i === d.idxHoje || i === n - 1
+            ? PROJ_MESES[m.mes] + (n > 12 ? '/' + String(m.ano).slice(-2) : '')
+            : '') +
           '</span>'
       )
       .join('') +
@@ -479,13 +482,17 @@ function projHtmlTopo(d) {
       ? 'somando o que sobrou mês a mês'
       : 'guardados no caixa, se o que está lançado acontecer') +
     '</span></div>' +
-    '<div class="pj-num"><span class="pj-rot">Menor ponto</span><span class="valor-mascarado ' +
-    (r.menor < 0 ? 'neg' : '') +
-    '">' +
-    _projFmtCurto(r.menor) +
-    ' em ' +
-    _projEsc(d.rotulos[r.menorIdx] || '') +
-    '</span></div>' +
+    // Janela toda no passado: o "menor ponto" olha de hoje em diante e só
+    // repetiria o número de cima, contradizendo os meses zerados ao lado.
+    (passado
+      ? ''
+      : '<div class="pj-num"><span class="pj-rot">Menor ponto</span><span class="valor-mascarado ' +
+        (r.menor < 0 ? 'neg' : '') +
+        '">' +
+        _projFmtCurto(r.menor) +
+        ' em ' +
+        _projEsc(d.rotulos[r.menorIdx] || '') +
+        '</span></div>') +
     '<div class="pj-num"><span class="pj-rot">Sobra média por mês</span><span class="valor-mascarado ' +
     (r.mediaSobra < 0 ? 'neg' : '') +
     '">' +
@@ -553,7 +560,8 @@ function projHtmlEntraSai(d) {
   const vals = sel.map(projEntraSai);
   const max = Math.max(1, ...vals.map((v) => Math.max(v.entra, v.sai)));
   return (
-    '<section class="pj-card pj-es" aria-label="Entra e sai por mês"><div class="pj-card-cab"><b>Entra e sai</b><small>próximos ' +
+    '<section class="pj-card pj-es" aria-label="Entra e sai por mês"><div class="pj-card-cab"><b>Entra e sai</b><small>' +
+    (d.idxHoje >= d.meses.length - 1 ? 'últimos ' : 'próximos ') +
     sel.length +
     ' meses</small></div><div class="pj-es-grade" style="grid-template-columns: repeat(' +
     sel.length +

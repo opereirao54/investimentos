@@ -477,7 +477,7 @@ function rmCalcularTermometro(rep) {
   else if (cDesp > G) stDesp = 'amarelo';
   criterios.push({
     label: 'Despesas ≤ ' + G + '% da entrada',
-    valor: rep.entradas > 0 ? cDesp.toFixed(1) + '%' : '—',
+    valor: rep.entradas > 0 ? cDesp.toFixed(1).replace('.', ',') + '%' : '—',
     meta: '≤ ' + G + '%',
     status: stDesp,
     icone: 'ph-receipt',
@@ -490,7 +490,7 @@ function rmCalcularTermometro(rep) {
   else if (cInv < I) stInv = 'amarelo';
   criterios.push({
     label: 'Investimentos ≥ ' + I + '% da entrada',
-    valor: rep.entradas > 0 ? cInv.toFixed(1) + '%' : '—',
+    valor: rep.entradas > 0 ? cInv.toFixed(1).replace('.', ',') + '%' : '—',
     meta: '≥ ' + I + '%',
     status: stInv,
     icone: 'ph-trending-up',
@@ -515,7 +515,10 @@ function rmCalcularTermometro(rep) {
   const stJor = rep.jornadaModulosMes >= 1 ? 'verde' : 'vermelho';
   criterios.push({
     label: 'Jornada Financeira',
-    valor: rep.jornadaModulosMes + ' módulo(s)',
+    valor:
+      rep.jornadaModulosMes === 1
+        ? '1 módulo'
+        : (rep.jornadaModulosMes || 'nenhum') + (rep.jornadaModulosMes ? ' módulos' : ' módulo'),
     meta: '≥ 1/mês',
     status: stJor,
     icone: 'ph-graduation-cap',

@@ -118,7 +118,9 @@ const EQUIVALENTES = {
   'fn:confirmarExcluirBem':
     'no celular tocar no bem abre o painel do bem; "Excluir" lá chama bemPainelAcao(\'excluir\') → confirmarExcluirBem',
   'fn:confirmarPagamento':
-    '"Pagar" no Falta pagar do web; no celular é "Baixar" no Falta pagar do Início (mobBaixarConta → mobConfirmarBaixa → confirmarPagamento)',
+    '"Pagar" no Falta pagar do web; no celular é o "Pagar" do Falta pagar do Início (mobBaixarConta → mobConfirmarBaixa → confirmarPagamento)',
+  'fn:ctlFaltaPagarAbrir':
+    '"Pagar" no Falta pagar do web abre o valor e o dia na própria linha; no celular o "Pagar" do Início abre a folha com os mesmos dois campos (mobBaixarConta → mobConfirmarBaixa → confirmarPagamento)',
   'fn:mpdMenuInstituicao':
     'menu ⋯ de cada instituição no web; no celular tocar na linha da instituição abre as mesmas ações (mobPatAbrirCarteira)',
   'fn:ctrlDreSelecionar':
@@ -128,13 +130,13 @@ const EQUIVALENTES = {
   'fn:mpWebPeriodo':
     'período do gráfico do Patrimônio no web (1M…Tudo); no celular são os mesmos botões abaixo do gráfico (mobPatPeriodo)',
   'fn:abrirPainelLancamento':
-    'no celular o "Novo lançamento" largo sai do Controle; o "+" da barra inferior abre o menu de cadastro → Despesa/Receita/Cartão (cadastrarEm → abrirPainelLancamento, já no tipo)',
+    'no celular o "Novo lançamento" largo sai do Controle; o "+" da barra inferior abre o menu de cadastro → Saída/Entrada/Cartão (cadastrarEm → abrirPainelLancamento, já no tipo)',
   'fn:abrirTransferenciaModal':
     'no Controle do celular o "Transferir" do cabeçalho sai (falta espaço); a mesma transferência abre pelo atalho "Transferir" do Início (mobAcaoRapida) e pelo "+" da barra → Transferir (cadastrarTransferencia), ambos chamando abrirTransferenciaModal',
   'fn:novoLancamentoControle':
-    'é o "Novo lançamento" do cabeçalho do computador (abre já em Saída); no celular o mesmo vem do "+" da barra → Despesa (cadastrarEm → abrirPainelLancamento + selecionarChipTipo)',
+    'é o "Novo lançamento" do cabeçalho do computador (abre já em Saída); no celular o mesmo vem do "+" da barra → Saída (cadastrarEm → abrirPainelLancamento + selecionarChipTipo)',
   'fn:alternarPainelVencimentos':
-    'no celular os vencimentos ficam sempre abertos, em "Próximos dias" (carrossel do Início): não há o que recolher; Baixar e Ver fatura estão em cada cartão',
+    'no celular os vencimentos ficam sempre abertos, em "Próximos dias" (carrossel do Início): não há o que recolher; Pagar e Ver fatura estão em cada cartão',
   // Extrato no celular: ordem, conta/cartão e categoria moram na gaveta que o
   // botão "Filtros" abre (abrirFolhaFiltros → mudarRascunhoFiltros →
   // aplicarFolhaFiltros), e os ativos viram etiquetas com ✕ (tirarFiltroExtrato).
