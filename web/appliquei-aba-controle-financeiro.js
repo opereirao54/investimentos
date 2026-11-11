@@ -4174,19 +4174,16 @@ function pintarResumoDaSobra(r) {
   if (el) {
     const aPagar = Math.min(r.saidas, saidasAPagarDoMes(r.mes, r.ano));
     const pago = Math.max(0, r.saidas - aPagar);
+    // Três números com rótulo, no lugar de uma frase com parênteses: "já
+    // pago" e "falta pagar" são o que a pessoa procura ao abrir a tela.
+    const num = (rot, v) =>
+      '<span><small>' + rot + '</small><b class="valor-mascarado">' + fmt(v) + '</b></span>';
+    el.classList.add('ctl-saidas-grade');
     el.innerHTML =
-      'Entrou <b class="valor-mascarado">' +
-      fmt(r.entrou) +
-      '</b> · vai sair <b class="valor-mascarado">' +
-      fmt(r.saidas) +
-      '</b>' +
+      num('Entrou', r.entrou) +
       (r.saidas > 0.005
-        ? ' (<b class="valor-mascarado">' +
-          fmt(pago) +
-          '</b> já pago, <b class="valor-mascarado">' +
-          fmt(aPagar) +
-          '</b> a pagar)'
-        : '');
+        ? num('Já pago', pago) + num('Falta pagar', aPagar)
+        : '<span><small>Saídas</small><b>nada lançado</b></span>');
   }
   const ac = document.getElementById('ctlAcumuladaLinha');
   if (ac) {
@@ -4352,7 +4349,7 @@ function renderFaltaPagar(itens, hojeStr) {
   let cartoesHtml = '';
   if (typeof faturasCartoesVisiveis === 'function' && typeof faturasDoCartao === 'function') {
     cartoesHtml = faturasCartoesVisiveis()
-      .filter((c) => !c.arquivado)
+      .filter((c) => !c.arquivado && !cartaoEhFantasma(c))
       .map((c) => {
         const ciclos = faturasDoCartao(c.id, new Date());
         const aberta = ciclos.filter((f) => f.atual)[0] || ciclos[ciclos.length - 1];
@@ -4396,7 +4393,40 @@ function renderFaltaPagar(itens, hojeStr) {
     (cartoesHtml
       ? '<div class="ctl-grupo"><span>Cartões</span><button type="button" class="ctl-link" onclick="abrirFaturas()">Faturas <i class="ph ph-arrow-right"></i></button></div>' +
         cartoesHtml
-      : '');
+      : '<div class="ctl-grupo"><span>Cartões</span></div><p class="ctl-vazio">Nenhum cartão em uso.</p><button type="button" class="ctl-pagar ctl-cartao-novo" onclick="abrirModalConfig()"><i class="ph ph-plus"></i> Cadastrar cartão</button>');
+  ctlPintarSemDados();
+}
+
+/**
+ * O "Cartão principal" que o app cria sozinho no primeiro acesso (limite de
+ * R$ 5.000, sem fechamento nem vencimento) e que a pessoa nunca usou. Ele
+ * continua existindo — a aba Cartão e as Configurações contam com ele —, mas
+ * não é anunciado como se fosse um cartão dela.
+ */
+function cartaoEhFantasma(c) {
+  if (!c || c.id !== 'card_padrao') return false;
+  if (c.diaFechamento || c.diaVencimento || c.contaPagadoraId) return false;
+  return !(typeof transacoes !== 'undefined' ? transacoes : []).some((t) => t.cartaoId === c.id);
+}
+
+/**
+ * Conta sem nenhum lançamento, no computador: os blocos que só mostrariam
+ * zeros (tipos, categorias, plano, projeção de 12 meses) saem e entra um
+ * cartão único com por onde começar. No celular o Início já faz esse papel.
+ */
+function ctlPintarSemDados() {
+  const secao = document.getElementById('controle');
+  if (!secao) return;
+  const vazio = !(typeof transacoes !== 'undefined' && transacoes.length);
+  secao.classList.toggle('ctl-sem-dados', vazio);
+}
+
+/** Atalhos do cartão "Comece por aqui". */
+function ctlComecarPor(tipo) {
+  if (tipo === 'cartao') return abrirModalConfig();
+  novoLancamentoControle();
+  if (tipo === 'entrada') selecionarChipTipo('entrada');
+  else if (typeof lancUiTipoGasto === 'function') lancUiTipoGasto('despesa_fixa');
 }
 
 /**
@@ -5170,25 +5200,59 @@ function editarSaldoMesAnterior(mes, ano) {
     typeof mobAbrirSaldoAnterior === 'function'
   )
     return mobAbrirSaldoAnterior(mes, ano);
+  // No computador, a janela do app com o campo e as duas saídas — era o
+  // prompt() do navegador, sem máscara de valor e com "deixe em branco" como
+  // único jeito de voltar ao automático.
   const atual = obterSaldoCarregadoParaMes(mes, ano);
-  const entrada = prompt(
-    'Ajustar o saldo trazido do mês anterior (em R$). Deixe em branco para voltar ao cálculo automático:',
-    (Number(atual) || 0).toFixed(2).replace('.', ',')
-  );
-  if (entrada === null) return;
+  const manual = !!(obterMapaSaldoCarregado()[chaveMes(mes, ano)] || {}).manual;
+  const ant = new Date(ano, mes - 1, 1).toLocaleDateString('pt-BR', { month: 'long' });
+  document.getElementById('modalTitulo').innerHTML =
+    '<i class="ph ph-pencil-simple" style="color:var(--cor-primaria);"></i> Ajustar o que sobrou até ' +
+    ant;
+  document.getElementById('modalMensagem').innerHTML =
+    'O app soma sozinho o que sobrou nos meses anteriores. Se o valor real for outro, informe aqui.' +
+    '<label for="saldoAnteriorValor" style="display:block;margin:14px 0 6px;font-weight:600;color:var(--cor-texto-principal);">Sobra trazida de ' +
+    ant +
+    ' (R$)</label><input type="text" inputmode="decimal" id="saldoAnteriorValor" value="' +
+    formatarBRLInput(Number(atual) || 0) +
+    '" oninput="aplicarMascaraBRL(this)" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:15px;font-family:\'DM Mono\',monospace;background:var(--cor-superficie);color:var(--cor-texto-principal);">';
+  document.getElementById('modalAcoes').innerHTML =
+    '<button class="btn-acao" onclick="salvarSaldoMesAnterior(' +
+    mes +
+    ',' +
+    ano +
+    ', false)"><i class="ph ph-check"></i> Salvar este valor</button>' +
+    (manual
+      ? '<button class="btn-secundario" onclick="salvarSaldoMesAnterior(' +
+        mes +
+        ',' +
+        ano +
+        ', true)"><i class="ph ph-arrow-counter-clockwise"></i> Voltar ao cálculo automático</button>'
+      : '');
+  document.getElementById('modalConfirmacao').style.display = 'flex';
+  const campo = document.getElementById('saldoAnteriorValor');
+  if (campo) {
+    campo.focus();
+    campo.select();
+  }
+}
+
+/** Grava (ou desfaz) o ajuste manual do saldo trazido do mês anterior. */
+function salvarSaldoMesAnterior(mes, ano, automatico) {
   const mapa = obterMapaSaldoCarregado();
-  const txt = entrada.trim();
-  if (txt === '') {
+  if (automatico) {
     delete mapa[chaveMes(mes, ano)];
     salvarMapaSaldoCarregado(mapa);
     mostrarToast('Saldo do mês anterior voltou ao cálculo automático.', 'aviso');
   } else {
-    const v = parseBRL(txt);
+    const campo = document.getElementById('saldoAnteriorValor');
+    const v = parseBRL(campo ? campo.value : '');
     if (!Number.isFinite(v)) return mostrarToast('Valor inválido.', 'erro');
     mapa[chaveMes(mes, ano)] = { valor: v, manual: true };
     salvarMapaSaldoCarregado(mapa);
     mostrarToast('Saldo do mês anterior ajustado manualmente.', 'sucesso');
   }
+  fecharModal();
   try {
     if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function')
       AppliqueiCloudSync.forceFlush();
@@ -5455,7 +5519,7 @@ function baixarGrupoCartao(key) {
   const msg = document.getElementById('modalMensagem');
   const acoes = document.getElementById('modalAcoes');
 
-  titulo.innerHTML = `<i class="ph-bold ph-credit-card" style="color:var(--cor-cartao);"></i> Baixar Cartão`;
+  titulo.innerHTML = `<i class="ph-bold ph-credit-card" style="color:var(--cor-cartao);"></i> Pagar fatura do cartão`;
   msg.innerHTML = `Tem certeza de que deseja baixar <strong>${qtd} ${qtd === 1 ? 'lançamento' : 'lançamentos'}</strong> do cartão no valor total de <strong>${formatarMoeda(total)}</strong> como pago?`;
 
   acoes.innerHTML = `
@@ -6168,7 +6232,7 @@ function atualizarTelaControle() {
                     </div>
                     <div class="venc-badge" id="acao-pagar-card-${conta.id}">
                         <button onclick="prepararPagamento('${conta.id}', 'card')" class="btn-secundario" style="padding:5px 10px;font-size:11px;border-color:var(--cor-primaria);color:var(--cor-primaria);">
-                            <i class="ph-bold ph-check"></i> Baixar
+                            <i class="ph-bold ph-check"></i> Pagar
                         </button>
                     </div>
                 </div>`;
@@ -6189,7 +6253,7 @@ function atualizarTelaControle() {
                     </div>
                     <div class="venc-badge">
                         <button onclick="event.stopPropagation(); baixarGrupoCartao('${grupoKey}')" class="btn-secundario" style="padding:4px 8px;font-size:10.5px;border-color:var(--cor-primaria);color:var(--cor-primaria);">
-                            <i class="ph-bold ph-check"></i> Baixar
+                            <i class="ph-bold ph-check"></i> Pagar
                         </button>
                     </div>
                 </div>`;
@@ -6376,7 +6440,7 @@ function atualizarTelaControle() {
                 <div style="text-align: right;">
                     <span class="valor">${formatarMoeda(t.valor)}</span>
                     <div style="margin-top: 4px; display: flex; justify-content: flex-end; align-items: center; gap: 8px;" id="acao-pagar-list-${t.id}">
-                        ${!t.pago && t.categoria !== 'receita' ? `<button onclick="prepararPagamento('${t.id}', 'list')" style="background:none; border:none; cursor:pointer; color:var(--cor-primaria); font-size:16px;" title="Registrar Pagamento"><i class="ph-bold ph-check-circle"></i></button>` : ''}
+                        ${!t.pago && t.categoria !== 'receita' ? `<button onclick="prepararPagamento('${t.id}', 'list')" style="background:none; border:none; cursor:pointer; color:var(--cor-primaria); font-size:16px;" title="Registrar pagamento" class="ext-acao-pagar"><i class="ph-bold ph-check-circle"></i><span class="ext-acao-rot">Pagar</span></button>` : ''}
                         ${controlePodeReverterPagamento(t) ? `<button onclick="reverterPagamento('${t.id}')" style="background:none; border:none; cursor:pointer; color:var(--cor-texto-mutado); font-size:15px;" title="Desfazer pagamento (voltar para a pagar)"><i class="ph ph-arrow-counter-clockwise"></i></button>` : ''}
                         <button onclick="prepararEdicao('${t.id}')" style="background:none; border:none; cursor:pointer; color:var(--cor-info); font-size:15px;" title="Editar"><i class="ph ph-pencil-simple"></i></button>
                         <button onclick="deletarTransacao('${t.id}')" style="background:none; border:none; cursor:pointer; color:var(--cor-erro); font-size:15px;" title="Excluir"><i class="ph ph-trash"></i></button>

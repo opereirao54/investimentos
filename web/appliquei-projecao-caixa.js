@@ -428,7 +428,10 @@ function _projRotulosEixo(d) {
           (i === d.idxHoje ? 'hoje' : '') +
           (i === d.resumo.primeiroNeg ? ' neg' : '') +
           '">' +
-          (i % passo === 0 || i === d.idxHoje || i === n - 1 ? PROJ_MESES[m.mes] : '') +
+          // Acima de 12 meses o mesmo mês aparece mais de uma vez: vai o ano.
+          (i % passo === 0 || i === d.idxHoje || i === n - 1
+            ? PROJ_MESES[m.mes] + (n > 12 ? '/' + String(m.ano).slice(-2) : '')
+            : '') +
           '</span>'
       )
       .join('') +

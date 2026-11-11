@@ -87,16 +87,14 @@ O código está pronto (26/10/2026); o resto é painel. Passo a passo completo e
       (07/11/2026): liquidez da renda fixa (falta o campo de prazo de
       resgate); "por que mudou" separando proventos e amortização; gráfico do
       líquido no passado (reconstruir o saldo devedor pelo contrato).
-- [ ] **Controle financeiro — o que a avaliação de UX apontou e ainda não
-      entrou** (11/11/2026): data do lançamento já preenchida com hoje (mexe
-      na competência quando se olha outro mês: decidir a regra antes); tirar o
-      "Cartão principal" criado sozinho no primeiro acesso; tela de conta
-      vazia com os três primeiros passos no computador; janela própria no
-      lugar do `prompt()` do navegador em "Ajustar" o saldo anterior; mesmo
-      nome para o botão de pagar ("Pagar" no computador, "Baixar" no celular)
-      e para os tipos ("Saída/Entrada" no formulário, "Despesa/Receita" no
-      menu do "+"); botão flutuante "+" sobre o conteúdo no computador; eixo
-      da projeção de 24 a 48 meses sem o ano.
+- [ ] **Controle financeiro — o que sobrou da avaliação de UX** (11/11/2026):
+      o "Cartão principal" ainda é criado sozinho no primeiro acesso (só
+      deixou de ser anunciado no Falta pagar e no "Pagou com" enquanto não é
+      usado — tirar de vez mexe no guia de primeiros passos e na aba Cartão);
+      na fatura, "falta a conta que paga" aparece em dois lugares em vez de
+      um aviso único com botão; data já preenchida só vale para saída
+      variável no mês corrente (nos outros casos a data muda o vencimento ou
+      o mês do lançamento: decidir a regra antes de ampliar).
 
 ## Feito
 
@@ -110,6 +108,12 @@ O código está pronto (26/10/2026); o resto é painel. Passo a passo completo e
   da Saúde do mês em formato brasileiro e texto quando não há dados; títulos
   da projeção no passado; "Transferir" na cor primária; rótulos por extenso
   no cartão e texto das Metas sem contradição.
+  2ª leva: data de hoje já preenchida na saída variável do mês corrente;
+  janela própria para "Ajustar" o saldo anterior (era o `prompt()` do
+  navegador); "Pagar" também no celular (era "Baixar") e "Saída/Entrada" no
+  menu do "+"; conta vazia no computador com "Comece por aqui" no lugar dos
+  blocos zerados; cartão da sobra com Entrou, Já pago e Falta pagar; "Pagar"
+  escrito na linha do extrato; ano no eixo da projeção acima de 12 meses.
 
 - 07/11/2026 · branch `claude/intelligent-ritchie-6o5r6m` (2ª leva) — Faturas
   do cartão no layout novo (limite, parcela, comprometido); folha do

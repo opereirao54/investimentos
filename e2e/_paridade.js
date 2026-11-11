@@ -118,7 +118,7 @@ const EQUIVALENTES = {
   'fn:confirmarExcluirBem':
     'no celular tocar no bem abre o painel do bem; "Excluir" lá chama bemPainelAcao(\'excluir\') → confirmarExcluirBem',
   'fn:confirmarPagamento':
-    '"Pagar" no Falta pagar do web; no celular é "Baixar" no Falta pagar do Início (mobBaixarConta → mobConfirmarBaixa → confirmarPagamento)',
+    '"Pagar" no Falta pagar do web; no celular é o "Pagar" do Falta pagar do Início (mobBaixarConta → mobConfirmarBaixa → confirmarPagamento)',
   'fn:mpdMenuInstituicao':
     'menu ⋯ de cada instituição no web; no celular tocar na linha da instituição abre as mesmas ações (mobPatAbrirCarteira)',
   'fn:ctrlDreSelecionar':
@@ -134,7 +134,7 @@ const EQUIVALENTES = {
   'fn:novoLancamentoControle':
     'é o "Novo lançamento" do cabeçalho do computador (abre já em Saída); no celular o mesmo vem do "+" da barra → Despesa (cadastrarEm → abrirPainelLancamento + selecionarChipTipo)',
   'fn:alternarPainelVencimentos':
-    'no celular os vencimentos ficam sempre abertos, em "Próximos dias" (carrossel do Início): não há o que recolher; Baixar e Ver fatura estão em cada cartão',
+    'no celular os vencimentos ficam sempre abertos, em "Próximos dias" (carrossel do Início): não há o que recolher; Pagar e Ver fatura estão em cada cartão',
   // Extrato no celular: ordem, conta/cartão e categoria moram na gaveta que o
   // botão "Filtros" abre (abrirFolhaFiltros → mudarRascunhoFiltros →
   // aplicarFolhaFiltros), e os ativos viram etiquetas com ✕ (tirarFiltroExtrato).
