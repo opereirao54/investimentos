@@ -2541,7 +2541,7 @@ function _mobPatDesenharTopo() {
         '" onclick="mobPatAlternarLiquido(false)">Bruto</button></div>'
       : '';
   const nota = liquido
-    ? '<p class="mpm-nota">Você tem <b class="valor-mascarado">' +
+    ? '<p class="mpm-nota">Você tem <b class="valor-mascarado mpm-tem">' +
       _mobEsc(_mobPatFmt(k.total)) +
       '</b> e deve <b class="valor-mascarado">' +
       _mobEsc(_mobPatFmt(divida)) +

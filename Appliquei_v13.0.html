@@ -8830,9 +8830,24 @@
         .mpd-acoes .btn-secundario { padding:7px 12px; font-size:12.5px; border-radius:10px; }
         .mpd-linha { display:flex; flex-wrap:wrap; gap:16px; align-items:stretch; margin-bottom:16px; }
         .mpd-linha > .card-container { margin:0 !important; min-width:0; }
-        .mpd-heroi, .mpd-onde { flex: 2 1 520px; }
-        .mpd-balanco, .mpd-mudou { flex: 1 1 300px; }
-        .mpd-tres > .card-container { flex: 1 1 280px; }
+        .mpd-heroi, .mpd-detalhe { flex: 2 1 520px; min-width: 0; }
+        .mpd-balanco, .mpd-lado { flex: 1 1 320px; min-width: 0; }
+        .mpd-lado, .mpd-detalhe { display: flex; flex-direction: column; gap: 16px; }
+        .mpd-lado > .card-container, .mpd-detalhe > .card-container { margin: 0 !important; min-width: 0; }
+        .mpd-lado > .card-container { flex: 1 1 auto; }
+        .mpd-detalhe > .card-container { flex: 1 1 auto; }
+        /* Linha do balanço que abre o detalhe ao lado. */
+        button.mpd-lin { width: 100%; border: 0; background: none; text-align: left; font-family: inherit; color: inherit; cursor: pointer; border-radius: 8px; padding: 9px 8px; margin: 0 -8px; width: calc(100% + 16px); grid-template-columns: 10px minmax(0,1fr) auto 38px 12px; }
+        button.mpd-lin.sem-pct { grid-template-columns: 10px minmax(0,1fr) auto 12px; }
+        button.mpd-lin:hover { background: var(--cor-superficie); }
+        button.mpd-lin[aria-pressed="true"] { background: var(--cor-bg-primaria); font-weight: 700; }
+        .mpd-lin-seta { color: var(--cor-texto-mutado); font-size: 16px; line-height: 1; text-align: right; }
+        @media (min-width: 769px) {
+            /* Um detalhe por vez: o da linha escolhida no balanço. */
+            #meu_patrimonio[data-mp-detalhe]:not([data-mp-detalhe="conta"]) .mpd-onde,
+            #meu_patrimonio[data-mp-detalhe]:not([data-mp-detalhe="inv"]) .mp-classes-card,
+            #meu_patrimonio[data-mp-detalhe]:not([data-mp-detalhe="bens"]) .mp-bens-card { display: none !important; }
+        }
         /* Bens compactos, no terço do meio como no canvas: nome e valor na
            primeira linha, financiamento embaixo, ações aparecem ao passar o
            mouse (ou com o foco). */
@@ -13415,6 +13430,8 @@
             .mpm-quando { margin: 3px 0 0; font-size: 12.5px; color: var(--cor-texto-mutado); }
             .mpm-nota { margin: 6px 0 0; font-size: 12.5px; color: var(--cor-texto-mutado); }
             .mpm-nota b { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--cor-erro); }
+            /* "Você tem" não é dívida: sai do vermelho. */
+            .mpm-nota b.mpm-tem { color: var(--cor-texto-principal); }
             .mpm-graf { position: relative; height: 150px; margin: 14px -16px 0; touch-action: pan-y; cursor: crosshair; }
             .mpm-svg { display: block; width: 100%; height: 100%; }
             .mpm-cursor { stroke: var(--cor-texto-principal); stroke-width: 1; stroke-dasharray: 3 4; opacity: 0; }
@@ -17054,9 +17071,21 @@
             <button type="button" class="mpd-painel-fundo" aria-label="Fechar painel" onclick="mpFecharPainelInst()"></button>
             <aside id="mpdPainel" class="mpd-painel" role="dialog" aria-modal="true" aria-label="Instituição" hidden></aside>
 
+            <!-- Reorganização de 11/2026 (avaliação de UX: "muita informação"):
+                 eram sete cartões, três deles repetindo números do balanço.
+                 Agora o topo responde "quanto tenho e por que mudou" (herói,
+                 Por que mudou e Fôlego) e, embaixo, o balanço abre UM detalhe
+                 por vez ao lado — bancos, classes ou bens (mpWebDetalhe). -->
             <div class="mpd-linha mpd-web">
                 <section class="card-container mpd-heroi" id="mpwHeroi" aria-label="Patrimônio"></section>
-                <section class="card-container mpd-balanco" id="mpwBalanco" aria-label="Do que ele é feito"></section>
+                <div class="mpd-lado">
+                    <!-- Por que mudou: a variação do período do gráfico, parcela
+                         por parcela (mpMudancaDoMes). -->
+                    <section class="card-container mpd-mudou" id="mpwMudou" aria-label="Por que mudou"></section>
+                    <!-- Fôlego: quanto dá para usar logo e quantos meses a reserva
+                         cobre (mpRenderFolegoWeb). -->
+                    <section class="card-container mpd-folego" id="mpwFolego" aria-label="Fôlego"></section>
+                </div>
             </div>
 
             <div id="mpMobCarteiras" class="mob-inicio mob-pat"></div>
@@ -17071,6 +17100,8 @@
                  instituições logo abaixo; ela vira "Gerenciar contas", recolhida,
                  para o que não aparece em cima (conta zerada, arquivada, fundir). -->
             <div class="mpd-linha">
+            <section class="card-container mpd-balanco mpd-web" id="mpwBalanco" aria-label="Do que ele é feito"></section>
+            <div class="mpd-detalhe mpd-tres">
             <div class="card-container mp-onde-card mpd-onde">
                 <div class="mp-section-head mp-onde-head">
                     <div class="mp-onde-titulo">
@@ -17116,12 +17147,7 @@
                 </details>
             </div>
 
-            <!-- Por que mudou: a variação do mês, parcela por parcela, somando
-                 exatamente a diferença do gráfico (mpMudancaDoMes). -->
-            <section class="card-container mpd-mudou mpd-web" id="mpwMudou" aria-label="Por que mudou"></section>
-            </div>
 
-            <div class="mpd-linha mpd-tres">
             <!-- Investimentos por classe: lista compacta. O gráfico de barras com
                  a tabela embaixo gastava um card inteiro para duas ou três
                  classes; o detalhe completo está em Meus investimentos. -->
@@ -17142,9 +17168,7 @@
                 <div class="mp-lista-inst" id="listaBens"><div class="mp-empty"><i class="ph ph-package"></i>Nenhum bem cadastrado.</div></div>
             </div>
 
-            <!-- Fôlego: quanto dá para usar logo, quantos meses a reserva cobre e
-                 os proventos previstos (mpRenderFolegoWeb). -->
-            <section class="card-container mpd-folego mpd-web" id="mpwFolego" aria-label="Fôlego"></section>
+            </div>
             </div>
 
             <!-- CADASTRO DE BEM — modal em passos.

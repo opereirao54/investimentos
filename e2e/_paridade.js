@@ -121,6 +121,8 @@ const EQUIVALENTES = {
     '"Pagar" no Falta pagar do web; no celular é o "Pagar" do Falta pagar do Início (mobBaixarConta → mobConfirmarBaixa → confirmarPagamento)',
   'fn:ctlFaltaPagarAbrir':
     '"Pagar" no Falta pagar do web abre o valor e o dia na própria linha; no celular o "Pagar" do Início abre a folha com os mesmos dois campos (mobBaixarConta → mobConfirmarBaixa → confirmarPagamento)',
+  'fn:mpWebDetalhe':
+    'linha do balanço no web abre o detalhe dela ao lado (bancos, classes ou bens); no celular a mesma linha de "Do que ele é feito" leva ao bloco correspondente, que lá fica sempre aberto (mobPatIrPara)',
   'fn:mpdMenuInstituicao':
     'menu ⋯ de cada instituição no web; no celular tocar na linha da instituição abre as mesmas ações (mobPatAbrirCarteira)',
   'fn:ctrlDreSelecionar':

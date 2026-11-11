@@ -734,6 +734,9 @@ function abrirNovaContaForm() {
 // No web o formulário fica abaixo da lista de instituições; o botão que o
 // abre está no cabeçalho da página. Rola até ele para não abrir fora da vista.
 function contaFormMostrar(f) {
+  // O formulário mora no cartão das contas, que no computador só aparece
+  // quando o detalhe aberto do balanço é "Saldo em conta".
+  if (typeof mpWebDetalhe === 'function') mpWebDetalhe('conta');
   if (f && typeof f.scrollIntoView === 'function') {
     try {
       f.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
