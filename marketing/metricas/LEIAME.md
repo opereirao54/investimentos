@@ -50,7 +50,8 @@
 - **Fontes: Stories 52,5%, aba Reels 40,4%, Feed 5,0%, Explorar 1,6%.** Mais
   da metade das views veio de alguém que pôs o Reel nos stories; pela aba
   Reels vieram ~130, perto do típico do perfil (~150). O salto de views não é
-  o algoritmo distribuindo mais. Falta saber quem compartilhou.
+  o algoritmo distribuindo mais. Quem compartilhou nos stories foi só o
+  fundador (confirmado por ele em 12/11); o sócio não.
 - **Reels pulados: 76,0% ("mais baixo")**, contra 86,2% na garantia.
 - Curva: ~50% em 1 s, ~33% em 2 s, ~28% em 3 s, ~17% aos 7 s, patamar de
   ~13 a 15% até ~25 s e ~4% no fim. Na garantia: ~25% em 2 s e ~7% do meio
