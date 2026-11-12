@@ -214,23 +214,32 @@ function mobRenderDRE(d) {
   if (!alvo || !d || !Array.isArray(d.meses) || !d.meses.length) return;
   _mobDreUltimo = d;
   if (typeof projPreparar !== 'function') return;
-  // Projeção do caixa (appliquei-projecao-caixa.js): resposta primeiro, a
-  // linha da sobra acumulada, os alertas com o motivo, entra × sai, o que
-  // muda, o "E se…?" e o mês a mês — tudo numa coluna, sem arrastar de lado.
+  // Projeção do caixa (appliquei-projecao-caixa.js): a resposta em palavras
+  // ("vai faltar dinheiro?") e a linha com os valores, os alertas com o
+  // motivo, o "E se…?", o que muda (as primeiras linhas) e o mês a mês com
+  // os meses fechados — tudo numa coluna curta, sem arrastar de lado. O
+  // "entra e sai" em barras saiu do celular: cada mês da lista já traz a
+  // barrinha e, aberto, o que entra e o que sai.
   const p = projPreparar(d);
-  if (_mobDreAberto == null || _mobDreAberto >= d.meses.length) _mobDreAberto = d.indiceAtual;
+  if (_mobDreAberto == null || _mobDreAberto >= d.meses.length) _mobDreAberto = -1;
   alvo.innerHTML =
     projHtmlTopo(p) +
     projHtmlAlertas(p) +
-    projHtmlEntraSai(p) +
-    projHtmlOQueMuda(p) +
     '<button type="button" class="pj-btn2 pj-simular" onclick="projSimAbrir()"><i class="ph ph-plus" aria-hidden="true"></i> E se…? Simular uma compra ou entrada</button>' +
+    projHtmlOQueMuda(p, _mobDreMudaTudo ? 0 : 4) +
     '<section class="mdre-mm" aria-label="Mês a mês"><h3 class="mdre-mm-tit">Mês a mês</h3><div class="mdre-mm-lista" id="mdreLista">' +
     _mobDreLista(d) +
     '</div><p class="pj-nota">A barrinha de cada mês é quanto do que entra já tem destino. Vermelha: sai mais do que entra.</p></section>';
 }
 
 var _mobDreAberto = null;
+// "O que muda" abre com 4 linhas; "Ver mais" mostra todas até sair da aba.
+var _mobDreMudaTudo = false;
+
+function mobDreMudaTudo() {
+  _mobDreMudaTudo = true;
+  if (_mobDreUltimo) mobRenderDRE(_mobDreUltimo);
+}
 
 function _mobDreLista(d) {
   const fmt = _mobDreFmt;

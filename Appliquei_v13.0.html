@@ -1305,6 +1305,13 @@
         .pj-dem .azul { color: var(--tinta-azul, #1d4ed8); } .pj-dem .roxo { color: var(--tinta-roxo, #6d28d9); }
         .pj-graf { display: flex; flex-direction: column; gap: 4px; }
         .pj-svg { width: 100%; height: auto; display: block; }
+        .pj-svg-rot { font: 500 11.5px 'DM Mono', monospace; }
+        .dre-rot-cel { display: none; }
+        .pj-veredito { display: flex; flex-direction: column; gap: 3px; }
+        .pj-resposta { font: 800 26px 'Figtree', sans-serif; letter-spacing: -0.01em; line-height: 1.15; }
+        .pj-veredito .pj-sub b { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--cor-texto-principal); }
+        .pj-veredito .pj-sub b.neg { color: var(--tinta-vermelho, #b91c1c); }
+        .pj-muda-mais { margin: 2px 0 6px; }
         .pj-eixo { display: grid; font-size: 11px; color: var(--cor-texto-mutado); text-align: center; }
         .pj-eixo .hoje { color: var(--tinta-verde, #047857); font-weight: 700; }
         .pj-eixo .neg { color: var(--tinta-vermelho, #b91c1c); font-weight: 700; }
@@ -12334,12 +12341,15 @@
             }
             #controle [data-mob-aba="extrato"] > div[style*="auto-fit"]::-webkit-scrollbar { display: none; }
             #controle [data-mob-aba="extrato"] > div[style*="auto-fit"] > div { flex: 0 0 auto; min-width: 116px; }
-            /* Horizonte da projeção: uma linha só, deslizando. */
+            /* Horizonte da projeção: os cinco períodos numa linha, sem deslizar
+               (rótulos curtos: Passado, 1 ano … 4 anos). */
             #controle [data-mob-aba="projecao"] > div:last-child:has(.btn-tab-dre) {
-                flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none;
-                margin: 0 -16px; padding: 0 16px 2px; width: calc(100% + 32px);
+                display: grid !important; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px !important; width: 100%;
             }
-            #controle .btn-tab-dre { flex-shrink: 0; min-height: 40px; }
+            #controle .btn-tab-dre { min-height: 40px; padding: 6px 2px !important; text-align: center; white-space: nowrap; }
+            #controle .btn-tab-dre .ph { display: none; }
+            #controle .btn-tab-dre .dre-rot-web { display: none; }
+            #controle .btn-tab-dre .dre-rot-cel { display: inline; }
 
             /* --- Meu patrimônio --- */
             #meu_patrimonio .page-header .subtitulo { display: none; }
@@ -16234,11 +16244,11 @@
             <div data-mob-aba="projecao" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:12px;">
                 <h2 style="font-size:15px;font-weight:600;color:var(--cor-texto-principal);margin:0;display:flex;align-items:center;gap:7px;"><i class="ph ph-calendar-check" style="color:var(--cor-info);font-size:18px;"></i> <span id="tituloProjecao">Próximos meses</span></h2>
                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                    <button class="btn-tab-dre" onclick="mudarMesesDRE(event,12,-11)"><i class="ph ph-clock-counter-clockwise"></i> 12 passados</button>
-                    <button class="btn-tab-dre ativo" onclick="mudarMesesDRE(event,12,0)">12 meses</button>
-                    <button class="btn-tab-dre" onclick="mudarMesesDRE(event,24,0)">24 meses</button>
-                    <button class="btn-tab-dre" onclick="mudarMesesDRE(event,36,0)">36 meses</button>
-                    <button class="btn-tab-dre" onclick="mudarMesesDRE(event,48,0)">48 meses</button>
+                    <button class="btn-tab-dre" onclick="mudarMesesDRE(event,12,-11)" aria-label="Últimos 12 meses"><i class="ph ph-clock-counter-clockwise"></i> <span class="dre-rot-web">12 passados</span><span class="dre-rot-cel">Passado</span></button>
+                    <button class="btn-tab-dre ativo" onclick="mudarMesesDRE(event,12,0)" aria-label="Próximos 12 meses"><span class="dre-rot-web">12 meses</span><span class="dre-rot-cel">1 ano</span></button>
+                    <button class="btn-tab-dre" onclick="mudarMesesDRE(event,24,0)" aria-label="Próximos 24 meses"><span class="dre-rot-web">24 meses</span><span class="dre-rot-cel">2 anos</span></button>
+                    <button class="btn-tab-dre" onclick="mudarMesesDRE(event,36,0)" aria-label="Próximos 36 meses"><span class="dre-rot-web">36 meses</span><span class="dre-rot-cel">3 anos</span></button>
+                    <button class="btn-tab-dre" onclick="mudarMesesDRE(event,48,0)" aria-label="Próximos 48 meses"><span class="dre-rot-web">48 meses</span><span class="dre-rot-cel">4 anos</span></button>
                 </div>
             </div>
             <!-- DRE no celular: gráfico do resultado + um cartão por mês

@@ -121,3 +121,78 @@ test('motivo do negativo e o que muda saem dos lançamentos', () => {
   assert.equal(tv.mes, 1);
   assert.equal(tv.valor, 440);
 });
+
+// Janela que começa no mês de hoje, com a sobra acumulada dada mês a mês.
+function janelaDeHoje(acumulados) {
+  const h = new Date();
+  let ant = 0;
+  return acumulados.map((acum, i) => {
+    const d = new Date(h.getFullYear(), h.getMonth() + i, 1);
+    const m = mes(d.getMonth(), d.getFullYear(), 6000, 6000 - (acum - ant), acum, ant);
+    ant = acum;
+    return m;
+  });
+}
+
+test('celular: o topo responde "vai faltar dinheiro?" antes dos números', () => {
+  const s = carregarApp({}, ORDEM);
+  const folgado = s.projHtmlTopo(s.projPreparar({ meses: janelaDeHoje([900, 300, 1200]) }));
+  assert.match(folgado, /Vai faltar dinheiro\?/);
+  assert.match(folgado, /Não, em nenhum mês/);
+  assert.match(folgado, /O mês mais apertado é/);
+  // Só há previsto na linha: a legenda não fala em "já aconteceu".
+  assert.doesNotMatch(folgado, /já aconteceu/);
+  // O valor do menor ponto e o do fim vão escritos na linha.
+  assert.equal((folgado.match(/pj-svg-rot/g) || []).length, 2);
+
+  const aperto = s.projHtmlTopo(s.projPreparar({ meses: janelaDeHoje([900, -400, -700, 500]) }));
+  assert.match(aperto, /Sim, em /);
+  assert.match(aperto, /Faltam <b[^>]*>R\$ 400<\/b>/);
+  // O pior ponto vem depois do primeiro mês negativo: a frase diz os dois.
+  assert.match(aperto, /O pior ponto é [^:]+: <b[^>]*>−R\$ 700<\/b>/);
+});
+
+test('web: o topo segue com o número do fim do horizonte', () => {
+  const s = carregarApp({}, ORDEM);
+  const web = s.projHtmlTopo(s.projPreparar({ meses: janelaDeHoje([900, 300, 1200]), web: true }));
+  assert.match(web, /você deve ter/);
+  assert.doesNotMatch(web, /Vai faltar dinheiro\?/);
+});
+
+test('celular: o mês aberto esconde linha zerada e separa sobra do mês de acumulada', () => {
+  const s = carregarApp({}, ORDEM);
+  const meses = janelaDeHoje([900, 300]);
+  const cel = s.projHtmlMes(s.projPreparar({ meses }), 0);
+  assert.doesNotMatch(cel, /Resgates \(venda de ativos\)/);
+  assert.doesNotMatch(cel, /Sonhos \(separado/);
+  assert.match(cel, /Sobra do mês/);
+  assert.match(cel, /Sobra acumulada/);
+  assert.doesNotMatch(cel, /Resultado do mês/);
+  const web = s.projHtmlMes(s.projPreparar({ meses, web: true }), 0);
+  assert.match(web, /Resgates \(venda de ativos\)/);
+  assert.match(web, /Resultado do mês/);
+});
+
+test('celular: "o que muda" abre com as primeiras linhas e o resto a um toque', () => {
+  const h = new Date();
+  const s = carregarApp({}, ORDEM);
+  s.transacoes.length = 0;
+  for (let i = 1; i <= 6; i++) {
+    const d = new Date(h.getFullYear(), h.getMonth() + i, 5);
+    s.transacoes.push({
+      id: 'u' + i,
+      descricao: 'Conta ' + i,
+      categoria: 'despesa_fixa',
+      valor: 400 + i,
+      mes: d.getMonth(),
+      ano: d.getFullYear(),
+    });
+  }
+  const p = s.projPreparar({ meses: janelaDeHoje([900, 800, 700, 600, 500, 400, 300]) });
+  const curto = s.projHtmlOQueMuda(p, 4);
+  assert.equal((curto.match(/pj-muda-l/g) || []).length, 4);
+  assert.match(curto, /Ver mais 2/);
+  const tudo = s.projHtmlOQueMuda(p);
+  assert.equal((tudo.match(/pj-muda-l/g) || []).length, 6);
+  assert.doesNotMatch(tudo, /Ver mais/);
+});
