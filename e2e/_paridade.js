@@ -51,6 +51,9 @@ const ESTADOS_MOB = {
     "mobSegControle('resumo')",
     "mobSegControle('extrato')",
     "mobSegControle('projecao')",
+    // Na Projeção os meses começam fechados: abrir um mostra as linhas do mês,
+    // "Ver no extrato" e "Simular ajuste".
+    "mobSegControle('projecao'); mobDreIrPara(0, true)",
     // Os avisos de "O que notamos" abrem em tela cheia, com o cartão do desktop.
     "mobSegControle('resumo'); mobStoryAbrir(0)",
     // "Hoje" só aparece fora do mês corrente (no mês corrente não faria nada).
@@ -127,6 +130,8 @@ const EQUIVALENTES = {
     'menu ⋯ de cada instituição no web; no celular tocar na linha da instituição abre as mesmas ações (mobPatAbrirCarteira)',
   'fn:ctrlDreSelecionar':
     'barra de um mês da projeção no web; no celular é tocar na barra ou no cartão do mês (mobDreIrPara)',
+  'fn:projAbrirMes':
+    'barra do "Entra e sai" no web leva ao mês; no celular o bloco saiu (cada mês da lista já traz a barrinha) e o mesmo mês abre ao tocar nele em "Mês a mês" (mobDreIrPara); o "Ver <mês>" do alerta de mês negativo segue chamando projAbrirMes',
   'fn:mpWebAlternarLiquido':
     'Líquido/Bruto do Patrimônio no web; no celular é o mesmo seletor no topo da foto (mobPatAlternarLiquido)',
   'fn:mpWebPeriodo':
