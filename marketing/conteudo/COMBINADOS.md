@@ -65,6 +65,11 @@ true`), mesmo modelo do News.
   pendentes; na véspera do News, propõe as pautas do dia. Prompt atualizado em
   29/10 para "só Reels". Desligar depois de 02/01/2027.
 
+- **O tema de cada Reel é decisão do fundador (12/11: "nunca decida por
+  mim").** O tema do `CALENDARIO.md` é sugestão, não decisão: antes de
+  roteirizar ou produzir, apresentar as opções e esperar o "sim" dele. Vale
+  também para qualquer outra escolha (abertura, duração, CTA): propor, não
+  assumir.
 - **Um dia por vez:** cada dia se produz só o pacote do dia seguinte.
 - **Pacote para quem posta:** um **bloco de texto por postagem**, pronto para
   copiar e encaminhar, **sem nome de arquivo** (chamar a imagem/vídeo pelo que
