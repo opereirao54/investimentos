@@ -115,8 +115,8 @@ que a justifica:
 - **Perfil:** bio com a promessa e os dias da grade; fixar o melhor Reel;
   arquivar o que anuncia coisa desatualizada. Sinal: visitas ao perfil altas
   e cliques no link ou seguidores baixos.
-- **Comentários:** comentário fixado com pergunta ("Você é o Caio ou o
-  Mateus?") e resposta a todos na primeira hora.
+- **Comentários:** comentário fixado com pergunta ("Você é o Beto ou a
+  Lia?") e resposta a todos na primeira hora.
 - **Reel de teste do Instagram** (indisponível na conta em 05/11; ver `crescimento.md`): o mesmo vídeo com duas aberturas, mostrado
   só a quem não segue, para testar o gancho sem gastar um dia da grade.
 - **Collab** com perfis pequenos de finanças ou humor do dia a dia.

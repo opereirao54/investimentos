@@ -21,7 +21,7 @@ mudar (com a data).
   simples gerado dele com `node marketing/conteudo/gerar-pdf.js`).
 - **Duas séries fixas (fundador, 29/10), só Reels:**
   - **Appliquei Explica** (seg e sex desde 04/11): o dinheiro do dia a dia (gastos
-    invisíveis, cartão, reserva, metas), no formato Mateus × Caio com a conta
+    invisíveis, cartão, reserva, metas), no formato Beto × Lia (até 11/11, Mateus × Caio) com a conta
     na tela. Os temas do `CALENDARIO.md` são desta série. Selo verde "Appliquei
     Explica" no topo (renomeada de "Conta de Padaria" em 29/10: soava
     infantil). Vinheta verde (`vinheta.sh explica`) e capa verde (`"explica":
@@ -65,6 +65,11 @@ true`), mesmo modelo do News.
   pendentes; na véspera do News, propõe as pautas do dia. Prompt atualizado em
   29/10 para "só Reels". Desligar depois de 02/01/2027.
 
+- **O tema de cada Reel é decisão do fundador (12/11: "nunca decida por
+  mim").** O tema do `CALENDARIO.md` é sugestão, não decisão: antes de
+  roteirizar ou produzir, apresentar as opções e esperar o "sim" dele. Vale
+  também para qualquer outra escolha (abertura, duração, CTA): propor, não
+  assumir.
 - **Um dia por vez:** cada dia se produz só o pacote do dia seguinte.
 - **Pacote para quem posta:** um **bloco de texto por postagem**, pronto para
   copiar e encaminhar, **sem nome de arquivo** (chamar a imagem/vídeo pelo que
@@ -89,10 +94,13 @@ true`), mesmo modelo do News.
 - **Voz:** **Charon** (Gemini TTS, masculina) e, desde 04/11 (fundador), também a **Sulafat** (feminina) como opção, para variar entre os vídeos. Uma voz por vídeo. Regravar o roteiro inteiro num
   pedido só (frase emendada muda volume e tom). Trocar palavras que o TTS
   confunde no contexto ("caro" num vídeo sobre "carro" → "pesa no bolso").
-- **Personagens:** sempre **Caio e Mateus**, fictícios. **Mateus é sempre o
-  mau exemplo; Caio, o bom.** (Vale para vídeos novos desde 23/10.)
+- **Personagens (fundador, 12/11): sempre Beto e Lia**, fictícios. **Beto é
+  sempre o mau exemplo; Lia, o bom.** Vale para os Reels novos, a partir de
+  sex 13/11. Os Reels já publicados e os vídeos prontos que ainda não foram
+  ao ar (reta final) ficam com Caio e Mateus, como estão. Até 11/11 eram
+  Caio (bom) e Mateus (mau).
 - **Formato que funciona:** "conta na tela", educativo primeiro, situação do
-  dia a dia, conta que surpreende, regra de bolso, Mateus × Caio, didático.
+  dia a dia, conta que surpreende, regra de bolso, Beto × Lia, didático.
   Ideias rejeitadas: repetir o tema "pagar antes com desconto", queda de 50%
   (não é do dia a dia), cheque especial, horas de trabalho, álcool ou
   gasolina.

@@ -13,5 +13,5 @@
 - **Redes sociais até o lançamento (02/01/2027):** antes de produzir ou
   responder sobre conteúdo, leia `marketing/conteudo/COMBINADOS.md` (série de
   Reels, ritmo de produção um dia por vez, formato do pacote para quem posta,
-  Mateus mau exemplo, voz Charon) e lembre o fundador do que estiver em
+  Beto mau exemplo e Lia bom exemplo, voz Charon) e lembre o fundador do que estiver em
   "Pendentes".

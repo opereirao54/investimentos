@@ -43,11 +43,12 @@ Modelos:
   frase emendada de outro pedido sai com outro volume e outro tom. Evite
   palavras que o TTS confunde com outra do mesmo vídeo ("caro" num vídeo sobre
   "carro"): troque a palavra em vez de confiar na pronúncia.
-- **Personagens:** sempre **Caio e Mateus** (fictícios), quando a conta
+- **Personagens:** sempre **Beto e Lia** (fictícios), quando a conta
   pedir duas pessoas. Nada de nomes novos a cada vídeo; diga "Personagens
-  fictícios" no aviso. **O Mateus é sempre o mau exemplo** (quem escolhe
-  errado, chuta errado ou cai na pegadinha) e o **Caio, o bom exemplo**. Vale
-  a partir de 23/10/2026; os vídeos anteriores ficam como estão.
+  fictícios" no aviso. **O Beto é sempre o mau exemplo** (quem escolhe
+  errado, chuta errado ou cai na pegadinha) e a **Lia, o bom exemplo**. Vale
+  para os Reels novos a partir de 13/11/2026 (fundador, 12/11); os publicados
+  e os já prontos ficam com Caio e Mateus, como estão.
 - **Antes de publicar:** rode o checklist de
   `.claude/skills/marketing-saas/referencias/voz-e-compliance.md`.
 - **Nas peças de alcance, o app só aparece no fecho.** Nos últimos 3–5 s, com
