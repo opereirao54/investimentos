@@ -44,6 +44,21 @@
 - Ponto fraco: segurou, mas não virou envio, salvo nem seguidor. O pedido de
   envio e o "segue" só entram aos 31 s, quando poucos ainda estão.
 
+### Print da tela Estatísticas (12/11, 9h12)
+
+- 328 views, 287 visualizadores, tempo médio 12 s, 0 seguidores.
+- **Fontes: Stories 52,5%, aba Reels 40,4%, Feed 5,0%, Explorar 1,6%.** Mais
+  da metade das views veio de alguém que pôs o Reel nos stories; pela aba
+  Reels vieram ~130, perto do típico do perfil (~150). O salto de views não é
+  o algoritmo distribuindo mais. Falta saber quem compartilhou.
+- **Reels pulados: 76,0% ("mais baixo")**, contra 86,2% na garantia.
+- Curva: ~50% em 1 s, ~33% em 2 s, ~28% em 3 s, ~17% aos 7 s, patamar de
+  ~13 a 15% até ~25 s e ~4% no fim. Na garantia: ~25% em 2 s e ~7% do meio
+  ao fim. Quem passa dos 7 s fica quase até a regra de bolso.
+- Como quem vem de stories é público mais quente, parte do ganho de tempo
+  médio e de retenção pode ser da fonte, não da abertura.
+- Compart. 0,4%, curtidas 1,1% e comentários 0% marcados como "mais baixo".
+
 ## Linha de base (04/11, 7 Reels)
 
 Tempo médio 5,6 s · retenção 14% · salvos 0,1% · compart. 0,6% · 79 visitas
