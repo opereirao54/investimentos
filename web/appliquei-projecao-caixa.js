@@ -331,7 +331,9 @@ function projSvgLinha(vals, idxHoje, opts) {
   const faixa = max - min || 1;
   const n = vals.length;
   const x = (i) => pad + (n > 1 ? (i * (W - pad * 2)) / (n - 1) : (W - pad * 2) / 2);
-  const y = (v) => 14 + ((max - v) / faixa) * (H - 34);
+  // Com rótulos de valor (celular) sobra espaço em cima e embaixo para o texto.
+  const topo = o.rotulosPts ? 24 : 14;
+  const y = (v) => topo + ((max - v) / faixa) * (H - 20 - topo);
   const pts = (vs) => vs.map((v, i) => x(i).toFixed(1) + ' ' + y(v).toFixed(1));
   const p = pts(vals);
   const corte = Math.max(0, Math.min(n - 1, idxHoje));
@@ -410,6 +412,25 @@ function projSvgLinha(vals, idxHoje, opts) {
       mk.cor +
       '" stroke="#ffffff" stroke-width="2"></circle>';
   });
+  // Valor escrito no ponto (menor ponto, fim do horizonte): acima ou abaixo
+  // dele, ancorado para não sair da tela nas pontas.
+  (o.rotulosPts || []).forEach((r) => {
+    if (r.i < 0 || r.i >= n) return;
+    const px = x(r.i);
+    const ancora = px < W * 0.2 ? 'start' : px > W * 0.8 ? 'end' : 'middle';
+    svg +=
+      '<text class="pj-svg-rot valor-mascarado" x="' +
+      px.toFixed(1) +
+      '" y="' +
+      (y(vals[r.i]) + (r.abaixo ? 17 : -9)).toFixed(1) +
+      '" text-anchor="' +
+      ancora +
+      '" fill="' +
+      r.cor +
+      '">' +
+      _projEsc(r.texto) +
+      '</text>';
+  });
   svg += '</svg>';
   return svg;
 }
@@ -462,10 +483,97 @@ function projPreparar(d) {
   return out;
 }
 
+/**
+ * O topo no celular: a resposta da aba ("vai faltar dinheiro?") em palavras,
+ * antes de qualquer número; o fim do horizonte e a sobra média ficam embaixo.
+ * A linha traz o valor escrito no menor ponto e no fim.
+ */
+function projHtmlTopoCelular(d) {
+  const r = d.resumo;
+  const ultimo = d.meses[r.finalIdx];
+  const rotFinal = ultimo ? PROJ_MESES[ultimo.mes] + '/' + String(ultimo.ano).slice(-2) : '';
+  const falta = r.primeiroNeg !== -1;
+  const iChave = falta ? r.primeiroNeg : r.menorIdx;
+  const mChave = d.meses[iChave];
+  const nomeMes = mChave ? PROJ_MESES_LONGOS[mChave.mes] : '';
+  const valChave = mChave ? _projN(mChave.saldoAcumulado) : 0;
+  const VERDE = '#047857';
+  const VERMELHO = '#b91c1c';
+  // Faltando dinheiro, o pior ponto pode vir depois do primeiro mês negativo:
+  // a frase diz os dois e a linha escreve o valor do mais baixo.
+  const piorDepois = falta && r.menorIdx !== r.primeiroNeg;
+  const mPior = d.meses[r.menorIdx];
+  const marcas = [];
+  const rotulosPts = [];
+  if (iChave !== d.idxHoje) marcas.push({ i: iChave, cor: falta ? VERMELHO : VERDE });
+  if (piorDepois) marcas.push({ i: r.menorIdx, cor: VERMELHO });
+  rotulosPts.push({
+    i: r.menorIdx,
+    texto: _projFmtCurto(r.menor),
+    cor: r.menor < 0 ? VERMELHO : VERDE,
+    abaixo: true,
+  });
+  if (r.finalIdx !== r.menorIdx)
+    rotulosPts.push({
+      i: r.finalIdx,
+      texto: _projFmtCurto(r.final),
+      cor: r.final < 0 ? VERMELHO : VERDE,
+    });
+  return (
+    '<section class="pj-card pj-topo pj-topo-cel" aria-label="Resumo da projeção">' +
+    '<div class="pj-veredito"><span class="pj-rot">Vai faltar dinheiro?</span><span class="pj-resposta ' +
+    (falta ? 'neg' : 'pos') +
+    '">' +
+    (falta ? 'Sim, em ' + nomeMes : 'Não, em nenhum mês') +
+    '</span><span class="pj-sub">' +
+    (falta
+      ? 'Faltam <b class="valor-mascarado neg">' +
+        _projFmtCurto(Math.abs(valChave)) +
+        '</b> no caixa, se o que está lançado acontecer.' +
+        (piorDepois && mPior
+          ? ' O pior ponto é ' +
+            PROJ_MESES_LONGOS[mPior.mes] +
+            ': <b class="valor-mascarado neg">' +
+            _projFmtCurto(r.menor) +
+            '</b>.'
+          : '')
+      : 'O mês mais apertado é ' +
+        nomeMes +
+        ': sobram <b class="valor-mascarado">' +
+        _projFmtCurto(valChave) +
+        '</b>.') +
+    '</span></div>' +
+    '<div class="pj-topo-nums"><div class="pj-num"><span class="pj-rot">Em ' +
+    rotFinal +
+    ' você terá</span><span class="valor-mascarado ' +
+    (r.final < 0 ? 'neg' : '') +
+    '">' +
+    _projFmtCurto(r.final) +
+    '</span></div><div class="pj-num"><span class="pj-rot">Sobra média por mês</span><span class="valor-mascarado ' +
+    (r.mediaSobra < 0 ? 'neg' : '') +
+    '">' +
+    _projFmtCurto(r.mediaSobra) +
+    '</span></div></div>' +
+    '<div class="pj-graf">' +
+    projSvgLinha(
+      d.meses.map((m) => _projN(m.saldoAcumulado)),
+      d.idxHoje,
+      { w: 342, h: 170, marcas, rotulosPts }
+    ) +
+    _projRotulosEixo(d) +
+    '</div><div class="pj-legenda">' +
+    // "já aconteceu" só quando há trecho contínuo na linha (meses antes de hoje).
+    (d.idxHoje > 0 ? '<span><i class="pj-traco"></i>já aconteceu</span>' : '') +
+    '<span><i class="pj-traco tracejado"></i>previsto, com o que está lançado</span></div>' +
+    '</section>'
+  );
+}
+
 function projHtmlTopo(d) {
   const r = d.resumo;
   const ultimo = d.meses[r.finalIdx];
   const passado = d.idxHoje >= r.finalIdx;
+  if (!d.web && !passado) return projHtmlTopoCelular(d);
   const rotFinal = ultimo ? PROJ_MESES[ultimo.mes] + '/' + String(ultimo.ano).slice(-2) : '';
   const marcas = [];
   if (r.primeiroNeg !== -1) marcas.push({ i: r.primeiroNeg, cor: '#b91c1c' });
@@ -593,9 +701,12 @@ function projHtmlEntraSai(d) {
   );
 }
 
-function projHtmlOQueMuda(d) {
-  const ev = projOQueMuda(d.meses, d.idxHoje);
-  if (!ev.length) return '';
+function projHtmlOQueMuda(d, limite) {
+  const todos = projOQueMuda(d.meses, d.idxHoje);
+  if (!todos.length) return '';
+  // No celular a lista abre com as primeiras linhas; o resto fica a um toque.
+  const ev = limite && todos.length > limite ? todos.slice(0, limite) : todos;
+  const resto = todos.length - ev.length;
   return (
     '<section class="pj-card pj-muda" aria-label="O que muda"><div class="pj-card-cab"><b>O que muda</b></div>' +
     ev
@@ -617,6 +728,11 @@ function projHtmlOQueMuda(d) {
           '</span></div>'
       )
       .join('') +
+    (resto > 0
+      ? '<button type="button" class="pj-link pj-muda-mais" onclick="mobDreMudaTudo()">Ver mais ' +
+        resto +
+        ' ›</button>'
+      : '') +
     '</section>'
   );
 }
@@ -656,26 +772,32 @@ function projHtmlMes(d, i) {
       : '';
   const saidas = projSaidasDoMes(m.mes, m.ano).slice(0, 4);
   const nomeMes = PROJ_MESES_LONGOS[m.mes];
+  // Celular: linha zerada não aparece, e "do mês" × "resultado do mês" viram
+  // "sobra do mês" × "sobra acumulada" (o segundo soma o que veio de antes).
+  const cel = !d.web;
+  const linSe = (v, html) => (cel && Math.abs(_projN(v)) < 0.005 ? '' : html);
   return (
     '<div class="pj-mes">' +
     '<div class="pj-trio"><div><small>Entra</small><b class="valor-mascarado pos">' +
     _projFmtCurto(v.entra) +
     '</b></div><div><small>Sai</small><b class="valor-mascarado neg">' +
     _projFmtCurto(v.sai) +
-    '</b></div><div><small>Do mês</small><b class="valor-mascarado ' +
+    '</b></div><div><small>' +
+    (cel ? 'Sobra do mês' : 'Do mês') +
+    '</small><b class="valor-mascarado ' +
     (doMes < 0 ? 'neg' : 'pos') +
     '">' +
     _projFmtCurto(doMes) +
     '</b></div></div>' +
     '<div class="pj-dem">' +
     lin('Receita total', _projFmt(_projN(m.receita)), 'pos') +
-    lin('Resgates (venda de ativos)', _projFmt(_projN(m.resgate)), 'pos') +
-    lin('Investimento (renda fixa)', saida(m.invFixo), 'azul') +
-    lin('Investimento (renda variável)', saida(m.invVar), 'azul') +
+    linSe(m.resgate, lin('Resgates (venda de ativos)', _projFmt(_projN(m.resgate)), 'pos')) +
+    linSe(m.invFixo, lin('Investimento (renda fixa)', saida(m.invFixo), 'azul')) +
+    linSe(m.invVar, lin('Investimento (renda variável)', saida(m.invVar), 'azul')) +
     (_projN(m.invExterno) > 0.005
       ? lin('Aporte externo (fora do caixa)', _projFmt(_projN(m.invExterno)), '')
       : '') +
-    lin('Sonhos (separado p/ metas)', saida(m.sonho), 'roxo') +
+    linSe(m.sonho, lin('Sonhos (separado p/ metas)', saida(m.sonho), 'roxo')) +
     lin('Despesas consumidas', saida(m.despesas), 'neg') +
     lin(
       '<span class="pj-herd">↳ Saldo do mês anterior</span>' + lapis,
@@ -684,7 +806,7 @@ function projHtmlMes(d, i) {
       ' herdado'
     ) +
     lin(
-      'Resultado do mês',
+      cel ? 'Sobra acumulada' : 'Resultado do mês',
       _projFmt(_projN(m.saldoAcumulado)),
       _projN(m.saldoAcumulado) < 0 ? 'neg' : 'pos',
       ' total'
