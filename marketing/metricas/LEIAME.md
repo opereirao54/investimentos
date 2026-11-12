@@ -30,6 +30,20 @@
 - **Operação:** de 5 Reels desde 02/11, dois saíram de manhã (8h30 e 6h) e
   não entram na comparação. Só o parcelado (32,6 s) ficou dentro dos 20–35 s.
 
+## News da gasolina (11/11): 1ª leitura em 12/11, ~14 h no ar
+
+- **327 views, alcance 279, tempo médio 12,5 s, retenção 35%** (35,4 s): o
+  primeiro Reel a bater a meta (10 s e 30%) e já o mais visto do perfil.
+- 1 compart. (0,4%), 0 salvos, 0 comentários, 3 curtidas, 0 seguiram.
+- O que mudou de uma vez: sem vinheta, visor subindo de R$ 0,00 a 35,60 e
+  tanque enchendo desde o quadro 0, 35 s, tema popular com data (gasolina,
+  09/12). Não dá para separar o peso de cada um.
+- O gancho entrega o número logo na 1ª frase e mesmo assim segurou: a
+  hipótese "queimar cartucho no começo" (fundador, 12/11) não se confirma
+  neste Reel; o movimento no 1º segundo pesa mais. Falta o print da curva.
+- Ponto fraco: segurou, mas não virou envio, salvo nem seguidor. O pedido de
+  envio e o "segue" só entram aos 31 s, quando poucos ainda estão.
+
 ## Linha de base (04/11, 7 Reels)
 
 Tempo médio 5,6 s · retenção 14% · salvos 0,1% · compart. 0,6% · 79 visitas
