@@ -65,8 +65,9 @@ por quê. Banco de ganchos e estruturas em `referencias/formatos.md`.
 
 - **Copy:** gancho nos 2 primeiros segundos/linha; uma ideia por bloco;
   números concretos do app; CTA único no fim. Quando a história pede
-  personagens, são sempre **Caio e Mateus** (fictícios, com "Personagens
-  fictícios" no aviso). O **Mateus é sempre o mau exemplo** e o **Caio, o bom**.
+  personagens, são sempre **Beto e Lia** (fictícios, com "Personagens
+  fictícios" no aviso). O **Beto é sempre o mau exemplo** e a **Lia, o bom**
+  (fundador, 12/11; os vídeos feitos até 11/11 ficam com Caio e Mateus).
 - **Visual:** identidade em `marketing/clareza-instrumental.md` (campo verde
   escuro, malha fina, Syne/Figtree/DM Mono, verde-sinal `#34d399`). Use as
   ferramentas de `marketing/ferramentas/` em vez de desenhar do zero.

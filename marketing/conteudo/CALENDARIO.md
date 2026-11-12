@@ -20,8 +20,8 @@ PDF simples para compartilhar: `plano-instagram.pdf` (fonte
 - **Até 26/12 o app não aparece.** As pistas falam do que a pessoa vai
   sentir, não de telas. Na última semana, os 7 vídeos de produto revelam o
   app função por função.
-- **Formato:** "conta na tela" (`modelo-conta.html`), voz Charon, Caio (bom
-  exemplo) e Mateus (mau exemplo), capa com a frase do gancho (`capa.js`),
+- **Formato:** "conta na tela" (`modelo-conta.html`), voz Charon, Lia (bom
+  exemplo) e Beto (mau exemplo; até 11/11, Caio e Mateus), capa com a frase do gancho (`capa.js`),
   aviso educacional e números conferidos com fonte antes de gravar.
 - **Sem urgência ou escassez inventadas** (CONAR). "Lista de espera" só se
   existir de verdade.
