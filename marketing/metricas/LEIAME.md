@@ -60,6 +60,13 @@
   médio e de retenção pode ser da fonte, não da abertura.
 - Compart. 0,4%, curtidas 1,1% e comentários 0% marcados como "mais baixo".
 
+## Em teste: Explica de 13/11 (assinatura esquecida)
+
+Dois testes juntos, por decisão do fundador: (1) o total só aparece na virada
+(~20 s), com a pergunta aberta desde o gancho; (2) o pedido de envio vem aos
+~17 s, antes da resposta. Comparar com a gasolina (12,5 s, 35%, pulados 76%,
+compart. 0,4%) e com a garantia (7 s, 18%, compart. 3,3%).
+
 ## Linha de base (04/11, 7 Reels)
 
 Tempo médio 5,6 s · retenção 14% · salvos 0,1% · compart. 0,6% · 79 visitas
