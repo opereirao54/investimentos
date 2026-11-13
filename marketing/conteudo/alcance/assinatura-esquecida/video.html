@@ -1,0 +1,271 @@
+<!doctype html>
+<!--
+  Appliquei Explica (≈35 s, 1080×1920): "Sexta-feira 13: a cobrança que
+  assombra o seu cartão". Uma assinatura esquecida de R$ 34,90 cobrada há 13
+  meses (valores de exemplo): 13 × 34,90 = R$ 453,70. Beto (mau exemplo) nem
+  vê a linha na fatura; Lia (bom exemplo) abre a fatura todo mês e corta o que
+  não usa. Voz Charon. Abertura em movimento desde o quadro 0, sem vinheta; o
+  total fica escondido até a virada e o pedido de envio vem antes dela.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root {
+    --campo1: #0b1410; --campo2: #0f1f18; --campo3: #112720;
+    --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa;
+    --sinal: #34d399; --primaria: #059669; --ambar: #fbbf24; --vermelho: #f87171; --azul: #60a5fa;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--campo1); }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: linear-gradient(150deg, var(--campo1) 0%, var(--campo2) 50%, var(--campo3) 100%); }
+  .halo { position: absolute; inset: -20%;
+    background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.22), transparent 70%),
+                radial-gradient(40% 35% at 10% 90%, rgba(5,150,105,.18), transparent 70%); }
+  .malha { position: absolute; inset: 0; }
+  .cena { position: absolute; inset: 0; opacity: 0; }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 200px; z-index: 20; }
+  .serie { position: absolute; right: 150px; top: 60px; padding: 10px 20px; border-radius: 99px; border: 2px solid rgba(52,211,153,.45); background: rgba(52,211,153,.12);
+    font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .12em; text-transform: uppercase; color: var(--sinal); z-index: 20; }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); z-index: 30; }
+  .el { opacity: 0; }
+  .chip { position: absolute; left: 0; right: 0; text-align: center; }
+  .chip span { display: inline-block; padding: 14px 32px; border-radius: 20px; border: 3px solid rgba(240,250,244,.4); font-size: 44px; font-weight: 800; color: var(--deck); }
+  .chip.vm span { border-color: var(--vermelho); color: var(--vermelho); }
+  .chip.am span { border-color: var(--ambar); color: var(--ambar); }
+  .rot { font-family: 'DM Mono', monospace; font-size: 34px; letter-spacing: .16em; text-transform: uppercase; color: var(--mudo); }
+  .faixa { position: absolute; left: 0; right: 0; text-align: center; }
+  .faixa span { display: inline-block; background: #facc15; color: #111; font-size: 70px; line-height: 1.15; font-weight: 900; padding: 8px 44px; text-transform: uppercase; letter-spacing: -.01em; }
+
+  .dia { position: absolute; left: 0; right: 0; top: 250px; text-align: center; }
+  .dia .cal { display: inline-block; width: 230px; border-radius: 28px; overflow: hidden; background: #fff; box-shadow: 10px 12px 0 rgba(0,0,0,.5); }
+  .dia .cal b { display: block; background: #b91c1c; color: #fff; font-size: 36px; font-weight: 900; padding: 8px 0; letter-spacing: .08em; }
+  .dia .cal span { display: block; color: #111; font-size: 130px; font-weight: 900; line-height: 1.1; padding-bottom: 6px; }
+
+  .recibo { position: absolute; left: 90px; right: 90px; padding: 30px 40px; border-radius: 30px; background: #fff; color: #12241c; box-shadow: 0 30px 70px rgba(0,0,0,.45); }
+  .recibo .cab { display: flex; justify-content: space-between; font-family: 'DM Mono', monospace; font-size: 28px; letter-spacing: .08em; text-transform: uppercase; color: #51655b; padding-bottom: 14px; border-bottom: 3px dashed #c9d5cf; }
+  .recibo .ln { display: flex; justify-content: space-between; align-items: baseline; margin-top: 12px; padding: 8px 14px; border-radius: 14px; font-size: 40px; font-weight: 800; }
+  .recibo .ln span { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 42px; white-space: nowrap; }
+  .recibo .ln.peq { font-size: 34px; color: #51655b; } .recibo .ln.peq span { font-size: 36px; }
+  .recibo .ln.in { opacity: 0; }
+  .meses { position: absolute; left: 0; right: 0; text-align: center; }
+  .meses b { display: inline-block; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 120px; letter-spacing: -.04em; color: var(--vermelho); line-height: 1; }
+  .meses small { display: block; margin-top: 6px; font-size: 40px; font-weight: 800; color: var(--deck); }
+
+  /* 2. A cobrança se repetindo */
+  .pilha { position: absolute; left: 110px; right: 110px; top: 470px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+  .pilha .p { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 22px; border-radius: 18px; background: #fff; color: #12241c; font-size: 30px; font-weight: 800; box-shadow: 0 10px 24px rgba(0,0,0,.35); opacity: 0; }
+  .pilha .p span { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 32px; color: #b91c1c; }
+
+  /* 3. Quanto já levou? */
+  .visor { position: absolute; left: 70px; right: 70px; padding: 40px 30px; border-radius: 40px; background: #0a0f0c; border: 4px solid rgba(251,191,36,.55); box-shadow: 0 0 90px rgba(251,191,36,.12); text-align: center; }
+  .visor .rot { color: var(--ambar); font-size: 30px; }
+  .visor .num { margin-top: 16px; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 150px; letter-spacing: -.06em; white-space: nowrap; line-height: 1; color: var(--ambar); }
+  .visor .conta { margin-top: 18px; font-family: 'DM Mono', monospace; font-size: 44px; color: var(--deck); }
+
+  .manda { position: absolute; left: 0; right: 0; top: 520px; text-align: center; }
+  .manda .ic { width: 170px; height: 170px; margin: 0 auto; border-radius: 44px; background: var(--sinal); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 70px rgba(52,211,153,.4); }
+  .manda .ic svg { width: 96px; height: 96px; margin-left: -8px; }
+  .manda b { display: block; margin-top: 34px; font-size: 68px; font-weight: 900; letter-spacing: -.03em; line-height: 1.1; }
+
+  .quem { position: absolute; left: 90px; right: 90px; display: flex; align-items: center; gap: 30px; padding: 36px 40px; border-radius: 40px; }
+  .quem .av { flex: none; width: 130px; height: 130px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 68px; font-weight: 900; color: #052e1f; }
+  .quem b { display: block; font-size: 46px; font-weight: 900; }
+  .quem small { display: block; margin-top: 6px; font-size: 34px; color: var(--deck); }
+  .q-lia { background: rgba(52,211,153,.12); border: 3px solid rgba(52,211,153,.55); }
+  .q-lia .av { background: var(--sinal); }
+  .corte { position: relative; }
+  .corte::after { content: ''; position: absolute; left: 0; top: 54%; height: 5px; width: var(--w, 0%); background: #b91c1c; border-radius: 3px; }
+  .regra { position: absolute; left: 70px; right: 70px; padding: 44px 44px; border-radius: 44px; background: rgba(240,250,244,.06); border: 3px solid rgba(52,211,153,.5); box-shadow: 0 0 80px rgba(52,211,153,.15); text-align: center; }
+  .regra .rot { color: var(--sinal); font-size: 30px; }
+  .regra b { display: block; margin-top: 18px; font-size: 60px; font-weight: 900; letter-spacing: -.02em; line-height: 1.12; }
+  .regra b em { font-style: normal; color: var(--ambar); }
+  .assina { position: absolute; left: 0; right: 0; top: 640px; text-align: center; }
+  .assina img { width: 440px; }
+  .assina p { margin-top: 26px; font-size: 44px; font-weight: 800; color: var(--deck); }
+  .assina p em { font-style: normal; color: var(--sinal); }
+  .aviso { position: absolute; left: 80px; right: 80px; top: 1330px; padding: 22px 26px; border-radius: 22px; background: rgba(11,20,16,.9); border: 2px solid rgba(240,250,244,.35); text-align: center; font-size: 26px; line-height: 1.4; color: var(--tinta); }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <div class="halo"></div>
+  <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+  <div class="serie" id="serie">Appliquei Explica</div>
+
+  <!-- 1. GANCHO: a linha da fatura piscando e os meses contando desde o quadro 0 -->
+  <div class="cena" id="c1">
+    <div class="dia" id="cal"><div class="cal"><b>SEX</b><span>13</span></div></div>
+    <div class="recibo" id="f1" style="top:600px;">
+      <div class="cab"><span>Fatura do cartão</span><span>Beto</span></div>
+      <div class="ln">Mercado <span>R$ 412,30</span></div>
+      <div class="ln" id="fz">👻 Assinatura <span>R$ 34,90</span></div>
+      <div class="ln">Farmácia <span>R$ 58,00</span></div>
+    </div>
+    <div class="meses" style="top:1040px;"><b id="ms">há 1 mês</b><small>a mesma cobrança</small></div>
+    <div class="faixa el" id="fx" style="top:1290px;"><span>assombrando<br>o cartão</span></div>
+  </div>
+
+  <!-- 2. A COBRANÇA SE REPETE -->
+  <div class="cena" id="c2">
+    <div class="chip am el" id="a1" style="top:300px;"><span>Assinatura · R$ 34,90 por mês</span></div>
+    <div class="pilha" id="pl"></div>
+    <div class="chip el" id="a2" style="top:1240px;"><span>🎬 a série acabou</span></div>
+    <div class="chip vm el" id="a3" style="top:1370px;"><span style="font-size:52px;">a cobrança, não</span></div>
+  </div>
+
+  <!-- 3. PEQUENA NA FATURA: QUANTO JÁ LEVOU? -->
+  <div class="cena" id="c3">
+    <div class="recibo el" id="f3" style="top:270px;">
+      <div class="cab"><span>Fatura do cartão</span><span>todo mês</span></div>
+      <div class="ln">Mercado <span>R$ 412,30</span></div>
+      <div class="ln">Posto <span>R$ 180,00</span></div>
+      <div class="ln peq" id="pq">Assinatura <span>R$ 34,90</span></div>
+      <div class="ln">Farmácia <span>R$ 58,00</span></div>
+      <div class="ln">Padaria <span>R$ 46,50</span></div>
+    </div>
+    <div class="chip el" id="nv" style="top:860px;"><span>🙈 o Beto nem vê</span></div>
+    <div class="visor el" id="vq" style="top:1010px;"><div class="rot">Quanto ela já levou?</div><div class="num" id="nq">R$ ???</div></div>
+  </div>
+
+  <!-- 4. PEDIDO DE ENVIO, ANTES DA RESPOSTA -->
+  <div class="cena" id="c4">
+    <div class="manda el" id="mn"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 11.5 21 3l-8.5 18-2.2-7.3z" fill="#052e1f"/></svg></div><b>Manda pra quem<br>assina tudo e não<br>cancela nada</b></div>
+    <div class="chip am el" id="jv" style="top:1250px;"><span>o total vem agora ↓</span></div>
+  </div>
+
+  <!-- 5. A VIRADA -->
+  <div class="cena" id="c5">
+    <div class="visor el" id="vr" style="top:480px;border-color:rgba(248,113,113,.6);"><div class="rot" style="color:var(--vermelho)">Em 13 meses</div><div class="num" id="nr" style="color:var(--vermelho);font-size:170px;">R$ 0,00</div><div class="conta">13 × R$ 34,90</div></div>
+    <div class="chip el" id="fs" style="top:1090px;"><span style="font-size:48px;">🎬 por uma série de<br>um fim de semana</span></div>
+  </div>
+
+  <!-- 6. LIA, REGRA E FECHO -->
+  <div class="cena" id="c6">
+    <div id="lia">
+      <div class="quem q-lia el" id="ql" style="top:300px;"><div class="av">L</div><div><b>Lia</b><small>abre a fatura todo mês</small></div></div>
+      <div class="recibo el" id="f6" style="top:620px;">
+        <div class="cab"><span>Assinaturas</span><span>Lia</span></div>
+        <div class="ln"><i class="corte" id="k1" style="font-style:normal">Série que já viu</i> <span>R$ 34,90</span></div>
+        <div class="ln"><i class="corte" id="k2" style="font-style:normal">App que não abre</i> <span>R$ 19,90</span></div>
+        <div class="ln">✓ Música <span>R$ 21,90</span></div>
+      </div>
+    </div>
+    <div class="regra el" id="rg" style="top:520px;"><div class="rot">Regra de bolso</div><b>Assinatura que você<br>não abriu no mês é<br>a <em>primeira a sair</em>.</b></div>
+    <div class="assina el" id="as"><img src="wordmark.svg" alt="Appliquei"><p>Mais contas assim: <em>siga o Appliquei</em></p></div>
+    <div class="aviso el" id="av">Conteúdo educacional, sem recomendação. Valores de exemplo: 13 × R$ 34,90 = R$ 453,70. Personagens fictícios.</div>
+  </div>
+
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  function $(id) { return document.getElementById(id); }
+  (function () {
+    const L = 1080, A = 1920, m = [];
+    for (let x = 60; x < L; x += 60) m.push(`<line x1="${x}" y1="0" x2="${x}" y2="${A}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 60; y < A; y += 60) m.push(`<line x1="0" y1="${y}" x2="${L}" y2="${y}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    $('malha').innerHTML = m.join('');
+    // 13 cobranças: de nov/25 a nov/26
+    const M = ['nov/25', 'dez/25', 'jan/26', 'fev/26', 'mar/26', 'abr/26', 'mai/26', 'jun/26', 'jul/26', 'ago/26', 'set/26', 'out/26', 'nov/26'];
+    $('pl').innerHTML = M.map((x, i) => `<div class="p" id="p${i}"${i === 12 ? ' style="grid-column:1 / -1;justify-self:center;width:50%"' : ''}>${x} <span>34,90</span></div>`).join('');
+  })();
+
+  const NAR = [[0.2, 5.5, "Sexta-feira treze. Tem uma cobrança assombrando o cartão do Beto há treze meses."], [5.75, 11.2, "É uma assinatura de trinta e quatro e noventa, pra ver uma série. A série acabou. A cobrança, não."], [11.45, 17.1, "Todo mês ela passa, pequena, na fatura. O Beto nem vê. Quanto ela já levou?"], [17.35, 19.95, "Manda pra quem assina tudo e não cancela nada."], [20.2, 24.8, "Quatrocentos e cinquenta e três e setenta. Por uma série de um fim de semana."], [25.05, 34.3, "A Lia abre a fatura todo mês e corta o que não usa. Regra de bolso: assinatura que você não abriu no mês é a primeira a sair. Segue o Appliquei."]];
+  // cena i começa 0,15 s antes da fala i; a última termina no DUR
+  const DUR = +(NAR[NAR.length - 1][1] + 0.9).toFixed(2);
+  const CENAS = NAR.map((f, i) => ['c' + (i + 1), i === 0 ? 0 : f[0] - 0.15, i + 1 < NAR.length ? NAR[i + 1][0] - 0.15 : DUR + 0.2]);
+  // segundo local (na cena i) em que a palavra é dita: posição no texto × duração da fala
+  function quando(i, palavra) {
+    const [a, b, txt] = NAR[i], k = txt.indexOf(palavra);
+    return 0.15 + (k < 0 ? 0 : k / txt.length) * (b - a) + (i === 0 ? NAR[0][0] : 0) - 0.1;
+  }
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  function surge(el, lt, a, dur, dy) {
+    const p = easeBack(prog(lt, a, a + (dur || 0.4)));
+    el.style.opacity = clamp(p, 0, 1);
+    el.style.transform = `translateY(${(1 - p) * (dy == null ? 40 : dy)}px) scale(${0.85 + 0.15 * p})`;
+  }
+  function some(el, lt, a) { el.style.opacity = Math.min(+el.style.opacity || 0, 1 - prog(lt, a - 0.25, a)); }
+  const brl = (v) => 'R$ ' + v.toFixed(2).replace('.', ',');
+
+  function render(t) {
+    for (const [id, a, b] of CENAS) {
+      const el = $(id);
+      const dentro = t >= a - 0.01 && t < b;
+      const fadeIn = id === 'c1' ? 1 : easeOut(prog(t, a, a + 0.25));
+      const fadeOut = 1 - prog(t, b - 0.2, b);
+      el.style.opacity = dentro ? Math.min(fadeIn, fadeOut) : 0;
+      el.style.display = dentro ? 'block' : 'none';
+      if (dentro) cenaExtra(id, t - a);
+    }
+    const fim = CENAS[CENAS.length - 1][1];
+    $('serie').style.opacity = t < fim ? 1 : 1 - prog(t, fim, fim + 0.3);
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+
+  function cenaExtra(id, lt) {
+    const q = (p) => quando(+id.slice(1) - 1, p);
+    if (id === 'c1') {
+      // movimento desde o quadro 0: o calendário balança, a linha pisca e os meses contam
+      $('cal').style.transform = `rotate(${(-7 * Math.cos(lt * 6) * Math.exp(-lt * 1.1)).toFixed(2)}deg) scale(${1 + 0.04 * Math.sin(lt * 3)})`;
+      const pisca = 0.5 + 0.5 * Math.sin(lt * 9);
+      $('fz').style.background = `rgba(248,113,113,${(0.18 + 0.4 * pisca).toFixed(2)})`;
+      $('fz').style.transform = `scale(${(1 + 0.03 * pisca).toFixed(3)})`;
+      const n = 1 + Math.round(12 * easeOut(prog(lt, 0, q('há treze') + 0.6)));
+      $('ms').textContent = 'há ' + n + (n === 1 ? ' mês' : ' meses');
+      surge($('fx'), lt, q('assombrando'), 0.4, 30);
+    }
+    if (id === 'c2') {
+      surge($('a1'), lt, 0.05, 0.35, 10);
+      const fimPilha = q('A cobrança') + 0.5;
+      for (let i = 0; i < 13; i++) {
+        const a = 0.25 + (i / 12) * (fimPilha - 0.25), p = easeBack(prog(lt, a, a + 0.3));
+        $('p' + i).style.opacity = clamp(p, 0, 1);
+        $('p' + i).style.transform = `translateY(${(1 - p) * -30}px)`;
+      }
+      surge($('a2'), lt, q('A série'), 0.35, 20); surge($('a3'), lt, q('A cobrança'), 0.4, 20);
+    }
+    if (id === 'c3') {
+      surge($('f3'), lt, 0.05, 0.4, 30);
+      const p = prog(lt, q('pequena'), q('pequena') + 0.5);
+      $('pq').style.background = `rgba(251,191,36,${(0.35 * p).toFixed(2)})`;
+      surge($('nv'), lt, q('O Beto'), 0.35, 20);
+      surge($('vq'), lt, q('Quanto'), 0.4, 30);
+      // o total fica escondido: só interrogações, sem número que pareça resposta
+      $('nq').textContent = 'R$ ' + '?'.repeat(1 + (Math.floor(lt * 5) % 3));
+      $('vq').style.transform += ` scale(${1 + 0.02 * Math.sin(lt * 8)})`;
+    }
+    if (id === 'c4') {
+      surge($('mn'), lt, 0.05, 0.4, 40);
+      $('mn').querySelector('.ic').style.transform = `scale(${1 + 0.07 * Math.sin(lt * 7) * prog(lt, 0.4, 0.9)})`;
+      surge($('jv'), lt, q('não cancela'), 0.35, 20);
+    }
+    if (id === 'c5') {
+      surge($('vr'), lt, 0.05, 0.35, 30);
+      $('nr').textContent = brl(453.7 * easeOut(prog(lt, 0.1, q('e setenta') + 0.35)));
+      surge($('fs'), lt, q('Por uma'), 0.4, 20);
+    }
+    if (id === 'c6') {
+      const tR = q('Regra de bolso'), tS = q('Segue');
+      surge($('ql'), lt, 0.1, 0.4, 40); surge($('f6'), lt, q('abre a fatura'), 0.4, 30);
+      $('k1').style.setProperty('--w', (100 * prog(lt, q('corta'), q('corta') + 0.35)).toFixed(0) + '%');
+      $('k2').style.setProperty('--w', (100 * prog(lt, q('corta') + 0.4, q('corta') + 0.75)).toFixed(0) + '%');
+      $('lia').style.opacity = 1 - prog(lt, tR - 0.25, tR);
+      surge($('rg'), lt, tR, 0.45, 30); some($('rg'), lt, tS);
+      surge($('av'), lt, tR + 0.3, 0.4, 10);
+      surge($('as'), lt, tS, 0.45, 40);
+      $('logoFixo').style.opacity = 1 - prog(lt, tS - 0.3, tS);
+    } else $('logoFixo').style.opacity = 1;
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>

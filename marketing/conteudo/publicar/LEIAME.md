@@ -327,6 +327,86 @@ Conteúdo educacional e apartidário, sem recomendação. Decreto 13.159/2026. P
 
 ---
 
+## SEXTA 13/11 · Faltam 50 dias · Appliquei Explica
+
+Tema escolhido pelo fundador no dia (sexta-feira 13 em alta no Google Trends):
+a assinatura esquecida que cobra há 13 meses. Voz Charon, 35 s, **sem
+vinheta**: a linha da fatura pisca e os meses contam desde o primeiro quadro.
+Personagens novos: **Beto** (mau exemplo) e **Lia** (bom exemplo). O total
+(R$ 453,70) só aparece aos 20 s e o pedido de envio vem antes dele.
+
+**Antes de postar:** conferir que o vídeo é o da sexta-feira 13 (calendário
+"SEX 13" e a fatura do cartão) e que a 1ª linha da legenda é a mesma frase.
+Mandar o arquivo original (AirDrop, Drive/iCloud ou WhatsApp como
+**Documento**). **Postar às 19h, hoje** (o gancho só vale
+nesta sexta; se não der para estar no celular às 19h, agendar no Instagram).
+
+**19h · INSTAGRAM (Reel)** · vídeo da sexta-feira 13
+
+1. Novo Reel › escolher o vídeo da sexta-feira 13.
+2. Capa: Editar capa › Adicionar da galeria › a imagem verde "Sexta-feira 13: a cobrança que assombra o seu cartão".
+3. Configurações avançadas: "Carregar na qualidade mais alta" ligado.
+4. Colar a legenda e publicar às 19h.
+5. Fixar o comentário: `Qual assinatura você paga e não abre faz tempo? 👇` e responder todos na 1ª hora.
+6. **Até 20h (fundador e sócio):** compartilhar o Reel nos stories e mandar o **link** no status do WhatsApp e em 3–5 grupos com a frase `Sexta-feira 13: confere se não tem uma dessas na sua fatura 👇`.
+
+```
+Sexta-feira 13: tem uma cobrança assombrando o cartão do Beto há 13 meses. 👻
+
+É uma assinatura de R$ 34,90 que ele fez pra ver uma série. A série acabou. A cobrança, não.
+
+Todo mês ela passa, pequena, no meio da fatura. O Beto nem vê.
+
+Em 13 meses: 13 × R$ 34,90 = R$ 453,70. Por uma série de um fim de semana.
+
+A Lia abre a fatura todo mês e corta o que não usa.
+
+📌 Regra de bolso: assinatura que você não abriu no mês é a primeira a sair.
+
+Manda pra quem assina tudo e não cancela nada. 🔁
+
+💡 Appliquei Explica: a conta do dinheiro do dia a dia, toda segunda e sexta. Segue pra não perder a próxima.
+
+⏳ Faltam 50 dias para o que estamos preparando pra 2027.
+
+Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fictícios.
+
+#educacaofinanceira #assinaturas #cartaodecredito #financaspessoais #sextafeira13
+```
+
+**19h · TIKTOK** · o mesmo vídeo da sexta-feira 13
+
+1. Enviar o vídeo original; capa = primeiro quadro (já é a capa).
+2. "Permitir upload em alta qualidade" ligado.
+3. Colar a legenda e publicar.
+
+```
+Sexta-feira 13: tem uma cobrança assombrando o cartão do Beto há 13 meses. 👻 Assinatura que você não abriu no mês é a primeira a sair. Segue pra não perder. ⏳ Faltam 50 dias.
+
+#educacaofinanceira #assinaturas #cartaodecredito #financaspessoais #sextafeira13
+```
+
+**19h · YOUTUBE SHORTS** · o mesmo vídeo da sexta-feira 13
+
+1. Enviar o vídeo original; no app do YouTube, escolher o primeiro quadro como capa.
+2. Título e descrição abaixo; publicar.
+
+Título:
+
+```
+Sexta-feira 13: quanto custa a assinatura que você esqueceu? #shorts
+```
+
+Descrição:
+
+```
+Uma assinatura de R$ 34,90 esquecida por 13 meses leva R$ 453,70. Regra de bolso: assinatura que você não abriu no mês é a primeira a sair. Inscreva-se para a próxima conta.
+
+Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fictícios.
+
+#educacaofinanceira #assinaturas #cartaodecredito #financaspessoais
+```
+
 ## Assinaturas das séries na legenda (desde 04/11)
 
 - `💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta.`
