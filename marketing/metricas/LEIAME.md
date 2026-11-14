@@ -67,6 +67,13 @@ Dois testes juntos, por decisão do fundador: (1) o total só aparece na virada
 ~17 s, antes da resposta. Comparar com a gasolina (12,5 s, 35%, pulados 76%,
 compart. 0,4%) e com a garantia (7 s, 18%, compart. 3,3%).
 
+**1ª leitura (13/11, 21h20, ~2h40 no ar; saiu às 18h40):** 134 views,
+alcance 91, tempo médio 5,5 s, retenção 16%, 2 compart. (2,2%), 4 curtidas,
+0 salvos, 0 comentários, 1,47 view por pessoa. Em volume está acima do Reel
+típico na mesma idade; em tempo médio e retenção, abaixo da média do perfil
+(7,7 s e 17,8%). Segurar o total até a virada ainda não aumentou o tempo
+assistido. Amostra pequena e cedo: reler em 14/11 com o print da curva.
+
 ## Linha de base (04/11, 7 Reels)
 
 Tempo médio 5,6 s · retenção 14% · salvos 0,1% · compart. 0,6% · 79 visitas
