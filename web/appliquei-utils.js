@@ -964,3 +964,134 @@ function escaparHtmlAtivo(s) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
   });
 }
+
+// ════════════════════════════════════════════════════════════
+// DIA ÚTIL — quando o dinheiro cai de verdade
+// ════════════════════════════════════════════════════════════
+//
+// Muita gente recebe no "5º dia útil", e quem recebe num dia fixo (15 e 30)
+// costuma ver o pagamento antecipado quando o dia cai num fim de semana ou
+// feriado. Sem isto, o salário do dia 15 que cai num domingo somava no saldo
+// do app no domingo, e o banco só mostrava o dinheiro na sexta ou na segunda.
+//
+// Feriados: só os NACIONAIS em que os bancos não abrem (calendário da
+// Febraban): os fixos, mais Carnaval (segunda e terça), Sexta-feira Santa e
+// Corpus Christi, que dependem da Páscoa. Feriado estadual ou municipal fica
+// de fora: o app não sabe a cidade da pessoa.
+
+/** Domingo de Páscoa (algoritmo gregoriano anônimo). */
+function appliqueiPascoa(ano) {
+  var a = ano % 19;
+  var b = Math.floor(ano / 100);
+  var c = ano % 100;
+  var d = Math.floor(b / 4);
+  var e = b % 4;
+  var f = Math.floor((b + 8) / 25);
+  var g = Math.floor((b - f + 1) / 3);
+  var h = (19 * a + b - d - g + 15) % 30;
+  var i = Math.floor(c / 4);
+  var k = c % 4;
+  var l = (32 + 2 * e + 2 * i - h - k) % 7;
+  var m = Math.floor((a + 11 * h + 22 * l) / 451);
+  var mes = Math.floor((h + l - 7 * m + 114) / 31);
+  var dia = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(ano, mes - 1, dia);
+}
+
+function _appliqueiYmd(d) {
+  return (
+    d.getFullYear() +
+    '-' +
+    String(d.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(d.getDate()).padStart(2, '0')
+  );
+}
+
+var _appliqueiFeriadosCache = {};
+
+/** Conjunto de 'yyyy-mm-dd' dos feriados bancários nacionais do ano. */
+function appliqueiFeriadosNacionais(ano) {
+  if (_appliqueiFeriadosCache[ano]) return _appliqueiFeriadosCache[ano];
+  var fixos = ['01-01', '04-21', '05-01', '09-07', '10-12', '11-02', '11-15', '12-25'];
+  // Dia da Consciência Negra é feriado nacional desde 2024 (Lei 14.759/2023).
+  if (ano >= 2024) fixos.push('11-20');
+  var set = {};
+  fixos.forEach(function (md) {
+    set[ano + '-' + md] = true;
+  });
+  var pascoa = appliqueiPascoa(ano);
+  [-48, -47, -2, 60].forEach(function (delta) {
+    var d = new Date(pascoa.getFullYear(), pascoa.getMonth(), pascoa.getDate() + delta);
+    set[_appliqueiYmd(d)] = true;
+  });
+  _appliqueiFeriadosCache[ano] = set;
+  return set;
+}
+
+function appliqueiEhDiaUtil(d) {
+  var dow = d.getDay();
+  if (dow === 0 || dow === 6) return false;
+  return !appliqueiFeriadosNacionais(d.getFullYear())[_appliqueiYmd(d)];
+}
+
+/** Dia `dia` do mês, limitado ao último dia (31 em fevereiro → 28/29). */
+function appliqueiDiaNoMes(ano, mes, dia) {
+  var ultimo = new Date(ano, mes + 1, 0).getDate();
+  return new Date(ano, mes, Math.max(1, Math.min(Number(dia) || 1, ultimo)));
+}
+
+/**
+ * Data ('yyyy-mm-dd') em que um lançamento recorrente cai no mês `mes`
+ * (0-11) de `ano`, segundo a regra:
+ *   { tipo: 'dia' }                     → no dia `dia` (limitado ao mês)
+ *   { tipo: 'util_anterior', dia }      → no dia; se não for útil, antes
+ *   { tipo: 'util_seguinte', dia }      → no dia; se não for útil, depois
+ *   { tipo: 'util_n', n }               → no n-ésimo dia útil do mês
+ * O resultado nunca sai do mês: o ajuste que atravessaria a virada (dia 1º
+ * num sábado, antecipado) vai para o outro lado. Assim a competência do
+ * lançamento continua sendo o mês dele.
+ */
+function appliqueiDataPelaRegra(ano, mes, regra) {
+  var r = regra || {};
+  var tipo = r.tipo || 'dia';
+  if (tipo === 'util_n') {
+    var n = Math.max(1, parseInt(r.n, 10) || 1);
+    var ultimoDia = new Date(ano, mes + 1, 0).getDate();
+    var conta = 0;
+    var ultimoUtil = null;
+    for (var dia = 1; dia <= ultimoDia; dia++) {
+      var d = new Date(ano, mes, dia);
+      if (!appliqueiEhDiaUtil(d)) continue;
+      conta++;
+      ultimoUtil = d;
+      if (conta === n) return _appliqueiYmd(d);
+    }
+    // Pediu mais dias úteis do que o mês tem: fica no último.
+    return _appliqueiYmd(ultimoUtil || new Date(ano, mes, ultimoDia));
+  }
+  var base = appliqueiDiaNoMes(ano, mes, r.dia);
+  if (tipo !== 'util_anterior' && tipo !== 'util_seguinte') return _appliqueiYmd(base);
+  if (appliqueiEhDiaUtil(base)) return _appliqueiYmd(base);
+  var passo = tipo === 'util_anterior' ? -1 : 1;
+  var procurar = function (p) {
+    var x = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+    for (var i = 0; i < 31; i++) {
+      x.setDate(x.getDate() + p);
+      if (x.getMonth() !== mes) return null;
+      if (appliqueiEhDiaUtil(x)) return x;
+    }
+    return null;
+  };
+  var achado = procurar(passo) || procurar(-passo) || base;
+  return _appliqueiYmd(achado);
+}
+
+/** Texto curto da regra, para o resumo e o extrato. */
+function appliqueiDescreverRegraDia(regra) {
+  if (!regra || !regra.tipo || regra.tipo === 'dia') return '';
+  if (regra.tipo === 'util_n') return (parseInt(regra.n, 10) || 1) + 'º dia útil';
+  if (regra.tipo === 'util_anterior') return 'dia útil anterior se cair em folga';
+  if (regra.tipo === 'util_seguinte') return 'dia útil seguinte se cair em folga';
+  return '';
+}

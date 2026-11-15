@@ -3677,6 +3677,8 @@
         .lanc-bloco .recorrente-toggle input { width: 20px !important; height: 20px !important; }
         .lanc-linha { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; }
         .lanc-linha[hidden] { display: none; }
+        .lanc-regra-dia { max-width: 62%; padding: 8px 10px; border: 1.5px solid var(--cor-borda); border-radius: 9px; font-size: 13px; background: var(--cor-superficie); color: var(--cor-texto-principal); font-family: 'Figtree', sans-serif; }
+        #dicaRegraDia[hidden] { display: none !important; }
         .lanc-bloco .lanc-linha { border-top: 1px solid var(--cor-borda); padding: 6px 0; }
         .lanc-rot, #painelNovoLancamento .lanc-linha > label {
             font-size: 13.5px; font-weight: 600; color: var(--cor-texto-principal); margin: 0;
@@ -16174,6 +16176,24 @@
                             <label for="transacaoFixa">Repetir todo mês</label>
                             <input type="checkbox" id="transacaoFixa" style="margin-left:auto;width:16px;height:16px;cursor:pointer;accent-color:var(--cor-info);">
                         </div>
+                        <!-- Quando a entrada recorrente cai (lancUiSincronizar mostra só em
+                             Entrada + Repetir todo mês). Quem recebe no 5º dia útil, ou num
+                             dia fixo que o patrão antecipa no fim de semana, precisa que o
+                             saldo some no dia em que o banco mostra o dinheiro. -->
+                        <div class="lanc-linha" id="grupoRegraDia" hidden>
+                            <label for="regraDiaReceita">Quando cai</label>
+                            <select id="regraDiaReceita" class="lanc-regra-dia">
+                                <option value="dia">No dia da data</option>
+                                <option value="util_anterior">Dia útil antes, se for folga</option>
+                                <option value="util_seguinte">Dia útil depois, se for folga</option>
+                                <option value="util_n">Nº dia útil do mês</option>
+                            </select>
+                        </div>
+                        <div class="lanc-linha" id="grupoDiaUtilN" hidden>
+                            <label for="nDiaUtil">Qual dia útil</label>
+                            <input type="number" id="nDiaUtil" class="lanc-regra-dia" min="1" max="23" step="1" value="5" inputmode="numeric" style="max-width:90px;">
+                        </div>
+                        <small id="dicaRegraDia" hidden style="display:block;font-size:11px;color:var(--cor-texto-mutado);margin:2px 0 8px;line-height:1.45;"></small>
                     </div>
 
                     <button type="button" class="lanc-link" id="lancObsAbrir" onclick="lancUiAbrirObs()">+ Adicionar observação</button>
@@ -18199,7 +18219,7 @@
          de parse-time. Bump no ?v= ao mexer no arquivo (cache-bust manual). -->
     <!-- "E se…?" da Projeção (web/appliquei-projecao-caixa.js, projSimAbrir). -->
     <div id="projSim" class="pj-sim-ov" hidden></div>
-    <script src="/web/appliquei-utils.js?v=menos-cliques-1"></script>
+    <script src="/web/appliquei-utils.js?v=dia-util-1"></script>
     <!-- Yahoo Finance proxy + base de dados de ativos. Sem deps em
          state da app — pode carregar antes ou depois de app.js. -->
     <script src="/web/appliquei-catalogo-b3.js?v=catalogo1"></script>
@@ -18233,13 +18253,13 @@
     <script src="/web/appliquei-desempenho.js?v=fase4"></script>
     <script src="/web/appliquei-ir.js?v=fase4"></script>
     <script src="/web/appliquei-insights.js?v=insights-1"></script>
-    <script src="/web/appliquei-aba-controle-financeiro.js?v=menos-cliques-1"></script>
+    <script src="/web/appliquei-aba-controle-financeiro.js?v=dia-util-1"></script>
     <script src="/web/appliquei-projecao-caixa.js?v=projecao-caixa-1"></script>
     <script src="/web/appliquei-faturas.js?v=fatura-excluir-1"></script>
     <script src="/web/appliquei-categorias-palavras.js?v=importar-fatura-6"></script>
-    <script src="/web/appliquei-importar-fatura.js?v=importar-fatura-6"></script>
+    <script src="/web/appliquei-importar-fatura.js?v=dia-util-1"></script>
     <script src="/web/appliquei-importar-fatura-ui.js?v=importar-fatura-6"></script>
-    <script src="/web/appliquei-lancamento-ui.js?v=menos-cliques-1"></script>
+    <script src="/web/appliquei-lancamento-ui.js?v=dia-util-1"></script>
     <script src="/web/appliquei-insights-ui.js?v=menos-cliques-1"></script>
     <script src="/web/appliquei-relatorio-mensal.js?v=detalhe-categorias"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>

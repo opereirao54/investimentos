@@ -2959,6 +2959,18 @@ function prepararEdicao(id) {
   document.getElementById('editTransacaoId').value = trans.id;
   document.getElementById('obsTransacao').value = trans.obs || '';
   document.getElementById('dataVencimento').value = trans.dataVencimento || '';
+  limparRegraDiaDoForm();
+  const selRegra = document.getElementById('regraDiaReceita');
+  if (selRegra && trans.regraDia && trans.regraDia.tipo) {
+    selRegra.value = trans.regraDia.tipo;
+    if (trans.regraDia.tipo === 'util_n') {
+      const n = document.getElementById('nDiaUtil');
+      if (n) n.value = String(trans.regraDia.n || 5);
+    } else if (trans.regraDia.dia) {
+      selRegra.dataset.diaRegra = String(trans.regraDia.dia);
+      selRegra.dataset.vencOriginal = trans.dataVencimento || '';
+    }
+  }
   const bancoEl = document.getElementById('bancoTransacao');
   if (bancoEl) bancoEl.value = trans.banco || '';
   if (categoriaDespesaUsada(trans.categoria)) popularSelectCategoriaDespesa(trans.categoriaDespesa);
@@ -3034,6 +3046,7 @@ function cancelarEdicaoControle() {
   document.getElementById('valorTransacao').value = '';
   document.getElementById('categoriaTransacao').value = '';
   document.getElementById('dataVencimento').value = '';
+  limparRegraDiaDoForm();
   document.getElementById('obsTransacao').value = '';
   const catDespEl = document.getElementById('categoriaDespesa');
   if (catDespEl) catDespEl.value = '';
@@ -3258,9 +3271,23 @@ function executarEdicao(modo) {
     // os meses ("o aluguel passou a vencer dia 25"), não empurrar as parcelas de
     // mês. Antes deste bloco a edição "todos os meses" simplesmente ignorava a
     // data: dava para mudar valor e descrição, nunca o vencimento.
-    const diaNovo = competenciaDaData(dataVencInput)
+    let diaNovo = competenciaDaData(dataVencInput)
       ? parseInt(String(dataVencInput).split('-')[2], 10)
       : null;
+    // Série que tinha regra ancorada num dia e cuja data não foi tocada: o
+    // campo mostra o dia ajustado (13); o dia da série é o de origem (15).
+    const selRegraEd = document.getElementById('regraDiaReceita');
+    if (
+      selRegraEd &&
+      selRegraEd.dataset.diaRegra &&
+      selRegraEd.dataset.vencOriginal === (dataVencInput || '')
+    ) {
+      diaNovo = parseInt(selRegraEd.dataset.diaRegra, 10) || diaNovo;
+    }
+    // Com regra de dia útil, cada mês recalcula o seu dia pela regra; sem ela
+    // (inclusive quando a pessoa volta para "No dia da data"), a regra sai da
+    // série e vale o dia digitado, como sempre foi.
+    const regraNova = normalizarRegraDia(lerRegraDiaDoForm(), categoria, true, dataVencInput);
     transacoes = transacoes.map((t) => {
       if (
         t.groupId === transAtual.groupId &&
@@ -3270,7 +3297,14 @@ function executarEdicao(modo) {
         t.valor = valorTotal;
         t.categoria = categoria;
         t.obs = obs;
-        if (diaNovo) {
+        if (regraNova && typeof appliqueiDataPelaRegra === 'function') {
+          const base = competenciaDaData(t.dataVencimento) || { mes: t.mes, ano: t.ano };
+          t.dataVencimento = appliqueiDataPelaRegra(base.ano, base.mes, regraNova);
+          t.regraDia = regraNova;
+        } else {
+          delete t.regraDia;
+        }
+        if (!regraNova && diaNovo) {
           // Preserva o mês de cada parcela e respeita meses curtos (dia 31 em
           // fevereiro vira o último dia do mês).
           const base = competenciaDaData(t.dataVencimento) || { mes: t.mes, ano: t.ano };
@@ -3306,6 +3340,9 @@ function executarEdicao(modo) {
     transAtual.valor = valorTotal;
     transAtual.categoria = categoria;
     transAtual.dataVencimento = dataVencInput;
+    // Editar só este mês tira o lançamento da série com a data digitada: a
+    // regra de dia útil não vale mais para ele.
+    delete transAtual.regraDia;
     transAtual.obs = obs;
     if (categoria === 'cartao_credito' && cartaoIdNovo && cartaoIdNovo !== '__novo__')
       transAtual.cartaoId = cartaoIdNovo;
@@ -3414,6 +3451,8 @@ function criarLancamentos(dados) {
     mesesGerar = 60;
   }
 
+  const regraDia = normalizarRegraDia(d.regraDia, categoria, ehFixo, d.dataVencimento);
+
   const lancamentos = [];
   for (let i = 0; i < mesesGerar; i++) {
     let m = d.mesBase + i;
@@ -3428,10 +3467,19 @@ function criarLancamentos(dados) {
 
     let dataVencFinal = null;
     if (d.dataVencimento) {
-      let [vAno, vMes, vDia] = d.dataVencimento.split('-');
-      let dVenc = new Date(vAno, vMes - 1, vDia);
-      dVenc.setMonth(dVenc.getMonth() + i);
-      dataVencFinal = `${dVenc.getFullYear()}-${String(dVenc.getMonth() + 1).padStart(2, '0')}-${String(dVenc.getDate()).padStart(2, '0')}`;
+      // Mês a mês com o DIA limitado ao tamanho do mês. `setMonth` sozinho
+      // transbordava: o salário do dia 30 lançado em outubro caía em 02/03 no
+      // lugar de fevereiro (fevereiro ficava sem ele e março recebia dois), e o
+      // do dia 31 pulava novembro inteiro. Mesma regra da edição "todos os
+      // meses", que já limitava o dia.
+      dataVencFinal = _parcSomarMeses(d.dataVencimento, i);
+    }
+    // Regra de dia útil (só série recorrente): o vencimento de cada mês é
+    // recalculado pela regra; a competência continua a do mês da parcela,
+    // porque appliqueiDataPelaRegra nunca sai do mês.
+    if (regraDia && typeof appliqueiDataPelaRegra === 'function') {
+      const baseMes = competenciaDaData(dataVencFinal) || { mes: m, ano: a };
+      dataVencFinal = appliqueiDataPelaRegra(baseMes.ano, baseMes.mes, regraDia);
     }
 
     // Havendo vencimento, a competência (mes/ano) é a DELE — não a do mês em
@@ -3473,9 +3521,67 @@ function criarLancamentos(dados) {
       data: agora.toISOString(),
       dataVencimento: dataVencFinal,
       pago: pagoLanc,
+      // Só quem tem regra carrega o campo: o resto mantém o formato de sempre.
+      ...(regraDia ? { regraDia: regraDia } : {}),
     });
   }
   return lancamentos;
+}
+
+// O que o formulário diz sobre "quando cai". Bruto: quem valida é
+// normalizarRegraDia. Para as regras ancoradas num dia, o dia é o da data do
+// formulário — exceto na edição de uma série que já tem regra e cuja data não
+// foi tocada: ali o campo mostra o dia AJUSTADO (13, porque o 15 caiu num
+// domingo), e ler o 13 como novo dia-base deslocaria a série inteira.
+function lerRegraDiaDoForm() {
+  const sel = document.getElementById('regraDiaReceita');
+  if (!sel || !sel.value || sel.value === 'dia') return null;
+  const grupo = document.getElementById('grupoRegraDia');
+  if (grupo && grupo.hidden) return null;
+  if (sel.value === 'util_n') {
+    return { tipo: 'util_n', n: parseInt((document.getElementById('nDiaUtil') || {}).value, 10) };
+  }
+  const venc = (document.getElementById('dataVencimento') || {}).value || '';
+  let dia = competenciaDaData(venc) ? parseInt(venc.split('-')[2], 10) : null;
+  if (sel.dataset.diaRegra && sel.dataset.vencOriginal === venc) {
+    dia = parseInt(sel.dataset.diaRegra, 10) || dia;
+  }
+  return { tipo: sel.value, dia: dia };
+}
+
+/** Volta o "Quando cai" ao padrão (novo lançamento, cancelar, depois de salvar). */
+function limparRegraDiaDoForm() {
+  const sel = document.getElementById('regraDiaReceita');
+  if (sel) {
+    sel.value = 'dia';
+    delete sel.dataset.diaRegra;
+    delete sel.dataset.vencOriginal;
+  }
+  const n = document.getElementById('nDiaUtil');
+  if (n) n.value = '5';
+}
+
+// Regra de "quando cai" de uma entrada recorrente, já validada. Devolve null
+// quando não se aplica (não é receita, não repete, ou é "no dia exato"):
+// lançamento sem regra se comporta exatamente como antes.
+//   { tipo: 'util_anterior' | 'util_seguinte', dia }  → dia do vencimento
+//   { tipo: 'util_n', n }                              → n-ésimo dia útil
+function normalizarRegraDia(regra, categoria, ehFixo, dataVencimento) {
+  if (!regra || categoria !== 'receita' || !ehFixo) return null;
+  const tipo = regra.tipo;
+  if (tipo === 'util_n') {
+    const n = parseInt(regra.n, 10);
+    if (!(n >= 1 && n <= 23)) return null;
+    return { tipo: 'util_n', n: n };
+  }
+  if (tipo === 'util_anterior' || tipo === 'util_seguinte') {
+    const dia =
+      parseInt(regra.dia, 10) ||
+      (competenciaDaData(dataVencimento) ? parseInt(String(dataVencimento).split('-')[2], 10) : 0);
+    if (!(dia >= 1 && dia <= 31)) return null;
+    return { tipo: tipo, dia: dia };
+  }
+  return null;
 }
 
 // ════════════════════════════════════════════════════════════
@@ -3494,11 +3600,14 @@ function criarLancamentos(dados) {
 // Parcela já PAGA nunca é apagada por aqui: pagou, o caixa já foi debitado
 // (INV-17), e quem desfaz é o "Desfazer pagamento".
 
-/** Ano-mês-dia + k meses, com a mesma aritmética de criarLancamentos. */
+/**
+ * Ano-mês-dia + k meses, com a mesma aritmética de criarLancamentos: o dia é
+ * limitado ao tamanho do mês de destino (31/jan + 1 → 28/fev, não 03/mar).
+ */
 function _parcSomarMeses(ymd, k) {
   const [a, m, d] = String(ymd).split('-').map(Number);
-  const dt = new Date(a, m - 1, d);
-  dt.setMonth(dt.getMonth() + k);
+  const ultimo = new Date(a, m - 1 + k + 1, 0).getDate();
+  const dt = new Date(a, m - 1 + k, Math.min(d, ultimo));
   return (
     dt.getFullYear() +
     '-' +
@@ -3756,6 +3865,7 @@ function executarInsercao() {
       : null,
     mesBase: visaoMes,
     anoBase: visaoAno,
+    regraDia: lerRegraDiaDoForm(),
   };
 
   // Revalidação no ponto de inserção: blinda contra entradas que
@@ -3798,6 +3908,7 @@ function executarInsercao() {
   if (typeof insightsSugestaoLimpar === 'function') insightsSugestaoLimpar();
   document.getElementById('valorTransacao').value = '';
   document.getElementById('transacaoFixa').checked = false;
+  limparRegraDiaDoForm();
   // O próximo lançamento recomeça na fatura aberta — que é o caso comum.
   // Herdar "fechada" do lançamento anterior mandaria a compra seguinte para o
   // mês passado sem ninguém pedir.
