@@ -481,12 +481,17 @@ function lancUiResumo() {
   var tipo = lancUiTipo();
   var repetir = !!(_lancEl('transacaoFixa') || {}).checked;
   var banco = ((_lancEl('bancoTransacao') || {}).value || '').trim();
+  var regraTxt =
+    typeof lerRegraDiaDoForm === 'function' && typeof appliqueiDescreverRegraDia === 'function'
+      ? appliqueiDescreverRegraDia(lerRegraDiaDoForm())
+      : '';
   if (tipo === 'entrada') {
     return (
       'Entrada de ' +
       moeda(valor) +
       (banco ? ' em <b>' + _lancEsc(banco) + '</b>' : '') +
-      (repetir ? ' · todo mês' : '')
+      (repetir ? ' · todo mês' : '') +
+      (repetir && regraTxt ? ' · ' + _lancEsc(regraTxt) : '')
     );
   }
   if (tipo === 'saida') {
@@ -573,6 +578,7 @@ function lancUiSincronizar() {
   _lancDataDeHoje(tipo, cat, painel);
   _lancRenderCategorias();
   _lancRenderContas(tipo);
+  _lancRenderRegraDia(tipo, cat);
   if (tipo === 'cartao') {
     _lancRenderCartoes();
     _lancRenderParcelas();
@@ -591,6 +597,58 @@ function lancUiSincronizar() {
     resumo.innerHTML = txt;
     resumo.hidden = !txt;
   }
+}
+
+/**
+ * "Quando cai": só para entrada que repete todo mês. Mostra o campo do Nº dia
+ * útil quando é essa a regra, e uma prévia das próximas três datas — a pessoa
+ * confere ali que o 15 de novembro (domingo e feriado) vira sexta, 13.
+ */
+function _lancRenderRegraDia(tipo, cat) {
+  var grupo = _lancEl('grupoRegraDia');
+  if (!grupo) return;
+  var repetir = !!(_lancEl('transacaoFixa') || {}).checked;
+  var cabe = tipo === 'entrada' && cat === 'receita' && repetir;
+  grupo.hidden = !cabe;
+  var sel = _lancEl('regraDiaReceita');
+  var grupoN = _lancEl('grupoDiaUtilN');
+  if (grupoN) grupoN.hidden = !(cabe && sel && sel.value === 'util_n');
+  var dica = _lancEl('dicaRegraDia');
+  if (!dica) return;
+  var txt = cabe && typeof lancUiPreviaRegraDia === 'function' ? lancUiPreviaRegraDia() : '';
+  dica.textContent = txt;
+  dica.hidden = !txt;
+}
+
+/** "Próximas datas: 13/11, 15/12, 15/01" — ou '' quando não há o que prever. */
+function lancUiPreviaRegraDia() {
+  if (typeof lerRegraDiaDoForm !== 'function' || typeof appliqueiDataPelaRegra !== 'function')
+    return '';
+  var regra = lerRegraDiaDoForm();
+  if (!regra) return '';
+  var venc = ((_lancEl('dataVencimento') || {}).value || '').trim();
+  var ano;
+  var mes;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(venc)) {
+    ano = Number(venc.slice(0, 4));
+    mes = Number(venc.slice(5, 7)) - 1;
+  } else if (typeof visaoMes !== 'undefined' && typeof visaoAno !== 'undefined') {
+    ano = visaoAno;
+    mes = visaoMes;
+  } else {
+    var h = new Date();
+    ano = h.getFullYear();
+    mes = h.getMonth();
+  }
+  var datas = [];
+  for (var i = 0; i < 3; i++) {
+    var d = new Date(ano, mes + i, 1);
+    var ymd = appliqueiDataPelaRegra(d.getFullYear(), d.getMonth(), regra);
+    datas.push(ymd.slice(8, 10) + '/' + ymd.slice(5, 7));
+  }
+  return (
+    'Próximas datas: ' + datas.join(', ') + '. Feriados estaduais e municipais não entram na conta.'
+  );
 }
 
 /**

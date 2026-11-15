@@ -179,3 +179,44 @@ test('editar um lançamento acende os botões dele', async ({ page }) => {
   await expect(page.locator(`#lancContaChips .lanc-chip.on[data-v="${conta}"]`)).toHaveCount(1);
   await expect(page.locator('#lancCatChips .lanc-chip.on[data-v="moradia"]')).toHaveCount(1);
 });
+
+test('entrada que repete: "Quando cai" aparece, mostra as próximas datas e salva o 5º dia útil', async ({
+  page,
+}) => {
+  await abrirApp(page);
+  await page.click('#chipEntrada');
+  await page.fill('#valorTransacao', '200000');
+  await page.fill('#descTransacao', 'Salário');
+  // A conta vem lembrada pelos chips (a primeira já fica escolhida).
+  // Sem repetir, a pergunta não aparece.
+  await page.uncheck('#transacaoFixa');
+  await expect(page.locator('#grupoRegraDia')).toBeHidden();
+  await page.check('#transacaoFixa');
+  await expect(page.locator('#grupoRegraDia')).toBeVisible();
+  await expect(page.locator('#grupoDiaUtilN')).toBeHidden();
+
+  await page.fill('#dataVencimento', '2026-11-15');
+  await page.selectOption('#regraDiaReceita', 'util_anterior');
+  await expect(page.locator('#dicaRegraDia')).toContainText('13/11, 15/12, 15/01');
+
+  await page.selectOption('#regraDiaReceita', 'util_n');
+  await expect(page.locator('#grupoDiaUtilN')).toBeVisible();
+  await page.fill('#nDiaUtil', '5');
+  await expect(page.locator('#dicaRegraDia')).toContainText('09/11, 07/12, 08/01');
+  await expect(page.locator('#lancResumo')).toContainText('5º dia útil');
+  await page.locator('#grupoRegraDia').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'test-results/quando-cai.png' });
+
+  const antes = await page.evaluate(() => transacoes.length);
+  await page.evaluate(() => executarInsercao());
+  const novos = await page.evaluate(
+    (n) => transacoes.slice(n).map((t) => [t.dataVencimento, t.regraDia && t.regraDia.n]),
+    antes
+  );
+  expect(novos.slice(0, 2)).toEqual([
+    ['2026-11-09', 5],
+    ['2026-12-07', 5],
+  ]);
+  // O formulário volta ao padrão para o próximo lançamento.
+  expect(await campo(page, 'regraDiaReceita')).toBe('dia');
+});

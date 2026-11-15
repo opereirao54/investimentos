@@ -554,11 +554,12 @@ function impfatSugerirCategoria(desc, titulo, tipo, ctx) {
 // ════════════════════════════════════════════════════════════
 
 function impfatSomarMeses(ymd, k) {
-  // Mesma aritmética de criarLancamentos (setMonth), para a parcela importada
-  // cair no mesmo dia que a lançada à mão cairia.
+  // Mesma aritmética de criarLancamentos, para a parcela importada cair no
+  // mesmo dia que a lançada à mão cairia: o dia é limitado ao tamanho do mês
+  // (vencimento 31 em fevereiro vira 28/29, não 03/03).
   var p = ymd.split('-').map(Number);
-  var d = new Date(p[0], p[1] - 1, p[2]);
-  d.setMonth(d.getMonth() + k);
+  var ultimo = new Date(p[0], p[1] - 1 + k + 1, 0).getDate();
+  var d = new Date(p[0], p[1] - 1 + k, Math.min(p[2], ultimo));
   return impfatYmd(d);
 }
 
