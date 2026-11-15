@@ -23,6 +23,7 @@ const ROOT = path.resolve(__dirname, '..');
 // appliquei-app.js tem indent 8 (extraído inline com indentação preservada
 // para diff mínimo); os demais foram dedentados para 0.
 const CLASSIC_SCRIPTS = [
+  { file: 'web/appliquei-demo.js', indent: '' },
   { file: 'web/appliquei-utils.js', indent: '' },
   { file: 'web/appliquei-catalogo-b3.js', indent: '' },
   { file: 'web/appliquei-desempenho.js', indent: '' },

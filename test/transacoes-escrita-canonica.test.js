@@ -30,6 +30,9 @@ const EXCECOES = {
   // Restauração de backup: a fonte é o arquivo do usuário (dados.transacoes),
   // não o array global — que neste instante ainda tem o conteúdo antigo.
   'web/appliquei-utils.js': 1,
+  // Modo demonstração: semeia os lançamentos fictícios no armazenamento em
+  // memória, antes de o app (e o array global) existirem.
+  'web/appliquei-demo.js': 1,
 };
 
 function arquivosWeb() {

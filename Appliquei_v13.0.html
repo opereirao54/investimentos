@@ -2,6 +2,10 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <!-- Modo demonstração (/demo): PRIMEIRO script da página, síncrono. Troca
+         o armazenamento por um em memória ANTES de qualquer outro script ler
+         os dados — fora do /demo não faz nada. -->
+    <script src="/web/appliquei-demo.js?v=demo-1"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <script>
         // Tela inteira (viewport-fit=cover) só no app INSTALADO. No navegador
@@ -33,6 +37,18 @@
         if (window.APPLICASH_ATIVO !== true) document.documentElement.classList.add('sem-applicash');
     </script>
     <style>.sem-applicash [data-applicash] { display: none !important; }</style>
+    <style>
+        /* Modo demonstração (web/appliquei-demo.js): faixa sempre à vista e as
+           opções que dependem de conta escondidas. */
+        #demoFaixa { position: fixed; top: 0; left: 0; right: 0; z-index: 10100; height: 30px; display: flex; align-items: center; justify-content: center; gap: 14px; padding: 0 16px; background: #b45309; color: #fff; font: 600 12.5px/1 'Figtree', system-ui, sans-serif; box-shadow: 0 1px 4px rgba(0,0,0,.18); }
+        #demoFaixa span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #demoFaixa a { color: #fff; background: rgba(255,255,255,.2); padding: 4px 10px; border-radius: 999px; text-decoration: none; flex-shrink: 0; }
+        html.modo-demo body { padding-top: 30px; }
+        html.modo-demo #cfgItemDemo,
+        html.modo-demo .cfg-item[data-painel="telegram"],
+        html.modo-demo .cfg-item[data-painel="dados"],
+        html.modo-demo #authGate { display: none !important; }
+    </style>
     <link rel="icon" type="image/png" href="appliquei-favicon.png">
     <!-- "Adicionar à tela de início": manifest cobre Android/Chrome; o iOS
          ignora o manifest e só olha apple-touch-icon + as metas apple-*.
@@ -14735,6 +14751,7 @@
                     <span class="cfg-grupo">Integrações e ajuda</span>
                     <div class="cfg-lista">
                         <button type="button" class="cfg-item" data-painel="telegram" onclick="cfgAbrirPainel('telegram')"><span class="cfg-ic azul"><i class="ph ph-telegram-logo"></i></span><span class="cfg-item-txt"><b>Lançar pelo Telegram</b><small>Registre gastos por mensagem</small></span><i class="ph ph-caret-right cfg-seta"></i></button>
+                        <button type="button" class="cfg-item" id="cfgItemDemo" onclick="location.href='/demo'"><span class="cfg-ic verde"><i class="ph ph-presentation-chart"></i></span><span class="cfg-item-txt"><b>Modo demonstração</b><small>Mostre o app com dados fictícios, sem expor os seus</small></span><i class="ph ph-arrow-up-right cfg-seta"></i></button>
                         <button type="button" class="cfg-item" id="btnReabrirGuia" onclick="ppReabrirGuia()"><span class="cfg-ic roxo"><i class="ph ph-compass"></i></span><span class="cfg-item-txt"><b>Guia de primeiros passos</b><small>Por onde começar: contas, receita e despesa</small></span><i class="ph ph-arrow-up-right cfg-seta"></i></button>
                     </div>
                     <span class="cfg-grupo">Conta</span>
@@ -18220,6 +18237,9 @@
     <!-- "E se…?" da Projeção (web/appliquei-projecao-caixa.js, projSimAbrir). -->
     <div id="projSim" class="pj-sim-ov" hidden></div>
     <script src="/web/appliquei-utils.js?v=dia-util-1"></script>
+    <!-- Demonstração: os dados fictícios entram aqui — depois do utils (o
+         calendário de dias úteis) e antes do app.js (que lê o armazenamento). -->
+    <script>if (window.__APPLIQUEI_DEMO__ && typeof appliqueiDemoSemear === 'function') appliqueiDemoSemear();</script>
     <!-- Yahoo Finance proxy + base de dados de ativos. Sem deps em
          state da app — pode carregar antes ou depois de app.js. -->
     <script src="/web/appliquei-catalogo-b3.js?v=catalogo1"></script>
