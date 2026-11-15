@@ -208,6 +208,17 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Cupons promocionais (api/_lib/cupons.js): só o Admin SDK. Fechado para
+    // não permitir enumerar códigos nem ver quem resgatou.
+    match /cupons/{codigo} {
+      allow read: if false;
+      allow write: if false;
+      match /resgates/{uid} {
+        allow read: if false;
+        allow write: if false;
+      }
+    }
+
     // Nada mais é permitido por defeito (negação implícita).
   }
 }

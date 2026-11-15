@@ -75,11 +75,15 @@ function updateGatePrices() {
           ? fmtBRL(diff)
           : 'R$ ' + (diff / 100).toFixed(2).replace('.', ','));
       var lbl = document.getElementById('billingSummaryDiscountLabel');
+      var promo =
+        lastBilling && lastBilling.promo && lastBilling.promo.ativa ? lastBilling.promo : null;
       if (lbl)
         lbl.textContent =
-          lastBilling && lastBilling.conviteDescontoPercent
-            ? 'Desconto de testador ' + pct + '%'
-            : 'Cupom ' + pct + '% off';
+          promo && promo.percent >= pct
+            ? 'Cupom ' + promo.codigo + ' (' + pct + '%)'
+            : lastBilling && lastBilling.conviteDescontoPercent
+              ? 'Desconto de testador ' + pct + '%'
+              : 'Cupom ' + pct + '% off';
     } else {
       row.style.display = 'none';
     }
@@ -109,7 +113,21 @@ function renderCouponState() {
     msg.style.display = 'none';
     msg.textContent = '';
   }
-  if (b.referredByCode) {
+  var promo = b.promo && b.promo.ativa ? b.promo : null;
+  if (promo) {
+    if (toggle) toggle.style.display = 'none';
+    if (body) body.style.display = 'block';
+    if (inputRow) inputRow.style.display = 'none';
+    if (appliedBox) {
+      appliedBox.style.display = 'flex';
+      appliedBox.innerHTML =
+        '<i class="ph-fill ph-check-circle"></i><span>Cupom <strong>' +
+        escapeHtml(promo.codigo) +
+        '</strong> aplicado · ' +
+        promoTexto(promo) +
+        '</span>';
+    }
+  } else if (b.referredByCode) {
     // Abre o body e oculta toggle: o cupom já foi aplicado e o usuário
     // deve ver a confirmação proeminente, não um link "Tem cupom?".
     if (toggle) toggle.style.display = 'none';
@@ -143,6 +161,42 @@ function showCouponMsg(text, ok) {
   msg.style.display = 'block';
 }
 
+// "50% de desconto · faltam 2 mensalidades com desconto, depois R$ 15,00/mês".
+// Vem do servidor (promo.*): a tela não refaz a conta.
+function promoTexto(p) {
+  var t = p.percent + '% de desconto';
+  if (p.ciclosTotal == null) return t + ' em todas as mensalidades';
+  var n = p.ciclosRestantes;
+  t += n === 1 ? ' na próxima mensalidade paga' : ' nas próximas ' + n + ' mensalidades pagas';
+  if (typeof p.precoDepoisCents === 'number')
+    t += ', depois ' + fmtBRL(p.precoDepoisCents) + '/mês';
+  return t;
+}
+
+// Cupom promocional (campanha, ex.: LANCAMENTO50): POST /api/user?op=cupom.
+// Devolve { ok, beneficio } ou { ok:false, msg }.
+async function resgatarCupomPromo(codigo) {
+  try {
+    var r = await authedFetch('/user?op=cupom', {
+      method: 'POST',
+      apiBase: (window.__APPLIQUEI_API_BASE__ || '') + '/api',
+      body: JSON.stringify({ codigo: codigo }),
+    });
+    lastBilling = Object.assign({}, lastBilling || {}, {
+      promo: r.promo,
+      recurringDiscountPercent: r.recurringDiscountPercent,
+    });
+    // Dias grátis liberam o acesso na hora: o gate fecha sozinho.
+    if (r.access) applyAccess(r.access, lastBilling);
+    return { ok: true, beneficio: r.beneficio, tipo: r.tipo };
+  } catch (e) {
+    return {
+      ok: false,
+      msg: (e.detail && e.detail.detail) || 'Não foi possível aplicar o cupom. Tente de novo.',
+    };
+  }
+}
+
 async function applyCoupon() {
   var inp = $('billingCoupon');
   var btn = $('billingCouponApply');
@@ -152,8 +206,28 @@ async function applyCoupon() {
     showCouponMsg('Informe o código do cupom.', false);
     return;
   }
+  // APP-XXXXXX é cupom de INDICAÇÃO (Applicash); qualquer outro formato é
+  // cupom promocional de campanha.
   if (!/^APP-[A-Z0-9]{6}$/.test(raw)) {
-    showCouponMsg('Formato inválido. Use APP-XXXXXX.', false);
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Aplicando…';
+    }
+    var pr = await resgatarCupomPromo(raw);
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Aplicar';
+    }
+    updateGatePrices();
+    if (pr.ok) {
+      showCouponMsg('Cupom aplicado: ' + pr.beneficio + '.', true);
+      if (pr.tipo === 'dias_gratis' && typeof window.mostrarToast === 'function')
+        window.mostrarToast('Cupom aplicado: ' + pr.beneficio + '. Bom proveito!', 'sucesso');
+    } else showCouponMsg(pr.msg, false);
+    return;
+  }
+  if (window.APPLICASH_ATIVO !== true) {
+    showCouponMsg('Cupons de indicação estão pausados no momento.', false);
     return;
   }
   if (btn) {
@@ -348,11 +422,11 @@ function ensureGate() {
     '        <label for="billingCpfCnpj">CPF ou CNPJ</label>',
     '        <input id="billingCpfCnpj" class="bg-input" type="text" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00">',
     '      </div>',
-    '      <div id="billingCouponSection" data-applicash>',
+    '      <div id="billingCouponSection">',
     '        <button id="billingCouponToggle" type="button" class="bg-coupon-toggle"><i class="ph ph-tag"></i> Tem cupom de desconto?</button>',
     '        <div id="billingCouponBody" class="bg-coupon-body" style="display:none;">',
     '          <div id="billingCouponInputRow" class="bg-coupon-row">',
-    '            <input id="billingCoupon" class="bg-input" type="text" autocomplete="off" placeholder="APP-XXXXXX">',
+    '            <input id="billingCoupon" class="bg-input" type="text" autocomplete="off" autocapitalize="characters" maxlength="20" placeholder="Código do cupom">',
     '            <button id="billingCouponApply" type="button">Aplicar</button>',
     '          </div>',
     '          <div id="billingCouponApplied" class="bg-applied" style="display:none;margin-top:8px;"></div>',
@@ -873,8 +947,11 @@ async function authedFetch(path, opts) {
   var u = fb && fb.auth && fb.auth.currentUser;
   if (!u) throw new Error('not_authenticated');
   var token = await u.getIdToken();
+  // `apiBase` troca o prefixo: o resgate de cupom mora em /api/user (teto de
+  // 12 funções da Vercel), não em /api/billing.
+  var base = opts && opts.apiBase != null ? opts.apiBase : API;
   var r = await fetch(
-    API + path,
+    base + path,
     Object.assign({}, opts, {
       headers: Object.assign(
         {
@@ -921,7 +998,7 @@ async function authedFetch(path, opts) {
       // Caso raro: usuário verificou no meio do fetch. Retry com token fresh.
       var t2 = await u.getIdToken(true);
       var r2 = await fetch(
-        API + path,
+        base + path,
         Object.assign({}, opts, {
           headers: Object.assign(
             {
@@ -2273,6 +2350,62 @@ function renderPlanInfoBlock(me) {
   );
 }
 
+// Cupom promocional: o que está valendo e até quando, e o campo para usar um
+// (assinante também pode, quando a campanha é para todos).
+function renderPromoBlock(me) {
+  var p = me.promo && me.promo.ativa ? me.promo : null;
+  if (p) {
+    return (
+      '<div class="ma-section">' +
+      '<div class="ma-section-title"><i class="ph ph-tag"></i> Cupom</div>' +
+      '<div class="ma-card"><div class="ma-card-label">Cupom ' +
+      escapeHtml(p.codigo) +
+      '</div><div class="ma-card-value">' +
+      fmtBRL(p.precoCents) +
+      '<span class="ma-card-sufixo"> /mês</span></div><div class="ma-card-foot">' +
+      escapeHtml(promoTexto(p)) +
+      '</div></div></div>'
+    );
+  }
+  return (
+    '<div class="ma-section">' +
+    '<div class="ma-section-title"><i class="ph ph-tag"></i> Cupom</div>' +
+    '<div class="bg-coupon-row">' +
+    '<input id="maPromoCodigo" class="bg-input" type="text" autocomplete="off" autocapitalize="characters" maxlength="20" placeholder="Tem um cupom? Digite aqui">' +
+    '<button type="button" class="ma-btn" data-act="apply-promo">Aplicar</button>' +
+    '</div>' +
+    '<div id="maPromoMsg" role="status" style="font-size:12.5px;margin-top:6px;"></div>' +
+    '</div>'
+  );
+}
+
+async function aplicarPromoMinhaConta(btn) {
+  var inp = $('maPromoCodigo');
+  var msg = $('maPromoMsg');
+  var cod = ((inp && inp.value) || '').trim().toUpperCase();
+  if (!cod) {
+    if (msg) msg.textContent = 'Digite o código do cupom.';
+    return;
+  }
+  if (/^APP-/.test(cod)) {
+    if (msg) msg.textContent = 'Cupom de indicação só vale antes da primeira assinatura.';
+    return;
+  }
+  btn.disabled = true;
+  var r = await resgatarCupomPromo(cod);
+  btn.disabled = false;
+  if (!r.ok) {
+    if (msg) {
+      msg.style.color = '#7f1d1d';
+      msg.textContent = r.msg;
+    }
+    return;
+  }
+  if (typeof window.mostrarToast === 'function')
+    window.mostrarToast('Cupom aplicado: ' + r.beneficio + '.', 'sucesso');
+  reloadAccountStatus(null);
+}
+
 function renderPlansBlock(me) {
   // Um plano só à venda (Pro). O card "Pro + IA — em construção" saiu até o
   // plano existir; a landing mostra o mesmo.
@@ -2924,6 +3057,7 @@ function renderMyAccount(me) {
     renderUpcomingBlock(me) +
     renderPaymentMethodBlock(me) +
     renderPlanInfoBlock(me) +
+    renderPromoBlock(me) +
     renderPlansBlock(me) +
     renderApplicashBlock(me) +
     renderCustomerBlock(me) +
@@ -2945,6 +3079,7 @@ function bindMyAccountActions() {
         if (act === 'change-card') openChangeCardModal();
         else if (act === 'edit-customer') openEditCustomerModal();
         else if (act === 'cancel-sub') confirmCancelSubscription();
+        else if (act === 'apply-promo') aplicarPromoMinhaConta(btn);
         else if (act === 'subscribe-now') {
           closeMyAccount();
           openSubscribeForm();

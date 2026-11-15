@@ -566,7 +566,26 @@ const mockAsaas = {
     asaasState.payments.set(id, pay);
     return pay;
   },
-  updateSubscription: async () => ({}),
+  // Como o Asaas: muda a assinatura; com updatePendingPayments, leva junto as
+  // faturas em aberto já projetadas. `failUpdateSubscription` simula recusa.
+  updateSubscription: async (id, fields) => {
+    if (asaasState.failUpdateSubscription) {
+      const err = new Error('asaas_error_500');
+      err.status = 500;
+      throw err;
+    }
+    const s = asaasState.subscriptions.get(id);
+    if (!s) return {};
+    if (fields && typeof fields.value === 'number') {
+      s.value = fields.value;
+      if (fields.updatePendingPayments) {
+        for (const p of asaasState.payments.values()) {
+          if (p.subscription === id && p.status === 'PENDING') p.value = fields.value;
+        }
+      }
+    }
+    return s;
+  },
   updateSubscriptionCard: async () => ({}),
   cancelSubscription: async (id) => {
     const s = asaasState.subscriptions.get(id);

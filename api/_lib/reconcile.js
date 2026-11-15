@@ -22,6 +22,7 @@
 
 const { db, fieldValue } = require('./firebase-admin');
 const { syncBillingFromAsaas } = require('./billing-sync');
+const cupons = require('./cupons');
 const { captureMessage } = require('./sentry');
 
 /**
@@ -102,6 +103,15 @@ async function reconcileAccount(userRef) {
     if (updated) report.changes.push({ type: 'billing_state' });
   } catch (e) {
     report.changes.push({ type: 'billing_state_error', detail: (e && e.message) || String(e) });
+  }
+
+  // Eixo 1b: cupom promocional que acabou e não conseguiu devolver a
+  // assinatura ao preço sem ele (Asaas fora do ar na hora do webhook).
+  try {
+    if (await cupons.reconciliar(billingRef, snap.data()))
+      report.changes.push({ type: 'cupom_ajuste' });
+  } catch (e) {
+    report.changes.push({ type: 'cupom_ajuste_error', detail: (e && e.message) || String(e) });
   }
 
   // Eixo 2: invariante de crédito Applicash.

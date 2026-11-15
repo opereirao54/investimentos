@@ -93,6 +93,7 @@ function criarMundoPagamentos(opts = {}) {
     opts.cartaoCapturaNaHora != null ? opts.cartaoCapturaNaHora : true;
   asaasState.strictUpdatePayment = opts.asaasRigoroso != null ? opts.asaasRigoroso : true;
   asaasState.minPaymentValue = PISO_GATEWAY_CENTS / 100;
+  asaasState.failUpdateSubscription = false;
 
   return { pessoas: new Map(), t0: store.now };
 }
@@ -232,6 +233,30 @@ async function superpoder(acao, uid, valor) {
   });
 }
 
+/** Ação do painel admin que não é sobre um usuário (convites, cupons). */
+async function adminAcao(body) {
+  process.env.ADMIN_API_TOKEN = process.env.ADMIN_API_TOKEN || 'admin_test_token';
+  return call(H.adminAction, {
+    headers: { authorization: 'Bearer ' + process.env.ADMIN_API_TOKEN },
+    body,
+  });
+}
+
+/** Cria um cupom promocional pelo painel admin (api/_lib/cupons.js). */
+async function criarCupom(cupom) {
+  return adminAcao({ action: 'cupons_criar', cupom });
+}
+
+/** O usuário digita o cupom: POST /api/user?op=cupom. */
+async function resgatarCupom(uid, codigo) {
+  const userHandler = require(path.join(ROOT, 'api/user'));
+  return call(userHandler, {
+    headers: autorizado(uid),
+    query: { op: 'cupom' },
+    body: { codigo },
+  });
+}
+
 async function verMinhaConta(uid) {
   const r = await call(H.me, { method: 'GET', headers: autorizado(uid) });
   return r.body;
@@ -335,12 +360,16 @@ function verificar(mundo, opts = {}) {
       const subDona = cob.subscription && asaasState.subscriptions.get(cob.subscription);
       // Avulsa nasce já com o abatimento, e o desconto do cupom pode ter
       // mudado depois: a única base segura é o preço de tabela.
-      const baseCents = !cob.subscription
-        ? PRECO_BASE_CENTS
-        : (subDona && Math.round(subDona.value * 100)) ||
-          b.subscriptionBaseValueCents ||
-          b.monthlyPriceCents ||
-          PRECO_BASE_CENTS;
+      // Com cupom promocional o valor da assinatura muda no meio do caminho
+      // (entra e sai o desconto): a base de uma cobrança antiga já não é a
+      // de hoje. Mesma saída do avulso — preço de tabela.
+      const baseCents =
+        !cob.subscription || b.promo
+          ? PRECO_BASE_CENTS
+          : (subDona && Math.round(subDona.value * 100)) ||
+            b.subscriptionBaseValueCents ||
+            b.monthlyPriceCents ||
+            PRECO_BASE_CENTS;
       if (Math.round(cob.value * 100) >= baseCents) {
         falhas.push(
           rotulo +
@@ -471,6 +500,9 @@ module.exports = {
   cancelar,
   verMinhaConta,
   superpoder,
+  adminAcao,
+  criarCupom,
+  resgatarCupom,
   avancarDias,
   restaurarRelogio,
   evento,

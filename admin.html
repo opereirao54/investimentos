@@ -492,6 +492,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
     .qa-pill { font-size:13px; padding:9px 14px; min-height:40px; }
     .terminal-body { font-size:12px; min-height:160px; }
     #sec-convites div[style*="display:flex"] > .sp-input { flex:1 1 100% !important; }
+    .cp-grade { grid-template-columns:1fr !important; }
 
     /* Ficha do usuário: folha de tela cheia, ações sempre à mão. */
     #user-drawer { width:100vw; border-left:0; }
@@ -561,7 +562,11 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
         font-size: 16px !important;
       }
     }
-  </style>
+      .cp-grade { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; }
+    .cp-campo { display:flex; flex-direction:column; gap:4px; font-size:12.5px; color:var(--cor-texto-mutado); }
+    .cp-campo .sp-input { width:100%; box-sizing:border-box; }
+    .cp-largo { grid-column:1 / -1; }
+</style>
 </head>
 <body>
 
@@ -617,6 +622,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
         <div class="nav-group">
             <span class="nav-group-label">Ferramentas</span>
             <button class="menu-btn" onclick="mudarAba(event,'convites')" data-tab="convites"><i class="ph ph-ticket"></i> Convites</button>
+            <button class="menu-btn" onclick="mudarAba(event,'cupons')" data-tab="cupons"><i class="ph ph-tag"></i> Cupons</button>
             <button class="menu-btn" onclick="mudarAba(event,'carteira')" data-tab="carteira"><i class="ph ph-chart-pie-slice"></i> Carteira modelo</button>
             <button class="menu-btn" onclick="mudarAba(event,'redes')" data-tab="redes"><i class="ph ph-instagram-logo"></i> Redes sociais</button>
             <button class="menu-btn" onclick="mudarAba(event,'superpower')" data-tab="superpower"><i class="ph ph-lightning"></i> Superpoderes</button>
@@ -1373,6 +1379,60 @@ Dica: você pode inserir o e-mail ou o UID do usuário alvo.</div>
 
     </section>
 
+    <!-- ═══════ CUPONS PROMOCIONAIS (api/_lib/cupons.js) ═══════ -->
+    <section id="sec-cupons" class="section">
+        <div class="page-header">
+            <div>
+                <h1><i class="ph-fill ph-tag" style="color:var(--cor-primaria)"></i> Cupons</h1>
+                <p class="sub">Código de campanha que o usuário digita na tela de assinatura. Cada conta usa um cupom uma vez; descontos não somam (vale o maior); um cupom de desconto por vez.</p>
+            </div>
+            <div class="page-actions">
+                <button class="btn-sec" onclick="loadCupons()"><i class="ph ph-arrows-clockwise"></i> Recarregar</button>
+            </div>
+        </div>
+
+        <div class="card" style="padding:20px;margin-bottom:16px;">
+            <div style="font-weight:700;margin-bottom:12px;">Novo cupom</div>
+            <div class="cp-grade">
+                <label class="cp-campo"><span>Código</span>
+                    <input type="text" id="cp-codigo" class="sp-input" maxlength="20" placeholder="LANCAMENTO50" style="text-transform:uppercase;" autocomplete="off"></label>
+                <label class="cp-campo"><span>Benefício</span>
+                    <select id="cp-tipo" class="sp-input" onchange="cpTipoMudou()">
+                        <option value="desconto">% de desconto na mensalidade</option>
+                        <option value="dias_gratis">Dias de acesso grátis</option>
+                    </select></label>
+                <label class="cp-campo" data-cp="desconto"><span>Desconto (%)</span>
+                    <input type="number" id="cp-percent" class="sp-input" min="1" max="66" value="20"></label>
+                <label class="cp-campo" data-cp="desconto"><span>Por quantas mensalidades</span>
+                    <input type="number" id="cp-ciclos" class="sp-input" min="1" max="36" placeholder="vazio = sempre"></label>
+                <label class="cp-campo" data-cp="dias_gratis" style="display:none;"><span>Dias grátis</span>
+                    <input type="number" id="cp-dias" class="sp-input" min="1" max="365" value="30"></label>
+                <label class="cp-campo"><span>Vale a partir de</span>
+                    <input type="date" id="cp-de" class="sp-input"></label>
+                <label class="cp-campo"><span>Vale até (inclusive)</span>
+                    <input type="date" id="cp-ate" class="sp-input" title="Vazio = sem prazo"></label>
+                <label class="cp-campo"><span>Limite de usos</span>
+                    <input type="number" id="cp-max" class="sp-input" min="1" placeholder="vazio = ilimitado"></label>
+                <label class="cp-campo"><span>Quem pode usar</span>
+                    <select id="cp-publico" class="sp-input">
+                        <option value="novos">Só quem nunca pagou</option>
+                        <option value="todos">Todos, inclusive assinantes</option>
+                    </select></label>
+                <label class="cp-campo cp-largo"><span>Nota interna</span>
+                    <input type="text" id="cp-nota" class="sp-input" maxlength="120" placeholder="Ex.: Reels de lançamento"></label>
+            </div>
+            <div id="cp-previa" style="margin:12px 0;font-size:13px;color:var(--cor-texto-mutado);"></div>
+            <button class="sp-btn" onclick="cpCriar()"><i class="ph-fill ph-plus-circle"></i> Criar cupom</button>
+        </div>
+
+        <div class="card" style="padding:0;overflow:auto;">
+            <table class="tbl">
+                <thead><tr><th>Código</th><th>Benefício</th><th>Validade</th><th>Usos</th><th>Situação</th><th></th></tr></thead>
+                <tbody id="cp-lista"><tr><td colspan="6" class="tbl-empty">Carregando…</td></tr></tbody>
+            </table>
+        </div>
+    </section>
+
     <!-- ═══════ REDES SOCIAIS (métricas do Instagram) ═══════ -->
     <section id="sec-redes" class="section">
         <div class="page-header">
@@ -1543,6 +1603,7 @@ Dica: você pode inserir o e-mail ou o UID do usuário alvo.</div>
 <div class="adm-mais" id="admMais" role="dialog" aria-modal="true" aria-label="Mais" hidden>
     <div class="adm-mais-alca"></div>
     <div class="adm-mais-grupo">Ferramentas</div>
+    <button type="button" class="adm-mais-item" data-tab="cupons" onclick="admIr('cupons')"><i class="ph ph-tag"></i><span><b>Cupons</b><small>Campanhas com código: desconto ou dias grátis</small></span></button>
     <button type="button" class="adm-mais-item" data-tab="superpower" onclick="admIr('superpower')"><i class="ph ph-lightning"></i><span><b>Superpoderes</b><small>Ações sobre uma conta: Raio-X, PRO, suspender, excluir</small></span></button>
     <button type="button" class="adm-mais-item" data-tab="carteira" onclick="admIr('carteira')"><i class="ph ph-chart-pie-slice"></i><span><b>Carteira modelo</b><small>Alocação e ativos publicados para todos</small></span></button>
     <button type="button" class="adm-mais-item" data-tab="redes" onclick="admIr('redes')"><i class="ph ph-instagram-logo"></i><span><b>Redes sociais</b><small>Métricas dos Reels do Instagram</small></span></button>
@@ -1553,7 +1614,7 @@ Dica: você pode inserir o e-mail ou o UID do usuário alvo.</div>
     <button type="button" class="adm-mais-item adm-mais-sair" onclick="admFecharMais(); logout()"><i class="ph ph-sign-out"></i><span><b>Encerrar sessão</b></span></button>
 </div>
 
-<script src="/web/appliquei-admin.js?v=convites"></script>
+<script src="/web/appliquei-admin.js?v=cupons"></script>
 <script src="/web/appliquei-admin-mobile.js?v=1"></script>
 </body>
 </html>

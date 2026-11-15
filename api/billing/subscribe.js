@@ -5,6 +5,7 @@ const { conferirLimitePagamento } = require('../_lib/limite-pagamento');
 const { assertReferralAllowed } = require('../_lib/referral-guard');
 const { isValidCpfCnpj } = require('../_lib/cpf-cnpj');
 const { toMillis, paidUntilMs } = require('../_lib/access');
+const cupons = require('../_lib/cupons');
 const {
   reservePendingCredits,
   releaseReservation,
@@ -390,9 +391,9 @@ module.exports = handler({
         }
       }
 
-      const monthly = (billing.monthlyPriceCents || 1500) / 100;
-      const pct = billing.recurringDiscountPercent || 0;
-      const subscriptionValue = Math.round(monthly * (100 - pct)) / 100;
+      // Desconto que vale agora: o permanente (convite/indicação) ou o do
+      // cupom promocional em uso, o maior — ver api/_lib/cupons.js.
+      const subscriptionValue = cupons.precoCents(billing) / 100;
       // A primeira cobrança nunca cai ANTES do fim da avaliação gratuita nem
       // antes do fim de um ciclo já pago. Quem assina no dia 3 de um trial de
       // 7 estava a ser cobrado no dia seguinte — pagava por 4 dias que já
@@ -401,7 +402,11 @@ module.exports = handler({
       const tomorrowMs = Date.now() + 24 * 3600 * 1000;
       const trialEndMs = toMillis(billing.trialEndsAt);
       const paidThroughMs = paidUntilMs(billing);
-      const firstDueMs = Math.max(tomorrowMs, trialEndMs || 0, paidThroughMs || 0);
+      // Dias grátis com prazo (cupom promocional, presente do admin) valem
+      // como a avaliação: a cobrança só vence quando eles acabam.
+      const courtesyEndMs =
+        billing.courtesyPermanent === true ? 0 : toMillis(billing.courtesyUntil) || 0;
+      const firstDueMs = Math.max(tomorrowMs, trialEndMs || 0, paidThroughMs || 0, courtesyEndMs);
       const nextDue = formatDate(new Date(firstDueMs));
 
       const holderInfo = wantsCard

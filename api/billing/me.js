@@ -3,6 +3,7 @@ const { handler } = require('../_lib/handler');
 const { computeAccess, paidUntilMs, courtesyState, isLegacyGrant } = require('../_lib/access');
 const { syncBillingFromAsaas } = require('../_lib/billing-sync');
 const { computeCreditTotals } = require('../_lib/reconcile');
+const cupons = require('../_lib/cupons');
 
 function tsToIso(t) {
   if (!t) return null;
@@ -330,7 +331,9 @@ module.exports = handler({
       referralCode: billing.referralCode || null,
       referredByCode: billing.referredByCode || null,
       referredByUserId: billing.referredByUserId || null,
-      recurringDiscountPercent: billing.recurringDiscountPercent || 0,
+      // Já é o desconto que vale agora (permanente ou cupom, o maior).
+      recurringDiscountPercent: cupons.percentualVigente(billing),
+      promo: cupons.resumo(billing),
       conviteDescontoPercent: billing.conviteDescontoPercent || 0,
       monthlyPriceCents: billing.monthlyPriceCents || 1500,
       subscriptionBaseValueCents: monthlyCents,

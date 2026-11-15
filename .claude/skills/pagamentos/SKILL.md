@@ -40,15 +40,16 @@ campo é bloqueado no deploy.
 
 ## As peças
 
-| Peça             | Onde                                    | Papel                                 |
-| ---------------- | --------------------------------------- | ------------------------------------- |
-| Simulador        | `test/_simulador-pagamentos.js`         | Mundo fiel ao Asaas + `verificar()`   |
-| Caça de furos    | `test/_sequencias-pagamentos.js`        | Sequências aleatórias + CUP01–CUP10   |
-| Ciclo            | `test/pagamentos-ciclo.test.js`         | Antecipação, trial, carência, estorno |
-| Applicash        | `test/pagamentos-applicash.test.js`     | As duas pontas do cupom               |
-| Mock do gateway  | `scripts/lib/mock-billing.js`           | Firestore + Asaas em memória          |
-| Contabilidade    | `test/billing-credit-invariant.test.js` | Saldo × soma dos créditos             |
-| Rede de proteção | `api/_lib/reconcile.js`                 | Varredura que corrige divergência     |
+| Peça              | Onde                                    | Papel                                  |
+| ----------------- | --------------------------------------- | -------------------------------------- |
+| Simulador         | `test/_simulador-pagamentos.js`         | Mundo fiel ao Asaas + `verificar()`    |
+| Caça de furos     | `test/_sequencias-pagamentos.js`        | Sequências aleatórias + CUP01–CUP12    |
+| Ciclo             | `test/pagamentos-ciclo.test.js`         | Antecipação, trial, carência, estorno  |
+| Applicash         | `test/pagamentos-applicash.test.js`     | As duas pontas do cupom                |
+| Cupom promocional | `test/pagamentos-cupons.test.js`        | Prazo, limite, ciclos, fim do desconto |
+| Mock do gateway   | `scripts/lib/mock-billing.js`           | Firestore + Asaas em memória           |
+| Contabilidade     | `test/billing-credit-invariant.test.js` | Saldo × soma dos créditos              |
+| Rede de proteção  | `api/_lib/reconcile.js`                 | Varredura que corrige divergência      |
 
 ---
 
@@ -191,6 +192,29 @@ cobre o mês inteiro. Enquanto nenhuma das duas acontecer, a copy promete mais
 do que o código dá.
 
 ---
+
+## Cupom promocional (campanha): prazo de resgate ≠ duração do benefício
+
+`api/_lib/cupons.js`. Código de campanha (ex.: `LANCAMENTO50`) criado no
+admin → Cupons e resgatado em `/api/user?op=cupom`. Não confundir com o código
+de indicação (`APP-XXXXXX`) nem com o convite (`BETA-…`).
+
+- **Dois prazos separados**: `validoDe/validoAte` dizem até quando o código
+  entra (dia inteiro, Brasília); `ciclos` diz por quantas mensalidades
+  **pagas** o desconto vale (`null` = sempre). Dias grátis viram cortesia com
+  prazo e **somam** ao que a conta já tem.
+- **Não acumula**: `percentualVigente()` = maior entre o permanente
+  (`recurringDiscountPercent`) e o do cupom. Toda conta de preço passa por
+  `cupons.precoCents()` — não recalcule `monthly × pct` em outro lugar.
+- **Ciclo conta no webhook**, idempotente por `payment.id`, e só se a cobrança
+  saiu com o desconto. No último, `ajustarAssinatura` devolve o valor da
+  assinatura **e das faturas já projetadas** ao preço sem cupom. Se o Asaas
+  recusar, fica `promo.ajustePendente` e a reconciliação refaz — o erro é
+  sempre a favor do usuário.
+- **Resgate de quem já assina** ajusta as faturas na hora; se o Asaas recusar,
+  o resgate inteiro é desfeito (502 `cupom_falha_gateway`).
+- Piso do gateway: o admin não cria desconto que deixe a mensalidade abaixo
+  de `MIN_PAYMENT_CENTS`. "Grátis por um tempo" é o tipo `dias_gratis`.
 
 ## O gate de acesso: uma fonte de verdade só
 

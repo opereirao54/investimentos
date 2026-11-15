@@ -128,6 +128,37 @@ pular a cobrança e estender `paidUntil` quando o crédito cobre o mês).
 
 Regras (`firestore.rules`): utilizador **lê** o seu billing mas **não escreve** — só o Admin SDK do backend escreve. App data continua restrita a `users/{uid}/data/main`.
 
+## Cupons promocionais
+
+Código de campanha que o usuário digita (tela de assinatura ou Minha
+assinatura). Criado e pausado no admin → **Cupons**. Código em
+`api/_lib/cupons.js`; resgate em `POST /api/user?op=cupom`.
+
+| Campo          | O que define                                                         |
+| -------------- | -------------------------------------------------------------------- |
+| `validoDe/Ate` | Janela em que o código pode ser **resgatado** (vazio = sem prazo)    |
+| `tipo`         | `desconto` (% na mensalidade) ou `dias_gratis` (acesso sem cobrança) |
+| `ciclos`       | Por quantas mensalidades pagas o desconto vale (vazio = sempre)      |
+| `maxResgates`  | Limite total de usos (vazio = ilimitado); cada conta usa uma vez     |
+| `publico`      | `novos` (nunca pagou) ou `todos` (inclui assinantes)                 |
+| `status`       | `ativo` / `pausado` — pausar não tira o benefício de quem já usou    |
+
+Regras: não acumula (vale o maior desconto entre convite/indicação e cupom);
+um cupom de desconto por vez; o benefício não é editável depois de criado
+(outra oferta = outro código). O ciclo é contado no webhook de pagamento,
+uma vez por cobrança; no último, a assinatura e as faturas já projetadas no
+Asaas voltam ao preço sem cupom (`promo.ajustePendente` + reconciliação
+diária se o Asaas recusar). Dias grátis somam ao trial / mês pago / cortesia
+e adiam a 1ª cobrança para depois deles.
+
+```
+cupons/{CODIGO}                  definição + contador `resgates`
+cupons/{CODIGO}/resgates/{uid}   trava de uma vez por conta
+users/{uid}/billing/account.promo { codigo, percent, ciclosTotal,
+                                   ciclosUsados, pagamentos[], encerradaEm,
+                                   ajustePendente }
+```
+
 ## Testar pagamentos
 
 ```bash

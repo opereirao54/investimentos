@@ -14,15 +14,21 @@ Frase de bolso (peças curtas): **"Seu dinheiro inteiro, numa tela só."**
 
 ## Oferta vigente
 
-| Item                  | Hoje                                                    | Onde conferir                                                                   |
-| --------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Plano                 | **Pro, R$ 15/mês**                                      | `landing.html` (seção Planos), `BILLING.md`, `api/_lib/asaas.js` (`PLAN_VALUE`) |
-| Teste grátis          | **7 dias, sem cartão, sem cobrança automática no fim**  | `landing.html` (hero e Planos)                                                  |
-| Pagamento             | PIX, boleto ou cartão recorrente (Asaas)                | `landing.html`                                                                  |
-| Cancelamento          | Quando quiser, sem multa                                | `landing.html`                                                                  |
-| Pro + IA              | **Em construção** — só "avise-me quando lançar"         | `landing.html`                                                                  |
-| Applicash (indicação) | **Em reformulação — não usar em peças** até nova versão | decisão do fundador, 16/10/2026                                                 |
-| Testadores (beta)     | Grupo de teste; benefício ainda em definição            | `docs/PENDENCIAS-LANCAMENTO.md`                                                 |
+| Item                  | Hoje                                                      | Onde conferir                                                                   |
+| --------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Plano                 | **Pro, R$ 15/mês**                                        | `landing.html` (seção Planos), `BILLING.md`, `api/_lib/asaas.js` (`PLAN_VALUE`) |
+| Teste grátis          | **7 dias, sem cartão, sem cobrança automática no fim**    | `landing.html` (hero e Planos)                                                  |
+| Pagamento             | PIX, boleto ou cartão recorrente (Asaas)                  | `landing.html`                                                                  |
+| Cancelamento          | Quando quiser, sem multa                                  | `landing.html`                                                                  |
+| Pro + IA              | **Em construção** — só "avise-me quando lançar"           | `landing.html`                                                                  |
+| Applicash (indicação) | **Em reformulação — não usar em peças** até nova versão   | decisão do fundador, 16/10/2026                                                 |
+| Testadores (beta)     | Grupo de teste; benefício ainda em definição              | `docs/PENDENCIAS-LANCAMENTO.md`                                                 |
+| Cupom promocional     | **Estrutura pronta, nenhuma campanha no ar** (15/11/2026) | admin → Cupons; regras em `BILLING.md` → "Cupons promocionais"                  |
+
+Peça com cupom: diga o benefício **e** o fim dos dois prazos — até quando dá
+para usar o código e por quantas mensalidades o desconto vale ("50% nas 3
+primeiras mensalidades, use até 31/12") — e que depois volta a R$ 15/mês. Não
+anuncie cupom que não esteja criado e ativo no admin.
 
 Para o grupo de teste, **não** use "7 dias grátis": o convite é "use no dia a
 dia e me conte o que achou".
