@@ -3,7 +3,7 @@
 Lista viva do que falta para abrir a Appliquei a mais testadores e depois
 divulgar. Ao concluir um item, mova-o para "Feito" com a data e o PR.
 
-Última revisão: 07/11/2026.
+Última revisão: 15/11/2026.
 
 ## Entrada em produção (cobrança de verdade)
 
@@ -21,6 +21,25 @@ O código está pronto (26/10/2026); o resto é painel. Passo a passo completo e
       "Webhook da Asaas" abaixo).
 - [ ] **Redeploy** e **teste com cartão real**: assinar → acesso liberado →
       webhook `200` no painel → estornar → acesso cai.
+- [ ] **Teste automático de pagamento contra o sandbox do Asaas** (decidido
+      em 15/11/2026: fazer antes do lançamento). O simulador
+      (`test/_simulador-pagamentos.js` + `npm run cacar:pagamentos`) cobre as
+      combinações sem o Asaas; este teste cobre o Asaas de verdade. Script no
+      CI que, contra o preview da Vercel e o sandbox: assina (cartão de teste
+      e PIX), confirma e estorna pela API, espera o webhook real e confere
+      acesso, `paidUntil` e desconto em `/api/billing/me`. O que falta de
+      cada lado:
+  - [ ] **Sócios — Vercel:** chave do sandbox (`$aact_hmlg_...`) **só no
+        ambiente Preview**, e a de produção **só em Production**. Revoga a
+        decisão de 26/10 ("um ambiente só"): sem ela, depois da virada não
+        sobra onde testar e todo preview de PR cobra de verdade.
+  - [ ] **Sócios — Asaas sandbox:** webhook apontando para o preview, com
+        token próprio.
+  - [ ] **Sócios — GitHub:** chave do sandbox como segredo do repositório
+        (Settings → Secrets → Actions), para o CI rodar o teste.
+  - [ ] **Código (Claude):** o script e o job no CI. Confirmar na
+        documentação do Asaas o que o sandbox deixa provocar (chargeback e
+        compensação de boleto podem ficar só no simulador).
 - [ ] **Domínio próprio** (ex.: appliquei.com.br). Hoje o canônico é
       `investimentos-ebon.vercel.app` (script no `<head>` do app). Ao trocar:
       canônico no app, URL do webhook no Asaas, domínios autorizados no
