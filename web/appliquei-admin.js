@@ -219,6 +219,7 @@ function mudarAba(e, tab) {
   if (tab === 'carteira') loadCarteira();
   if (tab === 'redes') loadRedes();
   if (tab === 'convites') loadConvites();
+  if (tab === 'cupons') loadCupons();
 }
 
 /* ========================================
@@ -2051,6 +2052,191 @@ async function cvCancelar(codigo) {
     toast('Erro: ' + err.message, 'error');
   }
 }
+
+/* ========================================
+   CUPONS PROMOCIONAIS (api/_lib/cupons.js)
+   ======================================== */
+var CP_SITUACAO = {
+  ativo: '<span class="badge-s badge-ok">🟢 Ativo</span>',
+  agendado: '<span class="badge-s badge-warn">🕒 Agendado</span>',
+  expirado: '<span class="badge-s badge-muted">Expirado</span>',
+  esgotado: '<span class="badge-s badge-muted">Esgotado</span>',
+  pausado: '<span class="badge-s badge-danger">⏸ Pausado</span>',
+};
+var cpPercentMax = 66;
+
+function cpDataBr(d) {
+  return d ? d.split('-').reverse().join('/') : '';
+}
+
+function cpValidade(c) {
+  if (!c.validoDe && !c.validoAte) return 'Sem prazo';
+  if (c.validoDe && c.validoAte) return cpDataBr(c.validoDe) + ' a ' + cpDataBr(c.validoAte);
+  if (c.validoAte) return 'Até ' + cpDataBr(c.validoAte);
+  return 'A partir de ' + cpDataBr(c.validoDe);
+}
+
+function cpTipoMudou() {
+  const tipo = $('cp-tipo').value;
+  document.querySelectorAll('#sec-cupons [data-cp]').forEach((el) => {
+    el.style.display = el.getAttribute('data-cp') === tipo ? '' : 'none';
+  });
+  cpPrevia();
+}
+
+function cpLerForm() {
+  const tipo = $('cp-tipo').value;
+  const num = (id) => {
+    const v = $(id).value.trim();
+    return v === '' ? null : parseInt(v, 10);
+  };
+  return {
+    codigo: $('cp-codigo').value.trim(),
+    tipo,
+    percent: tipo === 'desconto' ? num('cp-percent') : null,
+    ciclos: tipo === 'desconto' ? num('cp-ciclos') : null,
+    dias: tipo === 'dias_gratis' ? num('cp-dias') : null,
+    validoDe: $('cp-de').value || null,
+    validoAte: $('cp-ate').value || null,
+    maxResgates: num('cp-max'),
+    publico: $('cp-publico').value,
+    nota: $('cp-nota').value.trim(),
+  };
+}
+
+// Prévia em português do que o usuário vai ganhar — o mesmo texto que o
+// servidor devolve (descreverBeneficio), para o admin conferir antes de criar.
+function cpPrevia() {
+  const c = cpLerForm();
+  let txt;
+  if (c.tipo === 'dias_gratis') txt = (c.dias || 0) + ' dias grátis';
+  else if (!c.ciclos) txt = (c.percent || 0) + '% de desconto na mensalidade, sempre';
+  else if (c.ciclos === 1) txt = c.percent + '% de desconto na primeira mensalidade';
+  else txt = c.percent + '% de desconto nas ' + c.ciclos + ' primeiras mensalidades';
+  if (c.tipo === 'desconto' && c.percent) {
+    const preco = Math.round((1500 * (100 - c.percent)) / 100) / 100;
+    txt += ' (R$ ' + preco.toFixed(2).replace('.', ',') + '/mês)';
+  }
+  txt +=
+    ' · ' + cpValidade(c) + ' · ' + (c.maxResgates ? c.maxResgates + ' usos' : 'usos ilimitados');
+  txt += ' · ' + (c.publico === 'todos' ? 'qualquer conta' : 'só quem nunca pagou');
+  $('cp-previa').textContent = 'O usuário recebe: ' + txt;
+}
+
+var CP_ERROS = {
+  codigo_invalido: 'Código inválido: use de 4 a 20 letras ou números.',
+  codigo_reservado: 'Esse formato é de cupom de indicação ou de convite. Escolha outro código.',
+  codigo_ja_existe: 'Já existe um cupom com esse código.',
+  percent_invalido: 'Desconto deve ser de 1% a 99%.',
+  percent_acima_do_piso:
+    'Desconto alto demais: a mensalidade ficaria abaixo de R$ 5,00, o mínimo do Asaas. Para "grátis por um tempo", use dias grátis.',
+  ciclos_invalido: 'Número de mensalidades: de 1 a 36, ou vazio para sempre.',
+  dias_invalido: 'Dias grátis: de 1 a 365.',
+  data_invalida: 'Data inválida.',
+  validade_invertida: 'A data final é antes da inicial.',
+  limite_invalido: 'Limite de usos inválido.',
+};
+
+function cpRender(data) {
+  if (data.percentMaximo) {
+    cpPercentMax = data.percentMaximo;
+    $('cp-percent').max = cpPercentMax;
+  }
+  const itens = data.itens || [];
+  const tb = $('cp-lista');
+  if (!itens.length) {
+    tb.innerHTML = '<tr><td colspan="6" class="tbl-empty">Nenhum cupom criado ainda.</td></tr>';
+    return;
+  }
+  tb.innerHTML = itens
+    .map((c) => {
+      const pausar =
+        c.status === 'ativo'
+          ? `<button class="btn-sec" onclick="cpStatus('${escHTML(c.codigo)}','pausado')"><i class="ph ph-pause"></i> Pausar</button>`
+          : `<button class="btn-sec" onclick="cpStatus('${escHTML(c.codigo)}','ativo')"><i class="ph ph-play"></i> Reativar</button>`;
+      return `<tr>
+        <td style="white-space:nowrap;"><strong style="font-family:'DM Mono',monospace;">${escHTML(c.codigo)}</strong>${c.nota ? `<div style="font-size:11.5px;color:var(--cor-texto-mutado);">${escHTML(c.nota)}</div>` : ''}</td>
+        <td>${escHTML(c.beneficio)}<div style="font-size:11.5px;color:var(--cor-texto-mutado);">${c.publico === 'todos' ? 'Qualquer conta' : 'Só quem nunca pagou'}</div></td>
+        <td style="white-space:nowrap;">${escHTML(cpValidade(c))}</td>
+        <td style="white-space:nowrap;">${c.resgates}${c.maxResgates ? ' / ' + c.maxResgates : ''}</td>
+        <td>${CP_SITUACAO[c.situacao] || escHTML(c.situacao)}</td>
+        <td style="white-space:nowrap;text-align:right;">
+          <button class="btn-sec" onclick="cpPrazo('${escHTML(c.codigo)}','${escHTML(c.validoAte || '')}')"><i class="ph ph-calendar"></i> Prazo</button>
+          ${pausar}
+        </td>
+      </tr>`;
+    })
+    .join('');
+}
+
+async function loadCupons() {
+  cpTipoMudou();
+  try {
+    cpRender(await adminPost({ action: 'cupons_listar' }));
+  } catch (err) {
+    $('cp-lista').innerHTML =
+      `<tr><td colspan="6" class="tbl-empty" style="color:var(--cor-erro)">Erro: ${escHTML(err.message)}</td></tr>`;
+  }
+}
+
+async function cpCriar() {
+  const cupom = cpLerForm();
+  if (!cupom.codigo) return toast('Informe o código do cupom.', 'error');
+  try {
+    const r = await adminPost({ action: 'cupons_criar', cupom });
+    cpRender(r);
+    ['cp-codigo', 'cp-nota', 'cp-ciclos', 'cp-max', 'cp-de', 'cp-ate'].forEach((id) => {
+      $(id).value = '';
+    });
+    cpPrevia();
+    toast('Cupom criado', 'success');
+  } catch (err) {
+    toast(CP_ERROS[err.message] || 'Erro: ' + err.message, 'error');
+  }
+}
+
+async function cpStatus(codigo, status) {
+  const msg =
+    status === 'pausado'
+      ? 'Pausar o cupom ' +
+        codigo +
+        '? Ninguém novo consegue usar; quem já usou mantém o benefício.'
+      : 'Reativar o cupom ' + codigo + '?';
+  if (!confirm(msg)) return;
+  try {
+    cpRender(await adminPost({ action: 'cupons_atualizar', codigo, mudancas: { status } }));
+    toast(status === 'pausado' ? 'Cupom pausado' : 'Cupom reativado', 'success');
+  } catch (err) {
+    toast(CP_ERROS[err.message] || 'Erro: ' + err.message, 'error');
+  }
+}
+
+async function cpPrazo(codigo, atual) {
+  const v = prompt(
+    'Último dia de validade do cupom ' + codigo + ' (dd/mm/aaaa). Deixe vazio para sem prazo:',
+    cpDataBr(atual)
+  );
+  if (v === null) return;
+  let data = null;
+  const t = v.trim();
+  if (t) {
+    const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(t);
+    if (!m) return toast('Use o formato dd/mm/aaaa.', 'error');
+    data = m[3] + '-' + m[2] + '-' + m[1];
+  }
+  try {
+    cpRender(
+      await adminPost({ action: 'cupons_atualizar', codigo, mudancas: { validoAte: data } })
+    );
+    toast(data ? 'Prazo alterado' : 'Cupom sem prazo', 'success');
+  } catch (err) {
+    toast(CP_ERROS[err.message] || 'Erro: ' + err.message, 'error');
+  }
+}
+
+document.addEventListener('input', (ev) => {
+  if (ev.target && ev.target.closest && ev.target.closest('#sec-cupons .cp-grade')) cpPrevia();
+});
 
 function logout() {
   sessionStorage.removeItem('adminToken');

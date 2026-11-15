@@ -5,6 +5,7 @@ const { reconcileAccount, computeCreditTotals } = require('../_lib/reconcile');
 const { pushCreditToOpenInvoice } = require('../_lib/credits');
 const { computeAccess, isLegacyGrant } = require('../_lib/access');
 const convites = require('../_lib/convites');
+const cupons = require('../_lib/cupons');
 const { listarUso } = require('../_lib/uso-testadores');
 const { excluirConta } = require('../_lib/excluir-conta');
 const telegram = require('../_lib/telegram-bot');
@@ -243,6 +244,52 @@ module.exports = handler({
         return res.json({ success: true, recalculados, ...(await estadoConvites(D)) });
       } catch (e) {
         console.error('[admin/action] convites', e);
+        return res.status(500).json({ error: 'action_failed', detail: e.message });
+      }
+    }
+
+    // ── Cupons promocionais (api/_lib/cupons.js) ──
+    if (action === 'cupons_listar' || action === 'cupons_criar' || action === 'cupons_atualizar') {
+      try {
+        const D = db();
+        const ts = timestamp();
+        const estado = async () => ({
+          itens: await cupons.listar(D),
+          percentMaximo: cupons.percentMaximo(),
+        });
+        if (action === 'cupons_criar') {
+          const r = await cupons.criar(D, (body && body.cupom) || {}, actor, ts);
+          if (!r.ok) return res.status(400).json({ error: r.erro });
+          await writeAudit({
+            action,
+            email: '',
+            uid: '',
+            actor,
+            extra: `cupom ${r.codigo} criado`,
+            after: (body && body.cupom) || null,
+          });
+        }
+        if (action === 'cupons_atualizar') {
+          const r = await cupons.atualizar(
+            D,
+            body && body.codigo,
+            (body && body.mudancas) || {},
+            actor,
+            ts
+          );
+          if (!r.ok) return res.status(400).json({ error: r.erro });
+          await writeAudit({
+            action,
+            email: '',
+            uid: '',
+            actor,
+            extra: `cupom ${r.codigo} alterado`,
+            after: (body && body.mudancas) || null,
+          });
+        }
+        return res.json({ success: true, ...(await estado()) });
+      } catch (e) {
+        console.error('[admin/action] cupons', e);
         return res.status(500).json({ error: 'action_failed', detail: e.message });
       }
     }

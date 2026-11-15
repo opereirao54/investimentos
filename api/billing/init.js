@@ -8,6 +8,7 @@ const codes = require('../_lib/codes');
 const rl = require('../_lib/rate-limit');
 const { assertReferralAllowed } = require('../_lib/referral-guard');
 const convites = require('../_lib/convites');
+const cupons = require('../_lib/cupons');
 
 const MONTHLY_PRICE_CENTS = 1500;
 const REFERRAL_DISCOUNT_PERCENT = 10;
@@ -436,7 +437,8 @@ function safeBilling(b) {
     createdAt: tsToIso(b.createdAt),
     referralCode: b.referralCode || null,
     referredByCode: b.referredByCode || null,
-    recurringDiscountPercent: b.recurringDiscountPercent || 0,
+    recurringDiscountPercent: cupons.percentualVigente(b),
+    promo: cupons.resumo(b),
     conviteDescontoPercent: b.conviteDescontoPercent || 0,
     monthlyPriceCents: b.monthlyPriceCents || MONTHLY_PRICE_CENTS,
   };

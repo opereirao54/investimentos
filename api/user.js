@@ -53,12 +53,14 @@
 // com aba antiga aberta.
 
 const crypto = require('crypto');
-const { db, auth, fieldValue } = require('./_lib/firebase-admin');
+const { db, auth, fieldValue, timestamp } = require('./_lib/firebase-admin');
 const { handler } = require('./_lib/handler');
 const { feedbackCreateBody, feedbackListQuery, telegramInboxAckBody } = require('./_lib/schemas');
 const rl = require('./_lib/rate-limit');
 const codes = require('./_lib/codes');
 const convites = require('./_lib/convites');
+const cupons = require('./_lib/cupons');
+const { computeAccess } = require('./_lib/access');
 const { requireUser, invalidateUid } = require('./_lib/auth');
 const asaas = require('./_lib/asaas');
 const { excluirConta } = require('./_lib/excluir-conta');
@@ -66,6 +68,58 @@ const telegram = require('./_lib/telegram-bot');
 const telegramAlertas = require('./_lib/telegram-alertas-envio');
 
 const LIMITE_PADRAO = 50;
+
+// ─── CUPOM PROMOCIONAL (api/_lib/cupons.js) ─────────────────────────────────
+//
+// O usuário digita o código da campanha e o benefício entra na conta dele.
+// Mora aqui, e não em /api/billing, pelo teto de 12 funções da Vercel.
+// Limite de tentativas por conta: sem ele, uma conta logada serviria de sonda
+// para adivinhar códigos.
+const CUPOM_JANELA_MS = 10 * 60 * 1000;
+const CUPOM_MAX_TENTATIVAS = 10;
+
+async function cupomResgatar(res, user, body) {
+  if (!exigeEmailVerificado(res, user)) return;
+  const bruto = body && typeof body.codigo === 'string' ? body.codigo.slice(0, 40) : '';
+  if (!cupons.normalizar(bruto)) {
+    return res
+      .status(400)
+      .json({ error: 'cupom_invalido', detail: cupons.MENSAGENS.cupom_invalido });
+  }
+  const limite = await rl.check({
+    scope: 'cupom-uid',
+    key: user.uid,
+    windowMs: CUPOM_JANELA_MS,
+    max: CUPOM_MAX_TENTATIVAS,
+  });
+  if (!limite.allowed) {
+    res.setHeader('Retry-After', Math.ceil((limite.retryAfterMs || CUPOM_JANELA_MS) / 1000));
+    return res.status(429).json({
+      error: 'cupom_muitas_tentativas',
+      detail: 'Muitas tentativas de cupom. Espere alguns minutos e tente de novo.',
+    });
+  }
+  const r = await cupons.resgatar(
+    db(),
+    { uid: user.uid, codigoBruto: bruto },
+    timestamp(),
+    fieldValue()
+  );
+  if (!r.ok) {
+    return res
+      .status(r.erro === 'cupom_falha_gateway' ? 502 : 400)
+      .json({ error: r.erro, detail: cupons.MENSAGENS[r.erro] || r.erro });
+  }
+  return res.json({
+    ok: true,
+    codigo: r.codigo,
+    tipo: r.tipo,
+    beneficio: r.beneficio,
+    promo: cupons.resumo(r.billing),
+    recurringDiscountPercent: cupons.percentualVigente(r.billing),
+    access: computeAccess(r.billing),
+  });
+}
 
 // ─── FEEDBACK (Dúvidas & Sugestões) ─────────────────────────────────────────
 
@@ -657,6 +711,11 @@ module.exports = handler({
     if (op === 'excluir-conta') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
       return excluirContaRota(res, user, body);
+    }
+
+    if (op === 'cupom') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+      return cupomResgatar(res, user, body);
     }
 
     if (OPS_TELEGRAM_APP.has(op)) return telegramRotas(op, req, res, user, body);

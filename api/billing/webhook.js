@@ -4,6 +4,7 @@ const asaas = require('../_lib/asaas');
 const { releaseAppliedCredits } = require('../_lib/billing-sync');
 const { nextPaidUntilMs } = require('../_lib/access');
 const { applyPendingCreditsTo, pushCreditToOpenInvoice } = require('../_lib/credits');
+const cupons = require('../_lib/cupons');
 
 const REFERRAL_PERCENT = 10;
 // O piso do gateway (MIN_PAYMENT_CENTS) e o abatimento de crédito numa
@@ -448,6 +449,26 @@ module.exports = handler({
             }
           } catch (e) {
             console.error('[webhook] creditIndicatorFromIndicado failed', e);
+          }
+        }
+
+        // Cupom promocional com prazo: cada mensalidade paga com o desconto
+        // gasta um ciclo; na última, a assinatura volta ao preço sem cupom.
+        // Depois dos créditos de propósito: o ajuste recalcula as faturas em
+        // aberto já descontando o que o Applicash abateu nelas.
+        if (
+          (event === 'PAYMENT_CONFIRMED' ||
+            event === 'PAYMENT_RECEIVED' ||
+            event === 'PAYMENT_RECEIVED_IN_CASH') &&
+          billing.promo &&
+          !deSubAntiga
+        ) {
+          try {
+            const r = await cupons.registrarPagamento(db(), doc.ref, payment, timestamp());
+            if (r.contou) paymentExtra.cupomCodigo = billing.promo.codigo;
+            if (r.encerrou) paymentExtra.cupomEncerrado = true;
+          } catch (e) {
+            console.error('[webhook] cupons.registrarPagamento failed', e);
           }
         }
 

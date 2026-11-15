@@ -66,6 +66,9 @@ O código está pronto (26/10/2026); o resto é painel. Passo a passo completo e
 - Benefício do testador nos Termos: "50% de desconto, sem prazo final,
   enquanto a conta existir" — confirmar.
 - Aviso de 30 dias antes de mudar o preço (nos Termos) — manter ou tirar.
+- Cupons promocionais (15/11/2026): os Termos não falam de cupom. Incluir
+  na revisão jurídica: cupom não acumula, vale uma vez por conta, o desconto
+  dura o número de mensalidades anunciado e depois volta ao preço cheio.
 - Plano B se o advogado exigir credenciamento para a carteira sugerida.
 - Patrimônio e Controle (07/11/2026), escolhas feitas na implementação que
   valem confirmar: o Patrimônio abre em **Líquido** quando há dívida; dívida =
@@ -101,6 +104,12 @@ O código está pronto (26/10/2026); o resto é painel. Passo a passo completo e
       começa em zero.
 
 ## Feito
+
+- 15/11/2026 · branch `claude/youthful-planck-30bkak` — Cupons promocionais
+  com e sem prazo (admin → Cupons): desconto por N mensalidades ou para
+  sempre, ou dias grátis; janela de resgate, limite de usos, público
+  (novos/todos), pausar. Não acumula com convite/indicação. Falta: decidir a
+  primeira campanha e citar cupons nos Termos (ver "Decisões em aberto").
 
 - 11/11/2026 · branch `claude/quirky-knuth-dsn1kf` — Meu patrimônio com menos
   informação de uma vez (computador): de sete cartões para o topo (número,

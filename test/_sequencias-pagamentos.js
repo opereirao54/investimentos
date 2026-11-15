@@ -30,6 +30,7 @@ const S = require('./_simulador-pagamentos.js');
 
 const { store, asaasState, handlers: H } = S;
 const { call } = require('../scripts/lib/mock-billing');
+const cupons = require('../api/_lib/cupons');
 
 const PESSOAS = ['ana', 'bia', 'caio', 'duda'];
 const REFERRAL_PERCENT = 10;
@@ -100,6 +101,16 @@ function abertas(uid) {
 // ao estado atual (o motor sorteia outra). A resposta HTTP vai em m.resposta
 // para o motor conferir 5xx.
 // ---------------------------------------------------------------------------
+
+// Cupons que a caça cria. Nenhum passa de 50%: o CUP10 (ninguém paga menos
+// que metade sem crédito) continua valendo com eles no jogo.
+const CUPONS_PROMO = [
+  { codigo: 'PROMO20', tipo: 'desconto', percent: 20, ciclos: 2, publico: 'todos' },
+  { codigo: 'PROMO50', tipo: 'desconto', percent: 50, ciclos: 1 },
+  { codigo: 'SEMPRE30', tipo: 'desconto', percent: 30, publico: 'todos', maxResgates: 2 },
+  { codigo: 'GRATIS15', tipo: 'dias_gratis', dias: 15, publico: 'todos' },
+  { codigo: 'GRATIS5', tipo: 'dias_gratis', dias: 5, maxResgates: 1 },
+];
 
 const ACOES = [
   // ---- contas e cupons ----
@@ -430,6 +441,56 @@ const ACOES = [
     return 'atacante forja PAYMENT_RECEIVED para ' + uid;
   },
 
+  // ---- cupons promocionais (api/_lib/cupons.js) ----
+  async function adminCriaCupomPromo(m, r) {
+    const livre = CUPONS_PROMO.filter((c) => !m.cuponsPromo.includes(c.codigo));
+    const def = escolher(r, livre);
+    if (!def) return null;
+    m.resposta = await S.criarCupom(def);
+    if (m.resposta.status === 200) m.cuponsPromo.push(def.codigo);
+    return 'admin cria o cupom ' + def.codigo;
+  },
+  async function resgatarCupomPromo(m, r) {
+    const uid = escolher(r, contas());
+    if (!uid) return null;
+    // Um que existe, um inventado, ou um código de outro tipo (indicação).
+    const codigo = escolher(r, m.cuponsPromo.concat(['NAOEXISTE', 'APP-ABC123']));
+    m.resposta = await S.resgatarCupom(uid, codigo);
+    return uid + ' digita o cupom promocional ' + codigo;
+  },
+  async function doisResgatamOMesmoCupom(m, r) {
+    const codigo = escolher(r, m.cuponsPromo);
+    const a = escolher(r, contas());
+    const b = escolher(r, contas());
+    if (!codigo || !a || !b) return null;
+    const rs = await Promise.all([S.resgatarCupom(a, codigo), S.resgatarCupom(b, codigo)]);
+    m.resposta = rs.find((x) => x.status >= 500) || rs[0];
+    return a + ' e ' + b + ' digitam ' + codigo + ' no mesmo instante';
+  },
+  async function adminMexeNoCupomPromo(m, r) {
+    const codigo = escolher(r, m.cuponsPromo);
+    if (!codigo) return null;
+    const mudancas = escolher(r, [
+      { status: 'pausado' },
+      { status: 'ativo' },
+      { validoAte: '2026-10-20' },
+      { validoAte: null },
+      { maxResgates: 1 },
+    ]);
+    m.resposta = await S.adminAcao({ action: 'cupons_atualizar', codigo, mudancas });
+    // Baixar o limite abaixo do que já foi resgatado não desfaz resgate.
+    if (mudancas.maxResgates != null) m.limiteReduzido.add(codigo);
+    return 'admin altera o cupom ' + codigo + ' ' + JSON.stringify(mudancas);
+  },
+  async function asaasRecusaMudarAssinatura(m, r) {
+    asaasState.failUpdateSubscription = r() < 0.5;
+    return (
+      'Asaas ' +
+      (asaasState.failUpdateSubscription ? 'passa a recusar' : 'volta a aceitar') +
+      ' mudança de valor da assinatura'
+    );
+  },
+
   // ---- admin e relógio ----
   async function superpoder(m, r) {
     const uid = escolher(r, contas());
@@ -510,7 +571,10 @@ function verificarCupons(m) {
     // CUP04 — cortesia de testador só para quem resgatou convite (ou admin).
     if ((b.courtesyPermanent === true || b.courtesyUntil) && !m.cortesiaAdmin.has(uid)) {
       const usou = m.convites.some((c) => (doc('convites/' + c) || {}).usadoPor === uid);
-      if (!usou) falhas.push(rot + 'CUP04 cortesia sem convite nem ação do admin');
+      const porCupom = String(b.courtesyGrantedBy || '').startsWith('cupom:');
+      const resgatou =
+        porCupom && !!doc('cupons/' + b.courtesyGrantedBy.slice(6) + '/resgates/' + uid);
+      if (!usou && !resgatou) falhas.push(rot + 'CUP04 cortesia sem convite nem ação do admin');
     }
 
     // CUP05 — cada crédito vem de um pagamento REAL de um indicado DESTA
@@ -601,6 +665,45 @@ function verificarCupons(m) {
     }
   }
 
+  // CUP11 — cupom promocional: o contador bate com quem resgatou e não
+  // passa do limite.
+  for (const c of m.cuponsPromo) {
+    const d = doc('cupons/' + c) || {};
+    const prefixo = 'cupons/' + c + '/resgates/';
+    let n = 0;
+    for (const p of store.docs.keys()) if (p.startsWith(prefixo)) n++;
+    if ((d.resgates || 0) !== n)
+      falhas.push('CUP11 cupom ' + c + ': contador ' + (d.resgates || 0) + ' ≠ ' + n + ' resgates');
+    if (d.maxResgates != null && n > d.maxResgates && !m.limiteReduzido.has(c))
+      falhas.push('CUP11 cupom ' + c + ': ' + n + ' resgates, limite ' + d.maxResgates);
+  }
+
+  // CUP12 — o cupom dentro da conta: veio de um resgate, não gasta mais
+  // ciclos do que tem, e a assinatura no Asaas cobra o preço que vale agora.
+  for (const uid of contas()) {
+    const b = S.billing(uid);
+    const p = b.promo;
+    if (!p) continue;
+    const rot = '[' + uid + '] ';
+    if (!doc('cupons/' + p.codigo + '/resgates/' + uid))
+      falhas.push(rot + 'CUP12 desconto do cupom ' + p.codigo + ' sem resgate registrado');
+    if (p.ciclosTotal != null && (p.ciclosUsados || 0) > p.ciclosTotal)
+      falhas.push(rot + 'CUP12 gastou ' + p.ciclosUsados + ' ciclos de ' + p.ciclosTotal);
+    if (new Set(p.pagamentos || []).size !== (p.pagamentos || []).length)
+      falhas.push(rot + 'CUP12 o mesmo pagamento gastou dois ciclos');
+    const sub = b.subscriptionId && asaasState.subscriptions.get(b.subscriptionId);
+    if (sub && sub.status !== 'INACTIVE' && b.subscriptionStatus !== 'INACTIVE') {
+      const cobra = Math.round(sub.value * 100);
+      const vale = cupons.precoCents(b);
+      // Para MENOS só com ajuste pendente (erro a favor do usuário); para
+      // MAIS, nunca.
+      if (cobra > vale)
+        falhas.push(rot + 'CUP12 assinatura cobra ' + cobra + 'c, o preço é ' + vale);
+      if (cobra < vale && !p.ajustePendente)
+        falhas.push(rot + 'CUP12 assinatura cobra ' + cobra + 'c sem cupom valendo (' + vale + ')');
+    }
+  }
+
   // CUP08 — convite: uso único.
   for (const c of m.convites) {
     const d = doc('convites/' + c) || {};
@@ -635,6 +738,8 @@ async function rodarSequenciaPagamentos(semente, passos) {
     mundo,
     pares: [],
     convites: [],
+    cuponsPromo: [],
+    limiteReduzido: new Set(),
     descontoAdmin: new Set(),
     cortesiaAdmin: new Set(),
     bloqueados: new Set(),
@@ -672,7 +777,15 @@ async function rodarSequenciaPagamentos(semente, passos) {
       trilha.push(desc);
 
       const falhas = m.extra.slice();
-      if (m.resposta && m.resposta.status >= 500) {
+      // 502 no resgate de cupom com o Asaas recusando é a resposta CERTA
+      // (o resgate é desfeito); o estado é conferido pelos invariantes.
+      const recusaEsperada =
+        m.resposta &&
+        m.resposta.status === 502 &&
+        m.resposta.body &&
+        m.resposta.body.error === 'cupom_falha_gateway' &&
+        asaasState.failUpdateSubscription;
+      if (m.resposta && m.resposta.status >= 500 && !recusaEsperada) {
         falhas.push(
           'HTTP ' + m.resposta.status + ' em "' + desc + '": ' + JSON.stringify(m.resposta.body)
         );
