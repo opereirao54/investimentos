@@ -3963,6 +3963,7 @@ function onUser(user) {
 
 var attempts = 0;
 function attach() {
+  if (window.__APPLIQUEI_DEMO__) return; // demonstração: sem conta, sem cobrança
   attempts++;
   var fb = window.AppliqueiFirebase;
   if (fb && fb.ready && fb.auth) {

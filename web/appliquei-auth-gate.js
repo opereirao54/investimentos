@@ -1070,6 +1070,13 @@ window.appliqueiSidebarAuthClick = function () {
 };
 function initAppliqueiAuth() {
   if (!$('authGate')) return;
+  // Modo demonstração: sem login (o Firebase nem inicializa) — entra direto,
+  // como convidado, nos dados fictícios. Ver appliquei-demo.js.
+  if (window.__APPLIQUEI_DEMO__) {
+    hideGate();
+    refreshSidebar();
+    return;
+  }
   showGate();
   setAuthPanel('load');
   setCabecalho('Bem-vindo', 'Um instante — estamos preparando tudo');

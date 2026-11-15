@@ -59,6 +59,9 @@ var DELETIONS_LS = 'appliquei_cloud_deletions';
 
 function shouldSyncKey(key) {
   if (!key || typeof key !== 'string') return false;
+  // Modo demonstração: nenhuma chave sobe — segunda trava, para o caso de o
+  // Firebase ter subido mesmo assim (ver appliquei-demo.js).
+  if (typeof window !== 'undefined' && window.__APPLIQUEI_DEMO__) return false;
   // Estado do LOGIN neste aparelho (modo convidado, cadastro Google à espera
   // de confirmação): não é dado do usuário — não sobe para a nuvem nem some
   // na troca de conta (clearUserScopedKeys), que roda justamente no meio do
@@ -974,6 +977,8 @@ function clearUserScopedKeys() {
 }
 
 function attach() {
+  // Modo demonstração: nunca ligar o sync (ver appliquei-demo.js).
+  if (window.__APPLIQUEI_DEMO__) return;
   var fb = window.AppliqueiFirebase;
   if (!fb || !fb.ready || !fb.auth) return;
   if (authHooked) return;

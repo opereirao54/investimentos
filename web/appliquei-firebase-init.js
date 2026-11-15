@@ -43,6 +43,10 @@ export function initFirebase() {
       appCheckActivated: false,
     };
   }
+  // Modo demonstração (appliquei-demo.js): sem Firebase, logo sem login e sem
+  // sync. É o que impede a demonstração de puxar os dados da conta logada
+  // neste navegador — ou de gravar os fictícios por cima deles.
+  if (w.__APPLIQUEI_DEMO__) return w.AppliqueiFirebase;
   const cfg = w.__APPLIQUEI_FIREBASE_CONFIG__ || {};
   const key = (cfg.apiKey && String(cfg.apiKey).trim()) || '';
   if (!key || key === 'REPLACE' || typeof firebase === 'undefined') {
