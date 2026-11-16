@@ -3,8 +3,7 @@
 Reel de seg 16/11/2026 (faltam 47). Tema e roteiro aprovados pelo fundador no
 dia, no lugar do 50-30-20: a "metade do dobro" da Black Friday (27/11), alerta
 dos Procons na semana. **Beto** (mau exemplo) compra pelo preço riscado;
-**Lia** (bom exemplo) salva o preço com a data 11 dias antes e compara no dia
-27. Voz Charon, sem vinheta.
+**Lia** (bom exemplo) salva o preço com a data 11 dias antes e compara no dia 27. Voz Charon, sem vinheta.
 
 **Abertura** (receita da gasolina, o único Reel acima da meta): número na tela
 desde o quadro 0, com movimento (a etiqueta balança e o preço cai de R$ 4.000
@@ -21,13 +20,13 @@ para R$ 2.000). Nada escondido para a virada (o teste de 13/11 caiu para
 
 ## Os números
 
-| Dado                         | Valor                                          | Fonte                                     |
-| ---------------------------- | ---------------------------------------------- | ----------------------------------------- |
-| Black Friday                 | sexta, 27/11/2026                              | Mix Vale (11/11), N1N                     |
-| "Metade do dobro"            | considerada prática abusiva pelo Procon-SP      | TNH1 (orientações para a Black Friday 2026) |
-| Anotar o preço com antecedência | orientação dos Procons                       | Procon-ES (esbrasil.com.br), Procon-AM (10/11) |
-| TV                           | R$ 2.000 (out) → R$ 4.000 (nov) → R$ 2.000 (27/11) | valores de exemplo, sem marca          |
-| 16/11 → 27/11                | 11 dias                                        | conta                                     |
+| Dado                            | Valor                                              | Fonte                                          |
+| ------------------------------- | -------------------------------------------------- | ---------------------------------------------- |
+| Black Friday                    | sexta, 27/11/2026                                  | Mix Vale (11/11), N1N                          |
+| "Metade do dobro"               | considerada prática abusiva pelo Procon-SP         | TNH1 (orientações para a Black Friday 2026)    |
+| Anotar o preço com antecedência | orientação dos Procons                             | Procon-ES (esbrasil.com.br), Procon-AM (10/11) |
+| TV                              | R$ 2.000 (out) → R$ 4.000 (nov) → R$ 2.000 (27/11) | valores de exemplo, sem marca                  |
+| 16/11 → 27/11                   | 11 dias                                            | conta                                          |
 
 O aviso do vídeo e da legenda diz "Valores de exemplo" e "Personagens
 fictícios". Nenhuma loja ou marca é citada.

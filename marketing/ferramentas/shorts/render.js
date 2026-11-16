@@ -51,7 +51,8 @@ async function legendaPrepara(p, palavras) {
     // não fecha a linha numa palavra curta sem pontuação ("de", "São"): ela vai junto da próxima
     const ult = g && g.ws[g.ws.length - 1].w;
     const presa = ult && ult.length <= 3 && !/[,.:;!?…]$/.test(ult);
-    const cheio = g && !presa && (g.ws.length >= 4 || g.ws.map((x) => x.w).join(' ').length + w.w.length > 20);
+    const cheio =
+      g && !presa && (g.ws.length >= 4 || g.ws.map((x) => x.w).join(' ').length + w.w.length > 20);
     if (!g || g.i !== w.i || cheio) grupos.push((g = { i: w.i, ws: [] }));
     g.ws.push(w);
     if (/[,.:;!?…]$/.test(w.w)) g = null;
@@ -84,7 +85,12 @@ async function legendaPrepara(p, palavras) {
         }
         if (k !== atual) {
           atual = k;
-          box.innerHTML = k < 0 ? '' : '<span class="lg">' + grupos[k].ws.map((w, n) => `<span class="w" data-n="${n}">${w.w}</span>`).join('') + '</span>';
+          box.innerHTML =
+            k < 0
+              ? ''
+              : '<span class="lg">' +
+                grupos[k].ws.map((w, n) => `<span class="w" data-n="${n}">${w.w}</span>`).join('') +
+                '</span>';
         }
         if (k < 0) return;
         const g = grupos[k];
@@ -95,7 +101,8 @@ async function legendaPrepara(p, palavras) {
         box.querySelectorAll('.w').forEach((el, n) => {
           const w = g.ws[n];
           el.className = 'w' + (t >= w.t0 && t < w.t1 ? ' on' : t < w.t0 ? ' fut' : '');
-          const pop = t >= w.t0 && t < w.t0 + 0.15 ? 1 + 0.08 * Math.sin(((t - w.t0) / 0.15) * Math.PI) : 1;
+          const pop =
+            t >= w.t0 && t < w.t0 + 0.15 ? 1 + 0.08 * Math.sin(((t - w.t0) / 0.15) * Math.PI) : 1;
           el.style.transform = `scale(${pop})`;
         });
       };
@@ -114,7 +121,8 @@ async function legendaPrepara(p, palavras) {
   await p.goto('file://' + html);
   await p.evaluate(() => document.fonts.ready);
   await p.waitForTimeout(400);
-  if (process.env.LEGENDA) await legendaPrepara(p, JSON.parse(fs.readFileSync(process.env.LEGENDA, 'utf8')));
+  if (process.env.LEGENDA)
+    await legendaPrepara(p, JSON.parse(fs.readFileSync(process.env.LEGENDA, 'utf8')));
   const dur = await p.evaluate(() => (typeof DUR !== 'undefined' ? DUR : 30));
   const quadros = path.join(pasta, 'quadros');
   fs.rmSync(quadros, { recursive: true, force: true });
