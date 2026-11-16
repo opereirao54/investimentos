@@ -407,6 +407,86 @@ Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fict�
 #educacaofinanceira #assinaturas #cartaodecredito #financaspessoais
 ```
 
+## SEGUNDA 16/11 · Faltam 47 dias · Appliquei Explica
+
+Tema escolhido pelo fundador no dia, no lugar do 50-30-20 (que volta para a
+reserva): a "metade do dobro" da Black Friday (27/11), alerta dos Procons
+nesta semana. Voz Charon, 37 s, **sem vinheta**: a etiqueta balança e o preço
+cai de R$ 4.000 para R$ 2.000 desde o primeiro quadro. Beto (mau exemplo)
+compra pelo preço riscado; Lia (bom exemplo) salva o preço hoje e compara no
+dia 27.
+
+**Antes de postar:** conferir que o vídeo é o da Black Friday (etiqueta da TV
+com "50% OFF") e que a 1ª linha da legenda é a mesma frase. Mandar o arquivo
+original (AirDrop, Drive/iCloud ou WhatsApp como **Documento**). **Postar às
+19h, hoje** (se não der para estar no celular às 19h, agendar no Instagram).
+
+**19h · INSTAGRAM (Reel)** · vídeo da etiqueta da TV com 50% OFF
+
+1. Novo Reel › escolher o vídeo da etiqueta da TV.
+2. Capa: Editar capa › Adicionar da galeria › a imagem verde "Esse 50% off pode ser o preço de outubro".
+3. Configurações avançadas: "Carregar na qualidade mais alta" ligado.
+4. Colar a legenda e publicar às 19h.
+5. Fixar o comentário: `O que você tá de olho pra Black Friday? Anota o preço de hoje aqui 👇` e responder todos na 1ª hora.
+6. **Até 20h (fundador e sócio):** compartilhar o Reel nos stories e mandar o **link** no status do WhatsApp e em 3–5 grupos com a frase `Antes da Black Friday: tira print do preço hoje 👇`.
+
+```
+Esse 50% off pode ser o preço de outubro. 🏷️
+
+Em outubro, a TV custava R$ 2.000. Em novembro, subiu pra R$ 4.000. Na Black Friday: "50% OFF", por R$ 2.000. Metade do dobro.
+
+O Beto comprou achando que economizou R$ 2.000. Economizou zero.
+
+O Procon de São Paulo considera isso prática abusiva: subir o preço antes pra anunciar desconto depois.
+
+A Lia faz diferente: hoje, 11 dias antes, ela tira print do preço com a data. No dia 27, compara.
+
+📌 Regra de bolso: desconto se mede pelo preço que você anotou, não pelo preço riscado.
+
+Manda pra quem já tá com o carrinho cheio. 🔁
+
+💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta. Segue pra não perder a próxima.
+
+⏳ Faltam 47 dias para o que estamos preparando pra 2027.
+
+Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fictícios.
+
+#blackfriday #educacaofinanceira #direitodoconsumidor #financaspessoais #economia
+```
+
+**19h · TIKTOK** · o mesmo vídeo da etiqueta da TV
+
+1. Enviar o vídeo original; capa = primeiro quadro (já é a capa).
+2. "Permitir upload em alta qualidade" ligado.
+3. Colar a legenda e publicar.
+
+```
+Esse 50% off pode ser o preço de outubro. 🏷️ Desconto se mede pelo preço que você anotou, não pelo riscado: tira print hoje e compara dia 27. Segue pra não perder. ⏳ Faltam 47 dias.
+
+#blackfriday #educacaofinanceira #direitodoconsumidor #financaspessoais
+```
+
+**19h · YOUTUBE SHORTS** · o mesmo vídeo da etiqueta da TV
+
+1. Enviar o vídeo original; no app do YouTube, escolher o primeiro quadro como capa.
+2. Título e descrição abaixo; publicar.
+
+Título:
+
+```
+Black Friday: esse 50% off é desconto ou o preço de outubro? #shorts
+```
+
+Descrição:
+
+```
+A "metade do dobro": o preço sobe antes e o desconto volta pro preço de antes. Regra de bolso: desconto se mede pelo preço que você anotou, não pelo riscado. Tira print hoje e compara no dia 27/11. Inscreva-se para a próxima conta.
+
+Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fictícios.
+
+#blackfriday #educacaofinanceira #direitodoconsumidor #financaspessoais
+```
+
 ## Assinaturas das séries na legenda (desde 04/11)
 
 - `💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta.`

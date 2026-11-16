@@ -60,6 +60,31 @@
   médio e de retenção pode ser da fonte, não da abertura.
 - Compart. 0,4%, curtidas 1,1% e comentários 0% marcados como "mais baixo".
 
+## Em teste a partir de qua 18/11 (News): legenda sincronizada
+
+Aprovado pelo fundador em 16/11. As palavras da fala aparecem queimadas no
+vídeo, 2 a 4 por vez, com a palavra dita em verde (`legenda-tempos.py` +
+`LEGENDA=` no `render.js`). Só isso muda: abertura com número em movimento
+desde o quadro 0 e sem vinheta, como na gasolina e na Black Friday de 16/11.
+Hipótese: quem assiste sem som entende a história e não pula nos 2 primeiros
+segundos. Comparar taxa de pulados, curva nos 3 s, tempo médio e retenção com
+a gasolina (11,3 s, 32%, pulados 76%) e com a Black Friday de 16/11 (sem
+legenda). Vira padrão se bater a meta (10 s e 30%) e reduzir os pulados.
+
+## Revisão dos temas (16/11, 10 Reels, 18 seguidores)
+
+- **30 dias:** 2.212 views, tempo médio 7,5 s, retenção 17,5%, compart. 1%,
+  salvos 0,1%, 0 seguidores pelos Reels.
+- **Sexta 13 (13/11):** 293 views, 5,3 s, 15%, compart. 0,9%. Os dois testes
+  (total escondido até ~20 s e envio antes da virada) **não seguraram**:
+  menos da metade do tempo da gasolina. Volta o número desde o quadro 0.
+- **O que segura:** tema popular com data e número em movimento desde o
+  quadro 0 (gasolina, 11,3 s e 32%). Pergunta ou conceito na abertura fica
+  em ~5 s (parcelado, Copom, sexta 13).
+- **O que é compartilhado:** o erro que "um amigo cometeria" (garantia, 3,3%).
+- **Decisão do fundador (16/11):** o Reel de hoje troca o 50-30-20 (abstrato)
+  pela Black Friday "metade do dobro", na receita da gasolina.
+
 ## Em teste: Explica de 13/11 (assinatura esquecida)
 
 Dois testes juntos, por decisão do fundador: (1) o total só aparece na virada
