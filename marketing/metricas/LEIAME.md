@@ -60,6 +60,17 @@
   médio e de retenção pode ser da fonte, não da abertura.
 - Compart. 0,4%, curtidas 1,1% e comentários 0% marcados como "mais baixo".
 
+## Em teste a partir de qua 18/11 (News): legenda sincronizada
+
+Aprovado pelo fundador em 16/11. As palavras da fala aparecem queimadas no
+vídeo, 2 a 4 por vez, com a palavra dita em verde (`legenda-tempos.py` +
+`LEGENDA=` no `render.js`). Só isso muda: abertura com número em movimento
+desde o quadro 0 e sem vinheta, como na gasolina e na Black Friday de 16/11.
+Hipótese: quem assiste sem som entende a história e não pula nos 2 primeiros
+segundos. Comparar taxa de pulados, curva nos 3 s, tempo médio e retenção com
+a gasolina (11,3 s, 32%, pulados 76%) e com a Black Friday de 16/11 (sem
+legenda). Vira padrão se bater a meta (10 s e 30%) e reduzir os pulados.
+
 ## Revisão dos temas (16/11, 10 Reels, 18 seguidores)
 
 - **30 dias:** 2.212 views, tempo médio 7,5 s, retenção 17,5%, compart. 1%,

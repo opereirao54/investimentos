@@ -142,6 +142,12 @@ true`), mesmo modelo do News.
   vinheta só depois do gancho (~3 s) ou fora; tarja/selo da série no topo o
   vídeo todo. Meta: tempo médio acima de 10 s e retenção acima de 30%
   (linha de base: 5,6 s e 14%). Registro em `marketing/metricas/LEIAME.md`.
+- **Legenda sincronizada (fundador, 16/11):** teste a partir do News de qua
+  18/11. A fala aparece queimada no vídeo, palavra a palavra, numa faixa
+  livre em torno de y 1430 (fora dos ~380 px de baixo que o Instagram cobre):
+  as cenas do Reel têm de deixar essa faixa vazia. Como fazer em
+  `marketing/ferramentas/shorts/LEIAME.md`. Registro em
+  `marketing/metricas/LEIAME.md`.
 - **Comentários:** fixar um comentário com pergunta e responder todos na
   primeira hora.
 

@@ -48,6 +48,26 @@ python3 marketing/ferramentas/shorts/mixar-narracao.py /tmp/voz trilha.wav video
   `LEITURA=<arquivo>` o script refaz cortes e entonação sem gastar cota.
 - A mixagem abaixa a trilha sob a voz e sai em ~-15 LUFS, pico abaixo de -2 dBFS.
 
+## Legenda sincronizada (teste desde 18/11)
+
+A fala aparece no vídeo, 2 a 4 palavras por vez, com a palavra dita em verde.
+Os tempos saem do próprio áudio da narração (as pausas da fala acertam o
+relógio; dentro de cada trecho, as palavras se dividem pelas sílabas).
+
+```bash
+# depois do narrar-gemini.py (pasta /tmp/voz com partes.json e seg*.wav)
+python3 marketing/ferramentas/shorts/legenda-tempos.py /tmp/voz $D/narracao.json $D/legenda.json
+LEGENDA=$D/legenda.json LEGENDA_Y=1430 node marketing/ferramentas/shorts/render.js /tmp/r $D/video.html
+```
+
+- `LEGENDA_Y` é o centro da faixa (padrão 1430). Abaixo de ~1540 o Instagram
+  cobre com nome, legenda e botões: deixe a faixa de 1340 a 1520 sem
+  elementos nas cenas.
+- Linhas quebram na pontuação, entre frases e em até 4 palavras / ~20 letras;
+  uma palavra curta sem pontuação ("de", "São") não fecha a linha.
+- Se mudar o tempo de uma frase, gere de novo o `legenda.json` (os tempos
+  vêm do `partes.json` da última narração).
+
 ## Como o modelo funciona
 
 - Cada cena é um `<div class="cena">`. Os tempos ficam em `CENAS` (id, início,
