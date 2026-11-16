@@ -60,6 +60,20 @@
   médio e de retenção pode ser da fonte, não da abertura.
 - Compart. 0,4%, curtidas 1,1% e comentários 0% marcados como "mais baixo".
 
+## Revisão dos temas (16/11, 10 Reels, 18 seguidores)
+
+- **30 dias:** 2.212 views, tempo médio 7,5 s, retenção 17,5%, compart. 1%,
+  salvos 0,1%, 0 seguidores pelos Reels.
+- **Sexta 13 (13/11):** 293 views, 5,3 s, 15%, compart. 0,9%. Os dois testes
+  (total escondido até ~20 s e envio antes da virada) **não seguraram**:
+  menos da metade do tempo da gasolina. Volta o número desde o quadro 0.
+- **O que segura:** tema popular com data e número em movimento desde o
+  quadro 0 (gasolina, 11,3 s e 32%). Pergunta ou conceito na abertura fica
+  em ~5 s (parcelado, Copom, sexta 13).
+- **O que é compartilhado:** o erro que "um amigo cometeria" (garantia, 3,3%).
+- **Decisão do fundador (16/11):** o Reel de hoje troca o 50-30-20 (abstrato)
+  pela Black Friday "metade do dobro", na receita da gasolina.
+
 ## Em teste: Explica de 13/11 (assinatura esquecida)
 
 Dois testes juntos, por decisão do fundador: (1) o total só aparece na virada
