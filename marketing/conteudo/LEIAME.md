@@ -33,6 +33,16 @@ Modelos:
 - `modelo-alcance.html` — "lista de 3" sobre um extrato, com o app no fecho.
   Funciona melhor como **anúncio de diferencial** do que como alcance.
 
+## Padrão dinâmico (desde 18/11)
+
+Os Reels são uma cena contínua em movimento, não uma sequência de cartões.
+Modelo: `alcance/decimo-terceiro-ir/video.html`. Cada objeto (`.obj`) é
+posicionado pelo centro com `poe(id, x, y, escala, rotação, opacidade)`;
+`vida(t, entra, sai)` dá a entrada com "pop" e a saída voando; `voo(...)` faz
+as notas voarem em arco de um ponto a outro. Os tempos vêm das falas
+(`em(i, 'palavra')`). Para um tema novo: trocar os objetos e as falas e
+manter o motor.
+
 ## Regras que valem para todas as peças
 
 - **Identidade:** campo verde-escuro, malha fina, Figtree/DM Mono, verde-sinal

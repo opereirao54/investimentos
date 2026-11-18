@@ -142,6 +142,15 @@ true`), mesmo modelo do News.
   vinheta só depois do gancho (~3 s) ou fora; tarja/selo da série no topo o
   vídeo todo. Meta: tempo médio acima de 10 s e retenção acima de 30%
   (linha de base: 5,6 s e 14%). Registro em `marketing/metricas/LEIAME.md`.
+- **Padrão dinâmico (fundador, 18/11: "ficou show, vamos manter esse padrão
+  e ir melhorando"):** todo Reel é **uma cena contínua** em que as coisas
+  surgem, se mexem e se transformam (notas voando, pilhas de dinheiro
+  crescendo, objetos entrando pela lateral, calendário virando, câmera com
+  deriva e "soco" de zoom a cada fala), no lugar de cartões trocando. Nada
+  parado na tela. Inspirado nos Reels da @cafecomseudinheiro. Modelo:
+  `alcance/decimo-terceiro-ir/video.html` (funções `poe`, `vida`, `voo`).
+  Conteúdo: conta em degraus que cada um se acha, pergunta fácil no fim
+  ("Você já sabia dessa? Comenta SIM ou NÃO"), nunca pedir dado pessoal.
 - **Formato novo em teste (fundador, 17/11), desde o News de qua 18/11:**
   diálogo Lia (voz Sulafat) × Beto (voz Charon), sem narrador (exceção à
   regra "uma voz por vídeo"); cortes a cada ~2–3 s; tela de celular quando
