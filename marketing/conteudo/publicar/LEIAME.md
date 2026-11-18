@@ -542,7 +542,7 @@ Conteúdo educacional e apartidário, sem recomendação. 13º igual ao salário
 
 **Respostas aos comentários (1ª hora):** o valor a mais no 13º é o IR que
 saía pela regra antiga (13º = salário, INSS de 2026, tabela de 2025, sem
-dependentes). Até R$ 2.700: R$ 0 (já era isento) · R$ 3.000: R$ 24 ·
+dependentes). Até R$ 2.600: R$ 0 (já era isento) · R$ 2.700: R$ 4 · R$ 3.000: R$ 24 ·
 R$ 3.500: R$ 85 · R$ 4.000: R$ 151 · R$ 4.500: R$ 240 · R$ 5.000: R$ 337 ·
 acima de R$ 5 mil e até R$ 7.350: o imposto cai em parte (não responder
 valor; dizer "cai em parte, confere no holerite de dezembro").
