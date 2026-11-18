@@ -62,9 +62,9 @@
 
 ## Em teste a partir de qua 18/11 (News): formato novo, tudo junto
 
-Aprovado pelo fundador em 17/11, **as quatro mudanças de uma vez** ("vamos
-testar; se não funcionar, retrocedemos"): (1) legenda sincronizada queimada no
-vídeo; (2) diálogo Lia (Sulafat) × Beto (Charon) sem narrador; (3) cortes a
+Aprovado pelo fundador em 17/11, **as mudanças de uma vez** ("vamos
+testar; se não funcionar, retrocedemos"): (1) gancho falando com quem assiste
+("Se você ganha até cinco mil…"); (2) diálogo Lia (Sulafat) × Beto (Charon) sem narrador; (3) cortes a
 cada ~2–3 s com zoom no corte; (4) tela de celular (holerite). A imagem real
 no 1º segundo ficou para depois (sem banco de imagens nesta rede).
 
@@ -73,6 +73,9 @@ vinheta, a receita da gasolina) caiu para **3,3 s** de tempo médio e 140
 views em ~27 h, o pior do perfil. A gasolina continua o único Reel acima da
 meta, e metade das views dela veio do compartilhamento do fundador nos
 stories.
+
+A legenda sincronizada foi tirada pelo fundador antes de postar ("tira a
+legenda toda", 17/11: texto demais na tela); fica guardada no `render.js`.
 
 Como o teste junta quatro mudanças, o resultado diz se **o formato** funciona,
 não qual peça pesou. Comparar taxa de pulados, curva nos 3 s, tempo médio e

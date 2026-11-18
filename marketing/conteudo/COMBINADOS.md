@@ -145,9 +145,10 @@ true`), mesmo modelo do News.
 - **Formato novo em teste (fundador, 17/11), desde o News de qua 18/11:**
   diálogo Lia (voz Sulafat) × Beto (voz Charon), sem narrador (exceção à
   regra "uma voz por vídeo"); cortes a cada ~2–3 s; tela de celular quando
-  couber; legenda sincronizada. "Se não funcionar, retrocedemos."
-- **Legenda sincronizada (fundador, 16/11):** teste a partir do News de qua
-  18/11. A fala aparece queimada no vídeo, palavra a palavra, numa faixa
+  couber; gancho falando com quem assiste. "Se não funcionar, retrocedemos."
+- **Sem legenda queimada no vídeo (fundador, 17/11: "tira a legenda toda"):**
+  com o texto das cenas, era informação demais. A ferramenta fica guardada.
+- ~~Legenda sincronizada (fundador, 16/11)~~: tirada em 17/11, ver acima. A fala aparece queimada no vídeo, palavra a palavra, numa faixa
   livre em torno de y 1430 (fora dos ~380 px de baixo que o Instagram cobre):
   as cenas do Reel têm de deixar essa faixa vazia. Como fazer em
   `marketing/ferramentas/shorts/LEIAME.md`. Registro em

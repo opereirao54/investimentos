@@ -4,8 +4,7 @@
   mais gordo". Nova regra do IR (Lei 15.270/2025): IR zerado no 13º para quem
   ganha até R$ 5 mil; o desconto é na 2ª parcela (dezembro). Diálogo Lia
   (Sulafat) × Beto (Charon), sem narrador; cortes a cada ~2-3 s; holerite na
-  tela de celular; legenda sincronizada queimada pelo render (faixa 1340-1520
-  livre). Apartidário, sem recomendação.
+  tela de celular; sem legenda (fundador, 17/11). Apartidário, sem recomendação.
 -->
 <html lang="pt-BR">
 <head>
@@ -180,7 +179,7 @@
 
   <!-- s1: o número desde o quadro 0 -->
   <div class="cena" id="s1"><div class="contador"><div class="num" id="cnt">+R$ 0</div><div class="sub">no seu <em style="font-style:normal;color:var(--ambar)">13º</em></div></div>
-    <div class="tag-r" style="top:1000px;"><span style="background:rgba(251,191,36,.14);border:3px solid var(--ambar);color:var(--ambar);">quem ganha até R$ 5 mil</span></div></div>
+    <div class="tag-r" style="top:1000px;"><span style="background:rgba(251,191,36,.14);border:3px solid var(--ambar);color:var(--ambar);">salário de R$ 4.500 · até R$ 240 a mais</span></div></div>
   <!-- s2: o envelope engorda -->
   <div class="cena" id="s2"><div class="envelope" id="env"><b>13º</b><small>dezembro de 2026</small></div>
     <div class="tag-r" style="top:1000px;"><span id="t2" style="background:var(--sinal);color:#052e1f;font-size:56px;">+R$ 239,92</span></div></div>
@@ -236,14 +235,14 @@
     $('malha').innerHTML = m.join('');
   })();
 
-  const NAR = [[0.2, 4.98, "Beto, teu décimo terceiro vai vir uns duzentos e quarenta reais mais gordo."], [5.18, 5.97, "Aumento?!"], [6.17, 11.78, "Não. Quem ganha até cinco mil não paga mais imposto de renda no décimo terceiro. É a nova regra."], [11.98, 14.72, "Então já posso gastar na Black Friday!"], [14.97, 20.17, "Calma: o desconto do imposto é na segunda parcela, em dezembro. Esse dinheiro ainda nem caiu."], [20.42, 27.08, "Em dezembro, abre o holerite. A linha do imposto no décimo terceiro tem que vir zerada. Se não vier, fala com o RH."], [27.33, 31.14, "Regra de bolso: dinheiro que não caiu ainda não é seu pra gastar."], [31.39, 34.41, "Manda pra quem ganha até cinco mil. E segue o Appliquei."]];
+  const NAR = [[0.2, 6.18, "Se você ganha até cinco mil, olha o seu décimo terceiro: ele pode vir até duzentos e quarenta reais mais gordo."], [6.38, 7.17, "Aumento?!"], [7.37, 12.38, "Não. Quem ganha até cinco mil não paga mais imposto de renda no décimo terceiro. É a nova regra."], [12.58, 15.32, "Então já posso gastar na Black Friday!"], [15.57, 20.41, "Calma: o desconto do imposto é na segunda parcela, em dezembro. Esse dinheiro ainda nem caiu."], [20.66, 27.14, "Em dezembro, abre o holerite. A linha do imposto no décimo terceiro tem que vir zerada. Se não vier, fala com o RH."], [27.39, 30.94, "Regra de bolso: dinheiro que não caiu ainda não é seu pra gastar."], [31.19, 33.92, "Manda pra quem ganha até cinco mil. E segue o Appliquei."]];
   const QUEM = ["L", "B", "L", "B", "L", "L", "L", "L"];
   const DUR = +(NAR[NAR.length - 1][1] + 0.9).toFixed(2);
   // momento (s do vídeo) em que a palavra é dita na fala i (proporção do texto)
   function em(i, palavra) { const [a, b, txt] = NAR[i], k = txt.indexOf(palavra); return a + (k < 0 ? 0 : k / txt.length) * (b - a); }
   // cortes a cada ~2-3 s: [id, início]
   const CORTES = [
-    ['s1', 0], ['s2', em(0, 'uns')], ['s3', NAR[1][0] - 0.15], ['s4', NAR[2][0] - 0.15], ['s5', em(2, 'Quem')],
+    ['s1', 0], ['s2', em(0, 'pode vir')], ['s3', NAR[1][0] - 0.15], ['s4', NAR[2][0] - 0.15], ['s5', em(2, 'Quem')],
     ['s6', NAR[3][0] - 0.15], ['s7', NAR[4][0] - 0.15], ['s8', em(4, 'o desconto')], ['s9', NAR[5][0] - 0.15],
     ['s10', em(5, 'A linha')], ['s11', NAR[6][0] - 0.15], ['s12', NAR[7][0] - 0.15],
   ];

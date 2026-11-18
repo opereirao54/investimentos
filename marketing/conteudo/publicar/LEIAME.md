@@ -491,11 +491,11 @@ Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fict�
 
 Tema escolhido pelo fundador: a nova regra do IR zera o imposto do 13º de
 quem ganha até R$ 5 mil. **Formato novo** (teste aprovado em 17/11): diálogo
-da Lia com o Beto, cortes rápidos, holerite no celular e legenda na tela.
+da Lia com o Beto, cortes rápidos e holerite no celular (sem legenda na tela, fundador 17/11).
 35 s.
 
 **Antes de postar:** conferir que o vídeo é o do 13º (abre com "+R$ 240 no
-seu 13º") e que a 1ª linha da legenda é a mesma frase da capa. Mandar o
+seu 13º" e a fala "Se você ganha até cinco mil") e que a 1ª linha da legenda é a mesma frase da capa. Mandar o
 arquivo original (AirDrop, Drive/iCloud ou WhatsApp como **Documento**).
 **Postar às 19h**, ou agendar no Instagram.
 
@@ -503,7 +503,7 @@ arquivo original (AirDrop, Drive/iCloud ou WhatsApp como **Documento**).
 
 1. Novo Reel › escolher o vídeo do 13º.
 2. Capa: Editar capa › Adicionar da galeria › a imagem vermelha "Ganha até R$ 5 mil? Seu 13º vem R$ 240 mais gordo".
-3. "Carregar na qualidade mais alta" ligado. **Não ativar as legendas automáticas do Instagram** (o vídeo já tem legenda).
+3. "Carregar na qualidade mais alta" ligado.
 4. Colar a legenda e publicar às 19h.
 5. Fixar o comentário: `Você confere o holerite todo mês? 👇` e responder todos na 1ª hora.
 6. **Até 20h (fundador e sócio):** compartilhar nos stories e mandar o **link** no status do WhatsApp e em 3–5 grupos com a frase `Quem ganha até R$ 5 mil: o 13º deste ano vem sem IR. Confere o holerite em dezembro 👇`.
@@ -535,7 +535,7 @@ Conteúdo educacional e apartidário, sem recomendação. Entre R$ 5 mil e R$ 7.
 **19h · TIKTOK** · o mesmo vídeo do 13º
 
 1. Enviar o vídeo original; capa = primeiro quadro (já é a capa).
-2. "Permitir upload em alta qualidade" ligado; não ativar legenda automática.
+2. "Permitir upload em alta qualidade" ligado.
 3. Colar a legenda e publicar.
 
 ```

@@ -5,6 +5,11 @@ a reserva do calendário): a nova regra do IR zera o imposto do 13º para quem
 ganha até R$ 5 mil. Apartidário ("a nova regra do Imposto de Renda", sem
 governo nem partido), sem recomendação.
 
+**Gancho falando com quem assiste** ("Se você ganha até cinco mil, olha o
+seu décimo terceiro…") e a etiqueta "salário de R$ 4.500 · até R$ 240 a
+mais" (os R$ 240 valem só para esse salário; quem ganha R$ 2.500 já não
+pagava IR no 13º), ajustes aprovados em 17/11.
+
 **Pacote de melhorias, todas juntas (fundador, 17/11: "se não funcionar,
 retrocedemos"):**
 
@@ -14,7 +19,8 @@ retrocedemos"):**
 2. **Cortes a cada ~2–3 s** (12 cenas em 35 s, com "soco" de zoom no corte),
    e um selo no alto com quem está falando.
 3. **Tela de celular** com o holerite (a linha do IR riscada vira R$ 0,00).
-4. **Legenda sincronizada** (`legenda.json`, `LEGENDA_Y=1430`).
+4. ~~Legenda sincronizada~~: tirada pelo fundador em 17/11 ("tira a legenda
+   toda"), por excesso de texto na tela.
 
 Imagem real no 1º segundo ficou de fora (fundador escolheu a opção 3): o
 banco de vídeos grátis não abre desta rede e a geração de imagem do Gemini
@@ -24,14 +30,13 @@ não tem cota grátis.
   (capa no 1º quadro, selo "Faltam 45 dias") e `-capa.png`.
 - `appliquei-decimo-terceiro-ir-com-capa.mp4` (sem selo) e
   `appliquei-decimo-terceiro-ir.mp4` (sem capa nem selo).
-- `video.html`, `narracao.json`, `falantes.json`, `legenda.json`, `trilha.wav`
+- `video.html`, `narracao.json`, `falantes.json`, `trilha.wav`
   (`trilha-alcance.py … --sem-moedas`), `capa.json`/`capa.png`.
 
 Para refazer as vozes sem gastar cota: rodar `narrar-gemini.py` com
 `LEITURA=` uma vez por voz (roteiro só com as linhas daquela pessoa, voz
 Sulafat ou Charon no 2º argumento), juntar os dois `partes.json` em ordem de
-tempo numa pasta só e passar essa pasta ao `legenda-tempos.py` e ao
-`mixar-narracao.py`.
+tempo numa pasta só e passar essa pasta ao `mixar-narracao.py`.
 
 ## Os números
 
