@@ -60,16 +60,25 @@
   médio e de retenção pode ser da fonte, não da abertura.
 - Compart. 0,4%, curtidas 1,1% e comentários 0% marcados como "mais baixo".
 
-## Em teste a partir de qua 18/11 (News): legenda sincronizada
+## Em teste a partir de qua 18/11 (News): formato novo, tudo junto
 
-Aprovado pelo fundador em 16/11. As palavras da fala aparecem queimadas no
-vídeo, 2 a 4 por vez, com a palavra dita em verde (`legenda-tempos.py` +
-`LEGENDA=` no `render.js`). Só isso muda: abertura com número em movimento
-desde o quadro 0 e sem vinheta, como na gasolina e na Black Friday de 16/11.
-Hipótese: quem assiste sem som entende a história e não pula nos 2 primeiros
-segundos. Comparar taxa de pulados, curva nos 3 s, tempo médio e retenção com
-a gasolina (11,3 s, 32%, pulados 76%) e com a Black Friday de 16/11 (sem
-legenda). Vira padrão se bater a meta (10 s e 30%) e reduzir os pulados.
+Aprovado pelo fundador em 17/11, **as quatro mudanças de uma vez** ("vamos
+testar; se não funcionar, retrocedemos"): (1) legenda sincronizada queimada no
+vídeo; (2) diálogo Lia (Sulafat) × Beto (Charon) sem narrador; (3) cortes a
+cada ~2–3 s com zoom no corte; (4) tela de celular (holerite). A imagem real
+no 1º segundo ficou para depois (sem banco de imagens nesta rede).
+
+Contexto: a Black Friday de 16/11 (número em movimento desde o quadro 0, sem
+vinheta, a receita da gasolina) caiu para **3,3 s** de tempo médio e 140
+views em ~27 h, o pior do perfil. A gasolina continua o único Reel acima da
+meta, e metade das views dela veio do compartilhamento do fundador nos
+stories.
+
+Como o teste junta quatro mudanças, o resultado diz se **o formato** funciona,
+não qual peça pesou. Comparar taxa de pulados, curva nos 3 s, tempo médio e
+retenção com a gasolina (11,3 s, 32%) e com a Black Friday (3,3 s). Se
+melhorar, o formato vira padrão e as peças podem ser tiradas uma a uma para
+achar a que pesa; se piorar, volta o formato anterior.
 
 ## Revisão dos temas (16/11, 10 Reels, 18 seguidores)
 

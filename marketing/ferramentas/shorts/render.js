@@ -65,7 +65,7 @@ async function legendaPrepara(p, palavras) {
         #legenda { position: absolute; left: 70px; right: 70px; top: ${y}px; transform: translateY(-50%); z-index: 40; text-align: center; pointer-events: none; }
         #legenda .lg { display: inline-block; padding: 14px 30px 18px; border-radius: 24px; background: rgba(6,12,9,.78); box-shadow: 0 10px 30px rgba(0,0,0,.35);
           font-family: 'Figtree', sans-serif; font-weight: 900; font-size: 66px; line-height: 1.12; letter-spacing: -.015em; color: #f0faf4; }
-        #legenda .w { display: inline-block; margin: 0 .12em; transition: none; }
+        #legenda .w { display: inline-block; margin: 0 .2em; transition: none; }
         #legenda .w.on { color: #34d399; }
         #legenda .w.fut { color: rgba(240,250,244,.55); }`;
       document.head.appendChild(st);

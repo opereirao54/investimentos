@@ -487,6 +487,84 @@ Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fict�
 #blackfriday #educacaofinanceira #direitodoconsumidor #financaspessoais
 ```
 
+## QUARTA 18/11 · Faltam 45 dias · Appliquei News
+
+Tema escolhido pelo fundador: a nova regra do IR zera o imposto do 13º de
+quem ganha até R$ 5 mil. **Formato novo** (teste aprovado em 17/11): diálogo
+da Lia com o Beto, cortes rápidos, holerite no celular e legenda na tela.
+35 s.
+
+**Antes de postar:** conferir que o vídeo é o do 13º (abre com "+R$ 240 no
+seu 13º") e que a 1ª linha da legenda é a mesma frase da capa. Mandar o
+arquivo original (AirDrop, Drive/iCloud ou WhatsApp como **Documento**).
+**Postar às 19h**, ou agendar no Instagram.
+
+**19h · INSTAGRAM (Reel)** · vídeo do 13º com o holerite
+
+1. Novo Reel › escolher o vídeo do 13º.
+2. Capa: Editar capa › Adicionar da galeria › a imagem vermelha "Ganha até R$ 5 mil? Seu 13º vem R$ 240 mais gordo".
+3. "Carregar na qualidade mais alta" ligado. **Não ativar as legendas automáticas do Instagram** (o vídeo já tem legenda).
+4. Colar a legenda e publicar às 19h.
+5. Fixar o comentário: `Você confere o holerite todo mês? 👇` e responder todos na 1ª hora.
+6. **Até 20h (fundador e sócio):** compartilhar nos stories e mandar o **link** no status do WhatsApp e em 3–5 grupos com a frase `Quem ganha até R$ 5 mil: o 13º deste ano vem sem IR. Confere o holerite em dezembro 👇`.
+
+```
+Ganha até R$ 5 mil? Seu 13º vem R$ 240 mais gordo. 💸
+
+Pela nova regra do Imposto de Renda, quem ganha até R$ 5 mil não paga mais IR no 13º.
+
+Exemplo: salário de R$ 4.500. Pela tabela antiga, R$ 239,92 de imposto no 13º. Agora, zero.
+
+O Beto já quer gastar na Black Friday (27/11). Só que o desconto do IR vem na 2ª parcela, em dezembro. Esse dinheiro ainda nem caiu.
+
+Em dezembro, abre o holerite: a linha do imposto no 13º tem que vir zerada. Se não vier, fala com o RH.
+
+📌 Regra de bolso: dinheiro que não caiu ainda não é seu pra gastar.
+
+Manda pra quem ganha até R$ 5 mil. 🔁
+
+📰 Appliquei News: a notícia da semana no seu bolso, toda quarta. Segue pra não perder a próxima.
+
+⏳ Faltam 45 dias para o que estamos preparando pra 2027.
+
+Conteúdo educacional e apartidário, sem recomendação. Entre R$ 5 mil e R$ 7.350, o imposto cai em parte. Valores de exemplo. Personagens fictícios.
+
+#decimoterceiro #impostoderenda #educacaofinanceira #financaspessoais #13salario
+```
+
+**19h · TIKTOK** · o mesmo vídeo do 13º
+
+1. Enviar o vídeo original; capa = primeiro quadro (já é a capa).
+2. "Permitir upload em alta qualidade" ligado; não ativar legenda automática.
+3. Colar a legenda e publicar.
+
+```
+Ganha até R$ 5 mil? Seu 13º vem R$ 240 mais gordo. 💸 Pela nova regra do IR, o imposto do 13º zera. Confere o holerite em dezembro. Segue pra não perder. ⏳ Faltam 45 dias.
+
+#decimoterceiro #impostoderenda #educacaofinanceira #financaspessoais
+```
+
+**19h · YOUTUBE SHORTS** · o mesmo vídeo do 13º
+
+1. Enviar o vídeo original; no app do YouTube, escolher o primeiro quadro como capa.
+2. Título e descrição abaixo; publicar.
+
+Título:
+
+```
+Ganha até R$ 5 mil? Seu 13º vem sem imposto de renda este ano #shorts
+```
+
+Descrição:
+
+```
+Pela nova regra do IR, quem ganha até R$ 5 mil não paga imposto no 13º: num salário de R$ 4.500, são R$ 239,92 a mais. O desconto vem na 2ª parcela, em dezembro: confere o holerite. Regra de bolso: dinheiro que não caiu ainda não é seu pra gastar. Inscreva-se para a próxima conta.
+
+Conteúdo educacional e apartidário, sem recomendação. Valores de exemplo. Personagens fictícios.
+
+#decimoterceiro #impostoderenda #educacaofinanceira #financaspessoais
+```
+
 ## Assinaturas das séries na legenda (desde 04/11)
 
 - `💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta.`
