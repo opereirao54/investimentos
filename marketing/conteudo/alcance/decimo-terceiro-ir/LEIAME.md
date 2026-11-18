@@ -1,4 +1,15 @@
-# "Ganha até R$ 5 mil? Seu 13º vem até R$ 337 mais gordo" (37 s) · Appliquei News
+# "Ganha até R$ 5 mil? Seu 13º vem até R$ 337 mais gordo" (38 s) · Appliquei News
+
+**Versão final (18/11, à tarde): dinâmica.** O fundador pediu o estilo do
+Reel da @cafecomseudinheiro: as coisas surgem, se mexem e se transformam numa
+cena contínua, em vez de cartões trocando. As notas saem do envelope do 13º
+para a caixa vermelha do IR e voltam no "sem imposto"; a escada é feita de
+pilhas de dinheiro crescendo, com o valor contando; o Beto entra e sai pela
+lateral em cada fala; o carrinho da Black Friday puxa notas das pilhas e elas
+voltam no "Calma"; o calendário vira de 30/11 para 18/12; o holerite sobe;
+fecho com "Você já sabia dessa?" e os botões SIM e NÃO pulando. Câmera com
+deriva lenta e um "soco" de zoom a cada fala. Tudo em `video.html` (função
+`poe` posiciona cada objeto pelo centro; `vida` faz a entrada e a saída).
 
 Reel de qua 18/11/2026 (faltam 45). Tema escolhido pelo fundador em 17/11 (era
 a reserva do calendário): a nova regra do IR zera o imposto do 13º para quem
@@ -9,8 +20,8 @@ governo nem partido), sem recomendação.
 que funciona na @cafecomseudinheiro (684 mil seguidores, analisada pela API
 em 18/11): **conta em degraus por salário** (R$ 3.000 → +24, 4.000 → +151,
 4.500 → +240, 5.000 → +337; R$ 2.500 já era isento), a maior escada no fim, e
-**pergunta pessoal** ("Quanto o seu 13º vai crescer? Comenta o seu salário")
-no lugar da regra de bolso.
+**pergunta no fim**: primeiro "Comenta o seu salário", trocada pelo fundador
+por "Você já sabia dessa? Comenta sim ou não" (salário é dado pessoal).
 
 Versão anterior (17/11): **gancho falando com quem assiste** ("Se você ganha até cinco mil, olha o
 seu décimo terceiro…") e a etiqueta "salário de R$ 4.500 · até R$ 240 a

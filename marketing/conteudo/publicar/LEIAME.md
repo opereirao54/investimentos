@@ -493,11 +493,12 @@ Tema escolhido pelo fundador: a nova regra do IR zera o imposto do 13º de
 quem ganha até R$ 5 mil. **Formato novo** (teste aprovado em 17/11): diálogo
 da Lia com o Beto, cortes rápidos, holerite no celular, sem legenda na tela.
 Conteúdo refeito em 18/11 com o que funciona na @cafecomseudinheiro: conta
-em degraus por salário (cada um se acha na escada) e pergunta pessoal no fim.
-37 s.
+em degraus por salário (cada um se acha na escada) e pergunta no fim. Versão
+**dinâmica**: uma cena contínua em que as notas voam, as pilhas de dinheiro
+crescem, o carrinho puxa as notas e a Lia devolve. 38 s.
 
-**Antes de postar:** conferir que o vídeo é o do 13º (abre com o holerite e a
-linha do imposto "− R$ 337" virando 0,00) e que a 1ª linha da legenda é a
+**Antes de postar:** conferir que o vídeo é o do 13º (abre com o envelope do 13º
+jogando notas na caixa vermelha do IR) e que a 1ª linha da legenda é a
 mesma frase da capa. Mandar o arquivo original (AirDrop, Drive/iCloud ou
 WhatsApp como **Documento**). **Postar às 19h**, ou agendar no Instagram.
 
@@ -507,7 +508,7 @@ WhatsApp como **Documento**). **Postar às 19h**, ou agendar no Instagram.
 2. Capa: Editar capa › Adicionar da galeria › a imagem vermelha "Ganha até R$ 5 mil? Seu 13º vem até R$ 337 mais gordo".
 3. "Carregar na qualidade mais alta" ligado.
 4. Colar a legenda e publicar às 19h.
-5. Fixar o comentário: `Comenta o seu salário que eu te digo quanto o seu 13º cresce 👇` e **responder todos na 1ª hora com o valor** (tabela abaixo).
+5. Fixar o comentário: `Você já sabia dessa? Comenta SIM ou NÃO 👇` e **responder todos na 1ª hora**; se alguém perguntar o próprio valor, usar a tabela abaixo.
 6. **Até 20h (fundador e sócio):** compartilhar nos stories e mandar o **link** no status do WhatsApp e em 3–5 grupos com a frase `Ganha até R$ 5 mil? Vê quanto o seu 13º vem a mais este ano 👇`.
 
 ```
@@ -527,7 +528,7 @@ R$ 5.000 → +R$ 337
 
 O Beto já queria gastar na Black Friday. Esse dinheiro ainda nem caiu. 😅
 
-Quanto o seu 13º vai crescer? Comenta o seu salário 👇
+Você já sabia dessa? Comenta SIM ou NÃO 👇
 
 Manda pra quem ganha até R$ 5 mil. 🔁
 
@@ -540,7 +541,7 @@ Conteúdo educacional e apartidário, sem recomendação. 13º igual ao salário
 #decimoterceiro #impostoderenda #educacaofinanceira #financaspessoais #13salario
 ```
 
-**Respostas aos comentários (1ª hora):** o valor a mais no 13º é o IR que
+**Se alguém perguntar quanto vem a mais pra ele:** o valor a mais no 13º é o IR que
 saía pela regra antiga (13º = salário, INSS de 2026, tabela de 2025, sem
 dependentes). Até R$ 2.600: R$ 0 (já era isento) · R$ 2.700: R$ 4 · R$ 3.000: R$ 24 ·
 R$ 3.500: R$ 85 · R$ 4.000: R$ 151 · R$ 4.500: R$ 240 · R$ 5.000: R$ 337 ·
@@ -554,7 +555,7 @@ valor; dizer "cai em parte, confere no holerite de dezembro").
 3. Colar a legenda e publicar.
 
 ```
-Ganha até R$ 5 mil? Seu 13º vem até R$ 337 mais gordo. 💸 R$ 3 mil: +R$ 24 · R$ 4 mil: +R$ 151 · R$ 4.500: +R$ 240 · R$ 5 mil: +R$ 337. Comenta o seu salário 👇 Segue pra não perder. ⏳ Faltam 45 dias.
+Ganha até R$ 5 mil? Seu 13º vem até R$ 337 mais gordo. 💸 R$ 3 mil: +R$ 24 · R$ 4 mil: +R$ 151 · R$ 4.500: +R$ 240 · R$ 5 mil: +R$ 337. Já sabia? Comenta SIM ou NÃO 👇 Segue pra não perder. ⏳ Faltam 45 dias.
 
 #decimoterceiro #impostoderenda #educacaofinanceira #financaspessoais
 ```
@@ -573,7 +574,7 @@ Ganha até R$ 5 mil? Quanto o seu 13º vem a mais sem imposto de renda #shorts
 Descrição:
 
 ```
-Pela nova regra do IR, quem ganha até R$ 5 mil não paga imposto no 13º. Quanto vem a mais: R$ 3.000 → R$ 24; R$ 4.000 → R$ 151; R$ 4.500 → R$ 240; R$ 5.000 → R$ 337. Quem ganha R$ 2.500 já não pagava. O desconto sai na 2ª parcela, em dezembro: confere o holerite. Comenta o seu salário e inscreva-se para a próxima conta.
+Pela nova regra do IR, quem ganha até R$ 5 mil não paga imposto no 13º. Quanto vem a mais: R$ 3.000 → R$ 24; R$ 4.000 → R$ 151; R$ 4.500 → R$ 240; R$ 5.000 → R$ 337. Quem ganha R$ 2.500 já não pagava. O desconto sai na 2ª parcela, em dezembro: confere o holerite. Já sabia dessa? Comenta SIM ou NÃO e inscreva-se para a próxima conta.
 
 Conteúdo educacional e apartidário, sem recomendação. 13º igual ao salário, INSS de 2026 e IR pela tabela de 2025, sem dependentes. Personagens fictícios.
 
