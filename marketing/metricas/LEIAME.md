@@ -74,6 +74,9 @@ views em ~27 h, o pior do perfil. A gasolina continua o único Reel acima da
 meta, e metade das views dela veio do compartilhamento do fundador nos
 stories.
 
+O conteúdo foi refeito em 18/11 com a conta em degraus por salário e a
+pergunta pessoal no fim (padrão da @cafecomseudinheiro, ver abaixo).
+
 A legenda sincronizada foi tirada pelo fundador antes de postar ("tira a
 legenda toda", 17/11: texto demais na tela); fica guardada no `render.js`.
 
@@ -82,6 +85,23 @@ não qual peça pesou. Comparar taxa de pulados, curva nos 3 s, tempo médio e
 retenção com a gasolina (11,3 s, 32%) e com a Black Friday (3,3 s). Se
 melhorar, o formato vira padrão e as peças podem ser tiradas uma a uma para
 achar a que pesa; se piorar, volta o formato anterior.
+
+## Referência: @cafecomseudinheiro (18/11, pela API business_discovery)
+
+684.896 seguidores; 200 posts de 30/10 a 18/11 (~10 por dia: 152
+carrosséis, 34 Reels, 14 imagens); mediana de 348 curtidas por Reel.
+
+- **Top 7 Reels (10 mil a 104 mil curtidas):** trechos de entrevistas com
+  milionários e famosos. Pessoa real, história, autoridade.
+- **Piores 5 (28 a 103 curtidas):** dicas com o mascote desenhado
+  ("Cafézinho"): fatura mínima, qual dívida pagar, "desconto de 50% não vale
+  nada se vira juros" (28 curtidas, quase o tema da nossa Black Friday).
+- **Munger e os primeiros 100 mil (17/11, 8.497 curtidas, 25× a mediana):**
+  frase de autoridade no gancho, sonho grande, conta em degraus, virada ("os
+  juros passam do aporte"), pergunta pessoal no fim.
+- **"Comente NOTÍCIA"** em 100% dos posts (resposta automática no Direct).
+
+Como repetir a consulta: `GET graph.facebook.com/v21.0/$IG_USER_ID?fields=business_discovery.username(<@>){media.limit(50){caption,like_count,comments_count,media_product_type,timestamp,permalink}}` com o `IG_TOKEN`.
 
 ## Revisão dos temas (16/11, 10 Reels, 18 seguidores)
 

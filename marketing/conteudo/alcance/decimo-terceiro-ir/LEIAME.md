@@ -1,11 +1,18 @@
-# "Ganha até R$ 5 mil? Seu 13º vem R$ 240 mais gordo" (35 s) · Appliquei News
+# "Ganha até R$ 5 mil? Seu 13º vem até R$ 337 mais gordo" (37 s) · Appliquei News
 
 Reel de qua 18/11/2026 (faltam 45). Tema escolhido pelo fundador em 17/11 (era
 a reserva do calendário): a nova regra do IR zera o imposto do 13º para quem
 ganha até R$ 5 mil. Apartidário ("a nova regra do Imposto de Renda", sem
 governo nem partido), sem recomendação.
 
-**Gancho falando com quem assiste** ("Se você ganha até cinco mil, olha o
+**Refeito em 18/11 (fundador: "quero melhorar o conteúdo do vídeo")** com o
+que funciona na @cafecomseudinheiro (684 mil seguidores, analisada pela API
+em 18/11): **conta em degraus por salário** (R$ 3.000 → +24, 4.000 → +151,
+4.500 → +240, 5.000 → +337; R$ 2.500 já era isento), a maior escada no fim, e
+**pergunta pessoal** ("Quanto o seu 13º vai crescer? Comenta o seu salário")
+no lugar da regra de bolso.
+
+Versão anterior (17/11): **gancho falando com quem assiste** ("Se você ganha até cinco mil, olha o
 seu décimo terceiro…") e a etiqueta "salário de R$ 4.500 · até R$ 240 a
 mais" (os R$ 240 valem só para esse salário; quem ganha R$ 2.500 já não
 pagava IR no 13º), ajustes aprovados em 17/11.

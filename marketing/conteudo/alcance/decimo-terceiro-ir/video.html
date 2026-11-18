@@ -1,10 +1,10 @@
 <!doctype html>
 <!--
-  Appliquei News (≈35 s, 1080×1920): "Ganha até R$ 5 mil? Seu 13º vem R$ 240
-  mais gordo". Nova regra do IR (Lei 15.270/2025): IR zerado no 13º para quem
-  ganha até R$ 5 mil; o desconto é na 2ª parcela (dezembro). Diálogo Lia
-  (Sulafat) × Beto (Charon), sem narrador; cortes a cada ~2-3 s; holerite na
-  tela de celular; sem legenda (fundador, 17/11). Apartidário, sem recomendação.
+  Appliquei News (≈36 s, 1080×1920): "Seu 13º sem IR: até R$ 337 a mais".
+  Nova regra do IR (Lei 15.270/2025): IR zerado no 13º para quem ganha até
+  R$ 5 mil; o desconto é na 2ª parcela (dezembro). Diálogo Lia (Sulafat) ×
+  Beto (Charon); conta em degraus por salário (cada um se acha na escada);
+  pergunta pessoal no fim. Sem legenda (fundador, 17/11). Apartidário.
 -->
 <html lang="pt-BR">
 <head>
@@ -167,6 +167,18 @@
   .marco.on { border-color: var(--sinal); background: rgba(52,211,153,.12); box-shadow: 0 0 60px rgba(52,211,153,.2); }
   .mao { position: absolute; left: 0; right: 0; top: 470px; text-align: center; font-size: 260px; line-height: 1; }
 
+  .escada { position: absolute; left: 80px; right: 80px; top: 420px; }
+  .deg { display: flex; align-items: center; gap: 24px; margin-bottom: 30px; }
+  .deg .sal { flex: none; width: 250px; font-family: 'DM Mono', monospace; font-size: 46px; color: var(--deck); text-align: right; }
+  .deg .bar { height: 104px; border-radius: 22px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); display: flex; align-items: center; justify-content: flex-end; padding: 0 22px; min-width: 0; width: 0; overflow: hidden; }
+  .deg .bar b { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 52px; color: #052e1f; white-space: nowrap; }
+  .deg.cinza .bar { background: rgba(240,250,244,.12); }
+  .deg.cinza .bar b { color: var(--deck); font-size: 40px; }
+  .deg.top .bar { box-shadow: 0 0 60px rgba(52,211,153,.45); }
+  .pergunta { position: absolute; left: 70px; right: 70px; top: 330px; text-align: center; }
+  .pergunta b { display: block; font-size: 84px; font-weight: 900; letter-spacing: -.03em; line-height: 1.05; }
+  .pergunta b em { font-style: normal; color: var(--sinal); }
+  .pergunta .cm { display: inline-flex; align-items: center; gap: 18px; margin-top: 40px; padding: 20px 40px; border-radius: 99px; background: #fff; color: #111; font-size: 52px; font-weight: 900; box-shadow: 10px 12px 0 rgba(0,0,0,.5); }
 </style>
 </head>
 <body>
@@ -177,51 +189,47 @@
   <div class="serie news" id="serie">Appliquei News</div>
   <div class="fala-quem" id="fq"><div class="av" id="fqa">L</div><span id="fqn">Lia</span><div class="onda" id="onda"><i></i><i></i><i></i><i></i><i></i></div></div>
 
-  <!-- s1: o número desde o quadro 0 -->
-  <div class="cena" id="s1"><div class="contador"><div class="num" id="cnt">+R$ 0</div><div class="sub">no seu <em style="font-style:normal;color:var(--ambar)">13º</em></div></div>
-    <div class="tag-r" style="top:1000px;"><span style="background:rgba(251,191,36,.14);border:3px solid var(--ambar);color:var(--ambar);">salário de R$ 4.500 · até R$ 240 a mais</span></div></div>
-  <!-- s2: o envelope engorda -->
-  <div class="cena" id="s2"><div class="envelope" id="env"><b>13º</b><small>dezembro de 2026</small></div>
-    <div class="tag-r" style="top:1000px;"><span id="t2" style="background:var(--sinal);color:#052e1f;font-size:56px;">+R$ 239,92</span></div></div>
-  <!-- s3: Beto -->
-  <div class="cena" id="s3"><div class="grande" style="top:430px;"><div class="avatar-g" id="ab" style="background:var(--vermelho);">B</div><div class="bolha" id="bq">Aumento?!</div></div></div>
-  <!-- s4: Não -->
-  <div class="cena" id="s4"><div class="grande" style="top:470px;"><div class="avatar-g" style="background:var(--sinal);width:220px;height:220px;font-size:120px;">L</div><div class="bolha" id="nao" style="font-size:96px;">Não.</div></div>
-    <div class="tag-r" style="top:1080px;"><span id="t4" style="background:rgba(251,191,36,.14);border:3px solid var(--ambar);color:var(--ambar);">É a nova regra do IR</span></div></div>
-  <!-- s5: holerite, IR riscado -->
-  <div class="cena" id="s5"><div class="cel" id="cel5" style="top:300px;"><div class="notch"></div><div class="tela"><h4>Holerite · 13º salário</h4><h3>Salário R$ 4.500</h3>
-      <div class="ln">13º salário <span>4.500,00</span></div>
-      <div class="ln">INSS <span>− 431,51</span></div>
-      <div class="ln ir" id="ir5">Imposto de renda <span><span class="velho" id="v5">− 239,92</span> <span class="novo" id="n5" style="opacity:0">0,00</span></span></div>
-    </div></div></div>
-  <!-- s6: Beto e o carrinho -->
-  <div class="cena" id="s6"><div class="mao" id="car">🛒</div>
-    <div class="tag-r" style="top:830px;"><span style="background:#b91c1c;color:#fff;font-size:60px;">BLACK FRIDAY · 27/11</span></div>
-    <div class="tag-r" style="top:990px;"><span id="t6" style="background:rgba(248,113,113,.14);border:3px solid var(--vermelho);color:var(--vermelho);">Beto já quer gastar</span></div></div>
-  <!-- s7: Calma -->
-  <div class="cena" id="s7"><div class="mao" id="maoC">✋</div><div class="grande" style="top:820px;"><div class="bolha" id="calma" style="font-size:100px;">Calma.</div></div></div>
-  <!-- s8: linha do tempo -->
-  <div class="cena" id="s8"><div class="linha-t">
-      <div class="marco el" id="m1"><div class="d">27/11</div><div><b>Black Friday</b><small>o 13º ainda não caiu</small></div></div>
-      <div class="marco el" id="m2"><div class="d">30/11</div><div><b>1ª parcela</b><small>nunca teve imposto</small></div></div>
-      <div class="marco el" id="m3"><div class="d">18/12</div><div><b>2ª parcela</b><small>é aqui que o IR some</small></div></div>
-    </div></div>
-  <!-- s9: abre o holerite -->
-  <div class="cena" id="s9"><div class="cel" id="cel9" style="top:330px;"><div class="notch"></div><div class="tela"><h4>Dezembro</h4><h3>📄 Abre o holerite</h3>
-      <div class="ln">2ª parcela do 13º <span>✓</span></div>
+  <!-- s1: holerite já se mexendo no quadro 0 -->
+  <div class="cena" id="s1"><div class="cel" id="cel1" style="top:330px;"><div class="notch"></div><div class="tela"><h4>Holerite · 13º salário</h4><h3>Ganha até R$ 5 mil</h3>
+      <div class="ln">13º salário <span>✓</span></div>
       <div class="ln">INSS <span>desconta</span></div>
-      <div class="ln ir" id="ir9" style="background:rgba(52,211,153,.18);">Imposto de renda <span class="novo" style="color:#047857;font-size:46px;">0,00</span></div>
+      <div class="ln ir" id="ir1">Imposto de renda <span><span class="velho" id="v1">− R$ 337</span> <span class="novo" id="n1" style="opacity:0">0,00</span></span></div>
+    </div></div>
+    <div class="tag-r" style="top:1060px;"><span id="t1" style="background:var(--sinal);color:#052e1f;font-size:52px;">1º 13º sem imposto de renda</span></div></div>
+  <!-- s2: Beto pergunta -->
+  <div class="cena" id="s2"><div class="grande" style="top:430px;"><div class="avatar-g" id="ab2" style="background:var(--vermelho);">B</div><div class="bolha" id="bq2" style="font-size:84px;">E quanto dá?</div></div></div>
+  <!-- s3: a escada -->
+  <div class="cena" id="s3"><div class="rot" style="position:absolute;left:0;right:0;top:330px;text-align:center;">A mais no 13º · por salário</div>
+    <div class="escada">
+      <div class="deg" id="d1"><div class="sal">R$ 3.000</div><div class="bar" id="b1"><b>+R$ 24</b></div></div>
+      <div class="deg" id="d2"><div class="sal">R$ 4.000</div><div class="bar" id="b2"><b>+R$ 151</b></div></div>
+      <div class="deg" id="d3"><div class="sal">R$ 4.500</div><div class="bar" id="b3"><b>+R$ 240</b></div></div>
+      <div class="deg top" id="d4"><div class="sal">R$ 5.000</div><div class="bar" id="b4"><b>+R$ 337</b></div></div>
+    </div></div>
+  <!-- s4: Beto, 2.500 -->
+  <div class="cena" id="s4"><div class="grande" style="top:430px;"><div class="avatar-g" id="ab4" style="background:var(--vermelho);">B</div><div class="bolha" id="bq4" style="font-size:84px;">E R$ 2.500?</div></div></div>
+  <!-- s5: já era isento -->
+  <div class="cena" id="s5"><div class="escada" style="top:520px;"><div class="deg cinza" id="d0"><div class="sal">R$ 2.500</div><div class="bar" id="b0" style="width:520px;"><b>R$ 0 · já era isento</b></div></div></div>
+    <div class="tag-r" style="top:800px;"><span style="background:rgba(240,250,244,.08);border:3px solid rgba(240,250,244,.35);color:var(--deck);">nada muda</span></div></div>
+  <!-- s6: Black Friday -->
+  <div class="cena" id="s6"><div class="mao" id="car">🛒</div>
+    <div class="tag-r" style="top:830px;"><span style="background:#b91c1c;color:#fff;font-size:60px;">BLACK FRIDAY · 27/11</span></div></div>
+  <!-- s7: calma, dezembro -->
+  <div class="cena" id="s7"><div class="mao" id="maoC" style="top:420px;">✋</div><div class="linha-t" style="top:760px;">
+      <div class="marco" style="opacity:.6"><div class="d">30/11</div><div><b>1ª parcela</b><small>nunca teve imposto</small></div></div>
+      <div class="marco on el" id="m3"><div class="d">18/12</div><div><b>2ª parcela</b><small>é aqui que o IR some</small></div></div>
+    </div></div>
+  <!-- s8: abre o holerite -->
+  <div class="cena" id="s8"><div class="cel" id="cel8" style="top:330px;"><div class="notch"></div><div class="tela"><h4>Dezembro · 2ª parcela</h4><h3>📄 Confere o holerite</h3>
+      <div class="ln">13º salário <span>✓</span></div>
+      <div class="ln">INSS <span>desconta</span></div>
+      <div class="ln ir" id="ir8" style="background:rgba(52,211,153,.18);">Imposto de renda <span class="novo" style="color:#047857;font-size:46px;">0,00 ✓</span></div>
     </div></div></div>
-  <!-- s10: zerada ou RH -->
-  <div class="cena" id="s10"><div class="grande" style="top:420px;"><div style="font-size:60px;font-weight:900;color:var(--deck);">Linha do IR no 13º</div><div class="taxa" id="zz" style="margin-top:20px;font-size:200px;color:var(--sinal);">R$ 0,00</div></div>
-    <div class="tag-r" style="top:880px;"><span id="t10" style="background:rgba(96,165,250,.16);border:3px solid var(--azul);color:#dbeafe;">Não veio zerada? Fala com o RH</span></div></div>
-  <!-- s11: regra -->
-  <div class="cena" id="s11"><div class="regra el" id="rg" style="top:470px;"><div class="rot">Regra de bolso</div><b>Dinheiro que<br>não caiu ainda<br>não é seu<br><em>pra gastar.</em></b></div></div>
-  <!-- s12: fecho -->
-  <div class="cena" id="s12">
-    <div class="manda el" id="mn" style="top:330px;"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 11.5 21 3l-8.5 18-2.2-7.3z" fill="#052e1f"/></svg></div><b>Manda pra quem<br>ganha até R$ 5 mil</b></div>
+  <!-- s9: pergunta + fecho -->
+  <div class="cena" id="s9">
+    <div class="pergunta el" id="pq"><b>Quanto o seu 13º<br>vai <em>crescer</em>?</b><div class="cm">💬 Comenta o seu salário</div></div>
     <div class="assina el" id="as" style="top:820px;"><img src="wordmark.svg" alt="Appliquei"><p>Mais contas assim: <em>siga o Appliquei</em></p></div>
-    <div class="aviso el" id="av" style="top:1080px;">Conteúdo educacional e apartidário, sem recomendação. Lei 15.270/2025: sem IR no 13º para quem ganha até R$ 5 mil; redução parcial até R$ 7.350. Exemplo: salário de R$ 4.500, INSS de R$ 431,51; pela tabela antiga, R$ 239,92 de IR. Valores de exemplo. Personagens fictícios.</div>
+    <div class="aviso el" id="av" style="top:1080px;">Conteúdo educacional e apartidário, sem recomendação. Lei 15.270/2025: sem IR no 13º para quem ganha até R$ 5 mil; redução parcial até R$ 7.350. Valores: 13º igual ao salário, INSS de 2026 e IR pela tabela de 2025, sem dependentes; arredondados. Personagens fictícios.</div>
   </div>
 
   <div class="barra-t" id="barraT"></div>
@@ -235,16 +243,15 @@
     $('malha').innerHTML = m.join('');
   })();
 
-  const NAR = [[0.2, 6.18, "Se você ganha até cinco mil, olha o seu décimo terceiro: ele pode vir até duzentos e quarenta reais mais gordo."], [6.38, 7.17, "Aumento?!"], [7.37, 12.38, "Não. Quem ganha até cinco mil não paga mais imposto de renda no décimo terceiro. É a nova regra."], [12.58, 15.32, "Então já posso gastar na Black Friday!"], [15.57, 20.41, "Calma: o desconto do imposto é na segunda parcela, em dezembro. Esse dinheiro ainda nem caiu."], [20.66, 27.14, "Em dezembro, abre o holerite. A linha do imposto no décimo terceiro tem que vir zerada. Se não vier, fala com o RH."], [27.39, 30.94, "Regra de bolso: dinheiro que não caiu ainda não é seu pra gastar."], [31.19, 33.92, "Manda pra quem ganha até cinco mil. E segue o Appliquei."]];
-  const QUEM = ["L", "B", "L", "B", "L", "L", "L", "L"];
+  const NAR = [[0.2, 4.67, "Se você ganha até cinco mil, este é o seu primeiro décimo terceiro sem imposto de renda."], [4.87, 6.44, "E quanto isso dá?"], [6.64, 12.57, "Depende do salário. Quem ganha três mil, vinte e quatro reais a mais. Quatro mil, cento e cinquenta."], [12.77, 17.9, "Quatro mil e quinhentos, duzentos e quarenta. E cinco mil: trezentos e trinta e sete reais."], [18.1, 19.72, "E quem ganha dois mil e quinhentos?"], [19.92, 22.86, "Esse já não pagava. Pra ele, nada muda."], [23.06, 24.91, "Então já vou gastar na Black Friday!"], [25.11, 31.2, "Calma: o imposto sai da segunda parcela, em dezembro. Abre o holerite e confere se a linha veio zerada."], [31.4, 36.25, "E aí, quanto o seu décimo terceiro vai crescer? Comenta o seu salário. E segue o Appliquei."]];
+  const QUEM = ["L", "B", "L", "L", "B", "L", "B", "L", "L"];
   const DUR = +(NAR[NAR.length - 1][1] + 0.9).toFixed(2);
   // momento (s do vídeo) em que a palavra é dita na fala i (proporção do texto)
   function em(i, palavra) { const [a, b, txt] = NAR[i], k = txt.indexOf(palavra); return a + (k < 0 ? 0 : k / txt.length) * (b - a); }
   // cortes a cada ~2-3 s: [id, início]
   const CORTES = [
-    ['s1', 0], ['s2', em(0, 'pode vir')], ['s3', NAR[1][0] - 0.15], ['s4', NAR[2][0] - 0.15], ['s5', em(2, 'Quem')],
-    ['s6', NAR[3][0] - 0.15], ['s7', NAR[4][0] - 0.15], ['s8', em(4, 'o desconto')], ['s9', NAR[5][0] - 0.15],
-    ['s10', em(5, 'A linha')], ['s11', NAR[6][0] - 0.15], ['s12', NAR[7][0] - 0.15],
+    ['s1', 0], ['s2', NAR[1][0] - 0.15], ['s3', NAR[2][0] - 0.15], ['s4', NAR[4][0] - 0.15], ['s5', NAR[5][0] - 0.15],
+    ['s6', NAR[6][0] - 0.15], ['s7', NAR[7][0] - 0.15], ['s8', em(7, 'Abre')], ['s9', NAR[8][0] - 0.15],
   ];
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
@@ -281,34 +288,34 @@
     $('logoFixo').style.opacity = t < em(7, 'E segue') - 0.3 ? 1 : 1 - prog(t, em(7, 'E segue') - 0.3, em(7, 'E segue'));
     $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
   }
+  function barra(el, t, a, w) { const p = easeOut(prog(t, a, a + 0.45)); el.style.width = (w * p).toFixed(1) + 'px'; el.style.opacity = p > 0 ? 1 : 0; }
   function cena(id, t, lt) {
-    if (id === 's1') { const p = easeOut(prog(t, 0, em(0, 'duzentos') + 0.6)); $('cnt').textContent = '+R$ ' + Math.round(240 * p); }
-    if (id === 's2') { $('env').style.transform = `scale(${1 + 0.12 * easeBack(prog(lt, 0.1, 0.6)) + 0.03 * Math.sin(lt * 9)})`; surge($('t2'), t, em(0, 'mais gordo'), 0.35, 20); }
-    if (id === 's3') { $('ab').style.transform = `rotate(${8 * Math.sin(lt * 30) * Math.exp(-lt * 4)}deg)`; surge($('bq'), t, NAR[1][0], 0.3, 30); }
-    if (id === 's4') { surge($('nao'), t, NAR[2][0], 0.3, 20); }
-    if (id === 's5') {
-      surge($('cel5'), t, CORTES[4][1], 0.35, 80);
-      const r = prog(t, em(2, 'não paga'), em(2, 'não paga') + 0.5);
-      $('v5').style.setProperty('--risco', r);
-      const n = easeBack(prog(t, em(2, 'imposto'), em(2, 'imposto') + 0.35));
-      $('n5').style.opacity = clamp(n, 0, 1); $('n5').style.display = n > 0 ? 'inline' : 'none';
-      $('ir5').style.background = n > 0 ? 'rgba(52,211,153,.18)' : 'transparent';
+    if (id === 's1') {
+      $('cel1').style.transform = `translateY(${(1 - easeOut(prog(t, 0, 0.5))) * 120}px)`;
+      $('v1').style.setProperty('--risco', prog(t, 0.4, 0.9));
+      const n = easeBack(prog(t, 0.9, 1.25));
+      $('n1').style.opacity = clamp(n, 0, 1); $('n1').style.display = n > 0 ? 'inline' : 'none';
+      $('ir1').style.background = n > 0 ? 'rgba(52,211,153,.18)' : 'transparent';
+      surge($('t1'), t, em(0, 'primeiro'), 0.35, 20);
     }
-    if (id === 's6') { $('car').style.transform = `translateX(${-200 + 200 * easeOut(prog(lt, 0, 0.5))}px) rotate(${-6 * Math.sin(lt * 10) * Math.exp(-lt * 2)}deg)`; surge($('t6'), t, em(3, 'gastar'), 0.35, 20); }
-    if (id === 's7') { $('maoC').style.transform = `scale(${0.6 + 0.4 * easeBack(prog(lt, 0, 0.35))})`; surge($('calma'), t, NAR[4][0], 0.3, 20); }
-    if (id === 's8') {
-      surge($('m1'), t, CORTES[7][1] + 0.05, 0.3, 30); surge($('m2'), t, CORTES[7][1] + 0.4, 0.3, 30); surge($('m3'), t, em(4, 'segunda'), 0.3, 30);
-      $('m3').classList.toggle('on', t >= em(4, 'segunda'));
-      $('m1').style.opacity = t >= em(4, 'Esse') ? 1 : $('m1').style.opacity;
-      $('m1').classList.toggle('on', t >= em(4, 'Esse'));
+    if (id === 's2') { $('ab2').style.transform = `rotate(${8 * Math.sin(lt * 30) * Math.exp(-lt * 4)}deg)`; surge($('bq2'), t, NAR[1][0], 0.3, 30); }
+    if (id === 's3') {
+      barra($('b1'), t, em(2, 'vinte'), 260); barra($('b2'), t, em(2, 'cento'), 430);
+      barra($('b3'), t, em(3, 'duzentos'), 560); barra($('b4'), t, em(3, 'trezentos'), 680);
+      // soco de zoom quando entra a 2ª metade da escada
+      const z = 0.05 * (1 - easeOut(prog(t, NAR[3][0], NAR[3][0] + 0.25))) * (t >= NAR[3][0] ? 1 : 0);
+      $('s3').style.transform = `scale(${1 + z + 0.02 * prog(lt, 0, 11)})`;
+      $('d4').style.transform = `scale(${t >= em(3, 'trezentos') ? 1 + 0.04 * Math.sin((t - em(3, 'trezentos')) * 6) : 1})`;
     }
-    if (id === 's9') { surge($('cel9'), t, CORTES[8][1], 0.4, 120); $('ir9').style.transform = `scale(${1 + 0.05 * Math.max(0, Math.sin((t - em(5, 'holerite')) * 6)) * prog(t, em(5, 'holerite'), em(5, 'holerite') + 0.2)})`; }
-    if (id === 's10') { $('zz').style.transform = `scale(${1 + 0.05 * Math.sin(lt * 6)})`; surge($('t10'), t, em(5, 'Se não'), 0.35, 20); }
-    if (id === 's11') { surge($('rg'), t, em(6, 'dinheiro'), 0.4, 30); }
-    if (id === 's12') {
-      surge($('mn'), t, CORTES[11][1] + 0.05, 0.4, 40);
-      $('mn').querySelector('.ic').style.transform = `scale(${1 + 0.06 * Math.sin(lt * 7) * prog(lt, 0.5, 1)})`;
-      surge($('as'), t, em(7, 'E segue'), 0.45, 40); surge($('av'), t, em(7, 'E segue') + 0.5, 0.4, 10);
+    if (id === 's4') { $('ab4').style.transform = `rotate(${8 * Math.sin(lt * 30) * Math.exp(-lt * 4)}deg)`; surge($('bq4'), t, NAR[4][0], 0.3, 30); }
+    if (id === 's5') { barra($('b0'), t, NAR[5][0], 640); }
+    if (id === 's6') { $('car').style.transform = `translateX(${-200 + 200 * easeOut(prog(lt, 0, 0.5))}px) rotate(${-6 * Math.sin(lt * 10) * Math.exp(-lt * 2)}deg)`; }
+    if (id === 's7') { $('maoC').style.transform = `scale(${0.6 + 0.4 * easeBack(prog(lt, 0, 0.35))})`; surge($('m3'), t, em(7, 'segunda'), 0.35, 30); }
+    if (id === 's8') { const a = CORTES[7][1]; $('cel8').style.transform = `translateY(${(1 - easeOut(prog(t, a, a + 0.4))) * 120}px)`; $('ir8').style.transform = `scale(${1 + 0.05 * Math.max(0, Math.sin((t - em(7, 'zerada')) * 6)) * prog(t, em(7, 'zerada'), em(7, 'zerada') + 0.2)})`; }
+    if (id === 's9') {
+      surge($('pq'), t, CORTES[8][1] + 0.05, 0.4, 40);
+      $('pq').querySelector('.cm').style.transform = `scale(${1 + 0.05 * Math.sin(lt * 7) * prog(t, em(8, 'Comenta'), em(8, 'Comenta') + 0.3)})`;
+      surge($('as'), t, em(8, 'E segue'), 0.45, 40); surge($('av'), t, em(8, 'E segue') + 0.5, 0.4, 10);
     }
   }
   window.render = render;
