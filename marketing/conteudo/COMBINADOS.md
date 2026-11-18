@@ -149,6 +149,9 @@ true`), mesmo modelo do News.
   deriva e "soco" de zoom a cada fala), no lugar de cartões trocando. Nada
   parado na tela. Inspirado nos Reels da @cafecomseudinheiro. Modelo:
   `alcance/decimo-terceiro-ir/video.html` (funções `poe`, `vida`, `voo`).
+  **Tela de celular grande (fundador, 18/11: "ficou muito pequeno"):** o
+  celular ocupa quase a largura toda (~880 px de 1080), com letras de ≥ 44 px
+  dentro da tela; o do 13º (600 px) ficou pequeno.
   Conteúdo: conta em degraus que cada um se acha, pergunta fácil no fim
   ("Você já sabia dessa? Comenta SIM ou NÃO"), nunca pedir dado pessoal.
 - **Formato novo em teste (fundador, 17/11), desde o News de qua 18/11:**

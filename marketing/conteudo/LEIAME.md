@@ -41,7 +41,9 @@ posicionado pelo centro com `poe(id, x, y, escala, rotação, opacidade)`;
 `vida(t, entra, sai)` dá a entrada com "pop" e a saída voando; `voo(...)` faz
 as notas voarem em arco de um ponto a outro. Os tempos vêm das falas
 (`em(i, 'palavra')`). Para um tema novo: trocar os objetos e as falas e
-manter o motor.
+manter o motor. Tela de celular: **grande**, ~880 px de largura e letras de
+pelo menos 44 px (o celular de 600 px do Reel de 18/11 ficou pequeno, pelo
+fundador).
 
 ## Regras que valem para todas as peças
 
