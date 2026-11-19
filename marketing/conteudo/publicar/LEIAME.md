@@ -658,6 +658,79 @@ Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fict�
 #educacaofinanceira #salario #financaspessoais #organizacaofinanceira
 ```
 
+## QUINTA 19/11 · Faltam 44 dias · Especial (extra)
+
+Post extra pedido pelo fundador no dia do lançamento do GTA 6: "Quanto custa
+viver o GTA na vida real?". Entretenimento com números. 35 s.
+
+**Antes de postar:** conferir que o vídeo é o do pôr do sol com a mansão e o
+contador de "Gastos". Mandar o arquivo original (AirDrop, Drive/iCloud ou
+WhatsApp como **Documento**). **Postar às 19h**, ou agendar no Instagram.
+
+**19h · INSTAGRAM (Reel)** · vídeo do pôr do sol com a mansão
+
+1. Novo Reel › escolher o vídeo do pôr do sol com a mansão.
+2. Capa: Editar capa › Adicionar da galeria › a imagem "TOTAL R$ 134 MILHÕES".
+3. "Carregar na qualidade mais alta" ligado. Não ativar a legenda automática (o vídeo já tem).
+4. Colar a legenda e publicar às 19h.
+5. Fixar o comentário: `Qual você comprava primeiro: mansão, carro, lancha ou helicóptero? 👇` e responder todos na 1ª hora.
+6. **Até 20h (fundador e sócio):** compartilhar nos stories e mandar o **link** em grupos com a frase `Quanto custa viver o GTA na vida real? 😂👇`.
+
+```
+Quanto custa viver o GTA na vida real? 🌴🏎️
+
+🏠 Mansão de frente pro mar em Miami: ~R$ 127 milhões
+🏎️ Superesportivo italiano: R$ 2,5 milhões
+🚤 Lancha: R$ 577 mil
+🚁 Helicóptero pra pousar no telhado: R$ 3,7 milhões
+
+Total: R$ 134 milhões.
+Ou R$ 449,90 pra viver tudo isso no sofá. 🎮
+
+E você, comprava o quê primeiro? Comenta 👇
+
+Segue o Appliquei pra mais números assim.
+
+⏳ Faltam 44 dias para o que estamos preparando pra 2027.
+
+Preços de referência (mercado de 2026; dólar a R$ 5,78). Conteúdo de entretenimento. Personagens fictícios. Sem relação com a Rockstar Games.
+
+#gta6 #gtavi #curiosidades #dinheiro #videogame
+```
+
+**19h · TIKTOK** · o mesmo vídeo do pôr do sol
+
+1. Enviar o vídeo original; capa = primeiro quadro (já é a capa).
+2. "Permitir upload em alta qualidade" ligado; não ativar legenda automática.
+3. Colar a legenda e publicar.
+
+```
+Quanto custa viver o GTA na vida real? Mansão, superesportivo, lancha e helicóptero: R$ 134 milhões. Ou R$ 449,90 no sofá 🎮 Comprava o quê primeiro? ⏳ Faltam 44 dias.
+
+#gta6 #gtavi #curiosidades #videogame
+```
+
+**19h · YOUTUBE SHORTS** · o mesmo vídeo do pôr do sol
+
+1. Enviar o vídeo original; no app do YouTube, escolher o primeiro quadro como capa.
+2. Título e descrição abaixo; publicar.
+
+Título:
+
+```
+Quanto custa viver o GTA 6 na vida real? (R$ 134 milhões) #shorts
+```
+
+Descrição:
+
+```
+Mansão de frente pro mar em Miami (~R$ 127 mi), superesportivo (R$ 2,5 mi), lancha (R$ 577 mil) e helicóptero (R$ 3,7 mi): R$ 134 milhões. Ou R$ 449,90 no sofá. Comprava o quê primeiro? Inscreva-se para mais números assim.
+
+Preços de referência de 2026, dólar a R$ 5,78. Entretenimento. Sem relação com a Rockstar Games.
+
+#gta6 #gtavi #curiosidades #videogame
+```
+
 ## Assinaturas das séries na legenda (desde 04/11)
 
 - `💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta.`

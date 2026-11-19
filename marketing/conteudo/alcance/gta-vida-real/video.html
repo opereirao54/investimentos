@@ -27,8 +27,8 @@
   .hud .v { font-weight: 900; font-size: 64px; letter-spacing: -.02em; color: #7CFC9A; text-shadow: 0 4px 0 #0b3d1f, 0 0 24px rgba(124,252,154,.35); font-style: italic; }
   .faixa { position: absolute; left: 0; right: 0; top: 600px; height: 190px; z-index: 17; opacity: 0; text-align: center; }
   .faixa .fundo { position: absolute; left: -40px; right: -40px; top: 20px; height: 150px; background: rgba(20,8,36,.82); transform: skewY(-3deg); border-top: 4px solid #ffd27a; border-bottom: 4px solid #ffd27a; }
-  .faixa b { position: relative; display: block; padding-top: 34px; font-size: 92px; font-weight: 900; font-style: italic; letter-spacing: .01em; color: #ffd27a; text-shadow: 0 5px 0 #7a3a00; transform: skewY(-3deg); }
-  .faixa span { position: relative; display: block; margin-top: 2px; font-size: 44px; font-weight: 900; color: #fff; transform: skewY(-3deg); }
+  .faixa b { position: relative; display: block; padding-top: 26px; font-size: 88px; font-weight: 900; font-style: italic; letter-spacing: .01em; color: #ffd27a; text-shadow: 0 5px 0 #7a3a00; transform: skewY(-3deg); }
+  .faixa span { position: relative; display: block; margin-top: -6px; font-size: 40px; font-weight: 900; color: #fff; transform: skewY(-3deg); }
   .faixa .brilho { position: absolute; top: 20px; height: 150px; width: 160px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent); transform: skewX(-20deg); }
   .rodape { position: absolute; left: 60px; right: 60px; top: 1478px; text-align: center; font-size: 24px; color: rgba(255,255,255,.6); z-index: 15; text-shadow: 0 2px 6px rgba(0,0,0,.6); }
   .txt { position: absolute; left: 0; top: 0; text-align: center; will-change: transform; opacity: 0; white-space: nowrap; z-index: 16; }
@@ -66,9 +66,11 @@
       <g id="brilhos"></g>
       <rect x="-300" y="1200" width="1680" height="1000" fill="url(#areia)"/>
       <rect x="0" y="1200" width="1080" height="10" fill="#ffd9b0" opacity=".6"/>
+      <ellipse id="sombraM" cx="790" cy="1212" rx="260" ry="22" fill="#3a1f3f" opacity="0"/>
       <g id="lancha"></g>
       <g id="mansao"></g>
       <g id="heli"></g>
+      <ellipse id="sombraC" cx="0" cy="1336" rx="200" ry="18" fill="#3a1f3f" opacity="0"/>
       <g id="carro"></g>
       <g id="palm"></g>
     </g>
@@ -93,7 +95,7 @@
   function $(id) { return document.getElementById(id); }
   const NS = 'http://www.w3.org/2000/svg';
   function S(tag, at, pai) { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); (pai || $('cena')).appendChild(e); return e; }
-  const NAR = [[0.2, 3.0, "A partir de hoje, eu vou viver o GTA... na vida real!"], [3.2, 8.0, "Mansão de frente pro mar em Miami: uns cento e vinte e sete milhões de reais."], [8.2, 11.6, "O superesportivo italiano: dois milhões e meio."], [11.8, 14.6, "A lancha: quinhentos e oitenta mil."], [14.8, 18.8, "E o helicóptero, pra pousar no telhado: três milhões e setecentos mil."], [19.0, 22.6, "Total: cento e trinta e quatro milhões de reais."], [22.9, 27.6, "Ou quatrocentos e quarenta e nove e noventa pra viver tudo isso no sofá."], [27.9, 31.9, "E você, comprava o quê primeiro? Comenta. E segue o Appliquei."]];
+  const NAR = [[0.2, 4.91, "A partir de hoje, eu vou viver o GTA... na vida real!"], [5.1, 10.44, "Mansão de frente pro mar em Miami: uns cento e vinte e sete milhões de reais."], [10.64, 13.75, "O superesportivo italiano: dois milhões e meio."], [13.95, 16.35, "A lancha: quinhentos e oitenta mil."], [16.55, 21.01, "E o helicóptero, pra pousar no telhado: três milhões e setecentos mil."], [21.21, 24.36, "Total: cento e trinta e quatro milhões de reais."], [24.66, 29.43, "Ou quatrocentos e quarenta e nove e noventa pra viver tudo isso no sofá."], [29.63, 34.12, "E você, comprava o quê primeiro? Comenta. E segue o Appliquei."]];
   const QUEM = ["B", "L", "L", "L", "L", "L", "B", "L"];
   const DUR = +(NAR[NAR.length - 1][1] + 0.9).toFixed(2);
   function em(i, palavra) { const [a, b, txt] = NAR[i], k = txt.indexOf(palavra); return a + (k < 0 ? 0 : k / txt.length) * (b - a); }
@@ -239,6 +241,7 @@
   const anda = (t, v) => { const f = Math.sin(t * (v || 9)); return { perna: [25 * f, 10 + 20 * Math.max(0, -f), -25 * f, 10 + 20 * Math.max(0, f)], braco: [-25 * f, -20, 25 * f, 20], bob: Math.abs(f) * 8 }; };
   const parado = (t) => ({ perna: [4, 0, -4, 0], braco: [12 + 3 * Math.sin(t * 2), 8, -12 - 3 * Math.sin(t * 2), -8], bob: 2 * Math.sin(t * 2.5) });
 
+  const sB = S('ellipse', { rx: 70, ry: 12, fill: '#3a1f3f', opacity: 0.45 }), sL = S('ellipse', { rx: 60, ry: 10, fill: '#3a1f3f', opacity: 0.45 });
   const BETO = boneco('beto', '#ef4444', 'beto'), LIA = boneco('lia', '#10b981', 'lia');
   // óculos escuros do Beto
   const oc = S('g', {}, BETO.cab);
@@ -294,6 +297,8 @@
     H.setAttribute('opacity', t >= h0 ? 1 : 0);
     helice.setAttribute('transform', `scale(${Math.cos(t * 30)},1)`);
 
+    $('sombraM').setAttribute('opacity', 0.35 * clamp(ms, 0, 1));
+    $('sombraC').setAttribute('cx', lerp(1400, 340, cq)); $('sombraC').setAttribute('opacity', t >= c0 ? 0.4 : 0);
     // contador
     let gasto = 0; COMPRAS.forEach((c, i) => { gasto += c.v * eOut(prog(t, ct[i], ct[i] + 0.7)); });
     if (t >= SOFA) gasto = lerp(133861000, 449.9, eIO(prog(t, em(6, 'quatrocentos'), em(6, 'quatrocentos') + 1.0)));
@@ -346,12 +351,14 @@
         p = { perna: [-80, 80, -70, 80], braco: [-20, -60 + 8 * Math.sin(t * 12), 20, 60 - 8 * Math.sin(t * 12)], bob: 0 };
         controle.setAttribute('opacity', 1); controle.setAttribute('transform', `translate(${540},${1300 - 175 + 4 * Math.sin(t * 12)})`);
       } else { o = 1 - prog(t, FIM, FIM + 0.3); x = 540; y = 1260; controle.setAttribute('opacity', 0); estrelas.setAttribute('opacity', 0); }
+      sB.setAttribute('cx', x); sB.setAttribute('cy', y + 4); sB.setAttribute('opacity', t < SOFA && o > 0 ? 0.45 : 0);
       pose('beto', { x, y: y - p.bob, s, dir: 1, o, perna: p.perna, braco: p.braco, humor, fala: falando(t, 'B'), t, tronco, cabeca: cab });
     }
     // Lia: narradora, aparece no canto durante as compras
     {
       const vin = prog(t, T(1) - 0.3, T(1) + 0.3), vout = prog(t, SOFA - 0.3, SOFA);
       const p = parado(t);
+      const xl = lerp(1250, 950, eOut(vin)) + 300 * eIn(vout); sL.setAttribute('cx', xl); sL.setAttribute('cy', 1444); sL.setAttribute('opacity', t >= T(1) - 0.3 && t < SOFA ? 0.4 : 0);
       pose('lia', { x: lerp(1250, 950, eOut(vin)) + 300 * eIn(vout), y: 1440 - p.bob, s: 0.8, dir: -1, o: t >= T(1) - 0.3 && t < SOFA ? 1 : 0, perna: p.perna, braco: falando(t, 'L') ? [12, 8, -100 + 10 * Math.sin(t * 6), -20] : p.braco, humor: 'feliz', fala: falando(t, 'L'), t });
     }
 
