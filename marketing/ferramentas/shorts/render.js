@@ -86,14 +86,16 @@ async function legendaPrepara(p, palavras) {
       box.id = 'legenda';
       (document.getElementById('palco') || document.body).appendChild(box);
       let atual = -1;
+      // a palavra acende um pouco antes do som: no olho, a legenda no tempo exato parece atrasada
+      const ADI = 0.1;
       window.__legenda = (t) => {
         // grupo da vez: do início da 1ª palavra até o início do próximo grupo
         // (ou 0,35 s depois da última palavra, se vier uma pausa)
         let k = -1;
         for (let j = 0; j < grupos.length; j++) {
-          const ini = grupos[j].ws[0].t0 - 0.05;
+          const ini = grupos[j].ws[0].t0 - 0.2;
           const ult = grupos[j].ws[grupos[j].ws.length - 1].t1;
-          const prox = j + 1 < grupos.length ? grupos[j + 1].ws[0].t0 - 0.05 : Infinity;
+          const prox = j + 1 < grupos.length ? grupos[j + 1].ws[0].t0 - 0.2 : Infinity;
           if (t >= ini && t < Math.min(prox, ult + 0.35)) k = j;
         }
         if (k !== atual) {
@@ -108,14 +110,14 @@ async function legendaPrepara(p, palavras) {
         if (k < 0) return;
         const g = grupos[k];
         const lg = box.firstChild;
-        const p0 = Math.min(1, (t - g.ws[0].t0 + 0.05) / 0.12);
+        const p0 = Math.min(1, (t - g.ws[0].t0 + 0.2) / 0.12);
         lg.style.transform = `scale(${0.92 + 0.08 * p0})`;
         lg.style.opacity = p0;
         box.querySelectorAll('.w').forEach((el, n) => {
           const w = g.ws[n];
           el.className =
             'w' +
-            (t >= w.t0 && t < w.t1 ? ' on' : t < w.t0 ? ' fut' : '') +
+            (t >= w.t0 - ADI && t < w.t1 - ADI ? ' on' : t < w.t0 - ADI ? ' fut' : '') +
             (leve && /\d|R\$|reais|mil|cento|dez|cinco/i.test(w.w) ? ' lg-num' : '');
           const pop =
             t >= w.t0 && t < w.t0 + 0.15 ? 1 + 0.08 * Math.sin(((t - w.t0) / 0.15) * Math.PI) : 1;

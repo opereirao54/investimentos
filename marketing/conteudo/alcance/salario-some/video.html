@@ -64,6 +64,7 @@
   <div class="titulo" id="titulo"><div class="l1">Seu salário some</div><div class="l2">até o dia 10</div></div>
 
   <div class="txt" id="rsal"><div class="rot" id="rsalr">Salário · dia 5</div><div class="num" id="vsal">R$ 3.000</div></div>
+  <div class="txt" id="interr"><span style="font-size:130px;font-weight:900;color:var(--ambar);text-shadow:0 6px 20px rgba(0,0,0,.6)">?!</span></div>
   <div class="txt" id="dia"><span class="chip">📅 <span id="diat">dia 5</span></span></div>
   <div class="txt" id="rcof"><div class="rot" style="color:var(--sinal)">Antes da esteira · 10%</div><div class="num" style="color:var(--sinal);font-size:96px;">R$ 300</div></div>
   <div class="txt" id="rano"><div class="rot" style="color:var(--sinal)">Guardado em <span id="mes">1 mês</span></div><div class="num" id="vano" style="color:var(--sinal)">R$ 300</div></div>
@@ -82,7 +83,7 @@
   const NS = 'http://www.w3.org/2000/svg';
   function S(tag, at, pai) { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); (pai || $('cena')).appendChild(e); return e; }
 
-  const NAR = [[0.2, 4.58, "Seu salário cai no dia cinco. No dia dez, já sumiu."], [4.78, 6.42, "Mas pra onde vai?!"], [6.62, 14.47, "Pra esteira: aluguel, cartão, contas, mercado, assinatura. O que sobra no fim é o que o Beto tenta guardar."], [14.67, 15.81, "E nunca sobra..."], [16.01, 22.71, "Eu faço ao contrário: no dia que cai, tiro dez por cento antes da esteira andar. Trezentos reais."], [22.91, 27.21, "Em um ano, três mil e seiscentos guardados. Sem esperar sobrar."], [27.41, 30.75, "Regra de bolso: guarda primeiro, gasta depois."], [30.95, 37.38, "E você, guarda no começo ou no fim do mês? Comenta começo ou fim. E segue o Appliquei."]];
+  const NAR = [[0.2, 4.58, "Seu salário cai no dia cinco. No dia dez, já sumiu."], [4.78, 6.13, "Mas pra onde vai?!"], [7.05, 14.9, "Pra esteira: aluguel, cartão, contas, mercado, assinatura. O que sobra no fim é o que o Beto tenta guardar."], [15.1, 16.4, "E nunca sobra..."], [16.65, 23.35, "Eu faço ao contrário: no dia que cai, tiro dez por cento antes da esteira andar. Trezentos reais."], [23.55, 27.85, "Em um ano, três mil e seiscentos guardados. Sem esperar sobrar."], [28.15, 31.49, "Regra de bolso: guarda primeiro, gasta depois."], [31.75, 38.18, "E você, guarda no começo ou no fim do mês? Comenta começo ou fim. E segue o Appliquei."]];
   const QUEM = ["L", "B", "L", "B", "L", "L", "L", "L"];
   const DUR = +(NAR[NAR.length - 1][1] + 0.9).toFixed(2);
   function em(i, palavra) { const [a, b, txt] = NAR[i], k = txt.indexOf(palavra); return a + (k < 0 ? 0 : k / txt.length) * (b - a); }
@@ -328,7 +329,8 @@
     poeTxt('rcof', 290, 1290, vr.s, 0, vr.o);
     // pilha: cresce um mês a cada ~0.3 s a partir do "Em um ano"
     const pOn = t >= C_INI, mesN = pOn ? clamp(Math.floor(prog(t, C_INI + 0.2, em(5, 'guardados')) * 12) + 1, 1, 12) : 0;
-    $('pil').setAttribute('transform', `translate(330,1180)`);
+        const enc = eIO(prog(t, R_INI - 0.1, R_INI + 0.4));
+    $('pil').setAttribute('transform', `translate(${330 - 60 * enc},1180) scale(${1 - 0.3 * enc})`);
     CAM.forEach((c, i) => { const a = C_INI + 0.2 + i * ((em(5, 'guardados') - C_INI - 0.2) / 12); const q = eBack(prog(t, a, a + 0.3)); c.setAttribute('transform', `translate(0,${(1 - q) * -200})`); c.setAttribute('opacity', pOn && t >= a ? clamp(q * 2, 0, 1) * (1 - prog(t, D_INI, D_INI + 0.3)) : 0); });
     const va = vida(t, C_INI + 0.1, R_INI - 0.1);
     poeTxt('rano', 760, 640, va.s, 0, va.o);
@@ -346,8 +348,8 @@
         const ent = eOut(prog(t, 0.2, 1.2));
         x = lerp(-150, 330, ent);
         if (t > 1.2 && t < T(1)) { p = anda(t, 10); x = 330 + 80 * Math.sin((t - 1.2) * 1.2); }
-        if (t >= T(1) - 0.1 && t < NAR[1][1] + 0.2) { p = { perna: [8, 0, -8, 0], braco: [-150, -10, 150, 10], bob: 4 * Math.abs(Math.sin(t * 10)) }; x = 420; cab = 6 * Math.sin(t * 12); }
-        if (t >= NAR[1][1] + 0.2 && t < T(3)) { p = anda(t, 11); x = lerp(420, 860, prog(t, NAR[1][1] + 0.2, T(3))); }
+        if (t >= T(1) - 0.1 && t < T(2) + 0.3) { p = { perna: [8, 0, -8, 0], braco: [-150, -10, 150, 10], bob: 4 * Math.abs(Math.sin(t * 10)) }; x = 420; cab = 6 * Math.sin(t * 12); }
+        if (t >= T(2) + 0.3 && t < T(3)) { p = anda(t, 11); x = lerp(420, 860, prog(t, T(2) + 0.3, T(3))); }
         if (t >= T(3) - 0.1) { p = { perna: [4, 0, -4, 0], braco: [30, -40, -30, 40], bob: 0 }; x = 860; tronco = 6; cab = 10; }
         if (t >= B_INI) { const q = eIn(prog(t, B_INI, B_INI + 0.5)); x = lerp(860, 1250, q); p = anda(t, 12); o = 1 - q * 0.0; }
       }
@@ -370,6 +372,9 @@
       }
       pose('lia', { x, y: y - p.bob, s, dir: t >= C_INI && t < C_INI + 0.6 ? 1 : 1, o: o * (1 - prog(t, D_INI, D_INI + 0.3)), perna: p.perna, braco: p.braco, humor, fala: falando(t, 'L'), t, tronco });
     }
+
+    const vi = vida(t, em(1, 'vai'), T(2) + 0.2);
+    poeTxt('interr', 540, 760 + 6 * Math.sin(t * 9), vi.s * (1 + 0.08 * Math.sin(t * 12)), -8, vi.o);
 
     // ===== chamada demonstrada no celular =====
     const vcel = vida(t, D_INI, DUR + 1);

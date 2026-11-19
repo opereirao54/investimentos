@@ -1,4 +1,4 @@
-# "Seu salário some até o dia 10" (38 s) · Appliquei Explica
+# "Seu salário some até o dia 10" (39 s) · Appliquei Explica
 
 Reel de sex 20/11/2026 (faltam 43; feriado da Consciência Negra). Tema e
 roteiro aprovados pelo fundador em 19/11. **Primeiro Reel no estilo da
@@ -19,9 +19,16 @@ roteiro aprovados pelo fundador em 19/11. **Primeiro Reel no estilo da
 - **Legenda leve** de volta (fundador aprovou em 19/11): uma linha, palavras
   acendendo de cinza para branco, números em amarelo, sem caixa
   (`LEGENDA_ESTILO=leve`, `LEGENDA_Y=1415`).
-- Diálogo Lia (Sulafat) × Beto (Charon). As duas falas do Beto foram cortadas
-  à mão do take (`narracao-charon-beto-leitura.wav`: 0,26–2,02 s e 3,24–4,52 s),
-  porque o script não dividiu frases tão curtas.
+- Diálogo Lia (Sulafat) × Beto (Charon). As falas do Beto são gravadas **uma
+  por pedido** (`narracao-charon-beto1-leitura.wav`, `-beto3-`): juntas, o
+  Gemini fazia uma pausa no meio do "Mas pra onde… vai?!".
+
+**Ajustes do fundador (19/11):** a legenda vinha atrasada em alguns pontos (agora
+acende 0,1 s antes do som e a linha aparece 0,2 s antes; pausas de 0,08 s
+viram pontos de acerto); o "pra onde vai?!" passava rápido demais (fala
+regravada, "?!" sobre o Beto e uma pausa de reação de ~1 s com os braços para
+cima); a regra de bolso cobria a pilha (a pilha encolhe e desce quando a regra
+entra).
 
 Arquivos: `../../publicar/11-20-11-salario-some.mp4` (**para postar**, com
 capa e selo "Faltam 43 dias") e `-capa.png`; `appliquei-salario-some*.mp4`;
