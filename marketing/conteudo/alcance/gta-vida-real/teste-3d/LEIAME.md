@@ -17,3 +17,8 @@ servidos por HTTP (`python3 -m http.server`), porque os loaders usam fetch.
   `Textures/colormap.png`: manter as pastas separadas. Luz: HDR
   `venice_sunset_1k` (CC0). Este é o nível que dá para publicar sem pagar
   modelos.
+- `teto-cc.html` → `../teste-3d-carro-cc-by.png`: o mesmo nível do carro de
+  exemplo, mas com um modelo que **pode ser publicado**: "Car Concept", de Eric
+  Chadwick (Khronos glTF-Sample-Assets, CC BY 4.0: dar o crédito na legenda),
+  baixado de raw.githubusercontent.com. Outros realistas e liberados no mesmo
+  repositório: ToyCar e SheenChair (CC0), GlamVelvetSofa (CC BY 4.0).
