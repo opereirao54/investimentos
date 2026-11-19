@@ -22,3 +22,8 @@ servidos por HTTP (`python3 -m http.server`), porque os loaders usam fetch.
   Chadwick (Khronos glTF-Sample-Assets, CC BY 4.0: dar o crédito na legenda),
   baixado de raw.githubusercontent.com. Outros realistas e liberados no mesmo
   repositório: ToyCar e SheenChair (CC0), GlamVelvetSofa (CC BY 4.0).
+- `anim.html` + `frames.js` → `../teste-3d-carro.mp4` (8 s): o carro CC BY
+  entra derrapando, a câmera gira em volta, faixa "MISSÃO CONCLUÍDA" e
+  contador. Render: `node frames.js http://127.0.0.1:8765/anim.html <pasta> 30`
+  (Chromium com `--use-gl=angle --use-angle=swiftshader`), ~3 s por quadro
+  (240 quadros ≈ 12 min); depois ffmpeg com a trilha.

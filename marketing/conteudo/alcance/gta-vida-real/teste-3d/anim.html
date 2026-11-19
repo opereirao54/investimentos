@@ -1,0 +1,122 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #000; font-family: 'Figtree', sans-serif; }
+  canvas { position: absolute; left: 0; top: 0; }
+  .ui { position: absolute; inset: 0; pointer-events: none; color: #fff; }
+  .logo { position: absolute; left: 60px; top: 60px; width: 200px; }
+  .serie { position: absolute; right: 60px; top: 60px; padding: 10px 20px; border-radius: 99px; background: rgba(26,16,48,.55); border: 2px solid rgba(255,210,122,.7); font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .12em; color: #ffd27a; }
+  .titulo { position: absolute; left: 0; right: 0; top: 200px; text-align: center; font-weight: 900; text-transform: uppercase; line-height: 1.02; text-shadow: 0 6px 0 rgba(40,16,70,.6), 0 10px 30px rgba(0,0,0,.45); }
+  .titulo div { font-size: 70px; } .titulo .l2 { color: #ffd27a; }
+  .hud { position: absolute; right: 60px; top: 400px; text-align: right; transform-origin: right center; }
+  .hud .r { font-family: 'DM Mono', monospace; font-size: 26px; letter-spacing: .14em; color: rgba(255,255,255,.85); }
+  .hud .v { font-weight: 900; font-style: italic; font-size: 64px; color: #7CFC9A; text-shadow: 0 4px 0 #0b3d1f, 0 0 26px rgba(124,252,154,.45); }
+  .faixa { position: absolute; left: 0; right: 0; top: 540px; height: 190px; text-align: center; opacity: 0; }
+  .faixa .fundo { position: absolute; left: -40px; right: -40px; top: 20px; height: 150px; background: rgba(20,8,36,.72); transform: skewY(-3deg); border-top: 4px solid #ffd27a; border-bottom: 4px solid #ffd27a; }
+  .faixa b { position: relative; display: block; padding-top: 30px; font-size: 92px; font-weight: 900; font-style: italic; color: #ffd27a; text-shadow: 0 5px 0 #7a3a00; transform: skewY(-3deg); }
+  .faixa span { position: relative; display: block; font-size: 42px; font-weight: 900; transform: skewY(-3deg); margin-top: -4px; }
+  .faixa .brilho { position: absolute; top: 20px; height: 150px; width: 160px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.4), transparent); transform: skewX(-20deg); }
+  .rodape { position: absolute; left: 60px; right: 60px; top: 1478px; text-align: center; font-size: 24px; color: rgba(255,255,255,.85); text-shadow: 0 2px 6px rgba(0,0,0,.7); }
+</style>
+<script type="importmap">{ "imports": { "three": "./three.module.js", "three/addons/": "./jsm/" } }</script>
+</head><body>
+<div class="ui">
+  <img class="logo" src="wordmark.svg">
+  <div class="serie">ESPECIAL</div>
+  <div class="titulo" id="tit"><div>Quanto custa viver o GTA</div><div class="l2">na vida real?</div></div>
+  <div class="hud" id="hud"><div class="r">Gastos</div><div class="v" id="cont">R$ 0</div></div>
+  <div class="faixa" id="faixa"><div class="fundo"></div><div class="brilho" id="brilho"></div><b>MISSÃO CONCLUÍDA</b><span>+1 SUPERESPORTIVO</span></div>
+  <div class="rodape">Teste 3D · "Car Concept" de Eric Chadwick (CC BY 4.0) · luz Poly Haven (CC0)</div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const W = 1080, H = 1920, DUR = 8;
+const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+r.setSize(W, H); r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 0.9; r.outputColorSpace = THREE.SRGBColorSpace;
+r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.prepend(r.domElement);
+const s = new THREE.Scene();
+const hdr = await new RGBELoader().loadAsync('mod/venice_sunset_1k.hdr'); hdr.mapping = THREE.EquirectangularReflectionMapping;
+s.background = hdr; s.environment = hdr; s.backgroundBlurriness = 0.3;
+const chao = new THREE.Mesh(new THREE.CircleGeometry(80, 96), new THREE.MeshPhysicalMaterial({ color: '#241c2c', roughness: 0.16, metalness: 0.6, clearcoat: 1 }));
+chao.rotation.x = -Math.PI / 2; chao.receiveShadow = true; s.add(chao);
+const sol = new THREE.DirectionalLight('#ffb070', 2.2); sol.position.set(-6, 5, -8); sol.castShadow = true; sol.shadow.mapSize.set(2048, 2048);
+Object.assign(sol.shadow.camera, { left: -10, right: 10, top: 10, bottom: -10 }); s.add(sol);
+
+const car = (await new GLTFLoader().loadAsync('mod/CarConcept.glb')).scene;
+const bb = new THREE.Box3().setFromObject(car), tam = bb.getSize(new THREE.Vector3());
+car.scale.setScalar(4.6 / Math.max(tam.x, tam.z));
+const bb2 = new THREE.Box3().setFromObject(car), ctr = bb2.getCenter(new THREE.Vector3());
+car.position.set(-ctr.x, -bb2.min.y, -ctr.z);
+car.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+const longoX = tam.x >= tam.z; // eixo do comprimento do carro
+const g0 = new THREE.Group(); g0.add(car); s.add(g0);
+const rodas = ['WheelFrontL', 'WheelFrontR', 'WheelRearL', 'WheelRearR'].map((n) => car.getObjectByName(n)).filter(Boolean);
+const giro0 = rodas.map((w) => w.rotation.clone());
+// rastro de fumaça dos pneus (partículas simples)
+const fumaca = []; for (let i = 0; i < 26; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 10), new THREE.MeshStandardMaterial({ color: '#f3e6ff', transparent: true, opacity: 0, roughness: 1, depthWrite: false })); s.add(m); fumaca.push(m); }
+
+const cam = new THREE.PerspectiveCamera(38, W / H, 0.1, 300);
+const comp = new EffectComposer(r);
+comp.addPass(new RenderPass(s, cam));
+comp.addPass(new UnrealBloomPass(new THREE.Vector2(W, H), 0.3, 0.45, 0.93));
+comp.addPass(new OutputPass());
+
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+const eOut = (x) => 1 - Math.pow(1 - x, 3);
+const eIn = (x) => x * x * x;
+const eIO = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const eBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const lerp = (a, b, p) => a + (b - a) * p;
+const MISSAO = 2.4;
+
+window.render = (t) => {
+  // carro: entra de longe pela esquerda, derrapa e para em 2,1 s
+  const q = eOut(prog(t, 0, 2.1));
+  const x = lerp(-26, 0, q), z = lerp(-6, 0, q);
+  g0.position.set(x, 0, z);
+  const derrapa = Math.sin(prog(t, 1.2, 2.1) * Math.PI) * 0.35;
+  g0.rotation.y = 0.75 + (1 - q) * -0.25 + derrapa + (t > 2.1 ? 0.02 * Math.sin((t - 2.1) * 9) * Math.exp(-(t - 2.1) * 3) : 0);
+  g0.rotation.z = (t < 2.1 ? 0.03 * Math.sin(t * 7) * (1 - q) : 0);
+  const dist = 26 * q; // giro das rodas proporcional ao caminho
+  rodas.forEach((w, i) => { w.rotation.copy(giro0[i]); if (longoX) w.rotation.z -= dist * 1.4; else w.rotation.x += dist * 1.4; });
+  fumaca.forEach((m, i) => {
+    const nasc = 1.1 + i * 0.04, vida = t - nasc;
+    if (vida < 0 || t > nasc + 2.2) { m.material.opacity = 0; return; }
+    const px = lerp(-26, 0, eOut(prog(nasc, 0, 2.1))) - 2.0, pz = lerp(-6, 0, eOut(prog(nasc, 0, 2.1))) + (i % 2 ? 0.9 : -0.9);
+    m.position.set(px - vida * 0.6, 0.3 + vida * 0.7, pz); m.scale.setScalar(1 + vida * 2.2); m.material.opacity = 0.22 * (1 - prog(vida, 0, 2.2));
+  });
+  // câmera: segue baixa na entrada; depois gira em volta do carro
+  const ang = lerp(0.35, 1.25, eIO(prog(t, 2.2, DUR)));
+  const raio = lerp(13.5, 10.5, eIO(prog(t, 0, 3)));
+  const alvoX = lerp(x * 0.55, 0, prog(t, 1.4, 2.4));
+  cam.position.set(alvoX + Math.sin(ang) * raio, lerp(1.0, 2.1, prog(t, 2, DUR)), Math.cos(ang) * raio);
+  cam.lookAt(alvoX, 0.9, 0);
+  // tremida no impacto da faixa
+  if (t > MISSAO && t < MISSAO + 0.3) { cam.position.x += 0.06 * Math.sin(t * 90); cam.position.y += 0.05 * Math.cos(t * 80); }
+  comp.render();
+
+  // interface
+  const pf = eBack(prog(t, MISSAO, MISSAO + 0.3)), sai = eIn(prog(t, MISSAO + 2.6, MISSAO + 2.9));
+  const f = document.getElementById('faixa'); f.style.opacity = clamp(pf, 0, 1) * (1 - sai); f.style.transform = `scale(${1.4 - 0.4 * pf})`;
+  document.getElementById('brilho').style.left = lerp(-200, 1200, prog(t, MISSAO + 0.2, MISSAO + 1.0)) + 'px';
+  const v = 2550000 * eOut(prog(t, MISSAO, MISSAO + 0.9));
+  document.getElementById('cont').textContent = 'R$ ' + Math.round(v).toLocaleString('pt-BR');
+  const pulso = t > MISSAO && t < MISSAO + 0.4 ? Math.sin(prog(t, MISSAO, MISSAO + 0.4) * Math.PI) : 0;
+  document.getElementById('hud').style.transform = `scale(${1 + 0.15 * pulso})`;
+  document.getElementById('tit').style.transform = `translateY(${(1 - eOut(prog(t, 0, 0.4))) * -40}px)`;
+};
+window.DUR = DUR;
+window.render(0);
+window.pronto = true;
+</script>
+</body></html>
