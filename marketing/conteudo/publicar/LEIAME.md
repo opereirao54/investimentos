@@ -581,6 +581,83 @@ Conteúdo educacional e apartidário, sem recomendação. 13º igual ao salário
 #decimoterceiro #impostoderenda #educacaofinanceira #financaspessoais
 ```
 
+## SEXTA 20/11 · Faltam 43 dias · Appliquei Explica
+
+Feriado (Consciência Negra): o horário continua 19h. **Primeiro Reel no
+estilo novo** (o da @cafecomseudinheiro): título fixo no topo, Beto e Lia
+desenhados, esteira levando o salário, legenda leve. 38 s.
+
+**Antes de postar:** conferir que o vídeo é o do salário (título "SEU SALÁRIO
+SOME ATÉ O DIA 10" e a esteira com os ganchos) e que a 1ª linha da legenda é
+a mesma frase. Mandar o arquivo original (AirDrop, Drive/iCloud ou WhatsApp
+como **Documento**). **Postar às 19h**, ou agendar no Instagram.
+
+**19h · INSTAGRAM (Reel)** · vídeo da esteira do salário
+
+1. Novo Reel › escolher o vídeo da esteira do salário.
+2. Capa: Editar capa › Adicionar da galeria › a imagem verde "Seu salário some até o dia 10".
+3. "Carregar na qualidade mais alta" ligado. Não ativar a legenda automática (o vídeo já tem).
+4. Colar a legenda e publicar às 19h.
+5. Fixar o comentário: `E você, guarda no COMEÇO ou no FIM do mês? 👇` e responder todos na 1ª hora.
+6. **Até 20h (fundador e sócio):** compartilhar nos stories e mandar o **link** no status do WhatsApp e em 3–5 grupos com a frase `Seu salário também some até o dia 10? 👇`.
+
+```
+Seu salário some até o dia 10. 💸
+
+Cai no dia 5 e entra na esteira: aluguel, cartão, contas, mercado, assinatura. No dia 10, dos R$ 3.000, sobram R$ 230. E o Beto ainda tenta guardar o que sobra.
+
+A Lia faz ao contrário: no dia que o salário cai, tira 10% antes da esteira andar. R$ 300.
+
+Em 1 ano: R$ 3.600 guardados. Sem esperar sobrar.
+
+📌 Regra de bolso: guarda primeiro, gasta depois.
+
+E você, guarda no COMEÇO ou no FIM do mês? Comenta 👇
+
+Manda pra quem vive o dia 10. 🔁
+
+💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta. Segue pra não perder a próxima.
+
+⏳ Faltam 43 dias para o que estamos preparando pra 2027.
+
+Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fictícios.
+
+#educacaofinanceira #salario #financaspessoais #organizacaofinanceira #dinheiro
+```
+
+**19h · TIKTOK** · o mesmo vídeo da esteira
+
+1. Enviar o vídeo original; capa = primeiro quadro (já é a capa).
+2. "Permitir upload em alta qualidade" ligado; não ativar legenda automática.
+3. Colar a legenda e publicar.
+
+```
+Seu salário some até o dia 10. 💸 Tira 10% no dia que cai, antes da esteira andar: em 1 ano, R$ 3.600. Guarda no COMEÇO ou no FIM do mês? Segue pra não perder. ⏳ Faltam 43 dias.
+
+#educacaofinanceira #salario #financaspessoais #organizacaofinanceira
+```
+
+**19h · YOUTUBE SHORTS** · o mesmo vídeo da esteira
+
+1. Enviar o vídeo original; no app do YouTube, escolher o primeiro quadro como capa.
+2. Título e descrição abaixo; publicar.
+
+Título:
+
+```
+Seu salário some até o dia 10? Faz isso no dia que ele cai #shorts
+```
+
+Descrição:
+
+```
+Salário de R$ 3.000: aluguel, cartão, contas, mercado e assinatura levam quase tudo até o dia 10. Tirar 10% no dia que cai, antes de pagar o resto, dá R$ 3.600 em um ano. Regra de bolso: guarda primeiro, gasta depois. Inscreva-se para a próxima conta.
+
+Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fictícios.
+
+#educacaofinanceira #salario #financaspessoais #organizacaofinanceira
+```
+
 ## Assinaturas das séries na legenda (desde 04/11)
 
 - `💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta.`

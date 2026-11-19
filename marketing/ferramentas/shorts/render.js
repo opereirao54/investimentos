@@ -12,6 +12,8 @@
 // legenda-tempos.py) queima no vídeo as palavras da fala, 2 a 4 por vez, com
 // a palavra dita destacada em verde. LEGENDA_Y=<px> é o centro da faixa
 // (padrão 1430; abaixo de 1540 fica fora da área que o Instagram cobre).
+// LEGENDA_ESTILO=leve (padrão desde 20/11): sem caixa, uma linha, palavras
+// acendendo de cinza para branco e números em amarelo.
 
 const fs = require('fs');
 const path = require('path');
@@ -50,7 +52,8 @@ async function legendaPrepara(p, palavras) {
   for (const w of palavras) {
     // não fecha a linha numa palavra curta sem pontuação ("de", "São"): ela vai junto da próxima
     const ult = g && g.ws[g.ws.length - 1].w;
-    const presa = ult && ult.length <= 3 && !/[,.:;!?…]$/.test(ult);
+    const linha = g ? g.ws.map((x) => x.w).join(' ').length : 0;
+    const presa = ult && ult.length <= 3 && !/[,.:;!?…]$/.test(ult) && linha + w.w.length < 24;
     const cheio =
       g && !presa && (g.ws.length >= 4 || g.ws.map((x) => x.w).join(' ').length + w.w.length > 20);
     if (!g || g.i !== w.i || cheio) grupos.push((g = { i: w.i, ws: [] }));
@@ -58,8 +61,9 @@ async function legendaPrepara(p, palavras) {
     if (/[,.:;!?…]$/.test(w.w)) g = null;
   }
   const y = Number(process.env.LEGENDA_Y || 1430);
+  const leve = process.env.LEGENDA_ESTILO === 'leve';
   await p.evaluate(
-    ({ grupos, y }) => {
+    ({ grupos, y, leve }) => {
       const st = document.createElement('style');
       st.textContent = `
         #legenda { position: absolute; left: 70px; right: 70px; top: ${y}px; transform: translateY(-50%); z-index: 40; text-align: center; pointer-events: none; }
@@ -67,7 +71,16 @@ async function legendaPrepara(p, palavras) {
           font-family: 'Figtree', sans-serif; font-weight: 900; font-size: 66px; line-height: 1.12; letter-spacing: -.015em; color: #f0faf4; }
         #legenda .w { display: inline-block; margin: 0 .2em; transition: none; }
         #legenda .w.on { color: #34d399; }
-        #legenda .w.fut { color: rgba(240,250,244,.55); }`;
+        #legenda .w.fut { color: rgba(240,250,244,.55); }
+        ${
+          leve
+            ? `#legenda .lg { background: none; box-shadow: none; padding: 0; font-size: 58px; font-weight: 800; text-shadow: 0 4px 18px rgba(0,0,0,.7); }
+        #legenda .w.on { color: #f0faf4; }
+        #legenda .w.fut { color: rgba(240,250,244,.28); }
+        #legenda .w.lg-num { color: #fbbf24; }
+        #legenda .w.lg-num.fut { color: rgba(251,191,36,.3); }`
+            : ''
+        }`;
       document.head.appendChild(st);
       const box = document.createElement('div');
       box.id = 'legenda';
@@ -100,14 +113,17 @@ async function legendaPrepara(p, palavras) {
         lg.style.opacity = p0;
         box.querySelectorAll('.w').forEach((el, n) => {
           const w = g.ws[n];
-          el.className = 'w' + (t >= w.t0 && t < w.t1 ? ' on' : t < w.t0 ? ' fut' : '');
+          el.className =
+            'w' +
+            (t >= w.t0 && t < w.t1 ? ' on' : t < w.t0 ? ' fut' : '') +
+            (leve && /\d|R\$|reais|mil|cento|dez|cinco/i.test(w.w) ? ' lg-num' : '');
           const pop =
             t >= w.t0 && t < w.t0 + 0.15 ? 1 + 0.08 * Math.sin(((t - w.t0) / 0.15) * Math.PI) : 1;
           el.style.transform = `scale(${pop})`;
         });
       };
     },
-    { grupos, y }
+    { grupos, y, leve }
   );
 }
 

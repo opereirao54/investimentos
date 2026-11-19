@@ -60,6 +60,15 @@
   médio e de retenção pode ser da fonte, não da abertura.
 - Compart. 0,4%, curtidas 1,1% e comentários 0% marcados como "mais baixo".
 
+## Em teste a partir de sex 20/11 (Explica): estilo @cafecomseudinheiro
+
+Aprovado pelo fundador em 19/11, depois da gravação de tela do Reel deles:
+título fixo no topo, metáfora contínua (esteira), Beto e Lia desenhados com
+poses, números com rótulo, aviso fixo no rodapé, chamada demonstrada no
+celular e legenda leve. Primeiro Reel: "Seu salário some até o dia 10".
+Comparar com a gasolina (11,3 s, 32%), a Black Friday (3,4 s) e o 13º
+dinâmico de 18/11. Vira padrão se bater a meta (10 s e 30%).
+
 ## Em teste a partir de qua 18/11 (News): formato novo, tudo junto
 
 Aprovado pelo fundador em 17/11, **as mudanças de uma vez** ("vamos

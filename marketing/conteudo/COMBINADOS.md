@@ -142,6 +142,15 @@ true`), mesmo modelo do News.
   vinheta só depois do gancho (~3 s) ou fora; tarja/selo da série no topo o
   vídeo todo. Meta: tempo médio acima de 10 s e retenção acima de 30%
   (linha de base: 5,6 s e 14%). Registro em `marketing/metricas/LEIAME.md`.
+- **Estilo @cafecomseudinheiro (fundador, 19/11: "precisamos melhorar nosso
+  conteúdo com esse estilo"):** título fixo no topo (2 linhas, branco e
+  amarelo); uma metáfora por trecho que evolui por 5–8 s sem corte; Beto e
+  Lia desenhados com corpo e expressão (`boneco()`/`pose()` em
+  `alcance/salario-some/video.html`); números com rótulo pequeno em cima;
+  aviso fixo no rodapé; chamada demonstrada (celular com o comentário sendo
+  digitado); **legenda leve de volta** (uma linha, palavras acendendo, números
+  em amarelo, sem caixa: `LEGENDA_ESTILO=leve`). Não copiar temas recentes
+  deles (ex.: "os primeiros 100 mil" saiu lá em 17/11).
 - **Padrão dinâmico (fundador, 18/11: "ficou show, vamos manter esse padrão
   e ir melhorando"):** todo Reel é **uma cena contínua** em que as coisas
   surgem, se mexem e se transformam (notas voando, pilhas de dinheiro
@@ -158,8 +167,7 @@ true`), mesmo modelo do News.
   diálogo Lia (voz Sulafat) × Beto (voz Charon), sem narrador (exceção à
   regra "uma voz por vídeo"); cortes a cada ~2–3 s; tela de celular quando
   couber; gancho falando com quem assiste. "Se não funcionar, retrocedemos."
-- **Sem legenda queimada no vídeo (fundador, 17/11: "tira a legenda toda"):**
-  com o texto das cenas, era informação demais. A ferramenta fica guardada.
+- ~~Sem legenda queimada (17/11)~~: voltou em 19/11 no estilo leve, ver acima.
 - ~~Legenda sincronizada (fundador, 16/11)~~: tirada em 17/11, ver acima. A fala aparece queimada no vídeo, palavra a palavra, numa faixa
   livre em torno de y 1430 (fora dos ~380 px de baixo que o Instagram cobre):
   as cenas do Reel têm de deixar essa faixa vazia. Como fazer em

@@ -1,0 +1,392 @@
+<!doctype html>
+<!--
+  Appliquei Explica (≈38 s, 1080×1920): "Seu salário some até o dia 10".
+  Primeiro Reel no estilo da @cafecomseudinheiro (fundador, 19/11): título
+  fixo no topo, uma metáfora por trecho que evolui sem corte (esteira com
+  ganchos levando o salário; a Lia tirando 10% antes da esteira andar; a pilha
+  crescendo mês a mês), Beto e Lia desenhados (corpo, poses, boca falando),
+  números com rótulo pequeno, aviso fixo no rodapé, chamada demonstrada no
+  celular e legenda leve (render.js, LEGENDA_ESTILO=leve). Valores de exemplo.
+
+  Motor: tudo do palco é SVG num sistema de coordenadas só (1080×1920).
+  boneco(id) cria um personagem; pose(id, {...}) põe posição, ângulos e humor.
+  Os tempos saem das falas: em(i, 'palavra').
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root { --campo1: #0b1410; --campo2: #0f1f18; --campo3: #112720; --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa;
+    --sinal: #34d399; --primaria: #059669; --ambar: #fbbf24; --vermelho: #f87171; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--campo1); }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: radial-gradient(70% 45% at 50% 45%, #13261d 0%, #0a120e 70%, #070c09 100%); }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 200px; z-index: 20; }
+  .serie { position: absolute; right: 150px; top: 60px; padding: 10px 20px; border-radius: 99px; border: 2px solid rgba(52,211,153,.45); background: rgba(52,211,153,.12);
+    font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .12em; text-transform: uppercase; color: var(--sinal); z-index: 20; }
+  .titulo { position: absolute; left: 0; right: 0; top: 215px; text-align: center; z-index: 15; font-weight: 900; text-transform: uppercase; letter-spacing: -.01em; line-height: 1.02; text-shadow: 0 6px 24px rgba(0,0,0,.6); }
+  .titulo .l1 { font-size: 78px; color: var(--tinta); }
+  .titulo .l2 { font-size: 78px; color: var(--ambar); }
+  .rodape { position: absolute; left: 60px; right: 60px; top: 1478px; text-align: center; font-size: 24px; color: rgba(240,250,244,.45); z-index: 15; }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); z-index: 30; }
+  svg#cena { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+  .txt { position: absolute; left: 0; top: 0; text-align: center; will-change: transform; opacity: 0; white-space: nowrap; }
+  .rot { font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .16em; text-transform: uppercase; color: var(--mudo); }
+  .num { font-family: 'Figtree', sans-serif; font-weight: 900; font-size: 120px; letter-spacing: -.04em; line-height: 1; }
+  .chip { display: inline-flex; align-items: center; gap: 12px; padding: 10px 26px; border-radius: 99px; border: 3px solid var(--ambar); color: var(--ambar); font-size: 34px; font-weight: 800; background: rgba(11,20,16,.7); }
+  .regra { width: 900px; padding: 34px 40px; border-radius: 40px; background: rgba(11,20,16,.92); border: 3px solid rgba(52,211,153,.6); box-shadow: 0 0 80px rgba(52,211,153,.2); }
+  .regra .rot { color: var(--sinal); }
+  .regra b { display: block; margin-top: 14px; font-size: 66px; font-weight: 900; line-height: 1.08; }
+  .regra b em { font-style: normal; color: var(--ambar); }
+  .cel { width: 860px; border-radius: 80px; background: #050807; border: 7px solid #2a3a33; padding: 30px 26px; box-shadow: 0 40px 90px rgba(0,0,0,.6); }
+  .cel .notch { width: 180px; height: 34px; border-radius: 17px; background: #111a16; margin: 0 auto 22px; }
+  .cel .tela { border-radius: 50px; background: #121a16; padding: 34px 34px 30px; text-align: left; }
+  .cel h4 { font-size: 44px; font-weight: 900; color: var(--tinta); }
+  .com { display: flex; gap: 20px; align-items: center; margin-top: 30px; }
+  .com .av { width: 72px; height: 72px; border-radius: 50%; flex: none; }
+  .com b { display: block; font-size: 32px; color: var(--mudo); font-weight: 700; }
+  .com span { display: block; font-size: 48px; font-weight: 800; color: var(--tinta); }
+  .entrada { margin-top: 36px; display: flex; align-items: center; justify-content: space-between; padding: 22px 30px; border-radius: 99px; border: 3px solid rgba(240,250,244,.25); font-size: 46px; font-weight: 700; color: var(--tinta); }
+  .entrada i { display: inline-block; width: 4px; height: 50px; background: var(--sinal); vertical-align: middle; margin-left: 4px; }
+  .assina img { width: 420px; }
+  .assina p { margin-top: 20px; font-size: 42px; font-weight: 800; color: var(--deck); }
+  .assina p em { font-style: normal; color: var(--sinal); }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <svg id="cena" viewBox="0 0 1080 1920"></svg>
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+  <div class="serie" id="serie">Appliquei Explica</div>
+  <div class="titulo" id="titulo"><div class="l1">Seu salário some</div><div class="l2">até o dia 10</div></div>
+
+  <div class="txt" id="rsal"><div class="rot" id="rsalr">Salário · dia 5</div><div class="num" id="vsal">R$ 3.000</div></div>
+  <div class="txt" id="dia"><span class="chip">📅 <span id="diat">dia 5</span></span></div>
+  <div class="txt" id="rcof"><div class="rot" style="color:var(--sinal)">Antes da esteira · 10%</div><div class="num" style="color:var(--sinal);font-size:96px;">R$ 300</div></div>
+  <div class="txt" id="rano"><div class="rot" style="color:var(--sinal)">Guardado em <span id="mes">1 mês</span></div><div class="num" id="vano" style="color:var(--sinal)">R$ 300</div></div>
+  <div class="txt" id="regra"><div class="regra"><div class="rot">Regra de bolso</div><b>Guarda <em>primeiro</em>,<br>gasta depois.</b></div></div>
+  <div class="txt" id="cel"><div class="cel"><div class="notch"></div><div class="tela"><h4>Comentários</h4>
+    <div class="com" id="c1"><div class="av" style="background:#60a5fa"></div><div><b>@mari.souza</b><span>COMEÇO 💪</span></div></div>
+    <div class="com" id="c2"><div class="av" style="background:#f472b6"></div><div><b>@joao.p</b><span>FIM 😅</span></div></div>
+    <div class="entrada"><span id="digita"></span><span style="color:var(--sinal)">➤</span></div>
+  </div></div></div>
+  <div class="txt assina" id="as"><img src="wordmark.svg" alt="Appliquei"><p>Mais contas assim: <em>siga o Appliquei</em></p></div>
+  <div class="rodape" id="rodape">Valores de exemplo · conteúdo educacional, sem recomendação · personagens fictícios</div>
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  function $(id) { return document.getElementById(id); }
+  const NS = 'http://www.w3.org/2000/svg';
+  function S(tag, at, pai) { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); (pai || $('cena')).appendChild(e); return e; }
+
+  const NAR = [[0.2, 4.58, "Seu salário cai no dia cinco. No dia dez, já sumiu."], [4.78, 6.42, "Mas pra onde vai?!"], [6.62, 14.47, "Pra esteira: aluguel, cartão, contas, mercado, assinatura. O que sobra no fim é o que o Beto tenta guardar."], [14.67, 15.81, "E nunca sobra..."], [16.01, 22.71, "Eu faço ao contrário: no dia que cai, tiro dez por cento antes da esteira andar. Trezentos reais."], [22.91, 27.21, "Em um ano, três mil e seiscentos guardados. Sem esperar sobrar."], [27.41, 30.75, "Regra de bolso: guarda primeiro, gasta depois."], [30.95, 37.38, "E você, guarda no começo ou no fim do mês? Comenta começo ou fim. E segue o Appliquei."]];
+  const QUEM = ["L", "B", "L", "B", "L", "L", "L", "L"];
+  const DUR = +(NAR[NAR.length - 1][1] + 0.9).toFixed(2);
+  function em(i, palavra) { const [a, b, txt] = NAR[i], k = txt.indexOf(palavra); return a + (k < 0 ? 0 : k / txt.length) * (b - a); }
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const eOut = (x) => 1 - Math.pow(1 - x, 3);
+  const eIn = (x) => x * x * x;
+  const eIO = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+  const eBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  const lerp = (a, b, p) => a + (b - a) * p;
+  const falando = (t, quem) => NAR.some((n, i) => QUEM[i] === quem && t >= n[0] && t < n[1]);
+
+  // ---------- texto HTML posicionado pelo centro ----------
+  const tam = {};
+  function poeTxt(id, x, y, s, r, o) {
+    const el = $(id);
+    if (!tam[id]) { el.style.display = 'block'; tam[id] = [el.offsetWidth, el.offsetHeight]; }
+    const [w, h] = tam[id];
+    el.style.opacity = o; el.style.display = o <= 0.001 ? 'none' : 'block';
+    el.style.transform = `translate(${(x - w / 2).toFixed(1)}px, ${(y - h / 2).toFixed(1)}px) rotate(${(r || 0).toFixed(2)}deg) scale(${s.toFixed(3)})`;
+  }
+  function vida(t, a, b) { const pe = eBack(prog(t, a, a + 0.4)), ps = eIn(prog(t, b, b + 0.3)); return { s: (0.4 + 0.6 * pe) * (1 - 0.25 * ps), o: t < a ? 0 : clamp(pe * 1.5, 0, 1) * (1 - ps), sai: ps }; }
+
+  // ---------- fundo: piso e brilho ----------
+  S('ellipse', { cx: 540, cy: 1180, rx: 520, ry: 40, fill: 'rgba(52,211,153,.06)' });
+
+  // ---------- esteira ----------
+  const EY = 930, EX0 = 150, EX1 = 1000;
+  const est = S('g', { id: 'est' });
+  S('rect', { x: EX0 - 20, y: EY, width: EX1 - EX0 + 40, height: 46, rx: 23, fill: '#1c2a24', stroke: '#2f4a3e', 'stroke-width': 4 }, est);
+  const faixas = S('g', {}, est);
+  for (let i = 0; i < 24; i++) S('rect', { x: 0, y: EY + 6, width: 18, height: 34, rx: 4, fill: '#2f4a3e', class: 'fx' }, faixas);
+  const rolos = [];
+  for (let i = 0; i < 7; i++) { const g = S('g', {}, est); S('circle', { cx: 0, cy: 0, r: 22, fill: '#0f1a15', stroke: '#3f5f50', 'stroke-width': 4 }, g); S('line', { x1: -16, y1: 0, x2: 16, y2: 0, stroke: '#3f5f50', 'stroke-width': 4 }, g); rolos.push(g); }
+  S('rect', { x: EX0, y: EY + 46, width: 12, height: 200, fill: '#1c2a24' }, est);
+  S('rect', { x: EX1 - 12, y: EY + 46, width: 12, height: 200, fill: '#1c2a24' }, est);
+  // trilho dos ganchos
+  S('rect', { x: 250, y: 643, width: 760, height: 14, rx: 7, fill: '#2f4a3e' }, est);
+
+  // ---------- holerite ----------
+  const hol = S('g', { id: 'hol' });
+  S('rect', { x: -95, y: -120, width: 190, height: 240, rx: 18, fill: '#f6f8f7' }, hol);
+  S('rect', { x: -95, y: -120, width: 190, height: 50, rx: 18, fill: '#34d399' }, hol);
+  S('text', { x: 0, y: -84, 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 900, fill: '#052e1f', 'font-family': 'Figtree' }, hol).textContent = 'HOLERITE';
+  for (let i = 0; i < 4; i++) S('rect', { x: -70, y: -40 + i * 34, width: i % 2 ? 100 : 140, height: 12, rx: 6, fill: '#c9d5cf' }, hol);
+
+  // ---------- sacos de dinheiro ----------
+  function saco(id) {
+    const g = S('g', { id });
+    S('path', { d: 'M-46,10 C-50,-30 -30,-42 -16,-46 L-24,-62 L24,-62 L16,-46 C30,-42 50,-30 46,10 C44,40 -44,40 -46,10 Z', fill: '#e2c26a', stroke: '#b8962f', 'stroke-width': 4 }, g);
+    S('rect', { x: -22, y: -56, width: 44, height: 10, rx: 5, fill: '#b8962f' }, g);
+    S('text', { x: 0, y: 14, 'text-anchor': 'middle', 'font-size': 34, 'font-weight': 900, fill: '#6b4f12', 'font-family': 'Figtree' }, g).textContent = 'R$';
+    return g;
+  }
+  const NS_ = 10; for (let i = 0; i < NS_; i++) saco('s' + i);
+
+  // ---------- ganchos com etiqueta ----------
+  const GAN = [
+    { x: 340, n: 'ALUGUEL', v: 900, p: 'aluguel' }, { x: 470, n: 'CARTÃO', v: 800, p: 'cartão' }, { x: 600, n: 'CONTAS', v: 350, p: 'contas' },
+    { x: 730, n: 'MERCADO', v: 600, p: 'mercado' }, { x: 860, n: 'ASSINATURA', v: 120, p: 'assinatura' },
+  ];
+  GAN.forEach((g, i) => {
+    const e = S('g', { id: 'g' + i });
+    S('line', { x1: 0, y1: 0, x2: 0, y2: 150, stroke: '#9fb3aa', 'stroke-width': 6, id: 'gc' + i }, e);
+    S('path', { d: 'M0,150 q0,30 -22,30 q-18,0 -18,-18', fill: 'none', stroke: '#9fb3aa', 'stroke-width': 8, 'stroke-linecap': 'round', id: 'gh' + i }, e);
+    const tg = S('g', { id: 'gt' + i }, e);
+    S('rect', { x: -60, y: 14, width: 120, height: 70, rx: 12, fill: '#b91c1c' }, tg);
+    S('text', { x: 0, y: 42, 'text-anchor': 'middle', 'font-size': g.n.length > 8 ? 16 : 20, 'font-weight': 900, fill: '#fff', 'font-family': 'Figtree' }, tg).textContent = g.n;
+    S('text', { x: 0, y: 74, 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 900, fill: '#fde68a', 'font-family': 'DM Mono' }, tg).textContent = '−' + g.v;
+  });
+
+  // ---------- cofre e pilha ----------
+  const cof = S('g', { id: 'cof' });
+  S('rect', { x: -95, y: -90, width: 190, height: 180, rx: 26, fill: '#1f3a2f', stroke: '#34d399', 'stroke-width': 6 }, cof);
+  S('circle', { cx: 0, cy: 0, r: 46, fill: 'none', stroke: '#34d399', 'stroke-width': 8 }, cof);
+  const roda = S('g', {}, cof); for (let i = 0; i < 4; i++) S('line', { x1: 0, y1: 0, x2: 0, y2: -40, stroke: '#34d399', 'stroke-width': 8, 'stroke-linecap': 'round', transform: `rotate(${i * 90})` }, roda);
+  S('rect', { x: -70, y: 90, width: 26, height: 16, rx: 4, fill: '#1f3a2f' }, cof); S('rect', { x: 44, y: 90, width: 26, height: 16, rx: 4, fill: '#1f3a2f' }, cof);
+  const pil = S('g', { id: 'pil' });
+  const CAM = [];
+  for (let i = 0; i < 12; i++) {
+    const c = S('g', {}, pil);
+    S('rect', { x: -150, y: -i * 44 - 40, width: 300, height: 38, rx: 10, fill: i % 2 ? '#10b981' : '#34d399', stroke: '#a7f3d0', 'stroke-width': 3 }, c);
+    S('text', { x: 0, y: -i * 44 - 12, 'text-anchor': 'middle', 'font-size': 24, 'font-weight': 900, fill: '#052e1f', 'font-family': 'DM Mono' }, c).textContent = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'][i] + ' · R$ 300';
+    CAM.push(c);
+  }
+
+  // ---------- personagens ----------
+  // origem nos pés; ~330 px de altura em escala 1
+  const BON = {};
+  function boneco(id, camisa, cabelo) {
+    const g = S('g', { id });
+    const L = (cor, w) => S('line', { stroke: cor, 'stroke-width': w, 'stroke-linecap': 'round' }, g);
+    const b = { g, pe: [L('#1f2937', 22), L('#1f2937', 22), L('#1f2937', 22), L('#1f2937', 22)] };
+    b.tronco = S('rect', { x: -42, y: -235, width: 84, height: 125, rx: 34, fill: camisa }, g);
+    b.br = [L('#f2dcc4', 18), L('#f2dcc4', 18), L('#f2dcc4', 18), L('#f2dcc4', 18)];
+    b.cab = S('g', {}, g);
+    if (cabelo === 'lia') S('ellipse', { cx: 34, cy: -282, rx: 20, ry: 34, fill: '#3b2416' }, b.cab);
+    S('circle', { cx: 0, cy: -280, r: 48, fill: '#f2dcc4' }, b.cab);
+    if (cabelo === 'lia') S('path', { d: 'M-48,-282 C-50,-340 50,-345 48,-282 C30,-312 -20,-318 -48,-282 Z', fill: '#3b2416' }, b.cab);
+    else S('path', { d: 'M-46,-290 L-40,-322 L-24,-312 L-14,-334 L2,-316 L16,-336 L26,-314 L42,-322 L46,-290 C20,-306 -20,-306 -46,-290 Z', fill: '#1f2937' }, b.cab);
+    b.ol = [S('circle', { cx: -17, cy: -282, r: 6, fill: '#111' }, b.cab), S('circle', { cx: 17, cy: -282, r: 6, fill: '#111' }, b.cab)];
+    b.sob = [S('line', { stroke: '#3b2416', 'stroke-width': 5, 'stroke-linecap': 'round' }, b.cab), S('line', { stroke: '#3b2416', 'stroke-width': 5, 'stroke-linecap': 'round' }, b.cab)];
+    b.boca = S('path', { fill: 'none', stroke: '#7a2e1f', 'stroke-width': 5, 'stroke-linecap': 'round' }, b.cab);
+    BON[id] = b; return b;
+  }
+  const BETO = boneco('beto', '#ef4444', 'beto'), LIA = boneco('lia', '#10b981', 'lia');
+  const rad = (d) => (d * Math.PI) / 180;
+  function membro(seg, x, y, a1, a2, l1, l2) {
+    const x1 = x + Math.sin(rad(a1)) * l1, y1 = y + Math.cos(rad(a1)) * l1;
+    const x2 = x1 + Math.sin(rad(a1 + a2)) * l2, y2 = y1 + Math.cos(rad(a1 + a2)) * l2;
+    seg[0].setAttribute('x1', x); seg[0].setAttribute('y1', y); seg[0].setAttribute('x2', x1); seg[0].setAttribute('y2', y1);
+    seg[1].setAttribute('x1', x1); seg[1].setAttribute('y1', y1); seg[1].setAttribute('x2', x2); seg[1].setAttribute('y2', y2);
+  }
+  // p: { x, y, s, dir (1/-1), o, perna:[e1,e2,d1,d2], braco:[e1,e2,d1,d2], tronco, humor ('ok'|'preocupado'|'feliz'), fala (bool), t }
+  function pose(id, p) {
+    const b = BON[id];
+    b.g.setAttribute('transform', `translate(${p.x.toFixed(1)},${p.y.toFixed(1)}) scale(${(p.s * (p.dir || 1)).toFixed(3)},${p.s.toFixed(3)}) rotate(${(p.tronco || 0).toFixed(1)} 0 -110)`);
+    b.g.setAttribute('opacity', p.o);
+    b.g.style.display = p.o <= 0.001 ? 'none' : 'inline';
+    const pr = p.perna || [0, 0, 0, 0], br = p.braco || [10, 10, -10, -10];
+    membro([b.pe[0], b.pe[1]], -16, -115, pr[0], pr[1], 58, 58);
+    membro([b.pe[2], b.pe[3]], 16, -115, pr[2], pr[3], 58, 58);
+    membro([b.br[0], b.br[1]], -40, -215, 180 - br[0] - 180, br[1], 52, 50);
+    membro([b.br[2], b.br[3]], 40, -215, br[2], br[3], 52, 50);
+    const h = p.humor || 'ok';
+    const sb = h === 'preocupado' ? [[-30, -306, -6, -298], [6, -298, 30, -306]] : h === 'feliz' ? [[-30, -302, -6, -306], [6, -306, 30, -302]] : [[-30, -302, -6, -302], [6, -302, 30, -302]];
+    b.sob.forEach((l, i) => { l.setAttribute('x1', sb[i][0]); l.setAttribute('y1', sb[i][1]); l.setAttribute('x2', sb[i][2]); l.setAttribute('y2', sb[i][3]); });
+    const ab = p.fala ? 4 + 10 * Math.abs(Math.sin(p.t * 17)) : 0;
+    if (p.fala) b.boca.setAttribute('d', `M-14,-256 Q0,${-256 + ab * 1.6} 14,-256 Q0,${-256 - ab * 0.3} -14,-256 Z`), b.boca.setAttribute('fill', '#7a2e1f');
+    else { b.boca.setAttribute('fill', 'none'); b.boca.setAttribute('d', h === 'preocupado' ? 'M-16,-250 Q-8,-258 0,-252 Q8,-246 16,-254' : h === 'feliz' ? 'M-18,-258 Q0,-238 18,-258' : 'M-14,-254 Q0,-248 14,-254'); }
+    b.cab.setAttribute('transform', `rotate(${(p.cabeca || 0).toFixed(1)} 0 -240)`);
+  }
+  // ciclos prontos
+  const anda = (t, v) => { const f = Math.sin(t * (v || 9)); return { perna: [25 * f, 10 + 20 * Math.max(0, -f), -25 * f, 10 + 20 * Math.max(0, f)], braco: [-25 * f, -20, 25 * f, 20], bob: Math.abs(f) * 8 }; };
+  const parado = (t) => ({ perna: [4, 0, -4, 0], braco: [12 + 3 * Math.sin(t * 2), 8, -12 - 3 * Math.sin(t * 2), -8], bob: 2 * Math.sin(t * 2.5) });
+
+  function setTxt(e, v) { if (e.textContent !== v) e.textContent = v; }
+  const brl = (v) => 'R$ ' + Math.round(v).toLocaleString('pt-BR');
+
+  // ---------- render ----------
+  function render(t) {
+    const T = (i) => NAR[i][0];
+    // marcos
+    const A_FIM = T(4) - 0.2;           // fim do problema
+    const B_INI = T(4) - 0.1, C_INI = T(5) - 0.15, R_INI = T(6) - 0.15, D_INI = T(7) - 0.15;
+    const ganchoT = GAN.map((g) => em(2, g.p));
+
+    // câmera: aproxima de leve e dá um "soco" em cada fala
+    let soco = 0; for (const n of NAR) soco += 0.03 * (1 - eOut(prog(t, n[0] - 0.1, n[0] + 0.25))) * (t >= n[0] - 0.1 ? 1 : 0);
+    $('cena').style.transform = `scale(${1 + soco + 0.01 * Math.sin(t * 0.5)})`;
+    $('cena').style.transformOrigin = '540px 900px';
+
+    // título e rodapé fixos (entram no quadro 0)
+    $('titulo').style.transform = `translateY(${(1 - eOut(prog(t, 0, 0.35))) * -40}px) scale(${1 + 0.03 * (1 - eOut(prog(t, 0, 0.35)))})`;
+    $('titulo').style.opacity = t < D_INI ? 1 : 1 - prog(t, D_INI, D_INI + 0.3);
+    $('rodape').style.opacity = t < em(7, 'E segue') ? 1 : 0;
+
+    // ===== esteira (problema + virada) =====
+    const estO = t < C_INI ? 1 : 1 - prog(t, C_INI, C_INI + 0.4);
+    const estIn = eOut(prog(t, 0, 0.5));
+    $('est').setAttribute('opacity', estO);
+    $('est').setAttribute('transform', `translate(0,${(1 - estIn) * 300 + (t > C_INI ? 300 * eIn(prog(t, C_INI, C_INI + 0.4)) : 0)})`);
+    // velocidade: anda no problema; para no "ao contrário"; volta a andar no "antes da esteira andar"
+    const parada = t >= B_INI && t < em(4, 'Trezentos');
+    const vel = parada ? 0 : 160;
+    const desloc = (t < B_INI ? t : B_INI + Math.max(0, t - em(4, 'Trezentos'))) * 160;
+    document.querySelectorAll('.fx').forEach((r, i) => { const x = EX0 + (((i * 40 + desloc) % 880) + 880) % 880; r.setAttribute('x', x); r.style.display = x > EX1 - 20 ? 'none' : 'inline'; });
+    rolos.forEach((g, i) => g.setAttribute('transform', `translate(${EX0 + 20 + i * 136},${EY + 23}) rotate(${desloc * 1.5})`));
+
+    // holerite cai no quadro 0; volta na virada
+    const holIn = eBack(prog(t, 0.05, 0.5));
+    const holO = t < C_INI ? 1 : 0;
+    $('hol').setAttribute('transform', `translate(140,${lerp(420, 800, holIn)}) rotate(${-8 + 8 * holIn + 3 * Math.sin(t * 3)}) scale(${0.6 + 0.4 * holIn})`);
+    $('hol').setAttribute('opacity', holO * clamp(holIn * 2, 0, 1));
+
+    // sacos: 1º ciclo (problema): 6 sacos saem do holerite e andam; 5 são pegos pelos ganchos, 1 (R$ 230) chega ao fim
+    // 2º ciclo (virada): o 1º saco vai para o cofre (Lia), os outros andam de novo
+    for (let i = 0; i < NS_; i++) {
+      const s = $('s' + i); let x = -999, y = EY - 34, o = 0, sc = 0.9, r = 0;
+      if (i < 6) {
+        const sai = 0.55 + i * 0.32, xs = 200 + desloc - sai * 160;
+        if (t >= sai && t < B_INI) {
+          // sai do holerite e cai na esteira
+          const q = eOut(prog(t, sai, sai + 0.35));
+          x = lerp(150, 220, q) + Math.max(0, (t - sai - 0.35)) * vel; y = lerp(780, EY - 34, q); o = 1; r = 6 * Math.sin(t * 8 + i);
+          if (i < 5) {
+            const g = GAN[i], tg = ganchoT[i];
+            // anda até debaixo do gancho e espera
+            x = Math.min(x, g.x - 20 * 0);
+            if (t >= tg) { const q2 = eIO(prog(t, tg, tg + 0.5)); y = lerp(EY - 34, 640, q2); x = g.x; o = 1 - prog(t, tg + 0.35, tg + 0.5); }
+          } else {
+            x = Math.min(x, 960); // o que sobra fica no fim da esteira
+          }
+        }
+        // 2º ciclo
+        const v0 = em(4, 'no dia'), pega = em(4, 'tiro');
+        if (t >= v0 && t < C_INI) {
+          const q = eOut(prog(t, v0, v0 + 0.3));
+          o = q; x = 230 + i * 120; y = EY - 34;
+          if (i === 0) { // a Lia pega antes da esteira andar
+            const q2 = eIO(prog(t, pega, pega + 0.7));
+            x = lerp(230, 140, q2); y = lerp(EY - 34, 1160, q2) - Math.sin(q2 * Math.PI) * 220; o = 1 - prog(t, pega + 0.6, pega + 0.7);
+          } else if (t > em(4, 'Trezentos')) {
+            x += (t - em(4, 'Trezentos')) * 260; if (x > 1000) o = 0;
+          }
+        }
+      }
+      s.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${r.toFixed(1)}) scale(${sc})`);
+      s.setAttribute('opacity', o); s.style.display = o <= 0.001 ? 'none' : 'inline';
+    }
+    // ganchos descem no nome e sobem com o saco
+    GAN.forEach((g, i) => {
+      const tg = ganchoT[i], d = eOut(prog(t, tg - 0.25, tg)) * (1 - eIO(prog(t, tg, tg + 0.5)));
+      const yv = 650 + d * 45;
+      const ap = vida(t, em(2, 'Pra esteira') + i * 0.08, A_FIM);
+      $('g' + i).setAttribute('transform', `translate(${g.x},${yv}) scale(${ap.s})`);
+      $('g' + i).setAttribute('opacity', estO * ap.o);
+      $('gt' + i).setAttribute('transform', `translate(0,${-6 + 4 * Math.sin(t * 3 + i)}) rotate(${t >= tg && t < tg + 0.8 ? 6 * Math.sin((t - tg) * 20) : 0})`);
+    });
+
+    // número do salário e dia
+    let sal = 3000;
+    GAN.forEach((g, i) => { sal -= g.v * eOut(prog(t, ganchoT[i], ganchoT[i] + 0.4)); });
+    if (t >= em(4, 'no dia')) sal = 3000 - 300 * eOut(prog(t, em(4, 'tiro'), em(4, 'tiro') + 0.5));
+    const vs = vida(t, 0.25, C_INI - 0.1);
+    poeTxt('rsal', 540, 500 + Math.sin(t * 2) * 4, vs.s * (1 + 0.04 * Math.sin(t * 30) * GAN.reduce((a, g, i) => a + (t > ganchoT[i] && t < ganchoT[i] + 0.25 ? 1 : 0), 0)), 0, vs.o);
+    setTxt($('vsal'), brl(sal));
+    $('vsal').style.color = t < em(4, 'no dia') && sal < 1000 ? '#f87171' : t >= em(4, 'no dia') ? '#34d399' : '#f0faf4';
+    setTxt($('rsalr'), t >= em(4, 'no dia') ? 'Salário · dia 5 · Lia' : t >= ganchoT[0] ? 'Sobrou' : 'Salário · dia 5');
+    const vd = vida(t, em(0, 'No dia'), C_INI - 0.1);
+    poeTxt('dia', 920, 520, vd.s, 4 * Math.sin(t * 2), vd.o);
+    const dia = t >= em(4, 'no dia') ? 5 : t >= em(0, 'dez') ? Math.min(10, 5 + Math.floor(prog(t, em(0, 'dez'), em(0, 'dez') + 0.6) * 5)) : 5;
+    const dia2 = t >= ganchoT[0] && t < em(4, 'no dia') ? Math.min(10, 5 + Math.floor(prog(t, ganchoT[0], ganchoT[4] + 0.3) * 6)) : dia;
+    setTxt($('diat'), 'dia ' + (t >= em(0, 'dez') && t < ganchoT[0] ? 10 : dia2));
+
+    // ===== cofre (virada) e pilha (futuro) =====
+    const pega = em(4, 'tiro');
+    const vc = vida(t, em(4, 'ao contrário'), C_INI + 0.2);
+    $('cof').setAttribute('transform', `translate(140,${1180 - 90}) scale(${vc.s * (1 + 0.08 * Math.sin((t - pega - 0.7) * 14) * (t > pega + 0.7 && t < pega + 1.1 ? 1 : 0))})`);
+    $('cof').setAttribute('opacity', vc.o);
+    roda.setAttribute('transform', `rotate(${t * 40})`);
+    const vr = vida(t, pega + 0.6, C_INI);
+    poeTxt('rcof', 290, 1290, vr.s, 0, vr.o);
+    // pilha: cresce um mês a cada ~0.3 s a partir do "Em um ano"
+    const pOn = t >= C_INI, mesN = pOn ? clamp(Math.floor(prog(t, C_INI + 0.2, em(5, 'guardados')) * 12) + 1, 1, 12) : 0;
+    $('pil').setAttribute('transform', `translate(330,1180)`);
+    CAM.forEach((c, i) => { const a = C_INI + 0.2 + i * ((em(5, 'guardados') - C_INI - 0.2) / 12); const q = eBack(prog(t, a, a + 0.3)); c.setAttribute('transform', `translate(0,${(1 - q) * -200})`); c.setAttribute('opacity', pOn && t >= a ? clamp(q * 2, 0, 1) * (1 - prog(t, D_INI, D_INI + 0.3)) : 0); });
+    const va = vida(t, C_INI + 0.1, R_INI - 0.1);
+    poeTxt('rano', 760, 640, va.s, 0, va.o);
+    setTxt($('mes'), mesN <= 1 ? '1 mês' : mesN === 12 ? '1 ano' : mesN + ' meses');
+    setTxt($('vano'), brl(300 * mesN));
+    const vg = vida(t, R_INI, D_INI);
+    poeTxt('regra', 540, 520, vg.s, 0, vg.o);
+
+    // ===== personagens =====
+    // Beto: corre atrás da esteira no problema; levanta os braços no "pra onde vai"; ombros caídos no "nunca sobra"; na chamada, aponta o celular
+    {
+      let x = -200, y = 1180, s = 1, dir = 1, o = 0, p = parado(t), humor = 'preocupado', tronco = 0, cab = 0;
+      if (t < C_INI) {
+        o = 1;
+        const ent = eOut(prog(t, 0.2, 1.2));
+        x = lerp(-150, 330, ent);
+        if (t > 1.2 && t < T(1)) { p = anda(t, 10); x = 330 + 80 * Math.sin((t - 1.2) * 1.2); }
+        if (t >= T(1) - 0.1 && t < NAR[1][1] + 0.2) { p = { perna: [8, 0, -8, 0], braco: [-150, -10, 150, 10], bob: 4 * Math.abs(Math.sin(t * 10)) }; x = 420; cab = 6 * Math.sin(t * 12); }
+        if (t >= NAR[1][1] + 0.2 && t < T(3)) { p = anda(t, 11); x = lerp(420, 860, prog(t, NAR[1][1] + 0.2, T(3))); }
+        if (t >= T(3) - 0.1) { p = { perna: [4, 0, -4, 0], braco: [30, -40, -30, 40], bob: 0 }; x = 860; tronco = 6; cab = 10; }
+        if (t >= B_INI) { const q = eIn(prog(t, B_INI, B_INI + 0.5)); x = lerp(860, 1250, q); p = anda(t, 12); o = 1 - q * 0.0; }
+      }
+      if (t >= D_INI) {
+        o = 1; x = lerp(-150, 140, eOut(prog(t, D_INI, D_INI + 0.5))); y = 1350; s = 0.8; humor = 'feliz';
+        p = { perna: [4, 0, -4, 0], braco: [12, 8, -100 + 8 * Math.sin(t * 6), -10], bob: 0 };
+      }
+      pose('beto', { x, y: y - p.bob, s, dir, o, perna: p.perna, braco: p.braco, humor, fala: falando(t, 'B'), t, tronco, cabeca: cab });
+    }
+    // Lia: entra na virada, pega o saco antes da esteira, depois fica feliz na pilha
+    {
+      let x = -200, y = 1180, s = 1, o = 0, p = parado(t), humor = 'feliz', tronco = 0;
+      if (t >= B_INI - 0.2 && t < D_INI) {
+        o = 1;
+        const ent = eOut(prog(t, B_INI - 0.2, B_INI + 0.5));
+        x = lerp(-150, 330, ent); if (ent < 1) p = anda(t, 10);
+        if (t >= pega - 0.2 && t < pega + 0.8) { p = { perna: [10, 0, -10, 0], braco: [20, 10, -120 + 60 * prog(t, pega, pega + 0.6), -20], bob: 0 }; tronco = -8 * Math.sin(prog(t, pega - 0.2, pega + 0.8) * Math.PI); }
+        if (t >= C_INI) { x = lerp(330, 640, eIO(prog(t, C_INI, C_INI + 0.6))); p = t < C_INI + 0.6 ? anda(t, 10) : { perna: [4, 0, -4, 0], braco: [-140, 0, 140, 0], bob: 3 * Math.abs(Math.sin(t * 5)) }; }
+        if (t >= R_INI) p = { perna: [4, 0, -4, 0], braco: [20, -100, -12, -8], bob: 0 };
+      }
+      pose('lia', { x, y: y - p.bob, s, dir: t >= C_INI && t < C_INI + 0.6 ? 1 : 1, o: o * (1 - prog(t, D_INI, D_INI + 0.3)), perna: p.perna, braco: p.braco, humor, fala: falando(t, 'L'), t, tronco });
+    }
+
+    // ===== chamada demonstrada no celular =====
+    const vcel = vida(t, D_INI, DUR + 1);
+    const sobe = eOut(prog(t, D_INI, D_INI + 0.5));
+    poeTxt('cel', 600, lerp(1500, 760, sobe), 1, 0, vcel.o);
+    const tc = em(7, 'Comenta');
+    $('c1').style.opacity = prog(t, D_INI + 0.4, D_INI + 0.7);
+    $('c2').style.opacity = prog(t, D_INI + 0.9, D_INI + 1.2);
+    const alvo = 'FIM 😅'; const nch = Math.floor(prog(t, tc, tc + 1.2) * (alvo.length + 1));
+    $('digita').innerHTML = (nch ? [...alvo].slice(0, nch).join('') : '<span style="color:rgba(240,250,244,.4)">Adicione um comentário…</span>') + (Math.floor(t * 3) % 2 ? '<i></i>' : '');
+    const vas = vida(t, em(7, 'E segue'), DUR + 1);
+    poeTxt('as', 600, 1240, vas.s, 0, vas.o);
+    $('logoFixo').style.opacity = t < em(7, 'E segue') - 0.3 ? 1 : 1 - prog(t, em(7, 'E segue') - 0.3, em(7, 'E segue'));
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>
