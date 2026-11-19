@@ -151,6 +151,13 @@ true`), mesmo modelo do News.
   digitado); **legenda leve de volta** (uma linha, palavras acendendo, números
   em amarelo, sem caixa: `LEGENDA_ESTILO=leve`). Não copiar temas recentes
   deles (ex.: "os primeiros 100 mil" saiu lá em 17/11).
+- **A metáfora muda conforme o tema (fundador, 19/11: "não precisa ser sempre
+  o mesmo, temos que ser criativos e ver o que mais combina e fica
+  didático"):** em cada Reel, escolher a imagem que mostra melhor aquela conta
+  (proporção → pizza; dinheiro acabando no tempo → jarra ou saldo caindo; vida
+  real → tela do banco; separar → envelopes) e propor 2–3 opções ao fundador
+  junto com o roteiro. A esteira de 20/11 foi trocada pela tela do banco por
+  não ser didática.
 - **Padrão dinâmico (fundador, 18/11: "ficou show, vamos manter esse padrão
   e ir melhorando"):** todo Reel é **uma cena contínua** em que as coisas
   surgem, se mexem e se transformam (notas voando, pilhas de dinheiro

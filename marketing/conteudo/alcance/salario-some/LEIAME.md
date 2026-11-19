@@ -5,11 +5,15 @@ roteiro aprovados pelo fundador em 19/11. **Primeiro Reel no estilo da
 @cafecomseudinheiro** (gravação de tela analisada em 19/11):
 
 - **Título fixo no topo** o vídeo todo: SEU SALÁRIO SOME / ATÉ O DIA 10.
-- **Uma metáfora por trecho, sem corte:** a esteira com ganchos (aluguel,
-  cartão, contas, mercado, assinatura) levando os sacos do salário até sobrar
-  R$ 230 no dia 10; a cena volta ao dia 5 e a Lia tira R$ 300 (10%) para o
-  cofre antes da esteira andar; o cofre vira uma pilha que cresce mês a mês até
-  R$ 3.600; regra de bolso; celular com o comentário "FIM 😅" sendo digitado.
+- **Metáfora: a tela do banco no celular** (fundador, 19/11; a primeira versão
+  usava uma esteira com ganchos e não ficou didática): celular grande (~880
+  px) com o app de um banco genérico; o salário entra (+3.000), cada conta
+  chega como notificação e entra no extrato (o mais novo em cima) e o saldo cai
+  dia a dia até R$ 230, em vermelho; a tela "rebobina" para o dia 5 e a Lia
+  agenda a reserva (−300, automático) antes de qualquer conta; a tela vira a
+  reserva com 12 barras crescendo até R$ 3.600; regra de bolso com o celular
+  encolhido embaixo; o celular vira os comentários com "FIM 😅" sendo digitado.
+  Beto e Lia ficam nas bordas, na frente do celular.
 - **Beto e Lia desenhados** (SVG, com braços e pernas articulados, andar,
   braços para cima, ombros caídos, boca mexendo quando falam, sobrancelhas de
   preocupado ou feliz): `boneco()` e `pose()` em `video.html`.
@@ -37,8 +41,8 @@ capa e selo "Faltam 43 dias") e `-capa.png`; `appliquei-salario-some*.mp4`;
 
 ## Os números (valores de exemplo)
 
-Salário R$ 3.000 no dia 5. Aluguel 900 + cartão 800 + contas 350 + mercado
-600 + assinatura 120 = R$ 2.770; sobra R$ 230. 10% = R$ 300 por mês; 12 meses
+Salário R$ 3.000 no dia 5. Aluguel 900 (dia 5) + cartão 800 (dia 7) + contas
+350 (dia 8) + mercado 600 (dia 9) + assinatura 120 (dia 10) = R$ 2.770; sobra R$ 230. 10% = R$ 300 por mês; 12 meses
 = R$ 3.600, sem rendimento (para não virar recomendação).
 
 **O que medir:** o estilo inteiro mudou. Comparar taxa de pulados, tempo médio

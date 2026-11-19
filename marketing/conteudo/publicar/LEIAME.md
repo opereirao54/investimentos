@@ -585,16 +585,16 @@ Conteúdo educacional e apartidário, sem recomendação. 13º igual ao salário
 
 Feriado (Consciência Negra): o horário continua 19h. **Primeiro Reel no
 estilo novo** (o da @cafecomseudinheiro): título fixo no topo, Beto e Lia
-desenhados, esteira levando o salário, legenda leve. 38 s.
+desenhados, a tela do banco no celular com o saldo caindo, legenda leve. 38 s.
 
 **Antes de postar:** conferir que o vídeo é o do salário (título "SEU SALÁRIO
-SOME ATÉ O DIA 10" e a esteira com os ganchos) e que a 1ª linha da legenda é
+SOME ATÉ O DIA 10" e o celular com o extrato do banco) e que a 1ª linha da legenda é
 a mesma frase. Mandar o arquivo original (AirDrop, Drive/iCloud ou WhatsApp
 como **Documento**). **Postar às 19h**, ou agendar no Instagram.
 
-**19h · INSTAGRAM (Reel)** · vídeo da esteira do salário
+**19h · INSTAGRAM (Reel)** · vídeo do extrato do salário
 
-1. Novo Reel › escolher o vídeo da esteira do salário.
+1. Novo Reel › escolher o vídeo do extrato do salário.
 2. Capa: Editar capa › Adicionar da galeria › a imagem verde "Seu salário some até o dia 10".
 3. "Carregar na qualidade mais alta" ligado. Não ativar a legenda automática (o vídeo já tem).
 4. Colar a legenda e publicar às 19h.
@@ -604,9 +604,9 @@ como **Documento**). **Postar às 19h**, ou agendar no Instagram.
 ```
 Seu salário some até o dia 10. 💸
 
-Cai no dia 5 e entra na esteira: aluguel, cartão, contas, mercado, assinatura. No dia 10, dos R$ 3.000, sobram R$ 230. E o Beto ainda tenta guardar o que sobra.
+Cai no dia 5 e o extrato começa: aluguel, cartão, contas, mercado, assinatura. No dia 10, dos R$ 3.000, sobram R$ 230. E o Beto ainda tenta guardar o que sobra.
 
-A Lia faz ao contrário: no dia que o salário cai, tira 10% antes da esteira andar. R$ 300.
+A Lia faz ao contrário: no dia que o salário cai, já manda 10% pra reserva, antes de pagar qualquer conta. R$ 300.
 
 Em 1 ano: R$ 3.600 guardados. Sem esperar sobrar.
 
@@ -625,19 +625,19 @@ Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fict�
 #educacaofinanceira #salario #financaspessoais #organizacaofinanceira #dinheiro
 ```
 
-**19h · TIKTOK** · o mesmo vídeo da esteira
+**19h · TIKTOK** · o mesmo vídeo do extrato
 
 1. Enviar o vídeo original; capa = primeiro quadro (já é a capa).
 2. "Permitir upload em alta qualidade" ligado; não ativar legenda automática.
 3. Colar a legenda e publicar.
 
 ```
-Seu salário some até o dia 10. 💸 Tira 10% no dia que cai, antes da esteira andar: em 1 ano, R$ 3.600. Guarda no COMEÇO ou no FIM do mês? Segue pra não perder. ⏳ Faltam 43 dias.
+Seu salário some até o dia 10. 💸 Manda 10% pra reserva no dia que cai, antes de qualquer conta: em 1 ano, R$ 3.600. Guarda no COMEÇO ou no FIM do mês? Segue pra não perder. ⏳ Faltam 43 dias.
 
 #educacaofinanceira #salario #financaspessoais #organizacaofinanceira
 ```
 
-**19h · YOUTUBE SHORTS** · o mesmo vídeo da esteira
+**19h · YOUTUBE SHORTS** · o mesmo vídeo do extrato
 
 1. Enviar o vídeo original; no app do YouTube, escolher o primeiro quadro como capa.
 2. Título e descrição abaixo; publicar.
