@@ -1,4 +1,7 @@
-"""Gerador de clipes de IA da Appliquei no Modal (plano B da cota do Hugging Face).
+"""Estudio de IA no Modal: clipes (Wan 2.2) e imagens (FLUX.1 schnell).
+
+Plano B da cota gratis do Hugging Face para os projetos de conteudo do
+fundador (Appliquei e Projeto-redessociais), chamado pelo ia.py de cada um.
 
 Mesma receita do Space zerogpu-aoti/wan2-2-fp8da-aoti-faster, que fez os
 clipes aprovados pelo fundador em 22/11: Wan 2.2 I2V A14B (Apache 2.0) com o
@@ -9,14 +12,19 @@ Quem publica e o GitHub Actions (.github/workflows/modal-ia-video.yml): a rede
 das sessoes na nuvem nao deixa passar o gRPC do cliente do Modal, entao daqui
 so se chama o endereco HTTPS abaixo, com a chave em "Authorization: Bearer".
 
-  POST /gerar  {"imagem": "<png/jpg em base64>", "prompt": "...",
-                "segundos": 5, "passos": 4, "semente": 42, "negativo": "..."}
+  POST /gerar  clipe:  {"tipo": "clipe", "imagem": "<png/jpg em base64>",
+                        "prompt": "...", "segundos": 5, "passos": 4,
+                        "semente": 42, "negativo": "..."}
+               imagem: {"tipo": "imagem", "prompt": "...", "largura": 720,
+                        "altura": 1280, "semente": 7}
                -> {"id": "<chamada>"}
-  GET  /resultado/<id>  -> 202 enquanto gera; 200 com o mp4 quando pronto;
-                           500 com o erro, se falhar
+  GET  /resultado/<id>  -> 202 enquanto gera; 200 com o mp4 ou o png quando
+                           pronto; 500 com o erro, se falhar
+
+Imagem: FLUX.1 schnell (Apache 2.0), 4 passos, numa L40S.
 
 Custo: sai dos creditos gratis do Modal (US$ 30/mes no plano Starter). O
-container fica ligado 5 min depois do ultimo clipe (scaledown_window) para
+container fica ligado 5 min depois do ultimo pedido (scaledown_window) para
 emendar pedidos sem recarregar o modelo.
 """
 
@@ -62,8 +70,8 @@ imagem_gpu = (
     .env({"HF_HOME": "/cache/hf"})
 )
 imagem_web = modal.Image.debian_slim(python_version="3.12").pip_install("fastapi[standard]")
-cache = modal.Volume.from_name("appliquei-ia-cache", create_if_missing=True)
-app = modal.App("appliquei-ia-video")
+cache = modal.Volume.from_name("estudio-ia-cache", create_if_missing=True)
+app = modal.App("estudio-ia")
 
 
 def ajustar(img):
@@ -158,7 +166,44 @@ class Wan:
             return open(f.name, "rb").read()
 
 
-@app.function(image=imagem_web, secrets=[modal.Secret.from_name("appliquei-ia")])
+@app.cls(
+    image=imagem_gpu,
+    gpu="L40S",
+    memory=49152,
+    volumes={"/cache": cache},
+    timeout=900,
+    scaledown_window=300,
+)
+class Flux:
+    @modal.enter()
+    def carregar(self):
+        import torch
+        from diffusers import FluxPipeline
+
+        self.pipe = FluxPipeline.from_pretrained(
+            "black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16
+        ).to("cuda")
+        cache.commit()
+
+    @modal.method()
+    def gerar(self, prompt: str, largura: int, altura: int, semente: int) -> bytes:
+        import torch
+
+        img = self.pipe(
+            prompt=prompt,
+            width=max(256, min(2048, int(largura) // 16 * 16)),
+            height=max(256, min(2048, int(altura) // 16 * 16)),
+            num_inference_steps=4,
+            guidance_scale=0.0,
+            max_sequence_length=256,
+            generator=torch.Generator(device="cuda").manual_seed(int(semente)),
+        ).images[0]
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        return buf.getvalue()
+
+
+@app.function(image=imagem_web, secrets=[modal.Secret.from_name("estudio-ia")])
 @modal.asgi_app()
 def api():
     from fastapi import FastAPI, Header, HTTPException, Response
@@ -171,19 +216,27 @@ def api():
             raise HTTPException(status_code=401)
 
     class Pedido(BaseModel):
-        imagem: str
+        tipo: str = "clipe"
         prompt: str
+        imagem: str = ""
         negativo: str = ""
         segundos: float = 5.0
         passos: int = 4
         semente: int = 42
+        largura: int = 720
+        altura: int = 1280
 
     @web.post("/gerar")
     def gerar(p: Pedido, authorization: str = Header(default="")):
         conferir(authorization)
-        chamada = Wan().gerar.spawn(
-            base64.b64decode(p.imagem), p.prompt, p.negativo, p.segundos, p.passos, p.semente
-        )
+        if p.tipo == "imagem":
+            chamada = Flux().gerar.spawn(p.prompt, p.largura, p.altura, p.semente)
+        elif p.tipo == "clipe" and p.imagem:
+            chamada = Wan().gerar.spawn(
+                base64.b64decode(p.imagem), p.prompt, p.negativo, p.segundos, p.passos, p.semente
+            )
+        else:
+            raise HTTPException(status_code=400, detail="tipo 'imagem', ou 'clipe' com imagem")
         return {"id": chamada.object_id}
 
     @web.get("/resultado/{id}")
@@ -195,6 +248,7 @@ def api():
             if "Timeout" in type(e).__name__:
                 return Response(status_code=202, content="gerando")
             return Response(status_code=500, content=f"{type(e).__name__}: {e}"[:4000])
-        return Response(content=mp4, media_type="video/mp4")
+        tipo = "image/png" if mp4[:4] == b"\x89PNG" else "video/mp4"
+        return Response(content=mp4, media_type=tipo)
 
     return web

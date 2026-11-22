@@ -91,6 +91,12 @@ true`), mesmo modelo do News.
 
 ## Como os vídeos são feitos
 
+- **IA sem parar (fundador, 22/11: "não posso ficar parado"):** imagens e
+  clipes de IA saem de `marketing/ferramentas/ia-video/ia.py`, que tenta
+  Hugging Face (cota diária) → Modal (créditos grátis, mesma qualidade) →
+  Gemini → processador local (rascunho, só para não parar; nunca postar sem o
+  fundador ver). Reações que se repetem viram banco reaproveitável e os
+  clipes de um Reel são gerados com 2 dias de antecedência.
 - **Voz:** **Charon** (Gemini TTS, masculina) e, desde 04/11 (fundador), também a **Sulafat** (feminina) como opção, para variar entre os vídeos. Uma voz por vídeo. Regravar o roteiro inteiro num
   pedido só (frase emendada muda volume e tom). Trocar palavras que o TTS
   confunde no contexto ("caro" num vídeo sobre "carro" → "pesa no bolso").

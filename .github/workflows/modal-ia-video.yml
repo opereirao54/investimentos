@@ -1,9 +1,10 @@
-name: IA de vídeo no Modal
+name: Estúdio de IA no Modal
 
-# Publica o gerador de clipes de IA (marketing/ferramentas/ia-video/modal_app.py)
-# no Modal. É o plano B para quando a cota grátis do Hugging Face acaba: mesma
-# receita do Wan 2.2 14B, paga com os créditos grátis do Modal. O deploy roda
-# aqui porque a rede das sessões na nuvem não deixa passar o gRPC do Modal.
+# Publica o estúdio de IA (marketing/ferramentas/ia-video/modal_app.py) no
+# Modal: clipes (Wan 2.2 14B) e imagens (FLUX.1 schnell). É o plano B para
+# quando a cota grátis do Hugging Face acaba, pago com os créditos grátis do
+# Modal, e atende também o Projeto-redessociais (pelo ia.py de cada projeto).
+# O deploy roda aqui porque a rede das sessões na nuvem não passa o gRPC do Modal.
 #
 # Segredos do repositório: MODAL_TOKEN_ID e MODAL_TOKEN_SECRET (modal.com >
 # Settings > API Tokens) e APPLIQUEI_IA_KEY (senha que protege o endereço).
@@ -43,7 +44,7 @@ jobs:
         run: python3 -m venv .venv && .venv/bin/pip install -q modal==1.6.4
 
       - name: Chave de acesso do endereço
-        run: .venv/bin/modal secret create appliquei-ia APP_KEY="$APP_KEY" --force > /dev/null
+        run: .venv/bin/modal secret create estudio-ia APP_KEY="$APP_KEY" --force > /dev/null
 
       - name: Publicar
         run: .venv/bin/modal deploy marketing/ferramentas/ia-video/modal_app.py
