@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root { --tinta:#f0faf4; --deck:#c8d6cf; --mudo:#9fb3aa; --sinal:#34d399; --ambar:#fbbf24; --vermelho:#f87171; --vivo:#ef4444; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:1080px; height:1920px; overflow:hidden; background:transparent; }
+  body { font-family:'Figtree',sans-serif; color:var(--tinta); -webkit-font-smoothing:antialiased; }
+  .palco { position:relative; width:1080px; height:1920px; overflow:hidden; }
+  .el { position:absolute; }
+  .sombra { left:0; right:0; top:0; height:700px; background:linear-gradient(180deg,rgba(6,12,9,.88) 0%,rgba(6,12,9,.6) 55%,rgba(6,12,9,0) 100%); }
+  .sombra-b { left:0; right:0; top:1250px; height:670px; background:linear-gradient(0deg,rgba(6,12,9,.85) 0%,rgba(6,12,9,.5) 50%,rgba(6,12,9,0) 100%); }
+  .logo { left:60px; top:60px; width:200px; }
+  .tarja { right:150px; top:60px; padding:10px 22px; border-radius:99px; background:#dc2626; color:#fff; font-weight:800; font-size:28px; letter-spacing:.08em; }
+  .titulo { left:60px; right:60px; top:190px; text-align:center; font-weight:900; font-size:96px; line-height:.98; letter-spacing:-.035em; text-shadow:0 6px 24px rgba(0,0,0,.6); }
+  .titulo em { font-style:normal; color:var(--ambar); }
+  .painel { left:60px; right:60px; top:410px; height:250px; display:flex; gap:28px; }
+  .card { flex:1; border-radius:36px; background:rgba(6,12,9,.72); border:3px solid rgba(240,250,244,.25); padding:26px 22px 0; text-align:center; box-shadow:0 18px 50px rgba(0,0,0,.45); }
+  .card small { display:block; font-family:'DM Mono',monospace; font-weight:500; font-size:30px; letter-spacing:.14em; color:var(--mudo); }
+  .card b { display:flex; align-items:center; justify-content:center; height:120px; margin-top:12px; white-space:nowrap; font-family:'DM Mono',monospace; font-weight:500; font-size:112px; letter-spacing:-.05em; line-height:1; }
+  .gas b { font-size:82px; }
+  .rel b { color:var(--vivo); text-shadow:0 0 26px rgba(239,68,68,.55); }
+  .gas b { color:var(--ambar); }
+  .ok b { color:var(--sinal) !important; text-shadow:0 0 26px rgba(52,211,153,.45) !important; }
+  .mal b { color:var(--vivo) !important; }
+  .ok { border-color:rgba(52,211,153,.6); }
+  .mal { border-color:rgba(239,68,68,.7); }
+  .chip { left:0; right:0; top:1150px; text-align:center; opacity:0; }
+  .chip span { display:inline-block; padding:16px 38px; border-radius:99px; background:rgba(6,12,9,.82); border:3px solid var(--ambar); font-weight:800; font-size:48px; color:#fde68a; box-shadow:0 10px 30px rgba(0,0,0,.5); }
+  .chip span i { font-style:normal; font-family:'DM Mono',monospace; color:#fff; margin-left:14px; }
+  .barras { left:60px; right:60px; top:690px; opacity:0; padding:24px 28px 6px; border-radius:30px; background:rgba(6,12,9,.78); border:2px solid rgba(240,250,244,.18); }
+  .lin { margin-bottom:22px; }
+  .lin small { display:block; font-family:'DM Mono',monospace; font-size:28px; letter-spacing:.1em; color:var(--deck); margin-bottom:8px; }
+  .trilho { height:54px; border-radius:27px; background:rgba(240,250,244,.1); overflow:visible; position:relative; }
+  .enche { position:absolute; left:0; top:0; height:54px; border-radius:27px; }
+  .verde { background:linear-gradient(90deg,#059669,#34d399); }
+  .verm { background:linear-gradient(90deg,#b91c1c,#f87171); }
+  .extra { right:60px; top:880px; opacity:0; padding:14px 30px; border-radius:20px; background:var(--vivo); color:#fff; font-weight:900; font-size:46px; }
+  .selo-lia { left:0; right:0; top:1150px; text-align:center; opacity:0; }
+  .selo-lia span { display:inline-block; padding:16px 40px; border-radius:22px; background:rgba(6,12,9,.8); border:3px solid var(--sinal); font-weight:800; font-size:46px; color:#d1fae5; }
+  .regra { left:70px; right:70px; top:930px; padding:36px 40px 40px; border-radius:44px; background:rgba(6,12,9,.82); border:3px solid rgba(52,211,153,.6); opacity:0; box-shadow:0 24px 70px rgba(0,0,0,.55); }
+  .regra .r { font-family:'DM Mono',monospace; color:var(--sinal); font-size:32px; letter-spacing:.12em; margin-bottom:18px; }
+  .regra b { display:block; font-weight:900; font-size:64px; line-height:1.04; letter-spacing:-.03em; }
+  .regra b em { font-style:normal; color:var(--sinal); }
+  .coment { left:90px; right:90px; opacity:0; padding:20px 26px; border-radius:26px; background:rgba(240,250,244,.94); color:#12241c; font-size:40px; font-weight:700; display:flex; align-items:center; gap:18px; box-shadow:0 14px 40px rgba(0,0,0,.45); }
+  .coment i { width:56px; height:56px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center; font-style:normal; font-weight:900; color:#fff; font-size:28px; }
+  .coment small { display:block; font-weight:500; font-size:26px; color:#52625a; }
+  .assina { left:0; right:0; top:420px; text-align:center; opacity:0; }
+  .assina img { width:520px; }
+  .assina p { margin-top:14px; font-size:50px; font-weight:800; text-shadow:0 4px 18px rgba(0,0,0,.8); }
+  .assina p em { font-style:normal; color:var(--sinal); }
+  .rodape { left:70px; right:70px; top:1492px; text-align:center; font-size:26px; line-height:1.3; color:#b6c8be; text-shadow:0 2px 10px rgba(0,0,0,.8); }
+  .flash { left:0; top:0; width:1080px; height:1920px; background:#fff; opacity:0; }
+  .barra-t { left:0; bottom:0; height:8px; background:linear-gradient(90deg,#059669,#34d399); }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <div class="el sombra"></div>
+  <div class="el sombra-b"></div>
+  <img class="el logo" src="wordmark.svg" alt="Appliquei">
+  <div class="el tarja">APPLIQUEI NEWS</div>
+  <div class="el titulo">BLACK FRIDAY:<br><em>3 MINUTOS</em></div>
+
+  <div class="el painel" id="painel">
+    <div class="card rel" id="cRel"><small id="lRel">TEMPO</small><b id="vRel">03:00</b></div>
+    <div class="card gas" id="cGas"><small id="lGas">GASTO</small><b id="vGas">R$ 0</b></div>
+  </div>
+
+  <div id="chips"></div>
+
+  <div class="el barras" id="barras">
+    <div class="lin"><small>SALÁRIO · R$ 3.000</small><div class="trilho"><div class="enche verde" id="bSal"></div></div></div>
+    <div class="lin"><small>GASTO · R$ 3.508</small><div class="trilho"><div class="enche verm" id="bGas"></div></div></div>
+  </div>
+  <div class="el extra" id="extra">+ R$ 508 ALÉM DO SALÁRIO</div>
+  <div class="el selo-lia" id="seloLia"><span>1 item · já estava na lista ✓</span></div>
+
+  <div class="el regra" id="regra"><div class="r">REGRA DE BOLSO</div><b>Quem decide o que comprar é a <em>lista</em>, não o <em>cronômetro</em>.</b></div>
+
+  <div class="el assina" id="assina"><img src="wordmark.svg" alt="Appliquei"><p>Segue pra <em>não perder</em></p></div>
+  <div class="el coment" id="c1" style="top:930px"><i style="background:#3b82f6">M</i><div>R$ 1.500<small>Maria · palpite (exemplo)</small></div></div>
+  <div class="el coment" id="c2" style="top:1060px"><i style="background:#a855f7">J</i><div>R$ 3.000 😅<small>João · palpite (exemplo)</small></div></div>
+  <div class="el coment" id="c3" style="top:1190px"><i style="background:#f59e0b">P</i><div>Tudo, e ainda sobra fatura<small>Pedro · palpite (exemplo)</small></div></div>
+
+  <div class="el rodape">Valores de exemplo · conteúdo educacional, sem recomendação · personagens fictícios</div>
+  <div class="el flash" id="flash"></div>
+  <div class="el barra-t" id="barraT"></div>
+</div>
+
+<script>
+  const T = {"quem": ["L", "L", "L", "B", "L", "L", "L"], "nar": [[0.2, 6.48, "O Beto ganha três mil reais. Ele tem três minutos de Black Friday. Quanto você acha que ele gasta?"], [6.78, 16.01, "Fone, cento e oitenta e nove. Air fryer, trezentos e vinte e nove. Tênis, trezentos e noventa e nove. Nenhum passou de quatrocentos."], [16.31, 21.42, "Três mil quinhentos e oito. Mais que o salário dele. Em três minutos."], [21.72, 23.3, "Mas era tudo oferta?!"], [23.6, 31.78, "Eu levei uma: a air fryer que estava na minha lista desde outubro. Trezentos e vinte e nove. E sobraram dois minutos e meio."], [32.08, 36.8, "Regra de bolso: quem decide o que comprar é a lista, não o cronômetro."], [37.1, 43.44, "E você, quanto gastaria em três minutos? Comenta o seu palpite. E segue o Appliquei."]], "dur": 44.74};
+  const LEG = [
+{
+"i": 0,
+"t0": 0.24,
+"t1": 0.482,
+"w": "O"
+},
+{
+"i": 0,
+"t0": 0.482,
+"t1": 0.968,
+"w": "Beto"
+},
+{
+"i": 0,
+"t0": 0.968,
+"t1": 1.452,
+"w": "ganha"
+},
+{
+"i": 0,
+"t0": 1.452,
+"t1": 1.695,
+"w": "três"
+},
+{
+"i": 0,
+"t0": 1.695,
+"t1": 1.938,
+"w": "mil"
+},
+{
+"i": 0,
+"t0": 1.938,
+"t1": 2.18,
+"w": "reais."
+},
+{
+"i": 0,
+"t0": 2.48,
+"t1": 2.873,
+"w": "Ele"
+},
+{
+"i": 0,
+"t0": 2.873,
+"t1": 3.069,
+"w": "tem"
+},
+{
+"i": 0,
+"t0": 3.069,
+"t1": 3.265,
+"w": "três"
+},
+{
+"i": 0,
+"t0": 3.265,
+"t1": 3.855,
+"w": "minutos"
+},
+{
+"i": 0,
+"t0": 3.855,
+"t1": 4.051,
+"w": "de"
+},
+{
+"i": 0,
+"t0": 4.051,
+"t1": 4.247,
+"w": "Black"
+},
+{
+"i": 0,
+"t0": 4.247,
+"t1": 4.64,
+"w": "Friday."
+},
+{
+"i": 0,
+"t0": 5.12,
+"t1": 5.367,
+"w": "Quanto"
+},
+{
+"i": 0,
+"t0": 5.367,
+"t1": 5.615,
+"w": "você"
+},
+{
+"i": 0,
+"t0": 5.615,
+"t1": 5.862,
+"w": "acha"
+},
+{
+"i": 0,
+"t0": 5.862,
+"t1": 5.985,
+"w": "que"
+},
+{
+"i": 0,
+"t0": 5.985,
+"t1": 6.233,
+"w": "ele"
+},
+{
+"i": 0,
+"t0": 6.233,
+"t1": 6.48,
+"w": "gasta?"
+},
+{
+"i": 1,
+"t0": 6.923,
+"t1": 7.283,
+"w": "Fone,"
+},
+{
+"i": 1,
+"t0": 7.523,
+"t1": 7.759,
+"w": "cento"
+},
+{
+"i": 1,
+"t0": 7.759,
+"t1": 7.876,
+"w": "e"
+},
+{
+"i": 1,
+"t0": 7.876,
+"t1": 8.23,
+"w": "oitenta"
+},
+{
+"i": 1,
+"t0": 8.23,
+"t1": 8.347,
+"w": "e"
+},
+{
+"i": 1,
+"t0": 8.347,
+"t1": 8.583,
+"w": "nove."
+},
+{
+"i": 1,
+"t0": 9.043,
+"t1": 9.353,
+"w": "Air"
+},
+{
+"i": 1,
+"t0": 9.353,
+"t1": 9.663,
+"w": "fryer,"
+},
+{
+"i": 1,
+"t0": 9.963,
+"t1": 10.376,
+"w": "trezentos"
+},
+{
+"i": 1,
+"t0": 10.376,
+"t1": 10.514,
+"w": "e"
+},
+{
+"i": 1,
+"t0": 10.514,
+"t1": 10.79,
+"w": "vinte"
+},
+{
+"i": 1,
+"t0": 10.79,
+"t1": 10.927,
+"w": "e"
+},
+{
+"i": 1,
+"t0": 10.927,
+"t1": 11.203,
+"w": "nove."
+},
+{
+"i": 1,
+"t0": 11.723,
+"t1": 12.183,
+"w": "Tênis,"
+},
+{
+"i": 1,
+"t0": 12.403,
+"t1": 12.823,
+"w": "trezentos"
+},
+{
+"i": 1,
+"t0": 12.823,
+"t1": 12.963,
+"w": "e"
+},
+{
+"i": 1,
+"t0": 12.963,
+"t1": 13.383,
+"w": "noventa"
+},
+{
+"i": 1,
+"t0": 13.383,
+"t1": 13.523,
+"w": "e"
+},
+{
+"i": 1,
+"t0": 13.523,
+"t1": 13.803,
+"w": "nove."
+},
+{
+"i": 1,
+"t0": 14.283,
+"t1": 14.665,
+"w": "Nenhum"
+},
+{
+"i": 1,
+"t0": 14.665,
+"t1": 15.047,
+"w": "passou"
+},
+{
+"i": 1,
+"t0": 15.047,
+"t1": 15.239,
+"w": "de"
+},
+{
+"i": 1,
+"t0": 15.239,
+"t1": 16.003,
+"w": "quatrocentos."
+},
+{
+"i": 2,
+"t0": 16.353,
+"t1": 16.566,
+"w": "Três"
+},
+{
+"i": 2,
+"t0": 16.566,
+"t1": 16.778,
+"w": "mil"
+},
+{
+"i": 2,
+"t0": 16.778,
+"t1": 17.415,
+"w": "quinhentos"
+},
+{
+"i": 2,
+"t0": 17.415,
+"t1": 17.628,
+"w": "e"
+},
+{
+"i": 2,
+"t0": 17.628,
+"t1": 18.053,
+"w": "oito."
+},
+{
+"i": 2,
+"t0": 18.553,
+"t1": 18.713,
+"w": "Mais"
+},
+{
+"i": 2,
+"t0": 18.713,
+"t1": 18.873,
+"w": "que"
+},
+{
+"i": 2,
+"t0": 18.873,
+"t1": 19.033,
+"w": "o"
+},
+{
+"i": 2,
+"t0": 19.033,
+"t1": 19.513,
+"w": "salário"
+},
+{
+"i": 2,
+"t0": 19.513,
+"t1": 19.833,
+"w": "dele."
+},
+{
+"i": 2,
+"t0": 20.273,
+"t1": 20.501,
+"w": "Em"
+},
+{
+"i": 2,
+"t0": 20.501,
+"t1": 20.729,
+"w": "três"
+},
+{
+"i": 2,
+"t0": 20.729,
+"t1": 21.413,
+"w": "minutos."
+},
+{
+"i": 3,
+"t0": 21.757,
+"t1": 21.947,
+"w": "Mas"
+},
+{
+"i": 3,
+"t0": 21.947,
+"t1": 22.327,
+"w": "era"
+},
+{
+"i": 3,
+"t0": 22.327,
+"t1": 22.707,
+"w": "tudo"
+},
+{
+"i": 3,
+"t0": 22.707,
+"t1": 23.277,
+"w": "oferta?!"
+},
+{
+"i": 4,
+"t0": 23.635,
+"t1": 23.795,
+"w": "Eu"
+},
+{
+"i": 4,
+"t0": 23.795,
+"t1": 24.115,
+"w": "levei"
+},
+{
+"i": 4,
+"t0": 24.115,
+"t1": 24.435,
+"w": "uma:"
+},
+{
+"i": 4,
+"t0": 24.815,
+"t1": 24.975,
+"w": "a"
+},
+{
+"i": 4,
+"t0": 24.975,
+"t1": 25.135,
+"w": "air"
+},
+{
+"i": 4,
+"t0": 25.135,
+"t1": 25.295,
+"w": "fryer"
+},
+{
+"i": 4,
+"t0": 25.295,
+"t1": 25.455,
+"w": "que"
+},
+{
+"i": 4,
+"t0": 25.455,
+"t1": 25.935,
+"w": "estava"
+},
+{
+"i": 4,
+"t0": 25.935,
+"t1": 26.095,
+"w": "na"
+},
+{
+"i": 4,
+"t0": 26.095,
+"t1": 26.415,
+"w": "minha"
+},
+{
+"i": 4,
+"t0": 26.415,
+"t1": 26.735,
+"w": "lista"
+},
+{
+"i": 4,
+"t0": 26.735,
+"t1": 27.055,
+"w": "desde"
+},
+{
+"i": 4,
+"t0": 27.055,
+"t1": 27.535,
+"w": "outubro."
+},
+{
+"i": 4,
+"t0": 27.915,
+"t1": 28.342,
+"w": "Trezentos"
+},
+{
+"i": 4,
+"t0": 28.342,
+"t1": 28.484,
+"w": "e"
+},
+{
+"i": 4,
+"t0": 28.484,
+"t1": 28.768,
+"w": "vinte"
+},
+{
+"i": 4,
+"t0": 28.768,
+"t1": 28.911,
+"w": "e"
+},
+{
+"i": 4,
+"t0": 28.911,
+"t1": 29.195,
+"w": "nove."
+},
+{
+"i": 4,
+"t0": 29.815,
+"t1": 29.995,
+"w": "E"
+},
+{
+"i": 4,
+"t0": 29.995,
+"t1": 30.535,
+"w": "sobraram"
+},
+{
+"i": 4,
+"t0": 30.535,
+"t1": 30.715,
+"w": "dois"
+},
+{
+"i": 4,
+"t0": 30.715,
+"t1": 31.255,
+"w": "minutos"
+},
+{
+"i": 4,
+"t0": 31.255,
+"t1": 31.435,
+"w": "e"
+},
+{
+"i": 4,
+"t0": 31.435,
+"t1": 31.615,
+"w": "meio."
+},
+{
+"i": 5,
+"t0": 32.141,
+"t1": 32.469,
+"w": "Regra"
+},
+{
+"i": 5,
+"t0": 32.469,
+"t1": 32.633,
+"w": "de"
+},
+{
+"i": 5,
+"t0": 32.633,
+"t1": 32.961,
+"w": "bolso:"
+},
+{
+"i": 5,
+"t0": 33.361,
+"t1": 33.533,
+"w": "quem"
+},
+{
+"i": 5,
+"t0": 33.533,
+"t1": 34.048,
+"w": "decide"
+},
+{
+"i": 5,
+"t0": 34.048,
+"t1": 34.219,
+"w": "o"
+},
+{
+"i": 5,
+"t0": 34.219,
+"t1": 34.391,
+"w": "que"
+},
+{
+"i": 5,
+"t0": 34.391,
+"t1": 34.734,
+"w": "comprar"
+},
+{
+"i": 5,
+"t0": 34.734,
+"t1": 34.906,
+"w": "é"
+},
+{
+"i": 5,
+"t0": 34.906,
+"t1": 35.078,
+"w": "a"
+},
+{
+"i": 5,
+"t0": 35.078,
+"t1": 35.421,
+"w": "lista,"
+},
+{
+"i": 5,
+"t0": 35.741,
+"t1": 35.888,
+"w": "não"
+},
+{
+"i": 5,
+"t0": 35.888,
+"t1": 36.034,
+"w": "o"
+},
+{
+"i": 5,
+"t0": 36.034,
+"t1": 36.621,
+"w": "cronômetro."
+},
+{
+"i": 6,
+"t0": 37.138,
+"t1": 37.285,
+"w": "E"
+},
+{
+"i": 6,
+"t0": 37.285,
+"t1": 37.578,
+"w": "você,"
+},
+{
+"i": 6,
+"t0": 37.998,
+"t1": 38.342,
+"w": "quanto"
+},
+{
+"i": 6,
+"t0": 38.342,
+"t1": 38.858,
+"w": "gastaria"
+},
+{
+"i": 6,
+"t0": 38.858,
+"t1": 39.03,
+"w": "em"
+},
+{
+"i": 6,
+"t0": 39.03,
+"t1": 39.202,
+"w": "três"
+},
+{
+"i": 6,
+"t0": 39.202,
+"t1": 39.718,
+"w": "minutos?"
+},
+{
+"i": 6,
+"t0": 40.478,
+"t1": 40.905,
+"w": "Comenta"
+},
+{
+"i": 6,
+"t0": 40.905,
+"t1": 41.048,
+"w": "o"
+},
+{
+"i": 6,
+"t0": 41.048,
+"t1": 41.191,
+"w": "seu"
+},
+{
+"i": 6,
+"t0": 41.191,
+"t1": 41.618,
+"w": "palpite."
+},
+{
+"i": 6,
+"t0": 42.318,
+"t1": 42.475,
+"w": "E"
+},
+{
+"i": 6,
+"t0": 42.475,
+"t1": 42.789,
+"w": "segue"
+},
+{
+"i": 6,
+"t0": 42.789,
+"t1": 42.947,
+"w": "o"
+},
+{
+"i": 6,
+"t0": 42.947,
+"t1": 43.418,
+"w": "Appliquei."
+}
+];
+  const NAR = T.nar, QUEM = T.quem, DUR = T.dur;
+  const $ = (id) => document.getElementById(id);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const eOut = (x) => 1 - Math.pow(1 - x, 3);
+  const eBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  const brl = (n) => 'R$ ' + Math.round(n).toLocaleString('pt-BR');
+  const tw = (frase, palavra) => { const w = LEG.find((x) => x.i === frase && x.w.toLowerCase().replace(/[.,:?!]/g, '') === palavra); return w ? w.t0 : NAR[frase][0]; };
+
+  // 12 ofertas, todas abaixo de R$ 400: 249+159+349+279+399 = 1.435 | 189+329+399 = 917 | 219+289+349+299 = 1.156 | total 3.508
+  const t0L1 = NAR[1][0], fimL1 = NAR[1][1];
+  const ITENS = [
+    ['Caixa de som', 249, 0.9], ['Mouse gamer', 159, 2.3], ['Relógio', 349, 3.6], ['Mochila', 279, 4.9], ['Jaqueta', 399, 5.9],
+    ['Fone', 189, tw(1, 'fone')], ['Air fryer', 329, tw(1, 'air')], ['Tênis', 399, tw(1, 'tênis')],
+    ['Garrafa térmica', 219, fimL1 - 4.6], ['Liquidificador', 289, fimL1 - 3.5], ['Fone sem fio', 349, fimL1 - 2.4], ['Cafeteira', 299, fimL1 - 1.3],
+  ];
+  const chips = $('chips');
+  ITENS.forEach(([n, p, t], i) => {
+    const d = document.createElement('div'); d.className = 'el chip'; d.id = 'ch' + i;
+    d.innerHTML = '<span>' + n + '<i>R$ ' + p + '</i></span>'; chips.appendChild(d);
+  });
+
+  const T_BIP = NAR[2][0];        // o relógio zera quando a Lia diz o total
+  const T_BETO = NAR[3][0], T_LIA = NAR[4][0], T_REGRA = NAR[5][0], T_FIM = NAR[6][0];
+  const mmss = (s) => { s = Math.max(0, Math.round(s)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+
+  function aparece(el, t, a, b, dy) { const p = eBack(prog(t, a, b)); el.style.opacity = clamp(p, 0, 1) * (1 - prog(t, b + 99, b + 100)); el.style.transform = 'translateY(' + ((1 - p) * (dy == null ? 30 : dy)).toFixed(1) + 'px)'; }
+
+  function render(t) {
+    // relógio e contador
+    const gasto = ITENS.reduce((s, [, p, ti]) => s + p * eOut(prog(t, ti, ti + 0.35)), 0);
+    const rel = clamp(180 * (1 - prog(t, 0.2, T_BIP)), 0, 180);
+    const lia = t >= T_LIA && t < T_FIM, fim = t >= T_FIM, regra = t >= T_REGRA && t < T_FIM;
+    const mostraPainel = t < T_REGRA || false;
+    $('painel').style.opacity = (mostraPainel || (!regra && !fim)) ? 1 : 0;
+    $('painel').style.opacity = (regra || fim) ? 0 : 1;
+    $('cRel').classList.toggle('ok', lia);
+    $('cGas').classList.toggle('ok', lia);
+    $('cGas').classList.toggle('mal', t >= T_BIP && !lia);
+    $('lRel').textContent = lia ? 'AINDA SOBRAM' : 'TEMPO';
+    $('lGas').textContent = lia ? 'ELA GASTOU' : 'GASTO';
+    if (lia) { $('vRel').textContent = '02:30'; $('vGas').textContent = 'R$ 329'; }
+    else {
+      $('vRel').textContent = mmss(rel);
+      $('vGas').textContent = t >= T_BIP ? 'R$ 3.508' : brl(gasto);
+    }
+    // pisca o relógio no zero
+    $('vRel').style.opacity = (t >= T_BIP && !lia && t < T_LIA) ? (0.55 + 0.45 * Math.abs(Math.sin(t * 9))) : 1;
+    // etiquetas dos itens
+    ITENS.forEach(([, , ti], i) => {
+      const el = $('ch' + i), p = eBack(prog(t, ti, ti + 0.3)), s = prog(t, ti + 1.1, ti + 1.4);
+      el.style.opacity = clamp(p, 0, 1) * (1 - s);
+      el.style.transform = 'translateY(' + ((1 - p) * 34 - s * 20).toFixed(1) + 'px) scale(' + (0.9 + 0.1 * clamp(p, 0, 1)).toFixed(3) + ')';
+    });
+    // BIP
+    const bip = prog(t, T_BIP - 0.02, T_BIP + 0.05) * (1 - prog(t, T_BIP + 0.05, T_BIP + 0.3));
+    $('flash').style.opacity = (0.65 * bip).toFixed(3);
+    // barras do salário (fala "mais que o salário dele")
+    const bAt = tw(2, 'mais');
+    $('barras').style.opacity = clamp(prog(t, bAt - 0.3, bAt) * (1 - prog(t, T_LIA - 0.5, T_LIA - 0.2)), 0, 1);
+    $('bSal').style.width = (770 * eOut(prog(t, bAt - 0.2, bAt + 0.5))).toFixed(1) + 'px';
+    $('bGas').style.width = (900 * eOut(prog(t, bAt + 0.1, bAt + 0.9))).toFixed(1) + 'px';
+    const ex = eBack(prog(t, bAt + 0.9, bAt + 1.3));
+    $('extra').style.opacity = clamp(ex, 0, 1) * (1 - prog(t, T_LIA - 0.5, T_LIA - 0.2));
+    $('extra').style.transform = 'scale(' + (0.7 + 0.3 * clamp(ex, 0, 1.2)).toFixed(3) + ') rotate(-3deg)';
+    // Lia: 1 item
+    $('seloLia').style.opacity = clamp(eBack(prog(t, T_LIA + 0.3, T_LIA + 0.7)), 0, 1) * (1 - prog(t, T_REGRA - 0.3, T_REGRA));
+    // regra de bolso
+    const rg = eBack(prog(t, T_REGRA + 0.1, T_REGRA + 0.5));
+    $('regra').style.opacity = clamp(rg, 0, 1) * (1 - prog(t, T_FIM - 0.3, T_FIM));
+    $('regra').style.transform = 'translateY(' + ((1 - rg) * 40).toFixed(1) + 'px)';
+    // fecho: comentários e assinatura
+    const pal = tw(6, 'palpite');
+    aparece($('assina'), t, T_FIM + 0.1, T_FIM + 0.5, 20);
+    $('assina').style.opacity = clamp(eBack(prog(t, T_FIM + 0.1, T_FIM + 0.5)), 0, 1);
+    [['c1', pal - 0.1], ['c2', pal + 0.5], ['c3', pal + 1.0]].forEach(([id, ti]) => {
+      const p = eBack(prog(t, ti, ti + 0.4)); $(id).style.opacity = clamp(p, 0, 1) * (fim ? 1 : 0);
+      $(id).style.transform = 'translateY(' + ((1 - p) * 40).toFixed(1) + 'px)';
+    });
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>

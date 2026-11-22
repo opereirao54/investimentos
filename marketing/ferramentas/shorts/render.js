@@ -12,6 +12,12 @@
 // legenda-tempos.py) queima no vídeo as palavras da fala, 2 a 4 por vez, com
 // a palavra dita destacada em verde. LEGENDA_Y=<px> é o centro da faixa
 // (padrão 1430; abaixo de 1540 fica fora da área que o Instagram cobre).
+//
+// Camada transparente (22/11): CAMADA=1 salva os quadros em PNG com fundo
+// transparente em <pasta>/quadros e não gera o MP4. Serve para desenhar só os
+// gráficos e a legenda (o HTML precisa de fundo transparente) e pôr os clipes
+// de IA por baixo depois, com ffmpeg overlay. Exemplo em
+// marketing/conteudo/alcance/black-friday-3min/LEIAME.md.
 
 const fs = require('fs');
 const path = require('path');
@@ -136,10 +142,16 @@ async function legendaPrepara(p, palavras) {
     await p.screenshot({
       path: path.join(quadros, String(i).padStart(5, '0') + '.png'),
       type: 'png',
+      omitBackground: !!process.env.CAMADA,
     });
     if (i % 150 === 0) process.stdout.write(`quadro ${i}/${n}\n`);
   }
   await b.close();
+
+  if (process.env.CAMADA) {
+    console.log('camada transparente:', quadros);
+    return;
+  }
 
   const mudo = path.join(pasta, 'video-sem-audio.mp4');
   execFileSync('ffmpeg', [

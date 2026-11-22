@@ -63,3 +63,22 @@ TI2V 5B Turbo em GGUF Q4 (Apache 2.0), o codificador umt5 em GGUF, o VAE do
 Wan 2.2 e o decodificador leve TAEHV (MIT; convertido para safetensors sem
 precisar do torch). Testado numa sessão com 4 núcleos e 15 GB: o VAE completo
 estoura a memória, por isso a decodificação usa o leve.
+
+## Personagens sempre iguais (22/11)
+
+`ia.py editar <referência.png> "<prompt>" saída.jpg` cria uma cena nova a partir
+da imagem de referência (Cloudflare FLUX.2 klein, campo `input_image_0`; aceita
+várias separadas por vírgula). A referência do Beto e da Lia em 3D é
+`marketing/personagens/beto-lia-3d.png`: toda cena parte dela, com "Only the
+man in the red t-shirt…" ou "Only the woman with the brown ponytail…" e "Keep
+exactly the same character, same art style". Gerar do zero muda o rosto.
+O filtro da Cloudflare às vezes barra um resultado inocente ("flagged"): o
+`ia.py` tenta outras 2 sementes; se persistir, mude a frase ou parta de uma
+cena já aprovada.
+
+## Gráficos por cima dos clipes (22/11)
+
+`CAMADA=1 node marketing/ferramentas/shorts/render.js <pasta> <camada.html>`
+salva os quadros com fundo transparente (gráficos e legenda), e o ffmpeg os
+põe por cima dos clipes de IA. Exemplo completo em
+`marketing/conteudo/alcance/black-friday-3min/`.

@@ -19,6 +19,10 @@ esgotada, fila, erro, fornecedor nao configurado):
 Uso:
   python3 ia.py imagem "<prompt>" saida.png [--largura 720 --altura 1280 --semente 7]
   python3 ia.py clipe inicio.png "<prompt>" saida.mp4 [--segundos 5 --semente 42]
+  python3 ia.py editar ref.png[,ref2.png] "<prompt>" saida.jpg [--largura 720 --altura 1280]
+      # nova cena a partir de imagem(ns) de referencia (Cloudflare FLUX.2 klein):
+      # mantem o mesmo rosto e roupa dos personagens; ex.: "Only the man in the
+      # red t-shirt ... Keep exactly the same character, same art style"
   python3 ia.py preparar-local   # compila o stable-diffusion.cpp e baixa ~9 GB
   --so hf,modal                  # usa so esses fornecedores, nessa ordem
 
@@ -147,24 +151,35 @@ def modal(pedido):
 
 
 # ---------- Cloudflare Workers AI (so imagem) ----------
-def cloudflare_imagem(prompt, largura, altura, semente):
+def cloudflare_imagem(prompt, largura, altura, semente, refs=()):
+    """FLUX.2 klein 4B. Com refs (imagens de referencia, campos input_image_0..),
+    edita/compoe a partir delas e mantem os personagens. O filtro da Cloudflare
+    as vezes barra um resultado inocente ("Your output has been flagged"):
+    tenta outras 2 sementes antes de desistir."""
     import httpx
 
     conta = os.environ.get("IA_CF_ACCOUNT")
     if not conta:
         raise Pula("sem IA_CF_ACCOUNT")
     h = {"Authorization": "Bearer " + os.environ.get("IA_CF_TOKEN", "chave-injetada-pela-rede")}
-    campos = {
-        "prompt": prompt,
-        "width": str(max(256, min(1536, int(largura) // 16 * 16))),
-        "height": str(max(256, min(1536, int(altura) // 16 * 16))),
-        "seed": str(semente),
-    }
     url = f"https://api.cloudflare.com/client/v4/accounts/{conta}/ai/run/@cf/black-forest-labs/flux-2-klein-4b"
-    r = httpx.post(url, headers=h, files={k: (None, v) for k, v in campos.items()}, timeout=180)
-    if r.status_code != 200 or not r.json().get("success", True):
-        raise Pula(f"Cloudflare {r.status_code}: {r.text[:300]}")
-    return base64.b64decode(r.json()["result"]["image"]), ".jpg"
+    ultimo = ""
+    for s in (semente, semente + 1, semente + 2):
+        campos = {
+            "prompt": (None, prompt),
+            "width": (None, str(max(256, min(1536, int(largura) // 16 * 16)))),
+            "height": (None, str(max(256, min(1536, int(altura) // 16 * 16)))),
+            "seed": (None, str(s)),
+        }
+        for i, ref in enumerate(refs):
+            campos[f"input_image_{i}"] = (os.path.basename(ref), open(ref, "rb").read())
+        r = httpx.post(url, headers=h, files=campos, timeout=180)
+        if r.status_code == 200 and r.json().get("success", True):
+            return base64.b64decode(r.json()["result"]["image"]), ".jpg"
+        ultimo = f"Cloudflare {r.status_code}: {r.text[:300]}"
+        if "flagged" not in r.text:
+            break
+    raise Pula(ultimo)
 
 
 # ---------- Gemini (so imagem) ----------
@@ -312,7 +327,7 @@ def preparar_local():
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("acao", choices=["imagem", "clipe", "preparar-local"])
+    ap.add_argument("acao", choices=["imagem", "editar", "clipe", "preparar-local"])
     ap.add_argument("args", nargs="*")
     ap.add_argument("--largura", type=int, default=720)
     ap.add_argument("--altura", type=int, default=1280)
@@ -322,6 +337,17 @@ def main():
     a = ap.parse_args()
     if a.acao == "preparar-local":
         return preparar_local()
+
+    if a.acao == "editar":
+        # so a Cloudflare edita com referencia; sem ela, nao cai para geracao
+        # comum (mudaria o rosto dos personagens sem avisar)
+        refs, prompt, saida = a.args[0].split(","), a.args[1], a.args[2]
+        try:
+            salvar_gemini(cloudflare_imagem(prompt, a.largura, a.altura, a.semente, refs), saida)
+            print(f"[cloudflare] ok -> {saida}")
+        except Exception as e:
+            sys.exit(f"[cloudflare] falhou: {e}")
+        return
 
     if a.acao == "imagem":
         prompt, saida = a.args

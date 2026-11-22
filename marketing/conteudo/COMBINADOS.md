@@ -98,6 +98,10 @@ true`), mesmo modelo do News.
   Gemini → processador local (rascunho, só para não parar; nunca postar sem o
   fundador ver). Reações que se repetem viram banco reaproveitável e os
   clipes de um Reel são gerados com 2 dias de antecedência.
+- **Beto e Lia em 3D, estilo Pixar (fundador, 22/11: "faz do pixar mesmo"):**
+  referência em `marketing/personagens/beto-lia-3d.png`; toda cena nova sai
+  dela com `ia.py editar`, para o rosto não mudar entre cenas e Reels. Marcar
+  "conteúdo de IA" nas três redes. Primeiro Reel: Black Friday de 25/11.
 - **Voz:** **Charon** (Gemini TTS, masculina) e, desde 04/11 (fundador), também a **Sulafat** (feminina) como opção, para variar entre os vídeos. Uma voz por vídeo. Regravar o roteiro inteiro num
   pedido só (frase emendada muda volume e tom). Trocar palavras que o TTS
   confunde no contexto ("caro" num vídeo sobre "carro" → "pesa no bolso").
