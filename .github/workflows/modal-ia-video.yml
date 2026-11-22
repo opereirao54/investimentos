@@ -1,0 +1,49 @@
+name: IA de vídeo no Modal
+
+# Publica o gerador de clipes de IA (marketing/ferramentas/ia-video/modal_app.py)
+# no Modal. É o plano B para quando a cota grátis do Hugging Face acaba: mesma
+# receita do Wan 2.2 14B, paga com os créditos grátis do Modal. O deploy roda
+# aqui porque a rede das sessões na nuvem não deixa passar o gRPC do Modal.
+#
+# Segredos do repositório: MODAL_TOKEN_ID e MODAL_TOKEN_SECRET (modal.com >
+# Settings > API Tokens) e APPLIQUEI_IA_KEY (senha que protege o endereço).
+
+on:
+  push:
+    branches: [claude/relaxed-carson-ss1x6r]
+    paths:
+      - 'marketing/ferramentas/ia-video/**'
+      - '.github/workflows/modal-ia-video.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency: modal-ia-video
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+      APP_KEY: ${{ secrets.APPLIQUEI_IA_KEY }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Conferir os segredos
+        run: |
+          for s in MODAL_TOKEN_ID MODAL_TOKEN_SECRET APP_KEY; do
+            [ -n "${!s}" ] || { echo "Falta o segredo $s no repositório"; exit 1; }
+          done
+
+      - name: Instalar o cliente do Modal
+        run: python3 -m venv .venv && .venv/bin/pip install -q modal==1.6.4
+
+      - name: Chave de acesso do endereço
+        run: .venv/bin/modal secret create appliquei-ia APP_KEY="$APP_KEY" --force > /dev/null
+
+      - name: Publicar
+        run: .venv/bin/modal deploy marketing/ferramentas/ia-video/modal_app.py
