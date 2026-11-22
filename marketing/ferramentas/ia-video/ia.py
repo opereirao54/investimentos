@@ -4,7 +4,10 @@
 Tenta cada fornecedor em ordem e passa ao proximo quando um falha (cota
 esgotada, fila, erro, fornecedor nao configurado):
 
-  imagem: hf     FLUX.1 schnell no Space gratis do Hugging Face (cota diaria)
+  imagem: cloudflare FLUX.2 klein 4B no Workers AI (gratis, sem cartao; ~60
+                 imagens 720x1280 por dia; testado em 22/11)
+          hf     FLUX.1 schnell no Space gratis do Hugging Face (cota diaria;
+                 cada imagem reserva 70 s dos 300 s do dia: deixar para clipes)
           modal  FLUX.1 schnell no estudio do Modal (creditos gratis)
           gemini modelo de imagem do Gemini (GEMINI_API_KEY; cota pequena)
           local  1 quadro do Wan 2.2 5B Turbo no processador: RASCUNHO (~100 s)
@@ -19,7 +22,8 @@ Uso:
   python3 ia.py preparar-local   # compila o stable-diffusion.cpp e baixa ~9 GB
   --so hf,modal                  # usa so esses fornecedores, nessa ordem
 
-Variaveis: HF_TOKEN (Space); IA_MODAL_URL (endereco do estudio no Modal; a
+Variaveis: IA_CF_ACCOUNT (Account ID da Cloudflare; o token vai em
+Authorization, injetado pela rede do ambiente ou em IA_CF_TOKEN); HF_TOKEN (Space); IA_MODAL_URL (endereco do estudio no Modal; a
 chave vai em Authorization, injetada pela rede do ambiente ou em IA_MODAL_KEY);
 GEMINI_API_KEY; IA_LOCAL_DIR (padrao ~/.cache/ia-local).
 Precisa de: pip install httpx numpy; ffmpeg. O estudio do Modal e publicado
@@ -140,6 +144,27 @@ def modal(pedido):
                 raise Pula(f"Modal {r.status_code}: {r.text[:300]}")
             time.sleep(10)
     raise Pula("Modal: passou de 30 min")
+
+
+# ---------- Cloudflare Workers AI (so imagem) ----------
+def cloudflare_imagem(prompt, largura, altura, semente):
+    import httpx
+
+    conta = os.environ.get("IA_CF_ACCOUNT")
+    if not conta:
+        raise Pula("sem IA_CF_ACCOUNT")
+    h = {"Authorization": "Bearer " + os.environ.get("IA_CF_TOKEN", "chave-injetada-pela-rede")}
+    campos = {
+        "prompt": prompt,
+        "width": str(max(256, min(1536, int(largura) // 16 * 16))),
+        "height": str(max(256, min(1536, int(altura) // 16 * 16))),
+        "seed": str(semente),
+    }
+    url = f"https://api.cloudflare.com/client/v4/accounts/{conta}/ai/run/@cf/black-forest-labs/flux-2-klein-4b"
+    r = httpx.post(url, headers=h, files={k: (None, v) for k, v in campos.items()}, timeout=180)
+    if r.status_code != 200 or not r.json().get("success", True):
+        raise Pula(f"Cloudflare {r.status_code}: {r.text[:300]}")
+    return base64.b64decode(r.json()["result"]["image"]), ".jpg"
 
 
 # ---------- Gemini (so imagem) ----------
@@ -301,6 +326,7 @@ def main():
     if a.acao == "imagem":
         prompt, saida = a.args
         ordem = {
+            "cloudflare": lambda: salvar_gemini(cloudflare_imagem(prompt, a.largura, a.altura, a.semente), saida),
             "hf": lambda: salvar(space(FLUX_SPACE, "infer", [prompt, a.semente, False, a.largura, a.altura, 4]), saida, ".webp"),
             "modal": lambda: salvar(modal({"tipo": "imagem", "prompt": prompt, "largura": a.largura, "altura": a.altura, "semente": a.semente}), saida, ".png"),
             "gemini": lambda: salvar_gemini(gemini_imagem(prompt), saida),
@@ -310,7 +336,7 @@ def main():
         inicio, prompt, saida = a.args
         b64 = base64.b64encode(open(inicio, "rb").read()).decode()
         ordem = {
-            "hf": lambda: salvar(space(WAN_SPACE, "generate_video", ["@" + inicio, prompt, 6, NEGATIVO, min(a.segundos, 5.0), 1, 1, a.semente, False]), saida, ".mp4"),
+            "hf": lambda: salvar(space(WAN_SPACE, "generate_video", ["@" + inicio, prompt, 4, NEGATIVO, min(a.segundos, 5.0), 1, 1, a.semente, False]), saida, ".mp4"),
             "modal": lambda: salvar(modal({"tipo": "clipe", "imagem": b64, "prompt": prompt, "segundos": a.segundos, "semente": a.semente}), saida, ".mp4"),
             "local": lambda: local_clipe(inicio, prompt, saida, a.segundos, a.semente),
         }

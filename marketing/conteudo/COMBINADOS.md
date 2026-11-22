@@ -93,7 +93,8 @@ true`), mesmo modelo do News.
 
 - **IA sem parar (fundador, 22/11: "não posso ficar parado"):** imagens e
   clipes de IA saem de `marketing/ferramentas/ia-video/ia.py`, que tenta
-  Hugging Face (cota diária) → Modal (créditos grátis, mesma qualidade) →
+  imagens primeiro na Cloudflare (grátis, ~60/dia) e clipes no Hugging Face
+  (cota diária, só para clipes: 5 a 6 por dia) → Modal (precisa de cartão) →
   Gemini → processador local (rascunho, só para não parar; nunca postar sem o
   fundador ver). Reações que se repetem viram banco reaproveitável e os
   clipes de um Reel são gerados com 2 dias de antecedência.
