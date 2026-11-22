@@ -15,10 +15,14 @@ A ferramenta tenta em ordem e diz quem atendeu (`[hf] ok`, `[modal] pulou: …`)
 | Ordem | Imagem                                | Clipe                                    | Qualidade    | Custo                         |
 | ----- | ------------------------------------- | ---------------------------------------- | ------------ | ----------------------------- |
 | 1     | `hf`: FLUX.1 schnell (Space)          | `hf`: Wan 2.2 14B Lightning (Space)      | a aprovada   | grátis, cota diária (ZeroGPU) |
-| 2     | `modal`: FLUX.1 schnell               | `modal`: a mesma receita do Wan 2.2 14B  | a mesma      | créditos grátis do Modal      |
+| 2     | `modal`: Z-Image Turbo¹               | `modal`: Wan 2.2 5B, 720p¹               | a mesma      | créditos grátis do Modal      |
 | 3     | `gemini`: modelo de imagem            | —                                        | boa          | grátis, cota pequena          |
 | 4     | `local`: 1 quadro do Wan 2.2 5B Turbo | `local`: Wan 2.2 5B Turbo no processador | **rascunho** | grátis, sem limite            |
 
+- ¹ Plano grátis do Modal (conta sem cartão, ~US$ 5/mês, só placas L4).
+  Com cartão cadastrado (US$ 30/mês grátis e placas grandes), mude
+  `PLANO = "cartao"` no `modal_app.py`: volta a receita do Wan 2.2 14B dos
+  clipes aprovados (H100) e o FLUX.1 schnell (L40S).
 - `--so hf,modal` limita ou reordena. O `local` serve para não parar, nunca
   para postar sem o fundador ver: clipe de ~0,7 s em ~2 min, 384×672, com
   manchas perto de braços e mãos; imagem em ~100 s, até 704×1280.
