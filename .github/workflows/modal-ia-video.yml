@@ -49,6 +49,12 @@ jobs:
           todos="$MODAL_TOKEN_ID $MODAL_TOKEN_SECRET"
           id=$(grep -oE 'ak-[A-Za-z0-9]+' <<<"$todos" | head -1)
           sec=$(grep -oE 'as-[A-Za-z0-9]+' <<<"$todos" | head -1)
+          if [ -z "$id" ] || [ -z "$sec" ]; then
+            # só o começo (3 letras) e o tamanho: ajuda a achar o erro sem expor nada
+            for s in MODAL_TOKEN_ID MODAL_TOKEN_SECRET; do
+              v="${!s}"; echo "$s: começa com '${v:0:3}', ${#v} caracteres"
+            done
+          fi
           [ -n "$id" ] || { echo "Nenhum ak-… em MODAL_TOKEN_ID/MODAL_TOKEN_SECRET"; exit 1; }
           [ -n "$sec" ] || { echo "Nenhum as-… em MODAL_TOKEN_ID/MODAL_TOKEN_SECRET"; exit 1; }
           echo "::add-mask::$id"
