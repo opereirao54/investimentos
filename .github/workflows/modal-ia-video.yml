@@ -40,6 +40,22 @@ jobs:
             [ -n "${!s}" ] || { echo "Falta o segredo $s no repositório"; exit 1; }
           done
 
+      - name: Limpar os tokens colados
+        # A tela do Modal mostra os códigos dentro de um comando
+        # ("modal token set --token-id ak-… --token-secret as-…"); quem cola a
+        # linha inteira, ou com espaço, quebra o formato. Aqui se pega só o
+        # ak-… e o as-…, venham do segredo que vierem, sem mostrar no log.
+        run: |
+          todos="$MODAL_TOKEN_ID $MODAL_TOKEN_SECRET"
+          id=$(grep -oE 'ak-[A-Za-z0-9]+' <<<"$todos" | head -1)
+          sec=$(grep -oE 'as-[A-Za-z0-9]+' <<<"$todos" | head -1)
+          [ -n "$id" ] || { echo "Nenhum ak-… em MODAL_TOKEN_ID/MODAL_TOKEN_SECRET"; exit 1; }
+          [ -n "$sec" ] || { echo "Nenhum as-… em MODAL_TOKEN_ID/MODAL_TOKEN_SECRET"; exit 1; }
+          echo "::add-mask::$id"
+          echo "::add-mask::$sec"
+          echo "MODAL_TOKEN_ID=$id" >> "$GITHUB_ENV"
+          echo "MODAL_TOKEN_SECRET=$sec" >> "$GITHUB_ENV"
+
       - name: Instalar o cliente do Modal
         run: python3 -m venv .venv && .venv/bin/pip install -q modal==1.6.4
 
