@@ -487,6 +487,81 @@ Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fict�
 #blackfriday #educacaofinanceira #direitodoconsumidor #financaspessoais
 ```
 
+## SEGUNDA 23/11 · Faltam 40 dias · Appliquei Explica
+
+"Seu banco é obrigado a te dar uma conta sem tarifa" (Reel #13), refeito em
+22/11 com **gancho de IA** pedido pelo fundador: os primeiros 4,8 s mostram
+uma carteira de couro com moedas escapando em câmera lenta (clipe de IA), com
+a frase do gancho por cima; o resto é a conta na tela de sempre, voz Charon,
+49,6 s. Mateus (mau exemplo) paga pacote de R$ 40 sem saber o que tem; Caio
+(bom exemplo) pediu os serviços essenciais.
+
+**Antes de postar:** conferir que o vídeo é o da carteira com moedas e que a
+1ª linha da legenda é a mesma frase. Mandar o arquivo original (AirDrop,
+Drive/iCloud ou WhatsApp como **Documento**). **Postar às 19h.** Como a
+abertura é de IA realista, **ligar o rótulo de IA** em cada rede (passo abaixo).
+
+**19h · INSTAGRAM (Reel)** · vídeo da carteira com moedas escapando
+
+1. Novo Reel › escolher o vídeo da carteira.
+2. Capa: Editar capa › Adicionar da galeria › a imagem verde "Seu banco é obrigado a te dar conta sem tarifa".
+3. Configurações avançadas: "Carregar na qualidade mais alta" ligado e **"Adicionar rótulo de IA"** ligado.
+4. Colar a legenda e publicar às 19h.
+5. Fixar o comentário: `Você já olhou quanto paga de tarifa? Conta aqui 👇` e responder todos na 1ª hora.
+6. **Até 20h (fundador e sócio):** compartilhar o Reel nos stories e mandar o **link** no status do WhatsApp e em 3–5 grupos com a frase `Seu banco te cobra tarifa? Olha isso 👇`.
+
+```
+Seu banco é obrigado a te dar uma conta sem tarifa. Você sabia? 🏦
+
+O Mateus paga R$ 40 por mês num pacote que nunca olhou. O Caio pediu os serviços essenciais, que todo banco tem que oferecer de graça: cartão de débito, 4 saques e 2 extratos por mês, 2 transferências entre contas suas no mesmo banco. E o Pix, que pra pessoa física já é grátis.
+
+📌 Regra de bolso: abre o extrato e procura "tarifa" ou "pacote". Se você não usa o que paga, pede pra trocar.
+
+Manda pra quem paga tarifa sem saber. 🔁
+
+💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta. Segue pra não perder a próxima.
+
+⏳ Faltam 40 dias para o que estamos preparando pra 2027.
+
+Conteúdo educacional. Serviços essenciais pela Resolução CMN nº 3.919/2010; confira as condições no seu banco. Pacote de R$ 40 é exemplo. Supondo renda fixa perto de 1% ao mês. Personagens fictícios. Abertura gerada por IA.
+
+#educacaofinanceira #tarifabancaria #financaspessoais #dinheiro #dicasdefinancas
+```
+
+**19h · TIKTOK** · o mesmo vídeo da carteira com moedas
+
+1. Enviar o vídeo original; capa = primeiro quadro (já é a capa).
+2. "Permitir upload em alta qualidade" ligado; em Mais opções, **"Conteúdo gerado por IA"** ligado.
+3. Colar a legenda e publicar.
+
+```
+Seu banco é obrigado a te dar uma conta sem tarifa. 🏦 Abre o extrato, procura "tarifa" ou "pacote" e, se não usa, pede os serviços essenciais. Segue pra não perder. ⏳ Faltam 40 dias.
+
+#tarifabancaria #educacaofinanceira #financaspessoais #dinheiro
+```
+
+**19h · YOUTUBE SHORTS** · o mesmo vídeo da carteira com moedas
+
+1. Enviar o vídeo original; no app do YouTube, escolher o primeiro quadro como capa.
+2. Em "Conteúdo alterado ou sintético", marcar **Sim** (abertura de IA).
+3. Título e descrição abaixo; publicar.
+
+Título:
+
+```
+Seu banco é obrigado a te dar uma conta sem tarifa. Você sabia? #shorts
+```
+
+Descrição:
+
+```
+Todo banco tem que oferecer os serviços essenciais de graça (Resolução CMN 3.919/2010). Regra de bolso: abre o extrato e procura "tarifa" ou "pacote"; se você não usa o que paga, pede pra trocar. Inscreva-se para a próxima conta.
+
+Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fictícios. Abertura gerada por IA.
+
+#tarifabancaria #educacaofinanceira #financaspessoais
+```
+
 ## Assinaturas das séries na legenda (desde 04/11)
 
 - `💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta.`

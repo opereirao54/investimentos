@@ -8,9 +8,15 @@ por eles. A conta: R$ 480 por ano, mais de R$ 9 mil em 10 anos rendendo. O app
 não aparece; a marca assina com a pista "Em 40 dias, você vai saber pra onde
 vai cada real". Personagens fictícios.
 
-> **Antes de postar (22/11):** o `video.html` já diz "Em 40 dias", mas os mp4
-> desta pasta ainda têm "66" (feitos quando o Reel era o #2). Renderizar de
-> novo, mixar, refazer a versão com capa e rodar `contagem.js … 40`.
+> **Refeito em 22/11 com gancho de IA (fundador):** os primeiros 4,8 s trocam
+> o fundo desenhado por um clipe de IA, uma carteira de couro com moedas
+> escapando em câmera lenta, com a frase do gancho e o "Você sabia?" por cima
+> (o "R$ 0" grande sai dessa cena para não cobrir a carteira). Imagem inicial
+> do FLUX.1 schnell e clipe do Wan 2.2 14B, os dois no Hugging Face
+> (`gancho-ia-inicio.png`, `gancho-ia-carteira.mp4`). O resto foi renderizado
+> de novo ("Em 40 dias"). Sem legenda queimada: "Nunca perguntou…", "de graça"
+> e o aviso ocupam a faixa da legenda. Arquivo para postar:
+> `../../publicar/13-23-11-tarifas-banco.mp4` (e `-capa.png`).
 
 - `appliquei-tarifas-banco-com-capa.mp4`: capa no primeiro quadro e embutida;
   a versão com o selo "Faltam X dias" é gerada na véspera da postagem
@@ -47,7 +53,7 @@ vai cada real". Personagens fictícios.
 >
 > Manda pra quem paga tarifa sem saber. 🔁
 >
-> ⏳ Faltam 40 dias. Ativa o lembrete nos stories.
+> ⏳ Faltam 40 dias. Segue pra não perder.
 >
 > Conteúdo educacional. Serviços essenciais pela Resolução CMN nº 3.919/2010;
 > confira as condições no seu banco. Pacote de R$ 40 é exemplo. Supondo renda

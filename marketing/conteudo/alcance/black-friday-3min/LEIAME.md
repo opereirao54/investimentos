@@ -55,7 +55,7 @@ ROTEIRO=$D/roteiro-beto.json LEITURA=$D/narracao-charon-beto-leitura.wav \
 #    partes.json com as 7 falas nos tempos de tempos.json (Lia 0-2, Beto, Lia 3-5)
 python3 marketing/ferramentas/shorts/mixar-narracao.py $O/voz $D/trilha.wav $O/sem-audio.mp4 $O/narrado.mp4
 # 5. selo e compressão final
-node marketing/ferramentas/shorts/contagem.js $O/narrado.mp4 38 marketing/conteudo/publicar/12-25-11-black-friday-3min.mp4
+node marketing/ferramentas/shorts/contagem.js $O/narrado.mp4 38 marketing/conteudo/publicar/14-25-11-black-friday-3min.mp4
 ```
 
 **Antes de postar:** marcar "conteúdo de IA" nas três redes (personagens 3D
