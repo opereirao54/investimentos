@@ -132,6 +132,11 @@ true`), mesmo modelo do News.
   ele cobria o "I"). Já está no `capa.js`: toda capa nova sai assim. Conferir
   no recorte 3:4 da grade antes de entregar. Nada de rótulo "Conta de
   Padaria" nem capa sem faixa.
+- **Imagens de terceiros (fundador, 22/11):** só imagem própria ou de
+  licença livre com crédito; print, arte ou logo de terceiros não entra, nem
+  "com uma pequena modificação" (continua sendo obra derivada). Exceção só
+  com o "sim" do fundador, avisado do risco, e registrada aqui com data.
+  Regras e como achar fotos livres: `.claude/skills/marketing-saas/referencias/imagens.md`.
 - **Números conferidos com fonte** antes de gravar; aviso educacional e
   "Personagens fictícios" no fim; nada de recomendação (CVM).
 

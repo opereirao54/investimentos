@@ -131,6 +131,9 @@ linha da semana.
   permitidas, regras CVM/CDC/CONAR/LGPD e o checklist de entrega.
 - `referencias/formatos.md` — specs por rede, estruturas de Reels/Shorts,
   carrossel, post, story, LinkedIn e WhatsApp, e banco de ganchos.
+- `referencias/imagens.md` — que imagem pode entrar numa peça (licenças,
+  crédito, "pequena modificação" não libera print de terceiros) e como achar
+  fotos livres no Wikimedia Commons.
 - `referencias/calendario-e-metricas.md` — pilares de conteúdo, cadência,
   plano de lançamento, funil do SaaS e as métricas (com as contas de CAC
   máximo a partir da margem real por cliente).
