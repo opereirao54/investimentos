@@ -91,6 +91,8 @@ true`), mesmo modelo do News.
 
 ## Como os vídeos são feitos
 
+- **Plano dos Reels animados (23/11):** `PLANO-REELS-IA.md` (agenda D-3 a D,
+  cota do dia, quando o PRO vale). Ler antes de produzir um Reel animado.
 - **IA sem parar (fundador, 22/11: "não posso ficar parado"):** imagens e
   clipes de IA saem de `marketing/ferramentas/ia-video/ia.py`, que tenta
   imagens primeiro na Cloudflare (grátis, ~60/dia) e clipes no Hugging Face

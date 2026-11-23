@@ -90,7 +90,10 @@ Os clipes do Wan saem em 480×832 e ficavam macios quando esticados para
 Real-ESRGAN anime 6B (x4, BSD-3, próprio para desenho e 3D) e reduz para
 1104 px de largura: contornos, olhos e roupa saem nítidos, sem as manchas da
 compressão (comparado no rosto da Lia em 23/11). Funciona também em imagem.
-No processador desta nuvem leva ~30 s por quadro (um clipe de 5 s = 81
-quadros, ~40 min); se for interrompido, retoma de onde parou. Os pesos (18 MB)
-são baixados do Hugging Face na 1ª vez. Precisa de `pip install torch pillow numpy`.
+**Padrão desde 23/11: o compacto realesr-animevideov3** (BSD-3, ~6 s por
+quadro no processador; um clipe de 5 s = 81 quadros, ~8 min; um Reel de 5
+clipes, ~40 min). Comparado no rosto do Beto com o anime 6B: diferença mínima
+no cabelo, invisível no celular. `--fino` usa o anime 6B (~30 s por quadro,
+~40 min por clipe). Se for interrompido, retoma de onde parou. Os pesos (2 a 18
+MB) são baixados do Hugging Face na 1ª vez. Precisa de `pip install torch pillow numpy`.
 Fluxo: gerar clipes → ampliar → montar.

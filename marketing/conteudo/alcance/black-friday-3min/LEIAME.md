@@ -20,7 +20,9 @@ Wan 2.2 14B Lightning, 4 passos, 5 s cada (`clipes/c1` a `c5`). Os clipes
 enquadram os personagens mais alto que as imagens: na montagem o fundo desce
 300 px (o topo vira o próprio fundo desfocado) para o painel do relógio não
 cobrir o rosto. A barra do salário some quando o Beto fala; regra de bolso e
-comentários ficam na altura do corpo. Arquivo para postar:
+comentários ficam na altura do corpo. Versão final (23/11, 12h): os 5 clipes
+ampliados com IA (`ia.py ampliar --fino`, anime 6B) antes de `montar_fundo.py`;
+dá para refazer em ~40 min com o compacto (sem `--fino`). Arquivo para postar:
 `../../publicar/14-25-11-black-friday-3min.mp4` (e `-capa.png`).
 
 | Cena | Tempo        | Imagem | Clipe (prompt)                                                                                                   |
@@ -44,6 +46,7 @@ python3 marketing/ferramentas/ia-video/ia.py clipe $D/cenas/e1.jpg "<prompt c1>"
 # 2. camada transparente (gráficos + legenda), se mudar algo no camada.html
 CAMADA=1 LEGENDA=$D/legenda.json LEGENDA_ESTILO=leve LEGENDA_Y=1415 \
   node marketing/ferramentas/shorts/render.js $O/camada $D/camada.html
+# 2b. nitidez: ia.py ampliar $O/clipes/c1.mp4 $O/hd/c1.mp4 (c1 a c5) e use $O/hd abaixo
 # 3. fundo (clipes + zoom) e camada por cima
 python3 $D/montar_fundo.py $O/clipes $O/fundo.mp4        # clipes locais: acrescente 33
 ffmpeg -i $O/fundo.mp4 -framerate 30 -i $O/camada/quadros/%05d.png \

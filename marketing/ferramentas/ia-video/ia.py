@@ -23,11 +23,13 @@ Uso:
       # nova cena a partir de imagem(ns) de referencia (Cloudflare FLUX.2 klein):
       # mantem o mesmo rosto e roupa dos personagens; ex.: "Only the man in the
       # red t-shirt ... Keep exactly the same character, same art style"
-  python3 ia.py ampliar clipe.mp4 clipe-hd.mp4 [--largura 1104]
-      # amplia clipe ou imagem com IA (Real-ESRGAN anime 6B, x4, BSD-3): redesenha
+  python3 ia.py ampliar clipe.mp4 clipe-hd.mp4 [--largura 1104] [--fino]
+      # amplia clipe ou imagem com IA (Real-ESRGAN, x4, BSD-3): redesenha
       # contornos e detalhes em vez de esticar. Os clipes do Wan saem em 480x832;
-      # ampliar antes de montar o Reel. No processador: ~30 s por quadro (um clipe
-      # de 5 s = 81 quadros = ~40 min); retoma de onde parou. Precisa de torch.
+      # ampliar antes de montar o Reel. Padrao: realesr-animevideov3 (compacto,
+      # ~6 s por quadro no processador; um clipe de 5 s = ~8 min). --fino usa o
+      # anime 6B (~30 s por quadro, ~40 min por clipe; diferenca minima, 23/11).
+      # Retoma de onde parou. Precisa de torch.
   python3 ia.py preparar-local   # compila o stable-diffusion.cpp e baixa ~9 GB
   --so hf,modal                  # usa so esses fornecedores, nessa ordem
 
@@ -311,7 +313,54 @@ def ampliador():
     return m.eval()
 
 
-def ampliar(entrada, saida, largura):
+def ampliador_rapido():
+    """realesr-animevideov3 (SRVGGNetCompact, BSD-3): ~5x mais rapido que o anime 6B."""
+    import json
+
+    import numpy as np
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+
+    class Compacto(nn.Module):
+        def __init__(s, nf=64, nc=16):
+            super().__init__()
+            c = [nn.Conv2d(3, nf, 3, 1, 1), nn.PReLU(nf)]
+            for _ in range(nc):
+                c += [nn.Conv2d(nf, nf, 3, 1, 1), nn.PReLU(nf)]
+            s.body = nn.ModuleList(c + [nn.Conv2d(nf, 48, 3, 1, 1)])
+
+        def forward(s, x):
+            y = x
+            for c in s.body:
+                y = c(y)
+            return F.pixel_shuffle(y, 4) + F.interpolate(x, scale_factor=4, mode="nearest")
+
+    pesos = os.path.join(LOCAL, "modelos", "animevideov3.safetensors")
+    if not os.path.exists(pesos):
+        os.makedirs(os.path.dirname(pesos), exist_ok=True)
+        url = "https://huggingface.co/mlx-community/Real-ESRGAN-animevideov3/resolve/main/model.safetensors"
+        subprocess.run(["curl", "-sfL", "-o", pesos, url], check=True)
+    with open(pesos, "rb") as f:  # safetensors lido a mao (sem dependencia extra)
+        n = int.from_bytes(f.read(8), "little")
+        cab, dados = json.loads(f.read(n)), f.read()
+    tipos = {"F16": np.float16, "F32": np.float32, "BF16": None}
+    sd = {}
+    for k, v in cab.items():
+        if k == "__metadata__":
+            continue
+        a, b = v["data_offsets"]
+        t = np.frombuffer(dados[a:b], dtype=tipos[v["dtype"]]).reshape(v["shape"]).astype(np.float32)
+        if t.ndim == 4:  # o MLX guarda (saida, h, w, entrada)
+            t = t.transpose(0, 3, 1, 2)
+        sd[k] = torch.from_numpy(np.ascontiguousarray(t))
+    torch.set_num_threads(os.cpu_count() or 4)
+    m = Compacto()
+    m.load_state_dict(sd, strict=True)
+    return m.eval()
+
+
+def ampliar(entrada, saida, largura, fino=False):
     """Imagem ou video: cada quadro x4 com o Real-ESRGAN e reduzido para `largura`."""
     import glob
 
@@ -319,7 +368,7 @@ def ampliar(entrada, saida, largura):
     import torch
     from PIL import Image
 
-    m = ampliador()
+    m = ampliador() if fino else ampliador_rapido()
 
     def um(img):
         x = torch.from_numpy(np.asarray(img.convert("RGB"), dtype=np.float32) / 255.0).permute(2, 0, 1)[None]
@@ -333,7 +382,7 @@ def ampliar(entrada, saida, largura):
         return
     fps = subprocess.check_output(["ffprobe", "-v", "error", "-select_streams", "v", "-show_entries",
                                    "stream=r_frame_rate", "-of", "csv=p=0", entrada], text=True).strip()
-    pasta = saida + ".quadros"  # fica ate o fim: permite retomar se for interrompido
+    pasta = saida + (".fino" if fino else "") + ".quadros"  # fica ate o fim: permite retomar se for interrompido
     os.makedirs(f"{pasta}/in", exist_ok=True)
     os.makedirs(f"{pasta}/out", exist_ok=True)
     if not glob.glob(f"{pasta}/in/*.png"):
@@ -432,11 +481,12 @@ def main():
     ap.add_argument("--segundos", type=float, default=5.0)
     ap.add_argument("--semente", type=int, default=42)
     ap.add_argument("--so", default="")
+    ap.add_argument("--fino", action="store_true", help="ampliar com o anime 6B (5x mais lento)")
     a = ap.parse_args()
     if a.acao == "preparar-local":
         return preparar_local()
     if a.acao == "ampliar":
-        ampliar(a.args[0], a.args[1], a.largura or 1104)
+        ampliar(a.args[0], a.args[1], a.largura or 1104, a.fino)
         print(f"[ampliar] ok -> {a.args[1]}")
         return
     a.largura = a.largura or 720
