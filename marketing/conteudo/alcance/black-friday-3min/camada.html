@@ -40,7 +40,7 @@
   .extra { right:60px; top:880px; opacity:0; padding:14px 30px; border-radius:20px; background:var(--vivo); color:#fff; font-weight:900; font-size:46px; }
   .selo-lia { left:0; right:0; top:1150px; text-align:center; opacity:0; }
   .selo-lia span { display:inline-block; padding:16px 40px; border-radius:22px; background:rgba(6,12,9,.8); border:3px solid var(--sinal); font-weight:800; font-size:46px; color:#d1fae5; }
-  .regra { left:70px; right:70px; top:930px; padding:36px 40px 40px; border-radius:44px; background:rgba(6,12,9,.82); border:3px solid rgba(52,211,153,.6); opacity:0; box-shadow:0 24px 70px rgba(0,0,0,.55); }
+  .regra { left:70px; right:70px; top:1090px; padding:36px 40px 40px; border-radius:44px; background:rgba(6,12,9,.82); border:3px solid rgba(52,211,153,.6); opacity:0; box-shadow:0 24px 70px rgba(0,0,0,.55); }
   .regra .r { font-family:'DM Mono',monospace; color:var(--sinal); font-size:32px; letter-spacing:.12em; margin-bottom:18px; }
   .regra b { display:block; font-weight:900; font-size:64px; line-height:1.04; letter-spacing:-.03em; }
   .regra b em { font-style:normal; color:var(--sinal); }
@@ -81,9 +81,9 @@
   <div class="el regra" id="regra"><div class="r">REGRA DE BOLSO</div><b>Quem decide o que comprar é a <em>lista</em>, não o <em>cronômetro</em>.</b></div>
 
   <div class="el assina" id="assina"><img src="wordmark.svg" alt="Appliquei"><p>Segue pra <em>não perder</em></p></div>
-  <div class="el coment" id="c1" style="top:930px"><i style="background:#3b82f6">M</i><div>R$ 1.500<small>Maria · palpite (exemplo)</small></div></div>
-  <div class="el coment" id="c2" style="top:1060px"><i style="background:#a855f7">J</i><div>R$ 3.000 😅<small>João · palpite (exemplo)</small></div></div>
-  <div class="el coment" id="c3" style="top:1190px"><i style="background:#f59e0b">P</i><div>Tudo, e ainda sobra fatura<small>Pedro · palpite (exemplo)</small></div></div>
+  <div class="el coment" id="c1" style="top:1110px"><i style="background:#3b82f6">M</i><div>R$ 1.500<small>Maria · palpite (exemplo)</small></div></div>
+  <div class="el coment" id="c2" style="top:1235px"><i style="background:#a855f7">J</i><div>R$ 3.000 😅<small>João · palpite (exemplo)</small></div></div>
+  <div class="el coment" id="c3" style="top:1190px;display:none"><i style="background:#f59e0b">P</i><div>Tudo, e ainda sobra fatura<small>Pedro · palpite (exemplo)</small></div></div>
 
   <div class="el rodape">Valores de exemplo · conteúdo educacional, sem recomendação · personagens fictícios</div>
   <div class="el flash" id="flash"></div>
@@ -825,11 +825,11 @@
     $('flash').style.opacity = (0.65 * bip).toFixed(3);
     // barras do salário (fala "mais que o salário dele")
     const bAt = tw(2, 'mais');
-    $('barras').style.opacity = clamp(prog(t, bAt - 0.3, bAt) * (1 - prog(t, T_LIA - 0.5, T_LIA - 0.2)), 0, 1);
+    $('barras').style.opacity = clamp(prog(t, bAt - 0.3, bAt) * (1 - prog(t, T_BETO - 0.3, T_BETO)), 0, 1);
     $('bSal').style.width = (770 * eOut(prog(t, bAt - 0.2, bAt + 0.5))).toFixed(1) + 'px';
     $('bGas').style.width = (900 * eOut(prog(t, bAt + 0.1, bAt + 0.9))).toFixed(1) + 'px';
     const ex = eBack(prog(t, bAt + 0.9, bAt + 1.3));
-    $('extra').style.opacity = clamp(ex, 0, 1) * (1 - prog(t, T_LIA - 0.5, T_LIA - 0.2));
+    $('extra').style.opacity = clamp(ex, 0, 1) * (1 - prog(t, T_BETO - 0.3, T_BETO));
     $('extra').style.transform = 'scale(' + (0.7 + 0.3 * clamp(ex, 0, 1.2)).toFixed(3) + ') rotate(-3deg)';
     // Lia: 1 item
     $('seloLia').style.opacity = clamp(eBack(prog(t, T_LIA + 0.3, T_LIA + 0.7)), 0, 1) * (1 - prog(t, T_REGRA - 0.3, T_REGRA));

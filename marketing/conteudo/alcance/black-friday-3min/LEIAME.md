@@ -13,14 +13,15 @@ Primeiro Reel com **personagens 3D estilo Pixar** e **clipes de IA**.
   voz está "Apliquêi" (soa "Aplicaí", como na narração aprovada da Charon); a
   legenda usa `narracao.json`, com a grafia certa.
 
-## Estado em 22/11
+## Estado em 23/11: pronto
 
-Pronto: narração, trilha, camada transparente (`camada.html`: relógio, contador,
-12 ofertas, BIP, barra salário × gasto, "1 item", regra de bolso, comentários
-de palpite, assinatura; legenda leve sincronizada) e as 5 imagens das cenas
-(`cenas/e1` a `e5`, editadas a partir de `marketing/personagens/beto-lia-3d.png`
-para manter os mesmos rostos). Falta: os 5 clipes (a cota grátis do Hugging
-Face acabou em 22/11; renova 24 h após o 1º uso, ~7h de 23/11).
+Os 5 clipes saíram no Hugging Face às 6h44–6h47 de 23/11 (cota renovada),
+Wan 2.2 14B Lightning, 4 passos, 5 s cada (`clipes/c1` a `c5`). Os clipes
+enquadram os personagens mais alto que as imagens: na montagem o fundo desce
+300 px (o topo vira o próprio fundo desfocado) para o painel do relógio não
+cobrir o rosto. A barra do salário some quando o Beto fala; regra de bolso e
+comentários ficam na altura do corpo. Arquivo para postar:
+`../../publicar/14-25-11-black-friday-3min.mp4` (e `-capa.png`).
 
 | Cena | Tempo        | Imagem | Clipe (prompt)                                                                                                   |
 | ---- | ------------ | ------ | ---------------------------------------------------------------------------------------------------------------- |
@@ -46,7 +47,7 @@ CAMADA=1 LEGENDA=$D/legenda.json LEGENDA_ESTILO=leve LEGENDA_Y=1415 \
 # 3. fundo (clipes + zoom) e camada por cima
 python3 $D/montar_fundo.py $O/clipes $O/fundo.mp4        # clipes locais: acrescente 33
 ffmpeg -i $O/fundo.mp4 -framerate 30 -i $O/camada/quadros/%05d.png \
-  -filter_complex "[0:v][1:v]overlay=0:0:format=auto,format=yuv420p[v]" -map "[v]" -crf 12 $O/sem-audio.mp4
+  -filter_complex "[0:v]split[a][b];[a]boxblur=24:2,eq=brightness=-0.22[f];[f][b]overlay=0:300[d];[d][1:v]overlay=0:0:format=auto,format=yuv420p[v]" -map "[v]" -crf 12 $O/sem-audio.mp4
 # 4. vozes: refaz os cortes da leitura salva sem gastar cota e mixa com a trilha
 ROTEIRO=$D/roteiro-lia.json LEITURA=$D/narracao-sulafat-lia-leitura.wav \
   python3 marketing/ferramentas/shorts/narrar-gemini.py $O/voz-lia Sulafat

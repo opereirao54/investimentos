@@ -562,6 +562,82 @@ Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fict�
 #tarifabancaria #educacaofinanceira #financaspessoais
 ```
 
+## QUARTA 25/11 · Faltam 38 dias · Appliquei News
+
+"O Beto tem 3 minutos de Black Friday" (Reel #14), 44,9 s. **Primeiro Reel
+com o Beto e a Lia em 3D e clipes de IA.** Relógio regressivo e contador de
+gastos desde o primeiro quadro; o Beto gasta R$ 3.508 em 3 minutos (mais que
+o salário de R$ 3.000), a Lia leva 1 item da lista. Voz: Lia (Sulafat) e Beto
+(Charon). Fecho pede o palpite nos comentários.
+
+**Antes de postar:** conferir que o vídeo é o do Beto no sofá com a torre de
+caixas e que a 1ª linha da legenda é a mesma frase. Mandar o arquivo original
+(AirDrop, Drive/iCloud ou WhatsApp como **Documento**). **Postar às 19h.**
+Personagens e cenas gerados por IA: **ligar o rótulo de IA** em cada rede.
+
+**19h · INSTAGRAM (Reel)** · vídeo do Beto no sofá com a torre de caixas
+
+1. Novo Reel › escolher o vídeo do Beto com as caixas.
+2. Capa: Editar capa › Adicionar da galeria › a imagem do Reel com o título "Black Friday: 3 minutos".
+3. Configurações avançadas: "Carregar na qualidade mais alta" ligado e **"Adicionar rótulo de IA"** ligado.
+4. Colar a legenda e publicar às 19h.
+5. Fixar o comentário: `Quanto VOCÊ gastaria em 3 minutos? Chuta aqui 👇` e responder todos na 1ª hora.
+6. **Até 20h (fundador e sócio):** compartilhar o Reel nos stories e mandar o **link** no status do WhatsApp e em 3–5 grupos com a frase `Quanto você gastaria em 3 minutos de Black Friday? 😂👇`.
+
+```
+O Beto tem 3 minutos de Black Friday. Quanto você acha que ele gasta? ⏱️
+
+Salário: R$ 3.000. Fone, air fryer, tênis… nenhuma compra passou de R$ 400. No fim dos 3 minutos: R$ 3.508. Mais que o salário inteiro.
+
+A Lia levou uma coisa só: a air fryer que estava na lista dela desde outubro.
+
+📌 Regra de bolso: quem decide o que comprar é a lista, não o cronômetro.
+
+E você, quanto gastaria em 3 minutos? Comenta o seu palpite 👇
+
+📰 Appliquei News: a notícia da semana no seu bolso, toda quarta. Segue pra não perder.
+
+⏳ Faltam 38 dias para o que estamos preparando pra 2027.
+
+Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fictícios, gerados por IA.
+
+#blackfriday #educacaofinanceira #financaspessoais #dinheiro #comprasporimpulso
+```
+
+**19h · TIKTOK** · o mesmo vídeo do Beto com as caixas
+
+1. Enviar o vídeo original; capa = primeiro quadro (já é a capa).
+2. "Permitir upload em alta qualidade" ligado; em Mais opções, **"Conteúdo gerado por IA"** ligado.
+3. Colar a legenda e publicar.
+
+```
+O Beto tem 3 minutos de Black Friday. Quanto ele gasta? ⏱️ Nenhuma compra passou de R$ 400 e mesmo assim… Regra de bolso: quem decide é a lista, não o cronômetro. Chuta nos comentários e segue pra não perder. ⏳ Faltam 38 dias.
+
+#blackfriday #educacaofinanceira #financaspessoais #comprasporimpulso
+```
+
+**19h · YOUTUBE SHORTS** · o mesmo vídeo do Beto com as caixas
+
+1. Enviar o vídeo original; no app do YouTube, escolher o primeiro quadro como capa.
+2. Em "Conteúdo alterado ou sintético", marcar **Sim**.
+3. Título e descrição abaixo; publicar.
+
+Título:
+
+```
+Ele tinha 3 minutos de Black Friday. Quanto você acha que ele gastou? #shorts
+```
+
+Descrição:
+
+```
+Nenhuma compra passou de R$ 400 e o total passou do salário. Regra de bolso: quem decide o que comprar é a lista, não o cronômetro. Inscreva-se para a próxima conta.
+
+Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fictícios, gerados por IA.
+
+#blackfriday #educacaofinanceira #financaspessoais
+```
+
 ## Assinaturas das séries na legenda (desde 04/11)
 
 - `💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta.`
