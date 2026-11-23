@@ -23,6 +23,11 @@ Uso:
       # nova cena a partir de imagem(ns) de referencia (Cloudflare FLUX.2 klein):
       # mantem o mesmo rosto e roupa dos personagens; ex.: "Only the man in the
       # red t-shirt ... Keep exactly the same character, same art style"
+  python3 ia.py ampliar clipe.mp4 clipe-hd.mp4 [--largura 1104]
+      # amplia clipe ou imagem com IA (Real-ESRGAN anime 6B, x4, BSD-3): redesenha
+      # contornos e detalhes em vez de esticar. Os clipes do Wan saem em 480x832;
+      # ampliar antes de montar o Reel. No processador: ~30 s por quadro (um clipe
+      # de 5 s = 81 quadros = ~40 min); retoma de onde parou. Precisa de torch.
   python3 ia.py preparar-local   # compila o stable-diffusion.cpp e baixa ~9 GB
   --so hf,modal                  # usa so esses fornecedores, nessa ordem
 
@@ -252,6 +257,99 @@ def local_imagem(prompt, saida, largura, altura, semente):
         salvar(open(f"{d}/q_000.png", "rb").read(), saida, ".png")
 
 
+def ampliador():
+    """Real-ESRGAN x4 anime 6B (RRDBNet) em PyTorch puro, sem basicsr."""
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+
+    class RDB(nn.Module):
+        def __init__(s, nf=64, gc=32):
+            super().__init__()
+            s.conv1, s.conv2 = nn.Conv2d(nf, gc, 3, 1, 1), nn.Conv2d(nf + gc, gc, 3, 1, 1)
+            s.conv3, s.conv4 = nn.Conv2d(nf + 2 * gc, gc, 3, 1, 1), nn.Conv2d(nf + 3 * gc, gc, 3, 1, 1)
+            s.conv5, s.l = nn.Conv2d(nf + 4 * gc, nf, 3, 1, 1), nn.LeakyReLU(0.2, True)
+
+        def forward(s, x):
+            x1 = s.l(s.conv1(x))
+            x2 = s.l(s.conv2(torch.cat((x, x1), 1)))
+            x3 = s.l(s.conv3(torch.cat((x, x1, x2), 1)))
+            x4 = s.l(s.conv4(torch.cat((x, x1, x2, x3), 1)))
+            return s.conv5(torch.cat((x, x1, x2, x3, x4), 1)) * 0.2 + x
+
+    class RRDB(nn.Module):
+        def __init__(s):
+            super().__init__()
+            s.rdb1, s.rdb2, s.rdb3 = RDB(), RDB(), RDB()
+
+        def forward(s, x):
+            return s.rdb3(s.rdb2(s.rdb1(x))) * 0.2 + x
+
+    class Rede(nn.Module):
+        def __init__(s, nf=64):
+            super().__init__()
+            s.conv_first, s.body = nn.Conv2d(3, nf, 3, 1, 1), nn.Sequential(*[RRDB() for _ in range(6)])
+            s.conv_body, s.conv_up1, s.conv_up2 = (nn.Conv2d(nf, nf, 3, 1, 1) for _ in range(3))
+            s.conv_hr, s.conv_last, s.l = nn.Conv2d(nf, nf, 3, 1, 1), nn.Conv2d(nf, 3, 3, 1, 1), nn.LeakyReLU(0.2, True)
+
+        def forward(s, x):
+            f = s.conv_first(x)
+            f = f + s.conv_body(s.body(f))
+            f = s.l(s.conv_up1(F.interpolate(f, scale_factor=2, mode="nearest")))
+            f = s.l(s.conv_up2(F.interpolate(f, scale_factor=2, mode="nearest")))
+            return s.conv_last(s.l(s.conv_hr(f)))
+
+    pesos = os.path.join(LOCAL, "modelos", "anime6b.pth")
+    if not os.path.exists(pesos):
+        os.makedirs(os.path.dirname(pesos), exist_ok=True)
+        url = "https://huggingface.co/leonelhs/realesrgan/resolve/main/RealESRGAN_x4plus_anime_6B.pth"
+        subprocess.run(["curl", "-sfL", "-o", pesos, url], check=True)
+    torch.set_num_threads(os.cpu_count() or 4)
+    m = Rede()
+    sd = torch.load(pesos, map_location="cpu", weights_only=True)
+    m.load_state_dict(sd.get("params_ema", sd.get("params", sd)), strict=True)
+    return m.eval()
+
+
+def ampliar(entrada, saida, largura):
+    """Imagem ou video: cada quadro x4 com o Real-ESRGAN e reduzido para `largura`."""
+    import glob
+
+    import numpy as np
+    import torch
+    from PIL import Image
+
+    m = ampliador()
+
+    def um(img):
+        x = torch.from_numpy(np.asarray(img.convert("RGB"), dtype=np.float32) / 255.0).permute(2, 0, 1)[None]
+        with torch.inference_mode():
+            y = m(x).clamp(0, 1)
+        out = Image.fromarray((y[0].permute(1, 2, 0).numpy() * 255 + 0.5).astype(np.uint8))
+        return out.resize((largura, round(largura * out.height / out.width)), Image.LANCZOS)
+
+    if not entrada.lower().endswith((".mp4", ".mov", ".webm", ".avi")):
+        um(Image.open(entrada)).save(saida)
+        return
+    fps = subprocess.check_output(["ffprobe", "-v", "error", "-select_streams", "v", "-show_entries",
+                                   "stream=r_frame_rate", "-of", "csv=p=0", entrada], text=True).strip()
+    pasta = saida + ".quadros"  # fica ate o fim: permite retomar se for interrompido
+    os.makedirs(f"{pasta}/in", exist_ok=True)
+    os.makedirs(f"{pasta}/out", exist_ok=True)
+    if not glob.glob(f"{pasta}/in/*.png"):
+        ffmpeg("-i", entrada, f"{pasta}/in/%05d.png")
+    quadros = sorted(glob.glob(f"{pasta}/in/*.png"))
+    t0 = time.time()
+    for i, q in enumerate(quadros):
+        alvo = f"{pasta}/out/{os.path.basename(q)}"
+        if not os.path.exists(alvo):
+            um(Image.open(q)).save(alvo)
+        if i % 10 == 0:
+            print(f"  quadro {i + 1}/{len(quadros)} ({time.time() - t0:.0f}s)", flush=True)
+    ffmpeg("-framerate", fps, "-i", f"{pasta}/out/%05d.png", "-c:v", "libx264", "-crf", "8", "-pix_fmt", "yuv420p", saida)
+    shutil.rmtree(pasta)
+
+
 def pth_para_safetensors(pth, saida):
     """Converte o .pth do decodificador leve para safetensors sem precisar do torch."""
     import collections
@@ -327,9 +425,9 @@ def preparar_local():
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("acao", choices=["imagem", "editar", "clipe", "preparar-local"])
+    ap.add_argument("acao", choices=["imagem", "editar", "clipe", "ampliar", "preparar-local"])
     ap.add_argument("args", nargs="*")
-    ap.add_argument("--largura", type=int, default=720)
+    ap.add_argument("--largura", type=int, default=None)
     ap.add_argument("--altura", type=int, default=1280)
     ap.add_argument("--segundos", type=float, default=5.0)
     ap.add_argument("--semente", type=int, default=42)
@@ -337,6 +435,11 @@ def main():
     a = ap.parse_args()
     if a.acao == "preparar-local":
         return preparar_local()
+    if a.acao == "ampliar":
+        ampliar(a.args[0], a.args[1], a.largura or 1104)
+        print(f"[ampliar] ok -> {a.args[1]}")
+        return
+    a.largura = a.largura or 720
 
     if a.acao == "editar":
         # so a Cloudflare edita com referencia; sem ela, nao cai para geracao

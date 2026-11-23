@@ -82,3 +82,15 @@ cena já aprovada.
 salva os quadros com fundo transparente (gráficos e legenda), e o ffmpeg os
 põe por cima dos clipes de IA. Exemplo completo em
 `marketing/conteudo/alcance/black-friday-3min/`.
+
+## Ampliar com IA (23/11)
+
+Os clipes do Wan saem em 480×832 e ficavam macios quando esticados para
+1080×1920. `ia.py ampliar clipe.mp4 clipe-hd.mp4` passa cada quadro pelo
+Real-ESRGAN anime 6B (x4, BSD-3, próprio para desenho e 3D) e reduz para
+1104 px de largura: contornos, olhos e roupa saem nítidos, sem as manchas da
+compressão (comparado no rosto da Lia em 23/11). Funciona também em imagem.
+No processador desta nuvem leva ~30 s por quadro (um clipe de 5 s = 81
+quadros, ~40 min); se for interrompido, retoma de onde parou. Os pesos (18 MB)
+são baixados do Hugging Face na 1ª vez. Precisa de `pip install torch pillow numpy`.
+Fluxo: gerar clipes → ampliar → montar.
