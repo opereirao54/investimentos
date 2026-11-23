@@ -1,0 +1,82 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #000; font-family: 'Figtree', sans-serif; }
+  canvas { position: absolute; left: 0; top: 0; }
+  .ui { position: absolute; inset: 0; pointer-events: none; color: #fff; }
+  .logo { position: absolute; left: 60px; top: 60px; width: 200px; }
+  .serie { position: absolute; right: 60px; top: 60px; padding: 10px 20px; border-radius: 99px; background: rgba(26,16,48,.55); border: 2px solid rgba(255,210,122,.7); font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .12em; color: #ffd27a; }
+  .titulo { position: absolute; left: 0; right: 0; top: 200px; text-align: center; font-weight: 900; text-transform: uppercase; line-height: 1.02; text-shadow: 0 6px 0 rgba(40,16,70,.6), 0 10px 30px rgba(0,0,0,.45); }
+  .titulo div { font-size: 70px; } .titulo .l2 { color: #ffd27a; }
+  .hud { position: absolute; right: 60px; top: 400px; text-align: right; }
+  .hud .r { font-family: 'DM Mono', monospace; font-size: 26px; letter-spacing: .14em; color: rgba(255,255,255,.85); }
+  .hud .v { font-weight: 900; font-style: italic; font-size: 64px; color: #7CFC9A; text-shadow: 0 4px 0 #0b3d1f, 0 0 26px rgba(124,252,154,.45); }
+  .faixa { position: absolute; left: 0; right: 0; top: 540px; height: 190px; text-align: center; }
+  .faixa .fundo { position: absolute; left: -40px; right: -40px; top: 20px; height: 150px; background: rgba(20,8,36,.72); transform: skewY(-3deg); border-top: 4px solid #ffd27a; border-bottom: 4px solid #ffd27a; }
+  .faixa b { position: relative; display: block; padding-top: 30px; font-size: 92px; font-weight: 900; font-style: italic; color: #ffd27a; text-shadow: 0 5px 0 #7a3a00; transform: skewY(-3deg); }
+  .faixa span { position: relative; display: block; font-size: 42px; font-weight: 900; transform: skewY(-3deg); margin-top: -4px; }
+  .rodape { position: absolute; left: 60px; right: 60px; top: 1478px; text-align: center; font-size: 24px; color: rgba(255,255,255,.8); text-shadow: 0 2px 6px rgba(0,0,0,.7); }
+</style>
+<script type="importmap">{ "imports": { "three": "./three.module.js", "three/addons/": "./jsm/" } }</script>
+</head><body>
+<div class="ui">
+  <img class="logo" src="wordmark.svg">
+  <div class="serie">ESPECIAL</div>
+  <div class="titulo"><div>Quanto custa viver o GTA</div><div class="l2">na vida real?</div></div>
+  <div class="hud"><div class="r">Gastos</div><div class="v">R$ 2.550.000</div></div>
+  <div class="faixa"><div class="fundo"></div><b>MISSÃO CONCLUÍDA</b><span>+1 CARRO</span></div>
+  <div class="rodape">Teste 3D · "Car Concept" de Eric Chadwick (CC BY 4.0) · luz Poly Haven (CC0)</div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const W = 1080, H = 1920;
+const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+r.setSize(W, H); r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 0.9; r.outputColorSpace = THREE.SRGBColorSpace;
+r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.prepend(r.domElement);
+const s = new THREE.Scene();
+const cam = new THREE.PerspectiveCamera(38, W / H, 0.1, 200);
+cam.position.set(3.0, 1.9, 11.5); cam.lookAt(0.0, 0.9, 0);
+
+const hdr = await new RGBELoader().loadAsync('mod/venice_sunset_1k.hdr');
+hdr.mapping = THREE.EquirectangularReflectionMapping;
+s.background = hdr; s.environment = hdr; s.backgroundBlurriness = 0.25; s.backgroundIntensity = 1.0;
+
+// chão espelhado molhado
+const chao = new THREE.Mesh(new THREE.CircleGeometry(40, 64), new THREE.MeshPhysicalMaterial({ color: '#2a2030', roughness: 0.18, metalness: 0.6, clearcoat: 1 }));
+chao.rotation.x = -Math.PI / 2; chao.receiveShadow = true; s.add(chao);
+const sol = new THREE.DirectionalLight('#ffb070', 2.2); sol.position.set(-6, 5, -8); sol.castShadow = true; sol.shadow.mapSize.set(2048, 2048); s.add(sol);
+
+const draco = new DRACOLoader(); draco.setDecoderPath('jsm/libs/draco/gltf/');
+const gl = new GLTFLoader(); gl.setDRACOLoader(draco);
+const car = (await gl.loadAsync('mod/CarConcept.glb')).scene;
+const bb = new THREE.Box3().setFromObject(car), tam = bb.getSize(new THREE.Vector3());
+const esc = 4.6 / Math.max(tam.x, tam.z); car.scale.setScalar(esc);
+const bb2 = new THREE.Box3().setFromObject(car), ctr = bb2.getCenter(new THREE.Vector3());
+car.position.set(-ctr.x, -bb2.min.y, -ctr.z);
+const g0 = new THREE.Group(); g0.add(car); g0.rotation.y = 0.75; s.add(g0);
+car.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+// personagem de exemplo (CC0), acenando
+const robo = { scene: new THREE.Group(), animations: [] };
+const rb = robo.scene; rb.scale.setScalar(0.3); rb.position.set(2.1, 0, -1.2); rb.rotation.y = -0.2;
+rb.traverse((o) => { if (o.isMesh) o.castShadow = true; }); /* robô de teste removido do quadro */
+const mix = new THREE.AnimationMixer(rb);
+
+
+const comp = new EffectComposer(r);
+comp.addPass(new RenderPass(s, cam));
+comp.addPass(new UnrealBloomPass(new THREE.Vector2(W, H), 0.25, 0.4, 0.95));
+comp.addPass(new OutputPass());
+comp.render();
+window.pronto = true;
+</script>
+</body></html>

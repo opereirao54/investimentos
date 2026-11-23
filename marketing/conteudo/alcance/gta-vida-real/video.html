@@ -1,0 +1,379 @@
+<!doctype html>
+<!--
+  Especial (≈32 s, 1080×1920): "Quanto custa viver o GTA na vida real?"
+  Post extra de qui 19/11/2026, dia do lançamento do GTA 6 (pedido do
+  fundador: entretenimento, sem lição). Cenário de pôr do sol de praia,
+  palmeiras e prédios, tudo desenhado por nós: nenhuma arte, logo, personagem
+  ou fonte do jogo. A cada compra, a faixa "MISSÃO CONCLUÍDA" e o contador de
+  dinheiro sobem; no fim, o Beto no sofá com o controle (R$ 449,90).
+  Preços de referência (ver LEIAME).
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: #1a1030; }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: #fff; }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #1a1030; }
+  svg#cena { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 200px; z-index: 20; }
+  .serie { position: absolute; right: 150px; top: 60px; padding: 10px 20px; border-radius: 99px; background: rgba(26,16,48,.6); border: 2px solid rgba(255,210,122,.6); font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .12em; text-transform: uppercase; color: #ffd27a; z-index: 20; }
+  .titulo { position: absolute; left: 0; right: 0; top: 215px; text-align: center; z-index: 15; font-weight: 900; text-transform: uppercase; line-height: 1.02; text-shadow: 0 6px 0 rgba(40,16,70,.55), 0 10px 30px rgba(0,0,0,.4); }
+  .titulo .l1 { font-size: 70px; } .titulo .l2 { font-size: 70px; color: #ffd27a; }
+  .hud { position: absolute; right: 60px; top: 410px; z-index: 16; text-align: right; }
+  .hud .r { font-family: 'DM Mono', monospace; font-size: 26px; letter-spacing: .14em; color: rgba(255,255,255,.75); }
+  .hud .v { font-weight: 900; font-size: 64px; letter-spacing: -.02em; color: #7CFC9A; text-shadow: 0 4px 0 #0b3d1f, 0 0 24px rgba(124,252,154,.35); font-style: italic; }
+  .faixa { position: absolute; left: 0; right: 0; top: 600px; height: 190px; z-index: 17; opacity: 0; text-align: center; }
+  .faixa .fundo { position: absolute; left: -40px; right: -40px; top: 20px; height: 150px; background: rgba(20,8,36,.82); transform: skewY(-3deg); border-top: 4px solid #ffd27a; border-bottom: 4px solid #ffd27a; }
+  .faixa b { position: relative; display: block; padding-top: 26px; font-size: 88px; font-weight: 900; font-style: italic; letter-spacing: .01em; color: #ffd27a; text-shadow: 0 5px 0 #7a3a00; transform: skewY(-3deg); }
+  .faixa span { position: relative; display: block; margin-top: -6px; font-size: 40px; font-weight: 900; color: #fff; transform: skewY(-3deg); }
+  .faixa .brilho { position: absolute; top: 20px; height: 150px; width: 160px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent); transform: skewX(-20deg); }
+  .rodape { position: absolute; left: 60px; right: 60px; top: 1478px; text-align: center; font-size: 24px; color: rgba(255,255,255,.6); z-index: 15; text-shadow: 0 2px 6px rgba(0,0,0,.6); }
+  .txt { position: absolute; left: 0; top: 0; text-align: center; will-change: transform; opacity: 0; white-space: nowrap; z-index: 16; }
+  .total { font-weight: 900; font-style: italic; font-size: 124px; letter-spacing: -.04em; color: #7CFC9A; text-shadow: 0 8px 0 #0b3d1f, 0 0 40px rgba(124,252,154,.4); }
+  .total small { display: block; font-style: normal; font-size: 40px; letter-spacing: .1em; color: #fff; text-shadow: 0 3px 8px rgba(0,0,0,.6); }
+  .cel { width: 860px; border-radius: 80px; background: #050807; border: 7px solid #2a3a33; padding: 30px 26px; box-shadow: 0 40px 90px rgba(0,0,0,.6); }
+  .cel .tela { border-radius: 50px; background: #f4f6f5; padding: 40px 34px 30px; text-align: left; color: #12241c; }
+  .cel h4 { font-size: 46px; font-weight: 900; }
+  .com { display: flex; gap: 20px; align-items: center; margin-top: 28px; }
+  .com .av { width: 72px; height: 72px; border-radius: 50%; flex: none; }
+  .com b { display: block; font-size: 32px; color: #6b7d75; font-weight: 700; } .com span { display: block; font-size: 50px; font-weight: 800; }
+  .entrada { margin-top: 34px; display: flex; align-items: center; justify-content: space-between; padding: 22px 30px; border-radius: 99px; border: 3px solid #c9d5cf; font-size: 46px; font-weight: 700; }
+  .entrada i { display: inline-block; width: 4px; height: 50px; background: #059669; vertical-align: middle; margin-left: 4px; }
+  .assina img { width: 420px; } .assina p { margin-top: 18px; font-size: 42px; font-weight: 800; } .assina p em { font-style: normal; color: #7CFC9A; }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, #ff7a59, #ffd27a); z-index: 30; }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <svg id="cena" viewBox="0 0 1080 1920">
+    <defs>
+      <linearGradient id="ceu" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b1850"/><stop offset=".35" stop-color="#7b3b8f"/><stop offset=".62" stop-color="#e2668a"/><stop offset=".8" stop-color="#ff9a6a"/><stop offset="1" stop-color="#ffc77a"/></linearGradient>
+      <linearGradient id="mar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a4d9e"/><stop offset="1" stop-color="#2a1d5c"/></linearGradient>
+      <linearGradient id="areia" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2b98e"/><stop offset="1" stop-color="#c98a6e"/></linearGradient>
+      <radialGradient id="sol"><stop offset="0" stop-color="#fff2b0"/><stop offset=".6" stop-color="#ffd27a"/><stop offset="1" stop-color="#ff9a6a" stop-opacity="0"/></radialGradient>
+      <linearGradient id="tv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7b3b8f"/><stop offset=".6" stop-color="#e2668a"/><stop offset="1" stop-color="#ffc77a"/></linearGradient>
+    </defs>
+    <g id="mundo">
+      <rect x="-300" y="-300" width="1680" height="1400" fill="url(#ceu)"/>
+      <circle id="sol" cx="540" cy="1010" r="260" fill="url(#sol)"/>
+      <circle cx="540" cy="1010" r="130" fill="#ffe08a"/>
+      <g id="pred2" fill="#5b2f74"></g>
+      <g id="pred1" fill="#43245f"></g>
+      <rect x="-300" y="1060" width="1680" height="160" fill="url(#mar)"/>
+      <g id="brilhos"></g>
+      <rect x="-300" y="1200" width="1680" height="1000" fill="url(#areia)"/>
+      <rect x="0" y="1200" width="1080" height="10" fill="#ffd9b0" opacity=".6"/>
+      <ellipse id="sombraM" cx="790" cy="1212" rx="260" ry="22" fill="#3a1f3f" opacity="0"/>
+      <g id="lancha"></g>
+      <g id="mansao"></g>
+      <g id="heli"></g>
+      <ellipse id="sombraC" cx="0" cy="1336" rx="200" ry="18" fill="#3a1f3f" opacity="0"/>
+      <g id="carro"></g>
+      <g id="palm"></g>
+    </g>
+    <g id="sala" opacity="0"></g>
+  </svg>
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+  <div class="serie">Especial</div>
+  <div class="titulo" id="titulo"><div class="l1">Quanto custa viver o GTA</div><div class="l2">na vida real?</div></div>
+  <div class="hud" id="hud"><div class="r">Gastos</div><div class="v" id="cont">R$ 0</div></div>
+  <div class="faixa" id="faixa"><div class="fundo"></div><div class="brilho" id="brilho"></div><b>MISSÃO CONCLUÍDA</b><span id="fsub">+1 MANSÃO</span></div>
+  <div class="txt" id="total"><div class="total"><small>TOTAL</small>R$ 134 MILHÕES</div></div>
+  <div class="txt" id="cel"><div class="cel"><div class="tela"><h4>Comentários</h4>
+    <div class="com" id="c1"><div class="av" style="background:#60a5fa"></div><div><b>@mari.souza</b><span>a mansão 🏠</span></div></div>
+    <div class="com" id="c2"><div class="av" style="background:#f472b6"></div><div><b>@joao.p</b><span>o helicóptero 🚁</span></div></div>
+    <div class="entrada"><span id="digita"></span><span style="color:#059669">➤</span></div>
+  </div></div></div>
+  <div class="txt assina" id="as"><img src="wordmark.svg" alt="Appliquei"><p>Mais números assim: <em>siga o Appliquei</em></p></div>
+  <div class="rodape" id="rodape">Preços de referência · dólar a R$ 5,78 · entretenimento · personagens fictícios</div>
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  function $(id) { return document.getElementById(id); }
+  const NS = 'http://www.w3.org/2000/svg';
+  function S(tag, at, pai) { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); (pai || $('cena')).appendChild(e); return e; }
+  const NAR = [[0.2, 4.91, "A partir de hoje, eu vou viver o GTA... na vida real!"], [5.1, 10.44, "Mansão de frente pro mar em Miami: uns cento e vinte e sete milhões de reais."], [10.64, 13.75, "O superesportivo italiano: dois milhões e meio."], [13.95, 16.35, "A lancha: quinhentos e oitenta mil."], [16.55, 21.01, "E o helicóptero, pra pousar no telhado: três milhões e setecentos mil."], [21.21, 24.36, "Total: cento e trinta e quatro milhões de reais."], [24.66, 29.43, "Ou quatrocentos e quarenta e nove e noventa pra viver tudo isso no sofá."], [29.63, 34.12, "E você, comprava o quê primeiro? Comenta. E segue o Appliquei."]];
+  const QUEM = ["B", "L", "L", "L", "L", "L", "B", "L"];
+  const DUR = +(NAR[NAR.length - 1][1] + 0.9).toFixed(2);
+  function em(i, palavra) { const [a, b, txt] = NAR[i], k = txt.indexOf(palavra); return a + (k < 0 ? 0 : k / txt.length) * (b - a); }
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const eOut = (x) => 1 - Math.pow(1 - x, 3);
+  const eIn = (x) => x * x * x;
+  const eIO = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+  const eBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  const lerp = (a, b, p) => a + (b - a) * p;
+  const falando = (t, quem) => NAR.some((n, i) => QUEM[i] === quem && t >= n[0] && t < n[1]);
+  const tam = {};
+  function poeTxt(id, x, y, s, r, o) {
+    const el = $(id);
+    if (!tam[id]) { el.style.display = 'block'; tam[id] = [el.offsetWidth, el.offsetHeight]; }
+    const [w, h] = tam[id];
+    el.style.opacity = o; el.style.display = o <= 0.001 ? 'none' : 'block';
+    el.style.transform = `translate(${(x - w / 2).toFixed(1)}px, ${(y - h / 2).toFixed(1)}px) rotate(${(r || 0).toFixed(2)}deg) scale(${s.toFixed(3)})`;
+  }
+  function vida(t, a, b) { const pe = eBack(prog(t, a, a + 0.4)), ps = eIn(prog(t, b, b + 0.3)); return { s: (0.4 + 0.6 * pe) * (1 - 0.25 * ps), o: t < a ? 0 : clamp(pe * 1.5, 0, 1) * (1 - ps), sai: ps }; }
+  const setTxt = (e, v) => { if (e.textContent !== v) e.textContent = v; };
+
+  // ---------- cenário ----------
+  // prédios (duas camadas, com janelas acesas)
+  [[0, 300], [110, 380], [230, 260], [320, 420], [450, 300], [560, 360], [660, 280], [760, 440], [880, 320], [980, 380]].forEach(([x, h], i) => {
+    S('rect', { x, y: 1060 - h, width: 100, height: h, rx: 6 }, $('pred2'));
+  });
+  [[40, 220], [170, 300], [300, 200], [610, 240], [740, 330], [900, 230]].forEach(([x, h]) => {
+    const g = S('g', {}, $('pred1'));
+    S('rect', { x, y: 1060 - h, width: 120, height: h, rx: 8 }, g);
+    for (let yy = 1060 - h + 24; yy < 1040; yy += 40) for (let xx = x + 18; xx < x + 110; xx += 34) S('rect', { x: xx, y: yy, width: 16, height: 18, fill: ((xx * 7 + yy * 13) % 10) < 4.5 ? '#ffd27a' : '#5b2f74', opacity: 0.85 }, g);
+  });
+  for (let i = 0; i < 14; i++) S('rect', { x: 360 + (i % 7) * 50, y: 1080 + Math.floor(i / 7) * 34 + (i % 3) * 8, width: 40 + (i % 3) * 20, height: 5, rx: 3, fill: '#ffd9a0', class: 'br' }, $('brilhos'));
+  // palmeiras
+  function palmeira(x, y, s, flip) {
+    const g = S('g', { transform: `translate(${x},${y}) scale(${flip ? -s : s},${s})` }, $('palm'));
+    S('path', { d: 'M0,0 C10,-120 -10,-260 30,-400', stroke: '#2a1640', 'stroke-width': 26, fill: 'none', 'stroke-linecap': 'round' }, g);
+    const copa = S('g', { transform: 'translate(30,-400)', class: 'copa' }, g);
+    [[-160, 40], [-110, -50], [-30, -90], [60, -80], [140, 0], [160, 60], [-170, 100]].forEach(([dx, dy]) => S('path', { d: `M0,0 Q${dx * 0.5},${dy - 60} ${dx},${dy}`, stroke: '#2a1640', 'stroke-width': 20, fill: 'none', 'stroke-linecap': 'round' }, copa));
+    return copa;
+  }
+  const copas = [palmeira(70, 1260, 1.15, false), palmeira(1010, 1240, 1.0, true), palmeira(190, 1230, 0.75, true)];
+
+  // mansão (sobe em partes)
+  const M = $('mansao');
+  const mBase = S('g', {}, M);
+  S('rect', { x: 560, y: 1000, width: 440, height: 200, rx: 6, fill: '#f6efe6' }, mBase);
+  S('rect', { x: 600, y: 900, width: 330, height: 110, rx: 6, fill: '#efe5d8' }, mBase);
+  S('rect', { x: 540, y: 990, width: 480, height: 16, rx: 4, fill: '#d9c9b6' }, mBase);
+  S('rect', { x: 585, y: 890, width: 360, height: 14, rx: 4, fill: '#d9c9b6' }, mBase);
+  const janelas = [];
+  [[590, 1030, 120, 120], [730, 1030, 120, 120], [870, 1030, 110, 120], [625, 920, 130, 70], [775, 920, 130, 70]].forEach(([x, y, w, h]) => janelas.push(S('rect', { x, y, width: w, height: h, rx: 4, fill: '#6fb7d6' }, mBase)));
+  const piscina = S('rect', { x: 600, y: 1206, width: 360, height: 0, rx: 10, fill: '#4fd3e8' }, M);
+
+  // carro esportivo genérico (amarelo)
+  const C = $('carro');
+  S('path', { d: 'M-190,0 L-170,-40 L-80,-62 L20,-92 L120,-80 L190,-40 L200,0 Z', fill: '#ffcc1a', stroke: '#b38600', 'stroke-width': 4 }, C);
+  S('path', { d: 'M-40,-64 L20,-86 L100,-76 L130,-50 Z', fill: '#2a1640', opacity: 0.85 }, C);
+  S('rect', { x: -200, y: -12, width: 400, height: 16, rx: 8, fill: '#2a1640' }, C);
+  const rodas = [S('g', {}, C), S('g', {}, C)];
+  rodas.forEach((r, i) => { S('circle', { cx: 0, cy: 0, r: 36, fill: '#1b1030' }, r); S('circle', { cx: 0, cy: 0, r: 16, fill: '#c9c3d6' }, r); S('line', { x1: -14, y1: 0, x2: 14, y2: 0, stroke: '#1b1030', 'stroke-width': 5 }, r); });
+  const farol = S('rect', { x: 182, y: -36, width: 14, height: 10, rx: 4, fill: '#fff6c0' }, C);
+  const fumaca = S('g', {}, C);
+  for (let i = 0; i < 4; i++) S('circle', { cx: -200 - i * 40, cy: -10, r: 20 + i * 8, fill: '#fff', opacity: 0.25, class: 'fu' }, fumaca);
+
+  // lancha
+  const L = $('lancha');
+  S('path', { d: 'M-150,0 L150,0 L190,-36 L-130,-36 Z', fill: '#fff' }, L);
+  S('path', { d: 'M-150,0 L150,0 L170,-18 L-140,-18 Z', fill: '#3b5bdb' }, L);
+  S('path', { d: 'M-40,-36 L30,-36 L10,-70 L-30,-70 Z', fill: '#d5dcf5' }, L);
+  const espuma = S('g', {}, L);
+  for (let i = 0; i < 5; i++) S('ellipse', { cx: -170 - i * 45, cy: -4, rx: 30 + i * 6, ry: 8, fill: '#fff', opacity: 0.6 - i * 0.1 }, espuma);
+
+  // helicóptero
+  const H = $('heli');
+  S('ellipse', { cx: 0, cy: 0, rx: 90, ry: 55, fill: '#e2668a', stroke: '#8a2d55', 'stroke-width': 5 }, H);
+  S('ellipse', { cx: 34, cy: -6, rx: 44, ry: 34, fill: '#bfe8f5' }, H);
+  S('rect', { x: -220, y: -14, width: 150, height: 22, rx: 11, fill: '#e2668a' }, H);
+  S('rect', { x: -232, y: -50, width: 18, height: 62, rx: 8, fill: '#8a2d55' }, H);
+  S('line', { x1: -60, y1: 70, x2: 80, y2: 70, stroke: '#2a1640', 'stroke-width': 8, 'stroke-linecap': 'round' }, H);
+  S('line', { x1: -30, y1: 50, x2: -40, y2: 70, stroke: '#2a1640', 'stroke-width': 6 }, H); S('line', { x1: 40, y1: 50, x2: 50, y2: 70, stroke: '#2a1640', 'stroke-width': 6 }, H);
+  S('rect', { x: -6, y: -74, width: 12, height: 22, fill: '#2a1640' }, H);
+  const helice = S('rect', { x: -170, y: -82, width: 340, height: 10, rx: 5, fill: '#2a1640', opacity: 0.8 }, H);
+
+  // sala (cena do sofá)
+  const SALA = $('sala');
+  S('rect', { x: 0, y: 0, width: 1080, height: 1920, fill: '#2b1a45' }, SALA);
+  S('rect', { x: 0, y: 1250, width: 1080, height: 670, fill: '#3a2456' }, SALA);
+  S('rect', { x: 180, y: 520, width: 720, height: 420, rx: 24, fill: '#0e0820' }, SALA);
+  S('rect', { x: 200, y: 540, width: 680, height: 380, rx: 14, fill: 'url(#tv)' }, SALA);
+  S('circle', { cx: 540, cy: 870, r: 70, fill: '#ffe08a' }, SALA);
+  S('rect', { x: 200, y: 860, width: 680, height: 60, fill: '#2a1d5c', opacity: 0.8 }, SALA);
+  S('rect', { x: 500, y: 940, width: 80, height: 50, fill: '#0e0820' }, SALA);
+  S('rect', { x: 150, y: 1180, width: 780, height: 160, rx: 40, fill: '#c2410c' }, SALA);
+  S('rect', { x: 120, y: 1120, width: 120, height: 220, rx: 40, fill: '#9a3412' }, SALA);
+  S('rect', { x: 840, y: 1120, width: 120, height: 220, rx: 40, fill: '#9a3412' }, SALA);
+  S('rect', { x: 170, y: 1070, width: 740, height: 140, rx: 40, fill: '#ea580c' }, SALA);
+
+  const BON = {};
+  function boneco(id, camisa, cabelo) {
+    const g = S('g', { id });
+    const L = (cor, w) => S('line', { stroke: cor, 'stroke-width': w, 'stroke-linecap': 'round' }, g);
+    const b = { g, pe: [L('#1f2937', 22), L('#1f2937', 22), L('#1f2937', 22), L('#1f2937', 22)] };
+    b.tronco = S('rect', { x: -42, y: -235, width: 84, height: 125, rx: 34, fill: camisa }, g);
+    b.br = [L('#f2dcc4', 18), L('#f2dcc4', 18), L('#f2dcc4', 18), L('#f2dcc4', 18)];
+    b.cab = S('g', {}, g);
+    if (cabelo === 'lia') S('ellipse', { cx: 34, cy: -282, rx: 20, ry: 34, fill: '#3b2416' }, b.cab);
+    S('circle', { cx: 0, cy: -280, r: 48, fill: '#f2dcc4' }, b.cab);
+    if (cabelo === 'lia') S('path', { d: 'M-48,-282 C-50,-340 50,-345 48,-282 C30,-312 -20,-318 -48,-282 Z', fill: '#3b2416' }, b.cab);
+    else S('path', { d: 'M-46,-290 L-40,-322 L-24,-312 L-14,-334 L2,-316 L16,-336 L26,-314 L42,-322 L46,-290 C20,-306 -20,-306 -46,-290 Z', fill: '#1f2937' }, b.cab);
+    b.ol = [S('circle', { cx: -17, cy: -282, r: 6, fill: '#111' }, b.cab), S('circle', { cx: 17, cy: -282, r: 6, fill: '#111' }, b.cab)];
+    b.sob = [S('line', { stroke: '#3b2416', 'stroke-width': 5, 'stroke-linecap': 'round' }, b.cab), S('line', { stroke: '#3b2416', 'stroke-width': 5, 'stroke-linecap': 'round' }, b.cab)];
+    b.boca = S('path', { fill: 'none', stroke: '#7a2e1f', 'stroke-width': 5, 'stroke-linecap': 'round' }, b.cab);
+    BON[id] = b; return b;
+  }
+  const rad = (d) => (d * Math.PI) / 180;
+  function membro(seg, x, y, a1, a2, l1, l2) {
+    const x1 = x + Math.sin(rad(a1)) * l1, y1 = y + Math.cos(rad(a1)) * l1;
+    const x2 = x1 + Math.sin(rad(a1 + a2)) * l2, y2 = y1 + Math.cos(rad(a1 + a2)) * l2;
+    seg[0].setAttribute('x1', x); seg[0].setAttribute('y1', y); seg[0].setAttribute('x2', x1); seg[0].setAttribute('y2', y1);
+    seg[1].setAttribute('x1', x1); seg[1].setAttribute('y1', y1); seg[1].setAttribute('x2', x2); seg[1].setAttribute('y2', y2);
+  }
+  // p: { x, y, s, dir (1/-1), o, perna:[e1,e2,d1,d2], braco:[e1,e2,d1,d2], tronco, humor ('ok'|'preocupado'|'feliz'), fala (bool), t }
+  function pose(id, p) {
+    const b = BON[id];
+    b.g.setAttribute('transform', `translate(${p.x.toFixed(1)},${p.y.toFixed(1)}) scale(${(p.s * (p.dir || 1)).toFixed(3)},${p.s.toFixed(3)}) rotate(${(p.tronco || 0).toFixed(1)} 0 -110)`);
+    b.g.setAttribute('opacity', p.o);
+    b.g.style.display = p.o <= 0.001 ? 'none' : 'inline';
+    const pr = p.perna || [0, 0, 0, 0], br = p.braco || [10, 10, -10, -10];
+    membro([b.pe[0], b.pe[1]], -16, -115, pr[0], pr[1], 58, 58);
+    membro([b.pe[2], b.pe[3]], 16, -115, pr[2], pr[3], 58, 58);
+    membro([b.br[0], b.br[1]], -40, -215, 180 - br[0] - 180, br[1], 52, 50);
+    membro([b.br[2], b.br[3]], 40, -215, br[2], br[3], 52, 50);
+    const h = p.humor || 'ok';
+    const sb = h === 'preocupado' ? [[-30, -306, -6, -298], [6, -298, 30, -306]] : h === 'feliz' ? [[-30, -302, -6, -306], [6, -306, 30, -302]] : [[-30, -302, -6, -302], [6, -302, 30, -302]];
+    b.sob.forEach((l, i) => { l.setAttribute('x1', sb[i][0]); l.setAttribute('y1', sb[i][1]); l.setAttribute('x2', sb[i][2]); l.setAttribute('y2', sb[i][3]); });
+    const ab = p.fala ? 4 + 10 * Math.abs(Math.sin(p.t * 17)) : 0;
+    if (p.fala) b.boca.setAttribute('d', `M-14,-256 Q0,${-256 + ab * 1.6} 14,-256 Q0,${-256 - ab * 0.3} -14,-256 Z`), b.boca.setAttribute('fill', '#7a2e1f');
+    else { b.boca.setAttribute('fill', 'none'); b.boca.setAttribute('d', h === 'preocupado' ? 'M-16,-250 Q-8,-258 0,-252 Q8,-246 16,-254' : h === 'feliz' ? 'M-18,-258 Q0,-238 18,-258' : 'M-14,-254 Q0,-248 14,-254'); }
+    b.cab.setAttribute('transform', `rotate(${(p.cabeca || 0).toFixed(1)} 0 -240)`);
+  }
+  // ciclos prontos
+  const anda = (t, v) => { const f = Math.sin(t * (v || 9)); return { perna: [25 * f, 10 + 20 * Math.max(0, -f), -25 * f, 10 + 20 * Math.max(0, f)], braco: [-25 * f, -20, 25 * f, 20], bob: Math.abs(f) * 8 }; };
+  const parado = (t) => ({ perna: [4, 0, -4, 0], braco: [12 + 3 * Math.sin(t * 2), 8, -12 - 3 * Math.sin(t * 2), -8], bob: 2 * Math.sin(t * 2.5) });
+
+  const sB = S('ellipse', { rx: 70, ry: 12, fill: '#3a1f3f', opacity: 0.45 }), sL = S('ellipse', { rx: 60, ry: 10, fill: '#3a1f3f', opacity: 0.45 });
+  const BETO = boneco('beto', '#ef4444', 'beto'), LIA = boneco('lia', '#10b981', 'lia');
+  // óculos escuros do Beto
+  const oc = S('g', {}, BETO.cab);
+  S('rect', { x: -38, y: -292, width: 32, height: 20, rx: 8, fill: '#111' }, oc); S('rect', { x: 6, y: -292, width: 32, height: 20, rx: 8, fill: '#111' }, oc); S('line', { x1: -6, y1: -286, x2: 6, y2: -286, stroke: '#111', 'stroke-width': 4 }, oc);
+  // controle na mão (cena do sofá)
+  const controle = S('g', {}); S('rect', { x: -44, y: -20, width: 88, height: 40, rx: 20, fill: '#1b1030' }, controle); S('circle', { cx: 22, cy: -4, r: 6, fill: '#7CFC9A' }, controle); S('circle', { cx: -22, cy: 0, r: 7, fill: '#555' }, controle);
+  const estrelas = S('g', {}); for (let i = 0; i < 3; i++) S('text', { x: 0, y: 0, 'font-size': 40, fill: '#ffd27a', 'text-anchor': 'middle', class: 'est' }, estrelas).textContent = '★';
+
+  const COMPRAS = [
+    { n: 'MANSÃO', v: 127000000, i: 1, p: 'Mansão' }, { n: 'CARRO', v: 2550000, i: 2, p: 'superesportivo' },
+    { n: 'LANCHA', v: 577000, i: 3, p: 'lancha' }, { n: 'HELICÓPTERO', v: 3734000, i: 4, p: 'helicóptero' },
+  ];
+  const brl = (v) => 'R$ ' + Math.round(v).toLocaleString('pt-BR');
+
+  function render(t) {
+    const T = (i) => NAR[i][0];
+    const SOFA = T(6) - 0.1, FIM = T(7) - 0.15;
+    const ct = COMPRAS.map((c) => em(c.i, c.p) + 0.2);
+    // câmera: deriva lateral (paralaxe) e "soco" a cada compra
+    let soco = 0; ct.forEach((a) => { soco += 0.04 * (1 - eOut(prog(t, a, a + 0.3))) * (t >= a ? 1 : 0); });
+    const pan = 20 * Math.sin(t * 0.35);
+    const abre = eIO(prog(t, T(5), T(5) + 0.8)); // plano aberto no total
+    $('mundo').setAttribute('transform', `translate(540,1100) scale(${1 + soco - 0.08 * abre}) translate(-540,-1100) translate(${pan},0)`);
+    $('pred2').setAttribute('transform', `translate(${-pan * 0.6},0)`);
+    $('pred1').setAttribute('transform', `translate(${-pan * 0.3},0)`);
+    $('sol').setAttribute('r', 250 + 12 * Math.sin(t * 1.5));
+    document.querySelectorAll('.br').forEach((b, i) => b.setAttribute('opacity', 0.3 + 0.5 * Math.abs(Math.sin(t * 2 + i))));
+    const ventoH = t > ct[3] - 1 && t < ct[3] + 1.5 ? 10 * Math.sin(t * 20) : 0;
+    copas.forEach((c, i) => c.setAttribute('transform', `translate(30,-400) rotate(${4 * Math.sin(t * 1.4 + i) + ventoH})`));
+
+    // mansão: base sobe, janelas acendem, piscina enche
+    const m0 = ct[0] - 0.6;
+    const ms = eBack(prog(t, m0, m0 + 0.6));
+    mBase.setAttribute('transform', `translate(0,${(1 - ms) * 420})`); mBase.setAttribute('opacity', t >= m0 ? 1 : 0);
+    janelas.forEach((j, i) => j.setAttribute('fill', t > m0 + 0.5 + i * 0.08 ? '#ffe08a' : '#6fb7d6'));
+    piscina.setAttribute('height', 40 * eOut(prog(t, m0 + 0.6, m0 + 1.1)));
+    // carro: entra derrapando da direita
+    const c0 = ct[1] - 0.6, cq = eOut(prog(t, c0, c0 + 0.6));
+    C.setAttribute('transform', `translate(${lerp(1400, 340, cq)},1330) rotate(${(1 - cq) * -4 + (cq > 0.95 && t < c0 + 0.9 ? 2 * Math.sin(t * 40) : 0)})`);
+    C.setAttribute('opacity', t >= c0 ? 1 : 0);
+    rodas[0].setAttribute('transform', `translate(-120,4) rotate(${-t * 900 * (1 - cq)})`); rodas[1].setAttribute('transform', `translate(120,4) rotate(${-t * 900 * (1 - cq)})`);
+    fumaca.setAttribute('opacity', cq < 1 ? 1 : 1 - prog(t, c0 + 0.6, c0 + 1.4)); fumaca.setAttribute('transform', `translate(${(1 - cq) * 0 + 400},0) scale(-1,1)`);
+    farol.setAttribute('opacity', t > c0 + 0.6 && t < c0 + 1.2 ? (Math.floor(t * 8) % 2) : 1);
+    // lancha: corta o mar e salta
+    const l0 = ct[2] - 0.6, lq = prog(t, l0, l0 + 1.4);
+    const lx = t < l0 ? -400 : t < l0 + 1.4 ? lerp(-300, 380, eOut(lq)) : 380 + Math.sin(t) * 10;
+    const salto = t >= l0 && t < l0 + 1.4 ? -40 * Math.max(0, Math.sin(lq * Math.PI * 2)) : 0;
+    L.setAttribute('transform', `translate(${lx},${1150 + salto}) scale(.8) rotate(${salto ? -4 : Math.sin(t * 3)})`);
+    L.setAttribute('opacity', t >= l0 ? 1 : 0);
+    // helicóptero: desce e pousa no telhado
+    const h0 = ct[3] - 1.0, hq = eOut(prog(t, h0, h0 + 1.0));
+    H.setAttribute('transform', `translate(${lerp(1000, 770, hq)},${lerp(300, 820, hq)}) rotate(${(1 - hq) * -8})`);
+    H.setAttribute('opacity', t >= h0 ? 1 : 0);
+    helice.setAttribute('transform', `scale(${Math.cos(t * 30)},1)`);
+
+    $('sombraM').setAttribute('opacity', 0.35 * clamp(ms, 0, 1));
+    $('sombraC').setAttribute('cx', lerp(1400, 340, cq)); $('sombraC').setAttribute('opacity', t >= c0 ? 0.4 : 0);
+    // contador
+    let gasto = 0; COMPRAS.forEach((c, i) => { gasto += c.v * eOut(prog(t, ct[i], ct[i] + 0.7)); });
+    if (t >= SOFA) gasto = lerp(133861000, 449.9, eIO(prog(t, em(6, 'quatrocentos'), em(6, 'quatrocentos') + 1.0)));
+    setTxt($('cont'), brl(gasto).replace('R$ 450', 'R$ 449,90'));
+    if (t >= SOFA && prog(t, em(6, 'quatrocentos'), em(6, 'quatrocentos') + 1.0) >= 1) setTxt($('cont'), 'R$ 449,90');
+    $('hud').style.transform = `scale(${1 + 0.12 * Math.max(0, ...ct.map((a) => (t > a && t < a + 0.4 ? Math.sin(((t - a) / 0.4) * Math.PI) : 0)))})`;
+    $('hud').style.transformOrigin = 'right center';
+    $('hud').style.opacity = t < FIM ? 1 : 1 - prog(t, FIM, FIM + 0.3);
+
+    // faixa MISSÃO CONCLUÍDA
+    let fa = -1; ct.forEach((a, i) => { if (t >= a && t < a + 1.6) fa = i; });
+    const fs = em(6, 'sofá');
+    if (t >= fs && t < fs + 2) fa = 9;
+    if (fa >= 0) {
+      const a = fa === 9 ? fs : ct[fa], q = eBack(prog(t, a, a + 0.3)), s2 = eIn(prog(t, a + (fa === 9 ? 1.7 : 1.3), a + (fa === 9 ? 2 : 1.6)));
+      $('faixa').style.opacity = clamp(q, 0, 1) * (1 - s2);
+      $('faixa').style.transform = `translateY(${fa === 9 ? 300 : 0}px) scale(${1.4 - 0.4 * q})`;
+      $('brilho').style.left = (lerp(-200, 1200, prog(t, a + 0.2, a + 0.9))) + 'px';
+      setTxt($('fsub'), fa === 9 ? 'R$ 449,90 · NO SOFÁ' : '+1 ' + COMPRAS[fa].n);
+    } else $('faixa').style.opacity = 0;
+
+    // total
+    const vt = vida(t, em(5, 'Total') + 0.1, SOFA - 0.1);
+    poeTxt('total', 540, 680, vt.s * (1 + 0.03 * Math.sin(t * 20) * prog(t, T(5), T(5) + 0.4)), -3, vt.o);
+
+    // sala
+    const sOn = t >= SOFA && t < FIM + 0.1;
+    $('sala').setAttribute('opacity', sOn ? 1 : 0);
+    $('mundo').style.display = sOn ? 'none' : 'inline';
+    $('titulo').style.opacity = t < FIM ? 1 : 1 - prog(t, FIM, FIM + 0.3);
+    $('rodape').style.opacity = t < em(7, 'E segue') ? 1 : 0;
+
+    // Beto
+    {
+      let x = -200, y = 1420, s = 1, o = 1, p = parado(t), humor = 'feliz', tronco = 0, cab = 0;
+      if (t < SOFA) {
+        x = lerp(-150, 260, eOut(prog(t, 0, 0.7))); if (t < 0.7) p = anda(t, 10);
+        if (t >= 0.7 && t < T(1)) { p = { perna: [10, 0, -10, 0], braco: [40, -110, -40, 110], bob: 0 }; tronco = -4; } // braços cruzados, pose de durão
+        ct.forEach((a) => { if (t >= a && t < a + 0.8) { p = { perna: [8, 0, -8, 0], braco: [-150, -10, 150, 10], bob: 6 * Math.abs(Math.sin(t * 12)) }; } });
+        if (t >= T(5)) { // desmaia para trás
+          const q = eIn(prog(t, em(5, 'cento'), em(5, 'cento') + 0.5));
+          tronco = -85 * q; humor = 'preocupado'; y = 1420 + 10 * q;
+          p = { perna: [0, 0, 0, 0], braco: [-80 * q, 0, 80 * q, 0], bob: 0 };
+          estrelas.setAttribute('opacity', q >= 1 ? 1 : 0);
+          [...estrelas.children].forEach((e, i) => { const an = t * 5 + i * 2.1; e.setAttribute('x', x - 230 + 40 * Math.cos(an)); e.setAttribute('y', y - 60 + 14 * Math.sin(an)); });
+        } else estrelas.setAttribute('opacity', 0);
+        controle.setAttribute('opacity', 0);
+      } else if (t < FIM) {
+        x = 540; y = 1300; humor = 'feliz'; estrelas.setAttribute('opacity', 0);
+        p = { perna: [-80, 80, -70, 80], braco: [-20, -60 + 8 * Math.sin(t * 12), 20, 60 - 8 * Math.sin(t * 12)], bob: 0 };
+        controle.setAttribute('opacity', 1); controle.setAttribute('transform', `translate(${540},${1300 - 175 + 4 * Math.sin(t * 12)})`);
+      } else { o = 1 - prog(t, FIM, FIM + 0.3); x = 540; y = 1260; controle.setAttribute('opacity', 0); estrelas.setAttribute('opacity', 0); }
+      sB.setAttribute('cx', x); sB.setAttribute('cy', y + 4); sB.setAttribute('opacity', t < SOFA && o > 0 ? 0.45 : 0);
+      pose('beto', { x, y: y - p.bob, s, dir: 1, o, perna: p.perna, braco: p.braco, humor, fala: falando(t, 'B'), t, tronco, cabeca: cab });
+    }
+    // Lia: narradora, aparece no canto durante as compras
+    {
+      const vin = prog(t, T(1) - 0.3, T(1) + 0.3), vout = prog(t, SOFA - 0.3, SOFA);
+      const p = parado(t);
+      const xl = lerp(1250, 950, eOut(vin)) + 300 * eIn(vout); sL.setAttribute('cx', xl); sL.setAttribute('cy', 1444); sL.setAttribute('opacity', t >= T(1) - 0.3 && t < SOFA ? 0.4 : 0);
+      pose('lia', { x: lerp(1250, 950, eOut(vin)) + 300 * eIn(vout), y: 1440 - p.bob, s: 0.8, dir: -1, o: t >= T(1) - 0.3 && t < SOFA ? 1 : 0, perna: p.perna, braco: falando(t, 'L') ? [12, 8, -100 + 10 * Math.sin(t * 6), -20] : p.braco, humor: 'feliz', fala: falando(t, 'L'), t });
+    }
+
+    // comentários e assinatura
+    const vc = vida(t, FIM, DUR + 1); poeTxt('cel', 540, lerp(1500, 820, eOut(prog(t, FIM, FIM + 0.5))), 1, 0, vc.o);
+    $('c1').style.opacity = prog(t, FIM + 0.4, FIM + 0.7); $('c2').style.opacity = prog(t, FIM + 0.9, FIM + 1.2);
+    const tc = em(7, 'Comenta'), alvo = 'a lancha 🚤', nch = Math.floor(prog(t, tc - 0.6, tc + 0.8) * ([...alvo].length + 1));
+    $('digita').innerHTML = (nch ? [...alvo].slice(0, nch).join('') : '<span style="color:#9fb3aa">Adicione um comentário…</span>') + (Math.floor(t * 3) % 2 ? '<i></i>' : '');
+    const vas = vida(t, em(7, 'E segue'), DUR + 1); poeTxt('as', 540, 1300, vas.s, 0, vas.o);
+    if (t >= FIM) { $('cena').style.opacity = 1 - 0.6 * prog(t, FIM, FIM + 0.3); }
+    $('logoFixo').style.opacity = t < em(7, 'E segue') - 0.3 ? 1 : 1 - prog(t, em(7, 'E segue') - 0.3, em(7, 'E segue'));
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>

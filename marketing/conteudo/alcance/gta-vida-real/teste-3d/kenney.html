@@ -1,0 +1,98 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #000; font-family: 'Figtree', sans-serif; }
+  canvas { position: absolute; left: 0; top: 0; }
+  .ui { position: absolute; inset: 0; pointer-events: none; color: #fff; }
+  .logo { position: absolute; left: 60px; top: 60px; width: 200px; }
+  .serie { position: absolute; right: 60px; top: 60px; padding: 10px 20px; border-radius: 99px; background: rgba(26,16,48,.55); border: 2px solid rgba(255,210,122,.7); font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .12em; color: #ffd27a; }
+  .titulo { position: absolute; left: 0; right: 0; top: 200px; text-align: center; font-weight: 900; text-transform: uppercase; line-height: 1.02; text-shadow: 0 6px 0 rgba(40,16,70,.6), 0 10px 30px rgba(0,0,0,.45); }
+  .titulo div { font-size: 70px; } .titulo .l2 { color: #ffd27a; }
+  .hud { position: absolute; right: 60px; top: 400px; text-align: right; }
+  .hud .r { font-family: 'DM Mono', monospace; font-size: 26px; letter-spacing: .14em; color: rgba(255,255,255,.85); }
+  .hud .v { font-weight: 900; font-style: italic; font-size: 64px; color: #7CFC9A; text-shadow: 0 4px 0 #0b3d1f, 0 0 26px rgba(124,252,154,.45); }
+  .faixa { position: absolute; left: 0; right: 0; top: 540px; height: 190px; text-align: center; }
+  .faixa .fundo { position: absolute; left: -40px; right: -40px; top: 20px; height: 150px; background: rgba(20,8,36,.72); transform: skewY(-3deg); border-top: 4px solid #ffd27a; border-bottom: 4px solid #ffd27a; }
+  .faixa b { position: relative; display: block; padding-top: 30px; font-size: 92px; font-weight: 900; font-style: italic; color: #ffd27a; text-shadow: 0 5px 0 #7a3a00; transform: skewY(-3deg); }
+  .faixa span { position: relative; display: block; font-size: 42px; font-weight: 900; transform: skewY(-3deg); margin-top: -4px; }
+  .rodape { position: absolute; left: 60px; right: 60px; top: 1478px; text-align: center; font-size: 24px; color: rgba(255,255,255,.85); text-shadow: 0 2px 6px rgba(0,0,0,.7); }
+</style>
+<script type="importmap">{ "imports": { "three": "./three.module.js", "three/addons/": "./jsm/" } }</script>
+</head><body>
+<div class="ui">
+  <img class="logo" src="wordmark.svg">
+  <div class="serie">ESPECIAL</div>
+  <div class="titulo"><div>Quanto custa viver o GTA</div><div class="l2">na vida real?</div></div>
+  <div class="hud"><div class="r">Gastos</div><div class="v">R$ 127.000.000</div></div>
+  <div class="faixa"><div class="fundo"></div><b>MISSÃO CONCLUÍDA</b><span>+1 MANSÃO</span></div>
+  <div class="rodape">Teste 3D · modelos Kenney (CC0) · luz Poly Haven (CC0)</div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const W = 1080, H = 1920;
+const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+r.setSize(W, H); r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.0; r.outputColorSpace = THREE.SRGBColorSpace;
+r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.prepend(r.domElement);
+const s = new THREE.Scene();
+
+// céu de pôr do sol (degradê) + luz de uma foto 360° real (CC0)
+const c = document.createElement('canvas'); c.width = 4; c.height = 1024; const x = c.getContext('2d');
+const g = x.createLinearGradient(0, 0, 0, 1024);
+[[0, '#1e1040'], [0.3, '#55307e'], [0.52, '#b0477f'], [0.68, '#ef6f6f'], [0.8, '#ff9b62'], [1, '#ffd9a0']].forEach(([o, col]) => g.addColorStop(o, col));
+x.fillStyle = g; x.fillRect(0, 0, 4, 1024);
+const ceuT = new THREE.CanvasTexture(c); ceuT.colorSpace = THREE.SRGBColorSpace; s.background = ceuT;
+const hdr = await new RGBELoader().loadAsync('mod/venice_sunset_1k.hdr'); hdr.mapping = THREE.EquirectangularReflectionMapping; s.environment = hdr;
+s.fog = new THREE.Fog('#d0607c', 14, 40);
+s.add(new THREE.HemisphereLight('#ffc0a0', '#40285a', 0.6));
+const sol = new THREE.DirectionalLight('#ffb070', 3.0); sol.position.set(-8, 6, -6); sol.castShadow = true; sol.shadow.mapSize.set(4096, 4096);
+Object.assign(sol.shadow.camera, { left: -12, right: 12, top: 12, bottom: -12 }); sol.shadow.bias = -0.0005; s.add(sol);
+const frente = new THREE.DirectionalLight('#ffd6e8', 0.9); frente.position.set(4, 6, 10); s.add(frente);
+
+const gl = new GLTFLoader();
+const cache = {};
+async function mod(path) { if (!cache[path]) cache[path] = await gl.loadAsync('k/' + path); const o = cache[path].scene.clone(true); o.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } }); return o; }
+function put(o, x, y, z, ry = 0, sc = 1) { o.position.set(x, y, z); o.rotation.y = ry; o.scale.setScalar(sc); s.add(o); return o; }
+
+// chão: areia e calçada
+const areia = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshStandardMaterial({ color: '#f0b48a', roughness: 1 }));
+areia.rotation.x = -Math.PI / 2; areia.position.y = -0.01; areia.receiveShadow = true; s.add(areia);
+const mar = new THREE.Mesh(new THREE.PlaneGeometry(200, 60), new THREE.MeshStandardMaterial({ color: '#4b2d7a', roughness: 0.1, metalness: 0.9 }));
+mar.rotation.x = -Math.PI / 2; mar.position.set(0, -0.02, -38); s.add(mar);
+
+// rua com postes, calçada e prédios (kit cidade)
+for (let i = -4; i <= 4; i++) put(await mod(i % 2 ? 'city/road-straight-lightposts.glb' : 'city/road-straight.glb'), i, 0, 1, Math.PI / 2);
+for (let i = -4; i <= 4; i++) put(await mod('city/pavement.glb'), i, 0, 0);
+const predios = ['city/building-small-a.glb', 'city/building-small-c.glb', 'city/building-garage.glb', 'city/building-small-d.glb', 'city/building-small-b.glb'];
+for (let i = 0; i < 5; i++) put(await mod(predios[i]), -2 + i, 0, -1);
+for (let i = -4; i <= 4; i++) if (i < -2 || i > 2) put(await mod(i % 2 ? 'city/grass-trees-tall.glb' : 'city/grass-trees.glb'), i, 0, -1);
+put(await mod('city/pavement-fountain.glb'), 0, 0, -2);
+for (let i = -4; i <= 4; i++) put(await mod('city/grass-trees-tall.glb'), i, 0, -2 - (i === 0 ? 1 : 0));
+
+// carro na rua e personagens na calçada (kit corrida e plataforma)
+put(await mod('racing/vehicle-truck-yellow.glb'), 0.6, 0, 1.15, -Math.PI / 2 + 0.35, 0.42);
+const beto = put(await mod('plat/character.glb'), -0.75, 0, 2.6, 0.3, 0.42);
+const lia = put(await mod('plat/character.glb'), 0.85, 0, 2.7, -0.35, 0.4);
+lia.traverse((m) => { if (m.isMesh) { m.material = m.material.clone(); m.material.color = new THREE.Color('#9cf0c8'); } });
+// moedas voando (o dinheiro do "gastos")
+for (let i = 0; i < 9; i++) put(await mod('plat/coin.glb'), -2.4 + i * 0.6, 1.6 + Math.sin(i) * 0.35, 1.6 - (i % 3) * 0.4, i * 0.6, 0.35);
+for (let i = 0; i < 4; i++) put(await mod('plat/cloud.glb'), -6 + i * 4, 4.5 + (i % 2), -12 - i, 0, 0.9);
+
+const cam = new THREE.PerspectiveCamera(38, W / H, 0.1, 200);
+cam.position.set(0.4, 1.05, 7.4); cam.lookAt(0.1, 1.45, 0);
+const comp = new EffectComposer(r);
+comp.addPass(new RenderPass(s, cam));
+comp.addPass(new UnrealBloomPass(new THREE.Vector2(W, H), 0.3, 0.45, 0.92));
+comp.addPass(new OutputPass());
+comp.render();
+window.pronto = true;
+</script>
+</body></html>

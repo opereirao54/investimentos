@@ -60,16 +60,57 @@
   médio e de retenção pode ser da fonte, não da abertura.
 - Compart. 0,4%, curtidas 1,1% e comentários 0% marcados como "mais baixo".
 
-## Em teste a partir de qua 18/11 (News): legenda sincronizada
+## Em teste a partir de sex 20/11 (Explica): estilo @cafecomseudinheiro
 
-Aprovado pelo fundador em 16/11. As palavras da fala aparecem queimadas no
-vídeo, 2 a 4 por vez, com a palavra dita em verde (`legenda-tempos.py` +
-`LEGENDA=` no `render.js`). Só isso muda: abertura com número em movimento
-desde o quadro 0 e sem vinheta, como na gasolina e na Black Friday de 16/11.
-Hipótese: quem assiste sem som entende a história e não pula nos 2 primeiros
-segundos. Comparar taxa de pulados, curva nos 3 s, tempo médio e retenção com
-a gasolina (11,3 s, 32%, pulados 76%) e com a Black Friday de 16/11 (sem
-legenda). Vira padrão se bater a meta (10 s e 30%) e reduzir os pulados.
+Aprovado pelo fundador em 19/11, depois da gravação de tela do Reel deles:
+título fixo no topo, metáfora contínua (esteira), Beto e Lia desenhados com
+poses, números com rótulo, aviso fixo no rodapé, chamada demonstrada no
+celular e legenda leve. Primeiro Reel: "Seu salário some até o dia 10".
+Comparar com a gasolina (11,3 s, 32%), a Black Friday (3,4 s) e o 13º
+dinâmico de 18/11. Vira padrão se bater a meta (10 s e 30%).
+
+## Em teste a partir de qua 18/11 (News): formato novo, tudo junto
+
+Aprovado pelo fundador em 17/11, **as mudanças de uma vez** ("vamos
+testar; se não funcionar, retrocedemos"): (1) gancho falando com quem assiste
+("Se você ganha até cinco mil…"); (2) diálogo Lia (Sulafat) × Beto (Charon) sem narrador; (3) cortes a
+cada ~2–3 s com zoom no corte; (4) tela de celular (holerite). A imagem real
+no 1º segundo ficou para depois (sem banco de imagens nesta rede).
+
+Contexto: a Black Friday de 16/11 (número em movimento desde o quadro 0, sem
+vinheta, a receita da gasolina) caiu para **3,3 s** de tempo médio e 140
+views em ~27 h, o pior do perfil. A gasolina continua o único Reel acima da
+meta, e metade das views dela veio do compartilhamento do fundador nos
+stories.
+
+O conteúdo foi refeito em 18/11 com a conta em degraus por salário e a
+pergunta pessoal no fim (padrão da @cafecomseudinheiro, ver abaixo).
+
+A legenda sincronizada foi tirada pelo fundador antes de postar ("tira a
+legenda toda", 17/11: texto demais na tela); fica guardada no `render.js`.
+
+Como o teste junta quatro mudanças, o resultado diz se **o formato** funciona,
+não qual peça pesou. Comparar taxa de pulados, curva nos 3 s, tempo médio e
+retenção com a gasolina (11,3 s, 32%) e com a Black Friday (3,3 s). Se
+melhorar, o formato vira padrão e as peças podem ser tiradas uma a uma para
+achar a que pesa; se piorar, volta o formato anterior.
+
+## Referência: @cafecomseudinheiro (18/11, pela API business_discovery)
+
+684.896 seguidores; 200 posts de 30/10 a 18/11 (~10 por dia: 152
+carrosséis, 34 Reels, 14 imagens); mediana de 348 curtidas por Reel.
+
+- **Top 7 Reels (10 mil a 104 mil curtidas):** trechos de entrevistas com
+  milionários e famosos. Pessoa real, história, autoridade.
+- **Piores 5 (28 a 103 curtidas):** dicas com o mascote desenhado
+  ("Cafézinho"): fatura mínima, qual dívida pagar, "desconto de 50% não vale
+  nada se vira juros" (28 curtidas, quase o tema da nossa Black Friday).
+- **Munger e os primeiros 100 mil (17/11, 8.497 curtidas, 25× a mediana):**
+  frase de autoridade no gancho, sonho grande, conta em degraus, virada ("os
+  juros passam do aporte"), pergunta pessoal no fim.
+- **"Comente NOTÍCIA"** em 100% dos posts (resposta automática no Direct).
+
+Como repetir a consulta: `GET graph.facebook.com/v21.0/$IG_USER_ID?fields=business_discovery.username(<@>){media.limit(50){caption,like_count,comments_count,media_product_type,timestamp,permalink}}` com o `IG_TOKEN`.
 
 ## Revisão dos temas (16/11, 10 Reels, 18 seguidores)
 

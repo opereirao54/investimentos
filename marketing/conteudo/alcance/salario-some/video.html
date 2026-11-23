@@ -1,0 +1,301 @@
+<!doctype html>
+<!--
+  Appliquei Explica (≈38 s, 1080×1920): "Seu salário some até o dia 10".
+  Estilo @cafecomseudinheiro (título fixo, Beto e Lia desenhados, aviso no
+  rodapé, legenda leve). Metáfora escolhida pelo fundador em 19/11: a **tela do
+  banco no celular** (a esteira não ficou didática). O salário entra, as
+  notificações de cada conta pipocam e o saldo cai dia a dia até R$ 230; a
+  cena volta ao dia 5 e a Lia agenda 10% para a reserva antes de pagar
+  qualquer conta; a tela vira a reserva crescendo mês a mês até R$ 3.600.
+  Valores de exemplo; banco genérico, sem marca.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root { --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa; --sinal: #34d399; --primaria: #059669; --ambar: #fbbf24; --vermelho: #f87171; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: #0a120e; }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: radial-gradient(70% 45% at 50% 50%, #13261d 0%, #0a120e 70%, #070c09 100%); }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 200px; z-index: 20; }
+  .serie { position: absolute; right: 150px; top: 60px; padding: 10px 20px; border-radius: 99px; border: 2px solid rgba(52,211,153,.45); background: rgba(52,211,153,.12); font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .12em; text-transform: uppercase; color: var(--sinal); z-index: 20; }
+  .titulo { position: absolute; left: 0; right: 0; top: 215px; text-align: center; z-index: 15; font-weight: 900; text-transform: uppercase; line-height: 1.02; text-shadow: 0 6px 24px rgba(0,0,0,.6); }
+  .titulo .l1 { font-size: 78px; } .titulo .l2 { font-size: 78px; color: var(--ambar); }
+  .rodape { position: absolute; left: 60px; right: 60px; top: 1478px; text-align: center; font-size: 24px; color: rgba(240,250,244,.45); z-index: 15; }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); z-index: 30; }
+  svg#cena { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; z-index: 18; pointer-events: none; }
+  .txt { position: absolute; left: 0; top: 0; text-align: center; will-change: transform; opacity: 0; white-space: nowrap; z-index: 16; }
+
+  /* celular grande (~880 px) com o app do banco */
+  #fone { position: absolute; left: 100px; top: 420px; width: 880px; height: 930px; border-radius: 90px; background: #050807; border: 8px solid #2a3a33; box-shadow: 0 40px 100px rgba(0,0,0,.6); padding: 26px; z-index: 10; transform-origin: 50% 0; }
+  #fone .ilha { position: absolute; left: 50%; top: 40px; width: 190px; height: 40px; margin-left: -95px; border-radius: 20px; background: #050807; z-index: 3; }
+  #tela { position: relative; width: 100%; height: 100%; border-radius: 64px; background: #f4f6f5; color: #12241c; overflow: hidden; }
+  .app { position: absolute; inset: 0; padding: 92px 44px 30px; }
+  .ola { font-size: 34px; font-weight: 800; color: #51655b; }
+  .saldo-r { margin-top: 18px; font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .1em; text-transform: uppercase; color: #6b7d75; }
+  .saldo { font-weight: 900; font-size: 116px; letter-spacing: -.04em; line-height: 1.05; }
+  .dia { position: absolute; right: 44px; top: 150px; padding: 10px 24px; border-radius: 99px; background: #12241c; color: #fde68a; font-size: 36px; font-weight: 800; }
+  .ext { margin-top: 26px; font-size: 36px; font-weight: 900; color: #51655b; }
+  .item { display: flex; align-items: center; gap: 20px; height: 84px; border-bottom: 2px solid #e2e9e5; font-size: 44px; font-weight: 800; }
+  .item .ic { width: 64px; height: 64px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 38px; background: #e8efeb; flex: none; }
+  .item .nm { flex: 1; } .item .nm small { display: block; font-size: 26px; font-weight: 700; color: #7b8c84; margin-top: -4px; }
+  .item .vl { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 44px; }
+  .item.neg .vl { color: #b91c1c; } .item.pos .vl { color: #047857; }
+  .item.res { background: rgba(52,211,153,.22); border-radius: 20px; padding: 0 14px; margin: 0 -14px; border: none; }
+  .notif { position: absolute; left: 24px; right: 24px; top: 24px; padding: 22px 26px; border-radius: 34px; background: rgba(18,36,28,.95); color: #fff; display: flex; gap: 20px; align-items: center; box-shadow: 0 20px 40px rgba(0,0,0,.35); z-index: 5; }
+  .notif .ic { width: 70px; height: 70px; border-radius: 20px; background: #b91c1c; display: flex; align-items: center; justify-content: center; font-size: 40px; flex: none; }
+  .notif b { display: block; font-size: 36px; } .notif span { display: block; font-size: 30px; color: #c8d6cf; }
+  .toggle { display: inline-block; width: 110px; height: 60px; border-radius: 30px; background: #c9d5cf; position: relative; vertical-align: middle; }
+  .toggle i { position: absolute; top: 6px; left: 6px; width: 48px; height: 48px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.25); }
+  .barras { position: absolute; left: 44px; right: 44px; bottom: 60px; height: 360px; display: flex; align-items: flex-end; gap: 14px; }
+  .barras div { flex: 1; border-radius: 12px 12px 4px 4px; background: linear-gradient(180deg, #34d399, #059669); position: relative; height: 0; }
+  .barras div span { position: absolute; bottom: -40px; left: 0; right: 0; text-align: center; font-family: 'DM Mono', monospace; font-size: 22px; color: #6b7d75; }
+  .regra { width: 900px; padding: 30px 40px; border-radius: 40px; background: rgba(11,20,16,.95); border: 3px solid rgba(52,211,153,.6); box-shadow: 0 0 80px rgba(52,211,153,.2); }
+  .regra .r { font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .16em; text-transform: uppercase; color: var(--sinal); }
+  .regra b { display: block; margin-top: 12px; font-size: 66px; font-weight: 900; line-height: 1.08; } .regra b em { font-style: normal; color: var(--ambar); }
+  .com { display: flex; gap: 20px; align-items: center; margin-top: 30px; }
+  .com .av { width: 72px; height: 72px; border-radius: 50%; flex: none; }
+  .com b { display: block; font-size: 32px; color: #6b7d75; font-weight: 700; } .com span { display: block; font-size: 48px; font-weight: 800; }
+  .entrada { margin-top: 36px; display: flex; align-items: center; justify-content: space-between; padding: 22px 30px; border-radius: 99px; border: 3px solid #c9d5cf; font-size: 46px; font-weight: 700; }
+  .entrada i { display: inline-block; width: 4px; height: 50px; background: #059669; vertical-align: middle; margin-left: 4px; }
+  .assina img { width: 420px; } .assina p { margin-top: 20px; font-size: 42px; font-weight: 800; color: var(--deck); } .assina p em { font-style: normal; color: var(--sinal); }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+  <div class="serie">Appliquei Explica</div>
+  <div class="titulo" id="titulo"><div class="l1">Seu salário some</div><div class="l2">até o dia 10</div></div>
+
+  <div id="fone"><div class="ilha"></div><div id="tela">
+    <!-- app do banco -->
+    <div class="app" id="banco">
+      <div class="ola" id="ola">Olá, Beto 👋</div>
+      <div class="saldo-r">Saldo disponível</div>
+      <div class="saldo" id="saldo">R$ 0</div>
+      <div class="dia" id="dia">📅 dia 5</div>
+      <div class="ext">Extrato</div>
+      <div id="lista" style="overflow:hidden;max-height:520px;"></div>
+    </div>
+    <!-- reserva -->
+    <div class="app" id="reserva" style="opacity:0">
+      <div class="ola">Olá, Lia 👋</div>
+      <div class="saldo-r" style="color:#047857">Sua reserva</div>
+      <div class="saldo" id="vres" style="color:#047857">R$ 300</div>
+      <div class="ext" id="mres">Guardado em 1 mês</div>
+      <div class="barras" id="barras"></div>
+    </div>
+    <!-- comentários -->
+    <div class="app" id="coment" style="opacity:0">
+      <div class="ext" style="font-size:46px;color:#12241c">Comentários</div>
+      <div class="com" id="c1"><div class="av" style="background:#60a5fa"></div><div><b>@mari.souza</b><span>COMEÇO 💪</span></div></div>
+      <div class="com" id="c2"><div class="av" style="background:#f472b6"></div><div><b>@joao.p</b><span>FIM 😅</span></div></div>
+      <div class="entrada"><span id="digita"></span><span style="color:#059669">➤</span></div>
+    </div>
+    <div class="notif" id="notif" style="opacity:0"><div class="ic" id="nic">🏠</div><div><b id="nb">Aluguel pago</b><span id="ns">−R$ 900</span></div></div>
+  </div></div>
+
+  <div class="txt" id="interr"><span style="font-size:130px;font-weight:900;color:var(--ambar);text-shadow:0 6px 20px rgba(0,0,0,.6)">?!</span></div>
+  <div class="txt" id="regra"><div class="regra"><div class="r">Regra de bolso</div><b>Guarda <em>primeiro</em>,<br>gasta depois.</b></div></div>
+  <div class="txt assina" id="as"><img src="wordmark.svg" alt="Appliquei"><p>Mais contas assim: <em>siga o Appliquei</em></p></div>
+  <svg id="cena" viewBox="0 0 1080 1920"></svg>
+  <div class="rodape" id="rodape">Valores de exemplo · conteúdo educacional, sem recomendação · personagens fictícios</div>
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  function $(id) { return document.getElementById(id); }
+  const NS = 'http://www.w3.org/2000/svg';
+  function S(tag, at, pai) { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); (pai || $('cena')).appendChild(e); return e; }
+  const NAR = [[0.2, 3.65, "Seu salário cai no dia cinco. No dia dez, já sumiu."], [3.85, 5.2, "Mas pra onde vai?!"], [6.1, 14.13, "Olha o extrato: aluguel, cartão, contas, mercado, assinatura. O que sobra no fim é o que o Beto tenta guardar."], [14.33, 15.63, "E nunca sobra..."], [15.88, 23.08, "Eu faço ao contrário: no dia que cai, já mando dez por cento pra minha reserva, antes de pagar qualquer conta. Trezentos reais."], [23.28, 27.01, "Em um ano, três mil e seiscentos guardados. Sem esperar sobrar."], [27.31, 30.35, "Regra de bolso: guarda primeiro, gasta depois."], [30.6, 36.71, "E você, guarda no começo ou no fim do mês? Comenta começo ou fim. E segue o Appliquei."]];
+  const QUEM = ["L", "B", "L", "B", "L", "L", "L", "L"];
+  const DUR = +(NAR[NAR.length - 1][1] + 0.9).toFixed(2);
+  function em(i, palavra) { const [a, b, txt] = NAR[i], k = txt.indexOf(palavra); return a + (k < 0 ? 0 : k / txt.length) * (b - a); }
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const eOut = (x) => 1 - Math.pow(1 - x, 3);
+  const eIn = (x) => x * x * x;
+  const eIO = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+  const eBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  const lerp = (a, b, p) => a + (b - a) * p;
+  const falando = (t, quem) => NAR.some((n, i) => QUEM[i] === quem && t >= n[0] && t < n[1]);
+  const tam = {};
+  function poeTxt(id, x, y, s, r, o) {
+    const el = $(id);
+    if (!tam[id]) { el.style.display = 'block'; tam[id] = [el.offsetWidth, el.offsetHeight]; }
+    const [w, h] = tam[id];
+    el.style.opacity = o; el.style.display = o <= 0.001 ? 'none' : 'block';
+    el.style.transform = `translate(${(x - w / 2).toFixed(1)}px, ${(y - h / 2).toFixed(1)}px) rotate(${(r || 0).toFixed(2)}deg) scale(${s.toFixed(3)})`;
+  }
+  function vida(t, a, b) { const pe = eBack(prog(t, a, a + 0.4)), ps = eIn(prog(t, b, b + 0.3)); return { s: (0.4 + 0.6 * pe) * (1 - 0.25 * ps), o: t < a ? 0 : clamp(pe * 1.5, 0, 1) * (1 - ps), sai: ps }; }
+  const setTxt = (e, v) => { if (e.textContent !== v) e.textContent = v; };
+  const brl = (v) => 'R$ ' + Math.round(v).toLocaleString('pt-BR');
+
+  const BON = {};
+  function boneco(id, camisa, cabelo) {
+    const g = S('g', { id });
+    const L = (cor, w) => S('line', { stroke: cor, 'stroke-width': w, 'stroke-linecap': 'round' }, g);
+    const b = { g, pe: [L('#1f2937', 22), L('#1f2937', 22), L('#1f2937', 22), L('#1f2937', 22)] };
+    b.tronco = S('rect', { x: -42, y: -235, width: 84, height: 125, rx: 34, fill: camisa }, g);
+    b.br = [L('#f2dcc4', 18), L('#f2dcc4', 18), L('#f2dcc4', 18), L('#f2dcc4', 18)];
+    b.cab = S('g', {}, g);
+    if (cabelo === 'lia') S('ellipse', { cx: 34, cy: -282, rx: 20, ry: 34, fill: '#3b2416' }, b.cab);
+    S('circle', { cx: 0, cy: -280, r: 48, fill: '#f2dcc4' }, b.cab);
+    if (cabelo === 'lia') S('path', { d: 'M-48,-282 C-50,-340 50,-345 48,-282 C30,-312 -20,-318 -48,-282 Z', fill: '#3b2416' }, b.cab);
+    else S('path', { d: 'M-46,-290 L-40,-322 L-24,-312 L-14,-334 L2,-316 L16,-336 L26,-314 L42,-322 L46,-290 C20,-306 -20,-306 -46,-290 Z', fill: '#1f2937' }, b.cab);
+    b.ol = [S('circle', { cx: -17, cy: -282, r: 6, fill: '#111' }, b.cab), S('circle', { cx: 17, cy: -282, r: 6, fill: '#111' }, b.cab)];
+    b.sob = [S('line', { stroke: '#3b2416', 'stroke-width': 5, 'stroke-linecap': 'round' }, b.cab), S('line', { stroke: '#3b2416', 'stroke-width': 5, 'stroke-linecap': 'round' }, b.cab)];
+    b.boca = S('path', { fill: 'none', stroke: '#7a2e1f', 'stroke-width': 5, 'stroke-linecap': 'round' }, b.cab);
+    BON[id] = b; return b;
+  }
+  const BETO = boneco('beto', '#ef4444', 'beto'), LIA = boneco('lia', '#10b981', 'lia');
+  const rad = (d) => (d * Math.PI) / 180;
+  function membro(seg, x, y, a1, a2, l1, l2) {
+    const x1 = x + Math.sin(rad(a1)) * l1, y1 = y + Math.cos(rad(a1)) * l1;
+    const x2 = x1 + Math.sin(rad(a1 + a2)) * l2, y2 = y1 + Math.cos(rad(a1 + a2)) * l2;
+    seg[0].setAttribute('x1', x); seg[0].setAttribute('y1', y); seg[0].setAttribute('x2', x1); seg[0].setAttribute('y2', y1);
+    seg[1].setAttribute('x1', x1); seg[1].setAttribute('y1', y1); seg[1].setAttribute('x2', x2); seg[1].setAttribute('y2', y2);
+  }
+  // p: { x, y, s, dir (1/-1), o, perna:[e1,e2,d1,d2], braco:[e1,e2,d1,d2], tronco, humor ('ok'|'preocupado'|'feliz'), fala (bool), t }
+  function pose(id, p) {
+    const b = BON[id];
+    b.g.setAttribute('transform', `translate(${p.x.toFixed(1)},${p.y.toFixed(1)}) scale(${(p.s * (p.dir || 1)).toFixed(3)},${p.s.toFixed(3)}) rotate(${(p.tronco || 0).toFixed(1)} 0 -110)`);
+    b.g.setAttribute('opacity', p.o);
+    b.g.style.display = p.o <= 0.001 ? 'none' : 'inline';
+    const pr = p.perna || [0, 0, 0, 0], br = p.braco || [10, 10, -10, -10];
+    membro([b.pe[0], b.pe[1]], -16, -115, pr[0], pr[1], 58, 58);
+    membro([b.pe[2], b.pe[3]], 16, -115, pr[2], pr[3], 58, 58);
+    membro([b.br[0], b.br[1]], -40, -215, 180 - br[0] - 180, br[1], 52, 50);
+    membro([b.br[2], b.br[3]], 40, -215, br[2], br[3], 52, 50);
+    const h = p.humor || 'ok';
+    const sb = h === 'preocupado' ? [[-30, -306, -6, -298], [6, -298, 30, -306]] : h === 'feliz' ? [[-30, -302, -6, -306], [6, -306, 30, -302]] : [[-30, -302, -6, -302], [6, -302, 30, -302]];
+    b.sob.forEach((l, i) => { l.setAttribute('x1', sb[i][0]); l.setAttribute('y1', sb[i][1]); l.setAttribute('x2', sb[i][2]); l.setAttribute('y2', sb[i][3]); });
+    const ab = p.fala ? 4 + 10 * Math.abs(Math.sin(p.t * 17)) : 0;
+    if (p.fala) b.boca.setAttribute('d', `M-14,-256 Q0,${-256 + ab * 1.6} 14,-256 Q0,${-256 - ab * 0.3} -14,-256 Z`), b.boca.setAttribute('fill', '#7a2e1f');
+    else { b.boca.setAttribute('fill', 'none'); b.boca.setAttribute('d', h === 'preocupado' ? 'M-16,-250 Q-8,-258 0,-252 Q8,-246 16,-254' : h === 'feliz' ? 'M-18,-258 Q0,-238 18,-258' : 'M-14,-254 Q0,-248 14,-254'); }
+    b.cab.setAttribute('transform', `rotate(${(p.cabeca || 0).toFixed(1)} 0 -240)`);
+  }
+  // ciclos prontos
+  const anda = (t, v) => { const f = Math.sin(t * (v || 9)); return { perna: [25 * f, 10 + 20 * Math.max(0, -f), -25 * f, 10 + 20 * Math.max(0, f)], braco: [-25 * f, -20, 25 * f, 20], bob: Math.abs(f) * 8 }; };
+  const parado = (t) => ({ perna: [4, 0, -4, 0], braco: [12 + 3 * Math.sin(t * 2), 8, -12 - 3 * Math.sin(t * 2), -8], bob: 2 * Math.sin(t * 2.5) });
+
+
+  // ---------- extrato ----------
+  const CONTAS = [
+    { ic: '🏠', n: 'Aluguel', d: 5, v: 900, p: 'aluguel' }, { ic: '💳', n: 'Fatura do cartão', d: 7, v: 800, p: 'cartão' },
+    { ic: '💡', n: 'Luz, água, internet', d: 8, v: 350, p: 'contas' }, { ic: '🛒', n: 'Mercado', d: 9, v: 600, p: 'mercado' },
+    { ic: '📺', n: 'Assinatura', d: 10, v: 120, p: 'assinatura' },
+  ];
+  const linha = (ic, nm, sub, vl, cls) => `<div class="item ${cls}"><div class="ic">${ic}</div><div class="nm">${nm}<small>${sub}</small></div><div class="vl">${vl}</div></div>`;
+  ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'].forEach((m) => { const d = document.createElement('div'); d.innerHTML = `<span>${m}</span>`; $('barras').appendChild(d); });
+
+  function render(t) {
+    const T = (i) => NAR[i][0];
+    const V0 = T(4) - 0.15, C0 = T(5) - 0.15, R0 = T(6) - 0.15, D0 = T(7) - 0.15;
+    const pagou = CONTAS.map((c) => em(2, c.p));
+    const volta = em(4, 'no dia'), agenda = em(4, 'dez por cento');
+
+    // câmera
+    let soco = 0; for (const n of NAR) soco += 0.025 * (1 - eOut(prog(t, n[0] - 0.1, n[0] + 0.25))) * (t >= n[0] - 0.1 ? 1 : 0);
+    $('palco').style.transform = `scale(${1 + soco})`;
+
+    $('titulo').style.transform = `translateY(${(1 - eOut(prog(t, 0, 0.35))) * -40}px)`;
+    $('titulo').style.opacity = t < D0 ? 1 : 1 - prog(t, D0, D0 + 0.3);
+    $('rodape').style.opacity = t < em(7, 'E segue') ? 1 : 0;
+
+    // celular: sobe no quadro 0; encolhe e desce na regra; volta para os comentários
+    const sobe = eOut(prog(t, 0, 0.5));
+    const enc = eIO(prog(t, R0 - 0.1, R0 + 0.4)) * (1 - eIO(prog(t, D0, D0 + 0.4)));
+    $('fone').style.transform = `translateY(${(1 - sobe) * 700 + enc * 300}px) scale(${1 - 0.3 * enc}) rotate(${(1 - sobe) * 6}deg)`;
+
+    // ===== tela do banco =====
+    const lado = t < V0 ? 'beto' : 'lia';
+    setTxt($('ola'), t < V0 ? 'Olá, Beto 👋' : 'Olá, Lia 👋');
+    let saldo = 0, itens = [], dia = 5;
+    const entra = 0.35; // salário cai
+    if (t < volta) {
+      saldo = 3000 * eOut(prog(t, entra, entra + 0.6));
+      if (t >= entra) itens.push(linha('💰', 'Salário', 'dia 5', '+3.000', 'pos'));
+      CONTAS.forEach((c, i) => { if (t >= pagou[i]) { saldo -= c.v * eOut(prog(t, pagou[i], pagou[i] + 0.35)); itens.push(linha(c.ic, c.n, 'dia ' + c.d, '−' + c.v, 'neg')); dia = c.d; } });
+      if (t >= em(0, 'dez') && t < pagou[0]) dia = 10;
+    } else {
+      // volta ao dia 5: salário cai, reserva sai primeiro
+      saldo = 3000; itens.push(linha('💰', 'Salário', 'dia 5', '+3.000', 'pos'));
+      if (t >= agenda) { saldo -= 300 * eOut(prog(t, agenda, agenda + 0.4)); itens.push(linha('🐷', 'Reserva', 'dia 5 · automático', '−300', 'res')); }
+    }
+    const html = itens.slice().reverse().join(''); // o mais novo em cima, como no app do banco
+    if ($('lista').dataset.h !== html) { $('lista').innerHTML = html; $('lista').dataset.h = html; }
+    // o item mais novo desliza de cima
+    const ultT = t < volta ? Math.max(entra, ...pagou.filter((p) => t >= p)) : t >= agenda ? agenda : volta;
+    const novo = $('lista').firstElementChild;
+    if (novo) { const q = eBack(prog(t, ultT, ultT + 0.35)); novo.style.transform = `translateY(${(1 - q) * -40}px)`; novo.style.opacity = clamp(q * 1.5, 0, 1); }
+    setTxt($('saldo'), brl(saldo));
+    $('saldo').style.color = t < volta && saldo < 1000 && t > pagou[0] ? '#b91c1c' : t >= agenda ? '#047857' : '#12241c';
+    $('saldo').style.transform = `scale(${1 + 0.05 * Math.max(0, ...pagou.map((p) => (t > p && t < p + 0.3 ? Math.sin((t - p) / 0.3 * Math.PI) : 0)))})`;
+    $('saldo').style.transformOrigin = 'left center';
+    setTxt($('dia'), '📅 dia ' + (t >= volta ? 5 : dia));
+    $('banco').style.opacity = t < C0 ? 1 : 1 - prog(t, C0, C0 + 0.3);
+    // "rebobina" ao voltar para o dia 5
+    $('banco').style.filter = t >= volta - 0.3 && t < volta + 0.1 ? `blur(${6 * Math.sin(prog(t, volta - 0.3, volta + 0.1) * Math.PI)}px)` : 'none';
+
+    // notificação de cada conta
+    let nf = -1; CONTAS.forEach((c, i) => { if (t >= pagou[i] && t < pagou[i] + 1.1 && t < volta) nf = i; });
+    if (t >= agenda && t < agenda + 1.6) nf = 9;
+    if (nf >= 0) {
+      const a = nf === 9 ? agenda : pagou[nf], q = eBack(prog(t, a, a + 0.3)), s2 = eIn(prog(t, a + (nf === 9 ? 1.3 : 0.8), a + (nf === 9 ? 1.6 : 1.1)));
+      $('notif').style.opacity = clamp(q, 0, 1) * (1 - s2); $('notif').style.transform = `translateY(${(1 - q) * -120 - s2 * 120}px)`;
+      if (nf === 9) { setTxt($('nic'), '🐷'); $('nic').style.background = '#059669'; setTxt($('nb'), 'Reserva guardada'); setTxt($('ns'), 'R$ 300 · antes de qualquer conta'); }
+      else { const c = CONTAS[nf]; setTxt($('nic'), c.ic); $('nic').style.background = '#b91c1c'; setTxt($('nb'), c.n + ' · pago'); setTxt($('ns'), '−R$ ' + c.v + ' · dia ' + c.d); }
+    } else $('notif').style.opacity = 0;
+
+    // ===== reserva crescendo =====
+    const rv = t >= C0 && t < D0 ? prog(t, C0, C0 + 0.3) : t >= D0 ? 1 - prog(t, D0, D0 + 0.3) : 0;
+    $('reserva').style.opacity = rv;
+    const fimMes = em(5, 'guardados');
+    const nm = clamp(Math.floor(prog(t, C0 + 0.2, fimMes) * 12) + 1, 1, 12);
+    [...$('barras').children].forEach((b, i) => { const a = C0 + 0.2 + i * ((fimMes - C0 - 0.2) / 12); b.style.height = (300 * ((i + 1) / 12) * eBack(prog(t, a, a + 0.3))).toFixed(1) + 'px'; });
+    setTxt($('vres'), brl(300 * nm));
+    setTxt($('mres'), nm === 12 ? 'Guardado em 1 ano' : nm === 1 ? 'Guardado em 1 mês' : 'Guardado em ' + nm + ' meses');
+
+    // ===== comentários =====
+    $('coment').style.opacity = prog(t, D0, D0 + 0.3);
+    $('c1').style.opacity = prog(t, D0 + 0.4, D0 + 0.7); $('c2').style.opacity = prog(t, D0 + 0.9, D0 + 1.2);
+    const tc = em(7, 'Comenta'), alvo = 'FIM 😅', nch = Math.floor(prog(t, tc, tc + 1.2) * (alvo.length + 1));
+    $('digita').innerHTML = (nch ? [...alvo].slice(0, nch).join('') : '<span style="color:#9fb3aa">Adicione um comentário…</span>') + (Math.floor(t * 3) % 2 ? '<i></i>' : '');
+
+    // regra, "?!" e assinatura
+    const vg = vida(t, R0, D0); poeTxt('regra', 540, 560, vg.s, 0, vg.o);
+    const vi = vida(t, em(1, 'vai'), T(2) + 0.2); poeTxt('interr', 900, 1060 + 6 * Math.sin(t * 9), vi.s * (1 + 0.08 * Math.sin(t * 12)), 8, vi.o);
+    const vas = vida(t, em(7, 'E segue'), DUR + 1); poeTxt('as', 540, 1380, vas.s, 0, vas.o);
+    $('logoFixo').style.opacity = t < em(7, 'E segue') - 0.3 ? 1 : 1 - prog(t, em(7, 'E segue') - 0.3, em(7, 'E segue'));
+
+    // ===== personagens (na frente do celular, nas bordas) =====
+    {
+      let x = 1200, y = 1420, o = 0, p = parado(t), humor = 'preocupado', tronco = 0, cab = 0;
+      if (t < V0 + 0.4) {
+        o = 1; x = lerp(1250, 1010, eOut(prog(t, 0.3, 1.1))); if (t < 1.1) p = anda(t, 10);
+        if (t >= T(1) - 0.1 && t < T(2) + 0.3) { p = { perna: [8, 0, -8, 0], braco: [-150, -10, 150, 10], bob: 4 * Math.abs(Math.sin(t * 10)) }; cab = 6 * Math.sin(t * 12); }
+        if (t >= T(3) - 0.1) { p = { perna: [4, 0, -4, 0], braco: [30, -40, -30, 40], bob: 0 }; tronco = 6; cab = 10; }
+        if (t >= V0) { x = lerp(1010, 1250, eIn(prog(t, V0, V0 + 0.4))); p = anda(t, 12); }
+      }
+      if (t >= D0) { o = 1; x = lerp(1250, 1010, eOut(prog(t, D0, D0 + 0.5))); humor = 'feliz'; p = { perna: [4, 0, -4, 0], braco: [12, 8, 100 + 8 * Math.sin(t * 6), 10], bob: 0 }; }
+      pose('beto', { x, y: y - p.bob, s: 0.82, dir: -1, o, perna: p.perna, braco: p.braco, humor, fala: falando(t, 'B'), t, tronco, cabeca: cab });
+    }
+    {
+      let x = -200, y = 1420, o = 0, p = parado(t), humor = 'feliz';
+      if (t >= V0 - 0.2 && t < D0) {
+        o = 1 - prog(t, D0 - 0.3, D0); x = lerp(-150, 70, eOut(prog(t, V0 - 0.2, V0 + 0.5))); if (t < V0 + 0.5) p = anda(t, 10);
+        if (t >= agenda - 0.3 && t < agenda + 0.9) p = { perna: [6, 0, -6, 0], braco: [12, 8, -95, -30], bob: 0 }; // aponta para a tela
+        if (t >= C0 + 0.3 && t < R0) p = { perna: [4, 0, -4, 0], braco: [-140, 0, 140, 0], bob: 3 * Math.abs(Math.sin(t * 5)) };
+        if (t >= R0) p = { perna: [4, 0, -4, 0], braco: [20, -100, -12, -8], bob: 0 };
+      }
+      pose('lia', { x, y: y - p.bob, s: 0.82, dir: 1, o, perna: p.perna, braco: p.braco, humor, fala: falando(t, 'L'), t });
+    }
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>

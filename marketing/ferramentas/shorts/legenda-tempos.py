@@ -4,7 +4,7 @@
 
 <pasta-voz> é a saída do narrar-gemini.py (partes.json + seg*.wav, já no tempo
 do vídeo). Para cada frase, acha no áudio os trechos com voz (as pausas mais
-longas que 0,12 s separam um trecho do outro), casa as pausas com a pontuação
+longas que 0,08 s separam um trecho do outro), casa as pausas com a pontuação
 do texto e distribui as palavras de cada trecho pelo número de sílabas
 (grupos de vogais). Não é alinhamento fonético, mas erra pouco: cada pausa da
 fala vira um ponto de acerto.
@@ -48,7 +48,7 @@ def trechos(arq):
             sil = 0
         elif ini is not None:
             sil += 1
-            if sil * 0.02 >= 0.12:
+            if sil * 0.02 >= 0.08:
                 out.append((ini * 0.02, (k - sil + 1) * 0.02))
                 ini, sil = None, 0
     if ini is not None:

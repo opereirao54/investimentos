@@ -1,0 +1,239 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #000; font-family: 'Figtree', sans-serif; }
+  canvas { position: absolute; left: 0; top: 0; }
+  .ui { position: absolute; inset: 0; pointer-events: none; color: #fff; }
+  .logo { position: absolute; left: 60px; top: 60px; width: 200px; }
+  .serie { position: absolute; right: 60px; top: 60px; padding: 10px 20px; border-radius: 99px; background: rgba(26,16,48,.55); border: 2px solid rgba(255,210,122,.7); font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .12em; color: #ffd27a; }
+  .titulo { position: absolute; left: 0; right: 0; top: 200px; text-align: center; font-weight: 900; text-transform: uppercase; line-height: 1.02; text-shadow: 0 6px 0 rgba(40,16,70,.6), 0 10px 30px rgba(0,0,0,.45); }
+  .titulo div { font-size: 70px; } .titulo .l2 { color: #ffd27a; }
+  .hud { position: absolute; right: 60px; top: 400px; text-align: right; }
+  .hud .r { font-family: 'DM Mono', monospace; font-size: 26px; letter-spacing: .14em; color: rgba(255,255,255,.8); }
+  .hud .v { font-weight: 900; font-style: italic; font-size: 64px; color: #7CFC9A; text-shadow: 0 4px 0 #0b3d1f, 0 0 26px rgba(124,252,154,.45); }
+  .faixa { position: absolute; left: 0; right: 0; top: 560px; height: 190px; text-align: center; }
+  .faixa .fundo { position: absolute; left: -40px; right: -40px; top: 20px; height: 150px; background: rgba(20,8,36,.78); transform: skewY(-3deg); border-top: 4px solid #ffd27a; border-bottom: 4px solid #ffd27a; }
+  .faixa b { position: relative; display: block; padding-top: 30px; font-size: 92px; font-weight: 900; font-style: italic; color: #ffd27a; text-shadow: 0 5px 0 #7a3a00; transform: skewY(-3deg); }
+  .faixa span { position: relative; display: block; font-size: 42px; font-weight: 900; transform: skewY(-3deg); margin-top: -4px; }
+  .rodape { position: absolute; left: 60px; right: 60px; top: 1478px; text-align: center; font-size: 24px; color: rgba(255,255,255,.75); text-shadow: 0 2px 6px rgba(0,0,0,.7); }
+</style>
+<script type="importmap">{ "imports": { "three": "./three.module.js", "three/addons/": "./jsm/" } }</script>
+</head><body>
+<div class="ui">
+  <img class="logo" src="wordmark.svg">
+  <div class="serie">ESPECIAL</div>
+  <div class="titulo"><div>Quanto custa viver o GTA</div><div class="l2">na vida real?</div></div>
+  <div class="hud"><div class="r">Gastos</div><div class="v">R$ 127.000.000</div></div>
+  <div class="faixa"><div class="fundo"></div><b>MISSÃO CONCLUÍDA</b><span>+1 MANSÃO</span></div>
+  <div class="rodape">Preços de referência · dólar a R$ 5,78 · entretenimento · personagens fictícios</div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const W = 1080, H = 1920;
+const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+r.setSize(W, H); r.setPixelRatio(1);
+r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
+r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.15;
+r.outputColorSpace = THREE.SRGBColorSpace;
+document.body.prepend(r.domElement);
+const s = new THREE.Scene();
+
+// ---------- céu ----------
+function grad(stops, w = 4, h = 1024) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d');
+  const g = x.createLinearGradient(0, 0, 0, h); stops.forEach(([o, col]) => g.addColorStop(o, col)); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const ceuTex = grad([[0, '#1e1040'], [0.28, '#55307e'], [0.5, '#b0477f'], [0.66, '#ef6f6f'], [0.78, '#ff9b62'], [0.86, '#ffc777'], [1, '#ffd9a0']]);
+const ceu = new THREE.Mesh(new THREE.SphereGeometry(400, 32, 32), new THREE.MeshBasicMaterial({ map: ceuTex, side: THREE.BackSide, fog: false }));
+ceu.rotation.z = 0; s.add(ceu);
+// ambiente para reflexos: a própria cena do céu
+const pm = new THREE.PMREMGenerator(r);
+const envScene = new THREE.Scene(); envScene.add(ceu.clone());
+s.environment = pm.fromScene(envScene, 0.02).texture;
+s.fog = new THREE.FogExp2('#c95a7e', 0.0042);
+
+// sol com halo
+const sol = new THREE.Mesh(new THREE.SphereGeometry(10, 48, 48), new THREE.MeshBasicMaterial({ color: new THREE.Color('#ffe7a0').multiplyScalar(2.2), fog: false }));
+sol.position.set(-22, 13, -240); s.add(sol);
+// nuvens finas
+for (let i = 0; i < 0; i++) {
+  const n = new THREE.Mesh(new THREE.PlaneGeometry(90 + i * 20, 3 + (i % 3)), new THREE.MeshBasicMaterial({ color: '#ff9fb0', transparent: true, opacity: 0.12, fog: false }));
+  n.position.set(-60 + i * 25, 40 + i * 12, -220); s.add(n);
+}
+
+// ---------- luzes ----------
+s.add(new THREE.HemisphereLight('#ffb7a6', '#3a2456', 0.9));
+const luzSol = new THREE.DirectionalLight('#ffb070', 3.0);
+luzSol.position.set(-30, 22, -40); luzSol.castShadow = true; luzSol.shadow.mapSize.set(4096, 4096);
+Object.assign(luzSol.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, near: 1, far: 200 }); luzSol.shadow.bias = -0.0004;
+s.add(luzSol);
+const contra = new THREE.DirectionalLight('#ffd0e0', 1.6); contra.position.set(10, 14, 50); s.add(contra);
+const luzAro = new THREE.DirectionalLight('#ff9a6a', 1.2); luzAro.position.set(-10, 6, -60); s.add(luzAro);
+
+// ---------- mar ----------
+const mar = new THREE.Mesh(new THREE.PlaneGeometry(800, 400, 200, 100), new THREE.MeshStandardMaterial({ color: '#4b2d7a', roughness: 0.12, metalness: 0.85 }));
+const pos = mar.geometry.attributes.position;
+for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), y = pos.getY(i); pos.setZ(i, 0.15 * Math.sin(x * 0.35) * Math.cos(y * 0.5) + 0.08 * Math.sin(x * 1.3 + y)); }
+mar.geometry.computeVertexNormals();
+mar.rotation.x = -Math.PI / 2; mar.position.set(0, -0.3, -200); s.add(mar);
+// brilho do sol na água
+for (let i = 0; i < 40; i++) {
+  const b = new THREE.Mesh(new THREE.PlaneGeometry(1.5 + Math.random() * 4, 0.12), new THREE.MeshBasicMaterial({ color: '#ffd9a0', transparent: true, opacity: 0.7, fog: false }));
+  b.rotation.x = -Math.PI / 2; b.position.set(-12 + (Math.random() - 0.5) * (6 + i * 0.6), -0.1, -20 - i * 4.5); s.add(b);
+}
+
+// ---------- areia e calçadão ----------
+const areia = new THREE.Mesh(new THREE.PlaneGeometry(300, 60, 60, 20), new THREE.MeshStandardMaterial({ color: '#f0b48a', roughness: 0.95 }));
+const pa = areia.geometry.attributes.position; for (let i = 0; i < pa.count; i++) pa.setZ(i, 0.12 * Math.sin(pa.getX(i) * 0.4) * Math.sin(pa.getY(i) * 0.6));
+areia.geometry.computeVertexNormals(); areia.rotation.x = -Math.PI / 2; areia.position.set(0, 0, 12); areia.receiveShadow = true; s.add(areia);
+const orla = new THREE.Mesh(new THREE.PlaneGeometry(300, 2), new THREE.MeshBasicMaterial({ color: '#ffe3c4', transparent: true, opacity: 0.6 }));
+orla.rotation.x = -Math.PI / 2; orla.position.set(0, 0.02, -17.5); s.add(orla);
+
+// ---------- prédios com janelas ----------
+function janelasTex(seed) {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 256; const x = c.getContext('2d');
+  x.fillStyle = '#3b2160'; x.fillRect(0, 0, 128, 256);
+  for (let j = 8; j < 248; j += 16) for (let i = 8; i < 120; i += 16) { const on = ((i * 7 + j * 13 + seed * 31) % 11) < 4; x.fillStyle = on ? '#ffcf7a' : '#2a1648'; x.fillRect(i, j, 9, 10); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+for (let i = 0; i < 22; i++) {
+  const h = 18 + ((i * 53) % 34), w = 7 + (i % 3) * 2;
+  const tx = janelasTex(i);
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, w), new THREE.MeshStandardMaterial({ color: '#ffffff', map: tx, emissiveMap: tx, emissive: '#ffffff', emissiveIntensity: 0.4, roughness: 0.7 }));
+  m.position.set(-110 + i * 10.5, h * 0.35 - 0.3, -175 - (i % 4) * 12); m.scale.y = 0.7; s.add(m);
+}
+
+// ---------- palmeiras ----------
+function folha(len) {
+  const g = new THREE.PlaneGeometry(len, 1.6, 16, 2); const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i) + len / 2, y = p.getY(i); const larg = Math.sin((x / len) * Math.PI) * 1.0; p.setY(i, y * larg); p.setZ(i, -0.06 * x * x + Math.abs(y) * 0.3); p.setX(i, x); }
+  g.computeVertexNormals(); return g;
+}
+const matFolha = new THREE.MeshStandardMaterial({ color: '#2f6a3c', roughness: 0.7, side: THREE.DoubleSide });
+const matTronco = new THREE.MeshStandardMaterial({ color: '#8a5a40', roughness: 0.9 });
+function palmeira(x, z, h, incl) {
+  const g = new THREE.Group();
+  const pts = []; for (let i = 0; i <= 10; i++) pts.push(new THREE.Vector3(Math.sin(i / 10 * 1.2) * incl, (i / 10) * h, 0));
+  const curva = new THREE.CatmullRomCurve3(pts);
+  const tronco = new THREE.Mesh(new THREE.TubeGeometry(curva, 40, 0.38, 10), matTronco); tronco.castShadow = true; g.add(tronco);
+  for (let i = 0; i < 18; i++) { const anel = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.08, 6, 12), matTronco); const pt = curva.getPoint(i / 18); anel.position.copy(pt); anel.rotation.x = Math.PI / 2; g.add(anel); }
+  const topo = curva.getPoint(1);
+  for (let i = 0; i < 11; i++) {
+    const f = new THREE.Mesh(folha(6 + (i % 3)), matFolha); f.castShadow = true;
+    f.position.copy(topo); f.rotation.set(0, (i / 11) * Math.PI * 2, -0.25 - (i % 2) * 0.25); g.add(f);
+  }
+  for (let i = 0; i < 4; i++) { const c = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 10), new THREE.MeshStandardMaterial({ color: '#5a3a20' })); c.position.copy(topo).add(new THREE.Vector3(Math.cos(i) * 0.4, -0.4, Math.sin(i) * 0.4)); g.add(c); }
+  g.position.set(x, 0, z); s.add(g); return g;
+}
+palmeira(-7.5, 2, 13, 1.8); palmeira(-10, -5, 15, -1.2); palmeira(8.2, 4, 12, -2.0); palmeira(10.5, -6, 14, 1.2);
+
+// ---------- mansão ----------
+const branco = new THREE.MeshStandardMaterial({ color: '#f7f1ea', roughness: 0.55 });
+const madeira = new THREE.MeshStandardMaterial({ color: '#9c6b4a', roughness: 0.6 });
+const vidro = new THREE.MeshStandardMaterial({ color: '#ffd9a0', emissive: '#ffb45a', emissiveIntensity: 0.9, roughness: 0.1, metalness: 0.2 });
+const casa = new THREE.Group(); s.add(casa);
+const add = (geo, mat, x, y, z, rot) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); if (rot) m.rotation.set(...rot); m.castShadow = true; m.receiveShadow = true; casa.add(m); return m; };
+add(new THREE.BoxGeometry(16, 4.4, 10), branco, 7, 2.2, -8);
+add(new THREE.BoxGeometry(17.5, 0.5, 11.5), branco, 7, 4.65, -7.6);
+add(new THREE.BoxGeometry(11, 3.6, 8), branco, 5.5, 6.7, -9);
+add(new THREE.BoxGeometry(12.5, 0.45, 9.5), branco, 5.5, 8.7, -8.6);
+add(new THREE.BoxGeometry(4, 3.6, 8), madeira, 12.2, 6.7, -9);
+for (let i = 0; i < 4; i++) add(new THREE.BoxGeometry(3.2, 3.2, 0.12), vidro, 0.8 + i * 3.9, 2.2, -2.95);
+for (let i = 0; i < 2; i++) add(new THREE.BoxGeometry(4, 2.6, 0.12), vidro, 2.4 + i * 4.6, 6.7, -4.95);
+// guarda-corpo de vidro
+add(new THREE.BoxGeometry(17, 1.1, 0.08), new THREE.MeshStandardMaterial({ color: '#cfe8ff', transparent: true, opacity: 0.35, roughness: 0.05 }), 7, 5.4, -1.9);
+// piscina com luz
+const pisc = add(new THREE.BoxGeometry(10, 0.12, 4), new THREE.MeshStandardMaterial({ color: '#43d6ef', emissive: '#1fb3d6', emissiveIntensity: 0.9, roughness: 0.05, metalness: 0.3 }), 8, 0.07, 1.2);
+add(new THREE.BoxGeometry(11, 0.18, 5), branco, 8, 0.03, 1.2);
+const luzPisc = new THREE.PointLight('#4fe0ff', 8, 12); luzPisc.position.set(8, 1, 1.2); casa.add(luzPisc);
+const luzCasa = new THREE.PointLight('#ffb45a', 10, 16); luzCasa.position.set(6, 3, 0); casa.add(luzCasa);
+casa.position.set(-3.5, 0, -10); casa.scale.setScalar(0.85);
+
+// helicóptero no telhado
+const heli = new THREE.Group();
+const rosa = new THREE.MeshPhysicalMaterial({ color: '#e2668a', roughness: 0.25, metalness: 0.3, clearcoat: 1 });
+const hb = new THREE.Mesh(new THREE.SphereGeometry(1.4, 24, 18), rosa); hb.scale.set(1.5, 1, 1); heli.add(hb);
+const hv = new THREE.Mesh(new THREE.SphereGeometry(1.0, 24, 18), new THREE.MeshPhysicalMaterial({ color: '#9fd9ff', roughness: 0.05, metalness: 0.5, clearcoat: 1 })); hv.position.set(1.0, 0.2, 0); hv.scale.set(1, 0.85, 0.95); heli.add(hv);
+const cauda = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.35, 4, 12), rosa); cauda.rotation.z = Math.PI / 2; cauda.position.set(-3.2, 0.2, 0); heli.add(cauda);
+const hel = new THREE.Mesh(new THREE.BoxGeometry(8, 0.08, 0.35), new THREE.MeshStandardMaterial({ color: '#221535' })); hel.position.y = 1.6; hel.rotation.y = 0.5; heli.add(hel);
+const esqui = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.12, 0.12), new THREE.MeshStandardMaterial({ color: '#221535' })); esqui.position.set(0, -1.3, 0.8); heli.add(esqui); const e2 = esqui.clone(); e2.position.z = -0.8; heli.add(e2);
+heli.traverse((o) => { o.castShadow = true; }); heli.position.set(1.6, 9.2, -17.5); heli.rotation.y = -0.5; heli.scale.setScalar(0.7); s.add(heli);
+
+// lancha
+const lancha = new THREE.Group();
+const casco = new THREE.Shape(); casco.moveTo(-3, 0); casco.lineTo(3.2, 0); casco.lineTo(4, 0.9); casco.lineTo(-3, 0.9); casco.closePath();
+const cg = new THREE.ExtrudeGeometry(casco, { depth: 1.6, bevelEnabled: true, bevelSize: 0.15, bevelThickness: 0.15 }); cg.translate(0, 0, -0.8);
+lancha.add(new THREE.Mesh(cg, new THREE.MeshStandardMaterial({ color: '#f2eef5', roughness: 0.55 })));
+const faixaL = new THREE.Mesh(new THREE.BoxGeometry(6.6, 0.18, 1.95), new THREE.MeshStandardMaterial({ color: '#3b5bdb' })); faixaL.position.set(0.3, 0.35, 0); lancha.add(faixaL);
+const pb = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.6, 1.4), new THREE.MeshPhysicalMaterial({ color: '#bfe3ff', roughness: 0.05, transparent: true, opacity: 0.6 })); pb.position.set(0.6, 1.2, 0); lancha.add(pb);
+lancha.position.set(-9, -0.15, -42); lancha.rotation.y = 0.25; lancha.scale.setScalar(1.3); s.add(lancha);
+for (let i = 0; i < 8; i++) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.5 + i * 0.12, 10, 8), new THREE.MeshStandardMaterial({ color: '#fff', transparent: true, opacity: 0.55 - i * 0.06 })); e.scale.y = 0.3; e.position.set(-14 - i * 1.4, -0.1, -43.2 - i * 0.35); s.add(e); }
+
+// ---------- carro esportivo ----------
+const carro = new THREE.Group();
+const perf = new THREE.Shape();
+perf.moveTo(-3.3, 0.35); perf.lineTo(-3.4, 0.9); perf.quadraticCurveTo(-3.2, 1.25, -2.4, 1.3); perf.lineTo(-1.0, 1.45);
+perf.quadraticCurveTo(-0.2, 2.05, 0.9, 2.0); perf.quadraticCurveTo(1.8, 1.9, 2.5, 1.25); perf.lineTo(3.4, 1.0); perf.quadraticCurveTo(3.7, 0.8, 3.6, 0.35); perf.closePath();
+const pg = new THREE.ExtrudeGeometry(perf, { depth: 2.0, bevelEnabled: true, bevelSegments: 4, bevelSize: 0.22, bevelThickness: 0.25, curveSegments: 24 }); pg.translate(0, 0, -1.0);
+const tinta = new THREE.MeshPhysicalMaterial({ color: '#ffc61a', roughness: 0.22, metalness: 0.55, clearcoat: 1, clearcoatRoughness: 0.05 });
+const corpo = new THREE.Mesh(pg, tinta); corpo.castShadow = true; carro.add(corpo);
+const jan = new THREE.Shape(); jan.moveTo(-0.7, 1.5); jan.quadraticCurveTo(-0.1, 1.95, 0.85, 1.92); jan.quadraticCurveTo(1.6, 1.85, 2.15, 1.32); jan.lineTo(-0.7, 1.4); jan.closePath();
+const jg = new THREE.ExtrudeGeometry(jan, { depth: 2.25, bevelEnabled: false }); jg.translate(0, 0.02, -1.125);
+carro.add(new THREE.Mesh(jg, new THREE.MeshPhysicalMaterial({ color: '#1b1030', roughness: 0.05, metalness: 0.9, clearcoat: 1 })));
+const pneu = new THREE.MeshStandardMaterial({ color: '#141018', roughness: 0.8 }), aro = new THREE.MeshStandardMaterial({ color: '#d8d4e6', roughness: 0.2, metalness: 1 });
+[[-2.2, 1.15], [2.3, 1.15], [-2.2, -1.15], [2.3, -1.15]].forEach(([x, z]) => {
+  const w = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.5, 32), pneu); w.rotation.x = Math.PI / 2; w.position.set(x, 0.62, z); w.castShadow = true; carro.add(w);
+  const a = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.52, 10), aro); a.rotation.x = Math.PI / 2; a.position.set(x, 0.62, z + Math.sign(z) * 0.02); carro.add(a);
+});
+const farol = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.12, 0.7), new THREE.MeshBasicMaterial({ color: new THREE.Color('#fff4c4').multiplyScalar(3) })); farol.position.set(3.62, 0.85, 0.6); carro.add(farol); const f2 = farol.clone(); f2.position.z = -0.6; carro.add(f2);
+const lanterna = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 1.6), new THREE.MeshBasicMaterial({ color: new THREE.Color('#ff3b3b').multiplyScalar(2.5) })); lanterna.position.set(-3.48, 0.95, 0); carro.add(lanterna);
+carro.position.set(-1.0, 0, 10); carro.rotation.y = -0.35; carro.scale.setScalar(0.85); s.add(carro);
+
+// ---------- Beto e Lia (3D, estilizados) ----------
+const pele = new THREE.MeshStandardMaterial({ color: '#f2d2b6', roughness: 0.6 });
+function pessoa(camisa, cabelo, lia) {
+  const g = new THREE.Group();
+  const calca = new THREE.MeshStandardMaterial({ color: '#232036', roughness: 0.8 });
+  [-0.32, 0.32].forEach((x) => { const p = new THREE.Mesh(new THREE.CapsuleGeometry(0.24, 1.3, 6, 12), calca); p.position.set(x, 0.9, 0); g.add(p); const t = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.22, 0.7), new THREE.MeshStandardMaterial({ color: '#f5f5f5' })); t.position.set(x, 0.11, 0.12); g.add(t); });
+  const tronco = new THREE.Mesh(new THREE.CapsuleGeometry(0.62, 1.1, 8, 16), new THREE.MeshStandardMaterial({ color: camisa, roughness: 0.7 })); tronco.position.y = 2.55; g.add(tronco);
+  const bE = new THREE.Mesh(new THREE.CapsuleGeometry(0.19, 1.2, 6, 10), pele); bE.position.set(-0.85, 2.45, 0); bE.rotation.z = 0.25; g.add(bE);
+  const bD = bE.clone(); bD.position.x = 0.85; bD.rotation.z = lia ? -2.5 : -0.25; if (lia) bD.position.set(1.1, 3.35, 0); g.add(bD);
+  const cab = new THREE.Mesh(new THREE.SphereGeometry(0.78, 32, 24), pele); cab.position.y = 4.15; g.add(cab);
+  const cabelo3d = new THREE.Mesh(new THREE.SphereGeometry(0.82, 32, 24, 0, Math.PI * 2, 0, Math.PI * 0.5), new THREE.MeshStandardMaterial({ color: cabelo, roughness: 0.8 })); cabelo3d.position.y = 4.2; cabelo3d.rotation.x = -0.25; g.add(cabelo3d);
+  if (lia) { const rabo = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.9, 6, 10), new THREE.MeshStandardMaterial({ color: cabelo })); rabo.position.set(0, 3.9, -0.8); rabo.rotation.x = 0.6; g.add(rabo); }
+  else for (let i = 0; i < 6; i++) { const c = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.5, 8), new THREE.MeshStandardMaterial({ color: cabelo })); c.position.set(-0.55 + i * 0.22, 4.85, -0.1); c.rotation.z = (i - 2.5) * 0.15; g.add(c); }
+  const olhoM = new THREE.MeshStandardMaterial({ color: '#111' });
+  if (!lia) { // óculos escuros
+    const oc = new THREE.MeshPhysicalMaterial({ color: '#0a0a12', roughness: 0.05, metalness: 0.8, clearcoat: 1 });
+    [-0.28, 0.28].forEach((x) => { const o = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.24, 0.1), oc); o.position.set(x, 4.25, 0.72); g.add(o); });
+    const ponte = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.05, 0.05), oc); ponte.position.set(0, 4.3, 0.76); g.add(ponte);
+  } else { [-0.26, 0.26].forEach((x) => { const o = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 12), olhoM); o.position.set(x, 4.25, 0.72); g.add(o); }); }
+  const sorriso = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.04, 8, 20, Math.PI), new THREE.MeshStandardMaterial({ color: '#7a2e1f' })); sorriso.position.set(0, 3.95, 0.74); sorriso.rotation.z = Math.PI; g.add(sorriso);
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  s.add(g); return g;
+}
+const beto = pessoa('#ef4444', '#1f1b2e', false); beto.position.set(-3.4, 0, 20); beto.rotation.y = 0.3; beto.scale.setScalar(0.9);
+const lia = pessoa('#10b981', '#3b2416', true); lia.position.set(3.3, 0, 19.5); lia.rotation.y = -0.4; lia.scale.setScalar(0.85);
+
+// ---------- câmera e pós ----------
+const cam = new THREE.PerspectiveCamera(40, W / H, 0.1, 1000);
+cam.position.set(0, 6.5, 42); cam.lookAt(0, 6.8, -10);
+const comp = new EffectComposer(r);
+comp.addPass(new RenderPass(s, cam));
+comp.addPass(new UnrealBloomPass(new THREE.Vector2(W, H), 0.32, 0.45, 0.97));
+const vin = new ShaderPass(VignetteShader); vin.uniforms.offset.value = 1.05; vin.uniforms.darkness.value = 0.8; comp.addPass(vin);
+comp.addPass(new OutputPass());
+comp.render();
+window.pronto = true;
+</script>
+</body></html>

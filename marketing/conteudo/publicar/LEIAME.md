@@ -487,6 +487,250 @@ Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fict�
 #blackfriday #educacaofinanceira #direitodoconsumidor #financaspessoais
 ```
 
+## QUARTA 18/11 · Faltam 45 dias · Appliquei News
+
+Tema escolhido pelo fundador: a nova regra do IR zera o imposto do 13º de
+quem ganha até R$ 5 mil. **Formato novo** (teste aprovado em 17/11): diálogo
+da Lia com o Beto, cortes rápidos, holerite no celular, sem legenda na tela.
+Conteúdo refeito em 18/11 com o que funciona na @cafecomseudinheiro: conta
+em degraus por salário (cada um se acha na escada) e pergunta no fim. Versão
+**dinâmica**: uma cena contínua em que as notas voam, as pilhas de dinheiro
+crescem, o carrinho puxa as notas e a Lia devolve. 38 s.
+
+**Antes de postar:** conferir que o vídeo é o do 13º (abre com o envelope do 13º
+jogando notas na caixa vermelha do IR) e que a 1ª linha da legenda é a
+mesma frase da capa. Mandar o arquivo original (AirDrop, Drive/iCloud ou
+WhatsApp como **Documento**). **Postar às 19h**, ou agendar no Instagram.
+
+**19h · INSTAGRAM (Reel)** · vídeo do 13º com o holerite
+
+1. Novo Reel › escolher o vídeo do 13º.
+2. Capa: Editar capa › Adicionar da galeria › a imagem vermelha "Ganha até R$ 5 mil? Seu 13º vem até R$ 337 mais gordo".
+3. "Carregar na qualidade mais alta" ligado.
+4. Colar a legenda e publicar às 19h.
+5. Fixar o comentário: `Você já sabia dessa? Comenta SIM ou NÃO 👇` e **responder todos na 1ª hora**; se alguém perguntar o próprio valor, usar a tabela abaixo.
+6. **Até 20h (fundador e sócio):** compartilhar nos stories e mandar o **link** no status do WhatsApp e em 3–5 grupos com a frase `Ganha até R$ 5 mil? Vê quanto o seu 13º vem a mais este ano 👇`.
+
+```
+Ganha até R$ 5 mil? Seu 13º vem até R$ 337 mais gordo. 💸
+
+Pela nova regra do Imposto de Renda, este é o primeiro 13º sem IR para quem ganha até R$ 5 mil.
+
+📌 Quanto vem a mais, pelo salário:
+R$ 3.000 → +R$ 24
+R$ 4.000 → +R$ 151
+R$ 4.500 → +R$ 240
+R$ 5.000 → +R$ 337
+
+📌 Quem ganha R$ 2.500 já não pagava: pra essa faixa, nada muda.
+
+📌 O imposto sai da 2ª parcela, em dezembro (até 18/12). Abre o holerite e confere se a linha do IR veio zerada. Se não veio, fala com o RH.
+
+O Beto já queria gastar na Black Friday. Esse dinheiro ainda nem caiu. 😅
+
+Você já sabia dessa? Comenta SIM ou NÃO 👇
+
+Manda pra quem ganha até R$ 5 mil. 🔁
+
+📰 Appliquei News: a notícia da semana no seu bolso, toda quarta. Segue pra não perder a próxima.
+
+⏳ Faltam 45 dias para o que estamos preparando pra 2027.
+
+Conteúdo educacional e apartidário, sem recomendação. 13º igual ao salário, INSS de 2026 e IR pela tabela de 2025, sem dependentes; valores arredondados. Entre R$ 5 mil e R$ 7.350, o imposto cai em parte. Personagens fictícios.
+
+#decimoterceiro #impostoderenda #educacaofinanceira #financaspessoais #13salario
+```
+
+**Se alguém perguntar quanto vem a mais pra ele:** o valor a mais no 13º é o IR que
+saía pela regra antiga (13º = salário, INSS de 2026, tabela de 2025, sem
+dependentes). Até R$ 2.600: R$ 0 (já era isento) · R$ 2.700: R$ 4 · R$ 3.000: R$ 24 ·
+R$ 3.500: R$ 85 · R$ 4.000: R$ 151 · R$ 4.500: R$ 240 · R$ 5.000: R$ 337 ·
+acima de R$ 5 mil e até R$ 7.350: o imposto cai em parte (não responder
+valor; dizer "cai em parte, confere no holerite de dezembro").
+
+**19h · TIKTOK** · o mesmo vídeo do 13º
+
+1. Enviar o vídeo original; capa = primeiro quadro (já é a capa).
+2. "Permitir upload em alta qualidade" ligado.
+3. Colar a legenda e publicar.
+
+```
+Ganha até R$ 5 mil? Seu 13º vem até R$ 337 mais gordo. 💸 R$ 3 mil: +R$ 24 · R$ 4 mil: +R$ 151 · R$ 4.500: +R$ 240 · R$ 5 mil: +R$ 337. Já sabia? Comenta SIM ou NÃO 👇 Segue pra não perder. ⏳ Faltam 45 dias.
+
+#decimoterceiro #impostoderenda #educacaofinanceira #financaspessoais
+```
+
+**19h · YOUTUBE SHORTS** · o mesmo vídeo do 13º
+
+1. Enviar o vídeo original; no app do YouTube, escolher o primeiro quadro como capa.
+2. Título e descrição abaixo; publicar.
+
+Título:
+
+```
+Ganha até R$ 5 mil? Quanto o seu 13º vem a mais sem imposto de renda #shorts
+```
+
+Descrição:
+
+```
+Pela nova regra do IR, quem ganha até R$ 5 mil não paga imposto no 13º. Quanto vem a mais: R$ 3.000 → R$ 24; R$ 4.000 → R$ 151; R$ 4.500 → R$ 240; R$ 5.000 → R$ 337. Quem ganha R$ 2.500 já não pagava. O desconto sai na 2ª parcela, em dezembro: confere o holerite. Já sabia dessa? Comenta SIM ou NÃO e inscreva-se para a próxima conta.
+
+Conteúdo educacional e apartidário, sem recomendação. 13º igual ao salário, INSS de 2026 e IR pela tabela de 2025, sem dependentes. Personagens fictícios.
+
+#decimoterceiro #impostoderenda #educacaofinanceira #financaspessoais
+```
+
+## SEXTA 20/11 · Faltam 43 dias · Appliquei Explica
+
+Feriado (Consciência Negra): o horário continua 19h. **Primeiro Reel no
+estilo novo** (o da @cafecomseudinheiro): título fixo no topo, Beto e Lia
+desenhados, a tela do banco no celular com o saldo caindo, legenda leve. 38 s.
+
+**Antes de postar:** conferir que o vídeo é o do salário (título "SEU SALÁRIO
+SOME ATÉ O DIA 10" e o celular com o extrato do banco) e que a 1ª linha da legenda é
+a mesma frase. Mandar o arquivo original (AirDrop, Drive/iCloud ou WhatsApp
+como **Documento**). **Postar às 19h**, ou agendar no Instagram.
+
+**19h · INSTAGRAM (Reel)** · vídeo do extrato do salário
+
+1. Novo Reel › escolher o vídeo do extrato do salário.
+2. Capa: Editar capa › Adicionar da galeria › a imagem verde "Seu salário some até o dia 10".
+3. "Carregar na qualidade mais alta" ligado. Não ativar a legenda automática (o vídeo já tem).
+4. Colar a legenda e publicar às 19h.
+5. Fixar o comentário: `E você, guarda no COMEÇO ou no FIM do mês? 👇` e responder todos na 1ª hora.
+6. **Até 20h (fundador e sócio):** compartilhar nos stories e mandar o **link** no status do WhatsApp e em 3–5 grupos com a frase `Seu salário também some até o dia 10? 👇`.
+
+```
+Seu salário some até o dia 10. 💸
+
+Cai no dia 5 e o extrato começa: aluguel, cartão, contas, mercado, assinatura. No dia 10, dos R$ 3.000, sobram R$ 230. E o Beto ainda tenta guardar o que sobra.
+
+A Lia faz ao contrário: no dia que o salário cai, já manda 10% pra reserva, antes de pagar qualquer conta. R$ 300.
+
+Em 1 ano: R$ 3.600 guardados. Sem esperar sobrar.
+
+📌 Regra de bolso: guarda primeiro, gasta depois.
+
+E você, guarda no COMEÇO ou no FIM do mês? Comenta 👇
+
+Manda pra quem vive o dia 10. 🔁
+
+💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta. Segue pra não perder a próxima.
+
+⏳ Faltam 43 dias para o que estamos preparando pra 2027.
+
+Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fictícios.
+
+#educacaofinanceira #salario #financaspessoais #organizacaofinanceira #dinheiro
+```
+
+**19h · TIKTOK** · o mesmo vídeo do extrato
+
+1. Enviar o vídeo original; capa = primeiro quadro (já é a capa).
+2. "Permitir upload em alta qualidade" ligado; não ativar legenda automática.
+3. Colar a legenda e publicar.
+
+```
+Seu salário some até o dia 10. 💸 Manda 10% pra reserva no dia que cai, antes de qualquer conta: em 1 ano, R$ 3.600. Guarda no COMEÇO ou no FIM do mês? Segue pra não perder. ⏳ Faltam 43 dias.
+
+#educacaofinanceira #salario #financaspessoais #organizacaofinanceira
+```
+
+**19h · YOUTUBE SHORTS** · o mesmo vídeo do extrato
+
+1. Enviar o vídeo original; no app do YouTube, escolher o primeiro quadro como capa.
+2. Título e descrição abaixo; publicar.
+
+Título:
+
+```
+Seu salário some até o dia 10? Faz isso no dia que ele cai #shorts
+```
+
+Descrição:
+
+```
+Salário de R$ 3.000: aluguel, cartão, contas, mercado e assinatura levam quase tudo até o dia 10. Tirar 10% no dia que cai, antes de pagar o resto, dá R$ 3.600 em um ano. Regra de bolso: guarda primeiro, gasta depois. Inscreva-se para a próxima conta.
+
+Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fictícios.
+
+#educacaofinanceira #salario #financaspessoais #organizacaofinanceira
+```
+
+## QUINTA 19/11 · Faltam 44 dias · Especial (extra)
+
+Post extra pedido pelo fundador no dia do lançamento do GTA 6: "Quanto custa
+viver o GTA na vida real?". Entretenimento com números. 35 s.
+
+**Antes de postar:** conferir que o vídeo é o do pôr do sol com a mansão e o
+contador de "Gastos". Mandar o arquivo original (AirDrop, Drive/iCloud ou
+WhatsApp como **Documento**). **Postar às 19h**, ou agendar no Instagram.
+
+**19h · INSTAGRAM (Reel)** · vídeo do pôr do sol com a mansão
+
+1. Novo Reel › escolher o vídeo do pôr do sol com a mansão.
+2. Capa: Editar capa › Adicionar da galeria › a imagem "TOTAL R$ 134 MILHÕES".
+3. "Carregar na qualidade mais alta" ligado. Não ativar a legenda automática (o vídeo já tem).
+4. Colar a legenda e publicar às 19h.
+5. Fixar o comentário: `Qual você comprava primeiro: mansão, carro, lancha ou helicóptero? 👇` e responder todos na 1ª hora.
+6. **Até 20h (fundador e sócio):** compartilhar nos stories e mandar o **link** em grupos com a frase `Quanto custa viver o GTA na vida real? 😂👇`.
+
+```
+Quanto custa viver o GTA na vida real? 🌴🏎️
+
+🏠 Mansão de frente pro mar em Miami: ~R$ 127 milhões
+🏎️ Superesportivo italiano: R$ 2,5 milhões
+🚤 Lancha: R$ 577 mil
+🚁 Helicóptero pra pousar no telhado: R$ 3,7 milhões
+
+Total: R$ 134 milhões.
+Ou R$ 449,90 pra viver tudo isso no sofá. 🎮
+
+E você, comprava o quê primeiro? Comenta 👇
+
+Segue o Appliquei pra mais números assim.
+
+⏳ Faltam 44 dias para o que estamos preparando pra 2027.
+
+Preços de referência (mercado de 2026; dólar a R$ 5,78). Conteúdo de entretenimento. Personagens fictícios. Sem relação com a Rockstar Games.
+
+#gta6 #gtavi #curiosidades #dinheiro #videogame
+```
+
+**19h · TIKTOK** · o mesmo vídeo do pôr do sol
+
+1. Enviar o vídeo original; capa = primeiro quadro (já é a capa).
+2. "Permitir upload em alta qualidade" ligado; não ativar legenda automática.
+3. Colar a legenda e publicar.
+
+```
+Quanto custa viver o GTA na vida real? Mansão, superesportivo, lancha e helicóptero: R$ 134 milhões. Ou R$ 449,90 no sofá 🎮 Comprava o quê primeiro? ⏳ Faltam 44 dias.
+
+#gta6 #gtavi #curiosidades #videogame
+```
+
+**19h · YOUTUBE SHORTS** · o mesmo vídeo do pôr do sol
+
+1. Enviar o vídeo original; no app do YouTube, escolher o primeiro quadro como capa.
+2. Título e descrição abaixo; publicar.
+
+Título:
+
+```
+Quanto custa viver o GTA 6 na vida real? (R$ 134 milhões) #shorts
+```
+
+Descrição:
+
+```
+Mansão de frente pro mar em Miami (~R$ 127 mi), superesportivo (R$ 2,5 mi), lancha (R$ 577 mil) e helicóptero (R$ 3,7 mi): R$ 134 milhões. Ou R$ 449,90 no sofá. Comprava o quê primeiro? Inscreva-se para mais números assim.
+
+Preços de referência de 2026, dólar a R$ 5,78. Entretenimento. Sem relação com a Rockstar Games.
+
+#gta6 #gtavi #curiosidades #videogame
+```
+
 ## SEGUNDA 23/11 · Faltam 40 dias · Appliquei Explica
 
 "Seu banco é obrigado a te dar uma conta sem tarifa" (Reel #13), refeito em
