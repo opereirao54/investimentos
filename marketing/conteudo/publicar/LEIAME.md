@@ -733,75 +733,73 @@ Preços de referência de 2026, dólar a R$ 5,78. Entretenimento. Sem relação 
 
 ## SEGUNDA 23/11 · Faltam 40 dias · Appliquei Explica
 
-"Seu banco é obrigado a te dar uma conta sem tarifa" (Reel #13), refeito em
-22/11 com **gancho de IA** pedido pelo fundador: os primeiros 4,8 s mostram
-uma carteira de couro com moedas escapando em câmera lenta (clipe de IA), com
-a frase do gancho por cima; o resto é a conta na tela de sempre, voz Charon,
-49,6 s. Mateus (mau exemplo) paga pacote de R$ 40 sem saber o que tem; Caio
-(bom exemplo) pediu os serviços essenciais.
+"Conta sem tarifa é seu direito" (Reel #13), **refeito em 23/11** no estilo
+combinado (fundador: "o vídeo precisa seguir o que combinamos"): Lia × Beto,
+cena contínua, tela do banco (opção A aprovada), **sem legenda** (fundador,
+23/11). 40,6 s. Substitui a versão de outubro (Caio e Mateus, abertura de IA),
+que não deve ser postada. Sem conteúdo de IA: **não** ligar o rótulo de IA.
 
-**Antes de postar:** conferir que o vídeo é o da carteira com moedas e que a
-1ª linha da legenda é a mesma frase. Mandar o arquivo original (AirDrop,
-Drive/iCloud ou WhatsApp como **Documento**). **Postar às 19h.** Como a
-abertura é de IA realista, **ligar o rótulo de IA** em cada rede (passo abaixo).
+**Antes de postar:** conferir que o vídeo é o do celular com "Conta sem tarifa
+é seu direito" no topo e a Lia e o Beto nas bordas. Mandar o arquivo original
+(AirDrop, Drive/iCloud ou WhatsApp como **Documento**). **Postar às 19h.**
 
-**19h · INSTAGRAM (Reel)** · vídeo da carteira com moedas escapando
+**19h · INSTAGRAM (Reel)** · vídeo do celular com a Lia e o Beto
 
-1. Novo Reel › escolher o vídeo da carteira.
-2. Capa: Editar capa › Adicionar da galeria › a imagem verde "Seu banco é obrigado a te dar conta sem tarifa".
-3. Configurações avançadas: "Carregar na qualidade mais alta" ligado e **"Adicionar rótulo de IA"** ligado.
+1. Novo Reel › escolher o vídeo.
+2. Capa: Editar capa › Adicionar da galeria › a imagem verde "Conta sem tarifa é seu direito".
+3. Configurações avançadas: "Carregar na qualidade mais alta" ligado.
 4. Colar a legenda e publicar às 19h.
-5. Fixar o comentário: `Você já olhou quanto paga de tarifa? Conta aqui 👇` e responder todos na 1ª hora.
+5. Fixar o comentário: `Você já sabia dessa? Comenta SIM ou NÃO 👇` e responder todos na 1ª hora.
 6. **Até 20h (fundador e sócio):** compartilhar o Reel nos stories e mandar o **link** no status do WhatsApp e em 3–5 grupos com a frase `Seu banco te cobra tarifa? Olha isso 👇`.
 
 ```
-Seu banco é obrigado a te dar uma conta sem tarifa. Você sabia? 🏦
+Você pode estar pagando tarifa à toa. 🏦
 
-O Mateus paga R$ 40 por mês num pacote que nunca olhou. O Caio pediu os serviços essenciais, que todo banco tem que oferecer de graça: cartão de débito, 4 saques e 2 extratos por mês, 2 transferências entre contas suas no mesmo banco. E o Pix, que pra pessoa física já é grátis.
+O Beto paga R$ 40 por mês num pacote que nem sabe o que tem: R$ 480 no ano. A Lia paga R$ 0, porque todo banco é obrigado a oferecer os serviços essenciais de graça: cartão de débito, 4 saques e 2 extratos por mês, 2 transferências entre contas suas no mesmo banco. E o Pix, que pra pessoa física já é grátis.
 
-📌 Regra de bolso: abre o extrato e procura "tarifa" ou "pacote". Se você não usa o que paga, pede pra trocar.
+📌 Regra de bolso: procura "tarifa" ou "pacote" no extrato. Não usa? Pede pra trocar.
 
-Manda pra quem paga tarifa sem saber. 🔁
+Você já sabia dessa? Comenta SIM ou NÃO. 👇
 
 💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta. Segue pra não perder a próxima.
 
 ⏳ Faltam 40 dias para o que estamos preparando pra 2027.
 
-Conteúdo educacional. Serviços essenciais pela Resolução CMN nº 3.919/2010; confira as condições no seu banco. Pacote de R$ 40 é exemplo. Supondo renda fixa perto de 1% ao mês. Personagens fictícios. Abertura gerada por IA.
+Conteúdo educacional. Serviços essenciais pela Resolução CMN nº 3.919/2010; confira as condições no seu banco. Pacote de R$ 40 é exemplo. Personagens fictícios.
 
 #educacaofinanceira #tarifabancaria #financaspessoais #dinheiro #dicasdefinancas
 ```
 
-**19h · TIKTOK** · o mesmo vídeo da carteira com moedas
+**19h · TIKTOK** · o mesmo vídeo
 
 1. Enviar o vídeo original; capa = primeiro quadro (já é a capa).
-2. "Permitir upload em alta qualidade" ligado; em Mais opções, **"Conteúdo gerado por IA"** ligado.
+2. "Permitir upload em alta qualidade" ligado.
 3. Colar a legenda e publicar.
 
 ```
-Seu banco é obrigado a te dar uma conta sem tarifa. 🏦 Abre o extrato, procura "tarifa" ou "pacote" e, se não usa, pede os serviços essenciais. Segue pra não perder. ⏳ Faltam 40 dias.
+Você pode estar pagando tarifa à toa. 🏦 Todo banco é obrigado a ter os serviços essenciais de graça. Procura "tarifa" no extrato: não usa? Pede pra trocar. Você já sabia? Comenta SIM ou NÃO. ⏳ Faltam 40 dias.
 
 #tarifabancaria #educacaofinanceira #financaspessoais #dinheiro
 ```
 
-**19h · YOUTUBE SHORTS** · o mesmo vídeo da carteira com moedas
+**19h · YOUTUBE SHORTS** · o mesmo vídeo
 
 1. Enviar o vídeo original; no app do YouTube, escolher o primeiro quadro como capa.
-2. Em "Conteúdo alterado ou sintético", marcar **Sim** (abertura de IA).
+2. Em "Conteúdo alterado ou sintético", marcar **Não**.
 3. Título e descrição abaixo; publicar.
 
 Título:
 
 ```
-Seu banco é obrigado a te dar uma conta sem tarifa. Você sabia? #shorts
+Conta sem tarifa é seu direito. Você sabia? #shorts
 ```
 
 Descrição:
 
 ```
-Todo banco tem que oferecer os serviços essenciais de graça (Resolução CMN 3.919/2010). Regra de bolso: abre o extrato e procura "tarifa" ou "pacote"; se você não usa o que paga, pede pra trocar. Inscreva-se para a próxima conta.
+Todo banco tem que oferecer os serviços essenciais de graça (Resolução CMN 3.919/2010). Regra de bolso: procura "tarifa" ou "pacote" no extrato; se você não usa o que paga, pede pra trocar. Inscreva-se para a próxima conta.
 
-Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fictícios. Abertura gerada por IA.
+Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fictícios.
 
 #tarifabancaria #educacaofinanceira #financaspessoais
 ```

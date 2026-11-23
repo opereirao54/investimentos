@@ -1,0 +1,290 @@
+<!doctype html>
+<!--
+  Appliquei Explica (≈40 s, 1080×1920): "Conta sem tarifa é seu direito".
+  Refeito em 23/11 no estilo combinado (@cafecomseudinheiro, cena contínua,
+  Lia × Beto). Metáfora aprovada pelo fundador em 23/11 (opção A): a tela do
+  banco. No extrato do Beto a "Tarifa pacote −40" chega mês a mês e o total do
+  ano sobe até R$ 480; na tela da Lia a tarifa é R$ 0,00 e os serviços
+  essenciais (Res. CMN 3.919/2010; Pix grátis para pessoa física) vão sendo
+  marcados. Valores de exemplo; banco genérico, sem marca.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root { --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa; --sinal: #34d399; --primaria: #059669; --ambar: #fbbf24; --vermelho: #f87171; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: #0a120e; }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: radial-gradient(70% 45% at 50% 50%, #13261d 0%, #0a120e 70%, #070c09 100%); }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 200px; z-index: 20; }
+  .serie { position: absolute; right: 150px; top: 60px; padding: 10px 20px; border-radius: 99px; border: 2px solid rgba(52,211,153,.45); background: rgba(52,211,153,.12); font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .12em; text-transform: uppercase; color: var(--sinal); z-index: 20; }
+  .titulo { position: absolute; left: 0; right: 0; top: 215px; text-align: center; z-index: 15; font-weight: 900; text-transform: uppercase; line-height: 1.02; text-shadow: 0 6px 24px rgba(0,0,0,.6); }
+  .titulo .l1 { font-size: 78px; } .titulo .l2 { font-size: 78px; color: var(--ambar); }
+  .rodape { position: absolute; left: 60px; right: 60px; top: 1478px; text-align: center; font-size: 24px; color: rgba(240,250,244,.45); z-index: 15; }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); z-index: 30; }
+  svg#cena { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; z-index: 18; pointer-events: none; }
+  .txt { position: absolute; left: 0; top: 0; text-align: center; will-change: transform; opacity: 0; white-space: nowrap; z-index: 16; }
+
+  /* celular grande (~880 px) com o app do banco */
+  #fone { position: absolute; left: 100px; top: 420px; width: 880px; height: 930px; border-radius: 90px; background: #050807; border: 8px solid #2a3a33; box-shadow: 0 40px 100px rgba(0,0,0,.6); padding: 26px; z-index: 10; transform-origin: 50% 0; }
+  #fone .ilha { position: absolute; left: 50%; top: 40px; width: 190px; height: 40px; margin-left: -95px; border-radius: 20px; background: #050807; z-index: 3; }
+  #tela { position: relative; width: 100%; height: 100%; border-radius: 64px; background: #f4f6f5; color: #12241c; overflow: hidden; }
+  .app { position: absolute; inset: 0; padding: 92px 44px 30px; }
+  .ola { font-size: 34px; font-weight: 800; color: #51655b; }
+  .saldo-r { margin-top: 18px; font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .1em; text-transform: uppercase; color: #6b7d75; }
+  .saldo { font-weight: 900; font-size: 116px; letter-spacing: -.04em; line-height: 1.05; }
+  .dia { position: absolute; right: 44px; top: 150px; padding: 10px 24px; border-radius: 99px; background: #12241c; color: #fde68a; font-size: 36px; font-weight: 800; }
+  .ext { margin-top: 26px; font-size: 36px; font-weight: 900; color: #51655b; }
+  .item { display: flex; align-items: center; gap: 20px; height: 84px; border-bottom: 2px solid #e2e9e5; font-size: 44px; font-weight: 800; }
+  .item .ic { width: 64px; height: 64px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 38px; background: #e8efeb; flex: none; }
+  .item .nm { flex: 1; } .item .nm small { display: block; font-size: 26px; font-weight: 700; color: #7b8c84; margin-top: -4px; }
+  .item .vl { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 44px; }
+  .item.neg .vl { color: #b91c1c; } .item.pos .vl { color: #047857; }
+  .item.res { background: rgba(52,211,153,.22); border-radius: 20px; padding: 0 14px; margin: 0 -14px; border: none; }
+  .notif { position: absolute; left: 24px; right: 24px; top: 24px; padding: 22px 26px; border-radius: 34px; background: rgba(18,36,28,.95); color: #fff; display: flex; gap: 20px; align-items: center; box-shadow: 0 20px 40px rgba(0,0,0,.35); z-index: 5; }
+  .notif .ic { width: 70px; height: 70px; border-radius: 20px; background: #b91c1c; display: flex; align-items: center; justify-content: center; font-size: 40px; flex: none; }
+  .notif b { display: block; font-size: 36px; } .notif span { display: block; font-size: 30px; color: #c8d6cf; }
+  .toggle { display: inline-block; width: 110px; height: 60px; border-radius: 30px; background: #c9d5cf; position: relative; vertical-align: middle; }
+  .toggle i { position: absolute; top: 6px; left: 6px; width: 48px; height: 48px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.25); }
+  .barras { position: absolute; left: 44px; right: 44px; bottom: 60px; height: 360px; display: flex; align-items: flex-end; gap: 14px; }
+  .barras div { flex: 1; border-radius: 12px 12px 4px 4px; background: linear-gradient(180deg, #34d399, #059669); position: relative; height: 0; }
+  .barras div span { position: absolute; bottom: -40px; left: 0; right: 0; text-align: center; font-family: 'DM Mono', monospace; font-size: 22px; color: #6b7d75; }
+  .regra { width: 900px; padding: 30px 40px; border-radius: 40px; background: rgba(11,20,16,.95); border: 3px solid rgba(52,211,153,.6); box-shadow: 0 0 80px rgba(52,211,153,.2); }
+  .regra .r { font-family: 'DM Mono', monospace; font-size: 30px; letter-spacing: .16em; text-transform: uppercase; color: var(--sinal); }
+  .regra b { display: block; margin-top: 12px; font-size: 66px; font-weight: 900; line-height: 1.08; } .regra b em { font-style: normal; color: var(--ambar); }
+  .com { display: flex; gap: 20px; align-items: center; margin-top: 30px; }
+  .com .av { width: 72px; height: 72px; border-radius: 50%; flex: none; }
+  .com b { display: block; font-size: 32px; color: #6b7d75; font-weight: 700; } .com span { display: block; font-size: 48px; font-weight: 800; }
+  .entrada { margin-top: 36px; display: flex; align-items: center; justify-content: space-between; padding: 22px 30px; border-radius: 99px; border: 3px solid #c9d5cf; font-size: 46px; font-weight: 700; }
+  .entrada i { display: inline-block; width: 4px; height: 50px; background: #059669; vertical-align: middle; margin-left: 4px; }
+  .assina img { width: 420px; } .assina p { margin-top: 20px; font-size: 42px; font-weight: 800; color: var(--deck); } .assina p em { font-style: normal; color: var(--sinal); }
+  .item.ok .vl { color: #047857; } .item .ck { width: 56px; height: 56px; border-radius: 50%; background: #059669; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 34px; flex: none; }
+  .item.marca { background: rgba(251,191,36,.35); border-radius: 16px; padding: 0 14px; margin: 0 -14px; }
+  .pac { position: absolute; left: 24px; right: 24px; top: 24px; padding: 26px 30px; border-radius: 34px; background: #12241c; color: #fff; box-shadow: 0 20px 40px rgba(0,0,0,.35); z-index: 6; }
+  .pac b { display: block; font-size: 40px; } .pac span { display: block; margin-top: 8px; font-size: 32px; color: #c8d6cf; } .pac em { font-style: normal; color: var(--ambar); font-size: 64px; font-weight: 900; }
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+  <div class="serie">Appliquei Explica</div>
+  <div class="titulo" id="titulo"><div class="l1">Conta sem tarifa</div><div class="l2">é seu direito</div></div>
+
+  <div id="fone"><div class="ilha"></div><div id="tela">
+    <!-- app do Beto: tarifa do pacote mês a mês -->
+    <div class="app" id="banco">
+      <div class="ola">Olá, Beto 👋</div>
+      <div class="saldo-r">Pago em tarifa · 2026</div>
+      <div class="saldo" id="saldo" style="color:#b91c1c">R$ 0</div>
+      <div class="dia" id="dia">📅 JAN</div>
+      <div class="ext">Extrato</div>
+      <div id="lista" style="overflow:hidden;max-height:520px;"></div>
+    </div>
+    <!-- app da Lia: serviços essenciais -->
+    <div class="app" id="lia" style="opacity:0">
+      <div class="ola">Olá, Lia 👋</div>
+      <div class="saldo-r" style="color:#047857">Tarifa do mês</div>
+      <div class="saldo" style="color:#047857">R$ 0,00</div>
+      <div class="ext" id="essh">Serviços essenciais · grátis</div>
+      <div id="ess"></div>
+    </div>
+    <!-- comentários -->
+    <div class="app" id="coment" style="opacity:0">
+      <div class="ext" style="font-size:46px;color:#12241c">Comentários</div>
+      <div class="com" id="c1"><div class="av" style="background:#60a5fa"></div><div><b>@mari.souza</b><span>SIM, já troquei 💪</span></div></div>
+      <div class="com" id="c2"><div class="av" style="background:#f472b6"></div><div><b>@joao.p</b><span>NÃO 😮</span></div></div>
+      <div class="entrada"><span id="digita"></span><span style="color:#059669">➤</span></div>
+    </div>
+    <div class="pac" id="pac" style="opacity:0"><b>📦 Pacote de serviços</b><span>R$ 40 por mês · o que tem nele?</span><em>???</em></div>
+  </div></div>
+
+  <div class="txt" id="interr"><span style="font-size:130px;font-weight:900;color:var(--ambar);text-shadow:0 6px 20px rgba(0,0,0,.6)">?!</span></div>
+  <div class="txt" id="interr2"><span style="font-size:130px;font-weight:900;color:var(--vermelho);text-shadow:0 6px 20px rgba(0,0,0,.6)">?!</span></div>
+  <div class="txt" id="regra"><div class="regra"><div class="r">Regra de bolso</div><b>Procura <em>"tarifa"</em> no extrato.<br>Não usa? <em>Pede pra trocar.</em></b></div></div>
+  <div class="txt assina" id="as"><img src="wordmark.svg" alt="Appliquei"><p>Mais contas assim: <em>siga o Appliquei</em></p></div>
+  <svg id="cena" viewBox="0 0 1080 1920"></svg>
+  <div class="rodape" id="rodape">Valores de exemplo · conteúdo educacional · serviços essenciais pela Res. CMN 3.919/2010 · personagens fictícios</div>
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  function $(id) { return document.getElementById(id); }
+  const NS = 'http://www.w3.org/2000/svg';
+  function S(tag, at, pai) { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); (pai || $('cena')).appendChild(e); return e; }
+  const NAR = [[0.2, 7.91, "Você pode estar pagando tarifa à toa. O Beto paga quarenta reais por mês e nem sabe o que tem no pacote."], [8.16, 10.66, "Ué, mas conta de banco não é paga?!"], [10.96, 15.72, "Não! Todo banco é obrigado a ter os serviços essenciais de graça."], [15.97, 23.31, "Cartão de débito, quatro saques e dois extratos por mês, duas transferências... e o Pix já é grátis."], [23.61, 28.36, "Então eu paguei quatrocentos e oitenta reais esse ano... por nada?!"], [29.26, 35.15, "Regra de bolso: procura tarifa ou pacote no extrato. Não usa? Pede pra trocar."], [35.45, 39.62, "Você já sabia dessa? Comenta sim ou não. E segue o Appliquei."]];
+  const QUEM = ["L", "B", "L", "L", "B", "L", "L"];
+  const DUR = +(NAR[NAR.length - 1][1] + 0.9).toFixed(2);
+  function em(i, palavra) { const [a, b, txt] = NAR[i], k = txt.indexOf(palavra); return a + (k < 0 ? 0 : k / txt.length) * (b - a); }
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const eOut = (x) => 1 - Math.pow(1 - x, 3);
+  const eIn = (x) => x * x * x;
+  const eIO = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+  const eBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  const lerp = (a, b, p) => a + (b - a) * p;
+  const falando = (t, quem) => NAR.some((n, i) => QUEM[i] === quem && t >= n[0] && t < n[1]);
+  const tam = {};
+  function poeTxt(id, x, y, s, r, o) {
+    const el = $(id);
+    if (!tam[id]) { el.style.display = 'block'; tam[id] = [el.offsetWidth, el.offsetHeight]; }
+    const [w, h] = tam[id];
+    el.style.opacity = o; el.style.display = o <= 0.001 ? 'none' : 'block';
+    el.style.transform = `translate(${(x - w / 2).toFixed(1)}px, ${(y - h / 2).toFixed(1)}px) rotate(${(r || 0).toFixed(2)}deg) scale(${s.toFixed(3)})`;
+  }
+  function vida(t, a, b) { const pe = eBack(prog(t, a, a + 0.4)), ps = eIn(prog(t, b, b + 0.3)); return { s: (0.4 + 0.6 * pe) * (1 - 0.25 * ps), o: t < a ? 0 : clamp(pe * 1.5, 0, 1) * (1 - ps), sai: ps }; }
+  const setTxt = (e, v) => { if (e.textContent !== v) e.textContent = v; };
+  const brl = (v) => 'R$ ' + Math.round(v).toLocaleString('pt-BR');
+
+  const BON = {};
+  function boneco(id, camisa, cabelo) {
+    const g = S('g', { id });
+    const L = (cor, w) => S('line', { stroke: cor, 'stroke-width': w, 'stroke-linecap': 'round' }, g);
+    const b = { g, pe: [L('#1f2937', 22), L('#1f2937', 22), L('#1f2937', 22), L('#1f2937', 22)] };
+    b.tronco = S('rect', { x: -42, y: -235, width: 84, height: 125, rx: 34, fill: camisa }, g);
+    b.br = [L('#f2dcc4', 18), L('#f2dcc4', 18), L('#f2dcc4', 18), L('#f2dcc4', 18)];
+    b.cab = S('g', {}, g);
+    if (cabelo === 'lia') S('ellipse', { cx: 34, cy: -282, rx: 20, ry: 34, fill: '#3b2416' }, b.cab);
+    S('circle', { cx: 0, cy: -280, r: 48, fill: '#f2dcc4' }, b.cab);
+    if (cabelo === 'lia') S('path', { d: 'M-48,-282 C-50,-340 50,-345 48,-282 C30,-312 -20,-318 -48,-282 Z', fill: '#3b2416' }, b.cab);
+    else S('path', { d: 'M-46,-290 L-40,-322 L-24,-312 L-14,-334 L2,-316 L16,-336 L26,-314 L42,-322 L46,-290 C20,-306 -20,-306 -46,-290 Z', fill: '#1f2937' }, b.cab);
+    b.ol = [S('circle', { cx: -17, cy: -282, r: 6, fill: '#111' }, b.cab), S('circle', { cx: 17, cy: -282, r: 6, fill: '#111' }, b.cab)];
+    b.sob = [S('line', { stroke: '#3b2416', 'stroke-width': 5, 'stroke-linecap': 'round' }, b.cab), S('line', { stroke: '#3b2416', 'stroke-width': 5, 'stroke-linecap': 'round' }, b.cab)];
+    b.boca = S('path', { fill: 'none', stroke: '#7a2e1f', 'stroke-width': 5, 'stroke-linecap': 'round' }, b.cab);
+    BON[id] = b; return b;
+  }
+  const BETO = boneco('beto', '#ef4444', 'beto'), LIA = boneco('lia', '#10b981', 'lia');
+  const rad = (d) => (d * Math.PI) / 180;
+  function membro(seg, x, y, a1, a2, l1, l2) {
+    const x1 = x + Math.sin(rad(a1)) * l1, y1 = y + Math.cos(rad(a1)) * l1;
+    const x2 = x1 + Math.sin(rad(a1 + a2)) * l2, y2 = y1 + Math.cos(rad(a1 + a2)) * l2;
+    seg[0].setAttribute('x1', x); seg[0].setAttribute('y1', y); seg[0].setAttribute('x2', x1); seg[0].setAttribute('y2', y1);
+    seg[1].setAttribute('x1', x1); seg[1].setAttribute('y1', y1); seg[1].setAttribute('x2', x2); seg[1].setAttribute('y2', y2);
+  }
+  // p: { x, y, s, dir (1/-1), o, perna:[e1,e2,d1,d2], braco:[e1,e2,d1,d2], tronco, humor ('ok'|'preocupado'|'feliz'), fala (bool), t }
+  function pose(id, p) {
+    const b = BON[id];
+    b.g.setAttribute('transform', `translate(${p.x.toFixed(1)},${p.y.toFixed(1)}) scale(${(p.s * (p.dir || 1)).toFixed(3)},${p.s.toFixed(3)}) rotate(${(p.tronco || 0).toFixed(1)} 0 -110)`);
+    b.g.setAttribute('opacity', p.o);
+    b.g.style.display = p.o <= 0.001 ? 'none' : 'inline';
+    const pr = p.perna || [0, 0, 0, 0], br = p.braco || [10, 10, -10, -10];
+    membro([b.pe[0], b.pe[1]], -16, -115, pr[0], pr[1], 58, 58);
+    membro([b.pe[2], b.pe[3]], 16, -115, pr[2], pr[3], 58, 58);
+    membro([b.br[0], b.br[1]], -40, -215, 180 - br[0] - 180, br[1], 52, 50);
+    membro([b.br[2], b.br[3]], 40, -215, br[2], br[3], 52, 50);
+    const h = p.humor || 'ok';
+    const sb = h === 'preocupado' ? [[-30, -306, -6, -298], [6, -298, 30, -306]] : h === 'feliz' ? [[-30, -302, -6, -306], [6, -306, 30, -302]] : [[-30, -302, -6, -302], [6, -302, 30, -302]];
+    b.sob.forEach((l, i) => { l.setAttribute('x1', sb[i][0]); l.setAttribute('y1', sb[i][1]); l.setAttribute('x2', sb[i][2]); l.setAttribute('y2', sb[i][3]); });
+    const ab = p.fala ? 4 + 10 * Math.abs(Math.sin(p.t * 17)) : 0;
+    if (p.fala) b.boca.setAttribute('d', `M-14,-256 Q0,${-256 + ab * 1.6} 14,-256 Q0,${-256 - ab * 0.3} -14,-256 Z`), b.boca.setAttribute('fill', '#7a2e1f');
+    else { b.boca.setAttribute('fill', 'none'); b.boca.setAttribute('d', h === 'preocupado' ? 'M-16,-250 Q-8,-258 0,-252 Q8,-246 16,-254' : h === 'feliz' ? 'M-18,-258 Q0,-238 18,-258' : 'M-14,-254 Q0,-248 14,-254'); }
+    b.cab.setAttribute('transform', `rotate(${(p.cabeca || 0).toFixed(1)} 0 -240)`);
+  }
+  // ciclos prontos
+  const anda = (t, v) => { const f = Math.sin(t * (v || 9)); return { perna: [25 * f, 10 + 20 * Math.max(0, -f), -25 * f, 10 + 20 * Math.max(0, f)], braco: [-25 * f, -20, 25 * f, 20], bob: Math.abs(f) * 8 }; };
+  const parado = (t) => ({ perna: [4, 0, -4, 0], braco: [12 + 3 * Math.sin(t * 2), 8, -12 - 3 * Math.sin(t * 2), -8], bob: 2 * Math.sin(t * 2.5) });
+
+
+  // ---------- telas ----------
+  const MESES = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  const linha = (ic, nm, sub, vl, cls) => `<div class="item ${cls}"><div class="ic">${ic}</div><div class="nm">${nm}<small>${sub}</small></div><div class="vl">${vl}</div></div>`;
+  const ESS = [
+    { ic: '💳', n: 'Cartão de débito', s: 'o cartão', p: 'Cartão' }, { ic: '🏧', n: '4 saques', s: 'por mês', p: 'quatro saques' },
+    { ic: '📄', n: '2 extratos', s: 'por mês', p: 'dois extratos' }, { ic: '🔁', n: '2 transferências', s: 'entre contas suas, no mesmo banco', p: 'duas transf' },
+    { ic: '⚡', n: 'Pix', s: 'pessoa física', p: 'Pix' },
+  ];
+  $('ess').innerHTML = ESS.map((e) => `<div class="item ok"><div class="ic">${e.ic}</div><div class="nm">${e.n}<small>${e.s}</small></div><div class="ck">✓</div></div>`).join('');
+
+  function render(t) {
+    const T = (i) => NAR[i][0];
+    const L1 = T(2) - 0.15, B2 = T(4) - 0.15, R0 = T(5) - 0.15, D0 = T(6) - 0.15;
+
+    // câmera: "soco" de zoom a cada fala e no "por nada"
+    let soco = 0; for (const n of NAR) soco += 0.025 * (1 - eOut(prog(t, n[0] - 0.1, n[0] + 0.25))) * (t >= n[0] - 0.1 ? 1 : 0);
+    const nada = em(4, 'por nada');
+    soco += 0.05 * (1 - eOut(prog(t, nada, nada + 0.35))) * (t >= nada ? 1 : 0);
+    $('palco').style.transform = `scale(${1 + soco})`;
+
+    $('titulo').style.transform = `translateY(${(1 - eOut(prog(t, 0, 0.35))) * -40}px)`;
+    $('titulo').style.opacity = t < D0 ? 1 : 1 - prog(t, D0, D0 + 0.3);
+    $('rodape').style.opacity = t < em(6, 'E segue') ? 1 : 0;
+
+    // celular: sobe no quadro 0; encolhe e desce na regra; volta para os comentários
+    const sobe = eOut(prog(t, 0, 0.5));
+    const enc = eIO(prog(t, R0 - 0.1, R0 + 0.4)) * (1 - eIO(prog(t, D0, D0 + 0.4)));
+    $('fone').style.transform = `translateY(${(1 - sobe) * 700 + enc * 300}px) scale(${1 - 0.3 * enc}) rotate(${(1 - sobe) * 6}deg)`;
+
+    // ===== extrato do Beto: a tarifa chega todo mês =====
+    // JAN a MAR na 1ª fala (desde "quarenta"); ABR a DEZ correndo na fala do "480"
+    const m0 = em(0, 'quarenta'), m1 = em(0, 'nem sabe');
+    const r0 = T(4) + 0.2, r1 = em(4, 'esse ano');
+    const quando = MESES.map((_, i) => (i < 3 ? m0 + i * ((m1 - m0) / 3) : r0 + (i - 3) * ((r1 - r0) / 9)));
+    const n = quando.filter((q) => t >= q).length;
+    const itens = []; for (let i = 0; i < n; i++) itens.push(linha('🏦', 'Tarifa pacote', MESES[i] + ' · débito automático', '−40', 'neg' + (t >= em(5, 'tarifa') ? ' marca' : '')));
+    const html = itens.slice().reverse().join('');
+    if ($('lista').dataset.h !== html) { $('lista').innerHTML = html; $('lista').dataset.h = html; }
+    const novo = $('lista').firstElementChild;
+    if (novo && n) { const q = eBack(prog(t, quando[n - 1], quando[n - 1] + 0.3)); novo.style.transform = `translateY(${(1 - q) * -40}px)`; novo.style.opacity = clamp(q * 1.5, 0, 1); }
+    const ult = n ? quando[n - 1] : 0;
+    const total = n ? 40 * (n - 1) + 40 * eOut(prog(t, ult, ult + 0.3)) : 0;
+    setTxt($('saldo'), brl(total));
+    $('saldo').style.transformOrigin = 'left center';
+    $('saldo').style.transform = `scale(${1 + 0.06 * (t > ult && t < ult + 0.3 ? Math.sin((t - ult) / 0.3 * Math.PI) : 0) + 0.12 * (t >= nada ? Math.sin(prog(t, nada, nada + 0.5) * Math.PI) : 0)})`;
+    setTxt($('dia'), '📅 ' + MESES[Math.max(0, n - 1)]);
+    const vBeto = t < L1 ? 1 : t < B2 ? 1 - prog(t, L1, L1 + 0.3) : t < D0 ? prog(t, B2, B2 + 0.3) : 1 - prog(t, D0, D0 + 0.3);
+    $('banco').style.opacity = vBeto;
+
+    // "o que tem no pacote?"
+    const pq = em(0, 'pacote'), pv = vida(t, pq - 0.2, T(1) + 1.2);
+    $('pac').style.opacity = pv.o; $('pac').style.transform = `translateY(${(1 - Math.min(1, pv.s / 1)) * -60 - pv.sai * 120}px)`;
+
+    // ===== tela da Lia: serviços essenciais marcados =====
+    $('lia').style.opacity = t >= L1 && t < B2 ? prog(t, L1, L1 + 0.3) * (1 - prog(t, B2 - 0.3, B2)) : 0;
+    $('essh').style.opacity = prog(t, em(2, 'serviços'), em(2, 'serviços') + 0.3);
+    [...$('ess').children].forEach((el, i) => { const a = em(3, ESS[i].p), q = eBack(prog(t, a, a + 0.35)); el.style.opacity = clamp(q * 1.5, 0, 1); el.style.transform = `translateX(${(1 - q) * 60}px)`; el.querySelector('.ck').style.transform = `scale(${eBack(prog(t, a + 0.15, a + 0.45))})`; });
+
+    // ===== comentários =====
+    $('coment').style.opacity = prog(t, D0, D0 + 0.3);
+    $('c1').style.opacity = prog(t, D0 + 0.4, D0 + 0.7); $('c2').style.opacity = prog(t, D0 + 0.9, D0 + 1.2);
+    const tc = em(6, 'Comenta'), alvo = 'SIM 😮', nch = Math.floor(prog(t, tc, tc + 1.0) * (alvo.length + 1));
+    $('digita').innerHTML = (nch ? [...alvo].slice(0, nch).join('') : '<span style="color:#9fb3aa">Adicione um comentário…</span>') + (Math.floor(t * 3) % 2 ? '<i></i>' : '');
+
+    // regra, "?!" e assinatura
+    const vg = vida(t, R0, D0); poeTxt('regra', 540, 560, vg.s, 0, vg.o);
+    const vi = vida(t, em(1, 'paga'), T(2) + 0.1); poeTxt('interr', 900, 1060 + 6 * Math.sin(t * 9), vi.s * (1 + 0.08 * Math.sin(t * 12)), 8, vi.o);
+    const vi2 = vida(t, nada, T(5) - 0.2); poeTxt('interr2', 900, 1060 + 6 * Math.sin(t * 9), vi2.s * (1 + 0.08 * Math.sin(t * 12)), 8, vi2.o);
+    const vas = vida(t, em(6, 'E segue'), DUR + 1); poeTxt('as', 540, 1380, vas.s, 0, vas.o);
+    $('logoFixo').style.opacity = t < em(6, 'E segue') - 0.3 ? 1 : 1 - prog(t, em(6, 'E segue') - 0.3, em(6, 'E segue'));
+
+    // ===== Beto (direita) =====
+    {
+      let x = 1010, p = parado(t), humor = 'ok', tronco = 0, cab = 0, o = 1;
+      if (t < 1.1) { x = lerp(1250, 1010, eOut(prog(t, 0.3, 1.1))); p = anda(t, 10); }
+      if (t >= T(1) - 0.1 && t < T(2) + 0.3) { p = { perna: [8, 0, -8, 0], braco: [-150, -10, 150, 10], bob: 4 * Math.abs(Math.sin(t * 10)) }; cab = 6 * Math.sin(t * 12); humor = 'preocupado'; }
+      if (t >= T(2) + 0.3 && t < T(4)) { humor = 'preocupado'; cab = -6; }
+      if (t >= T(4) - 0.1 && t < nada) { humor = 'preocupado'; p = { perna: [4, 0, -4, 0], braco: [20, -60, -20, 60], bob: 0 }; }
+      if (t >= nada && t < D0) { p = { perna: [4, 0, -4, 0], braco: [30, -40, -30, 40], bob: 0 }; tronco = 6; cab = 10; humor = 'preocupado'; }
+      if (t >= em(6, 'E segue') - 0.4) { humor = 'feliz'; p = { perna: [4, 0, -4, 0], braco: [12, 8, 100 + 8 * Math.sin(t * 6), 10], bob: 0 }; }
+      if (t >= em(6, 'E segue')) o = 1 - prog(t, DUR - 0.4, DUR);
+      pose('beto', { x, y: 1420 - p.bob, s: 0.82, dir: -1, o, perna: p.perna, braco: p.braco, humor, fala: falando(t, 'B'), t, tronco, cabeca: cab });
+    }
+    // ===== Lia (esquerda), entra no "Não!" =====
+    {
+      let x = -200, o = 0, p = parado(t), humor = 'feliz';
+      const e0 = T(2) - 0.5;
+      if (t >= e0) {
+        o = 1; x = lerp(-150, 70, eOut(prog(t, e0, e0 + 0.6))); if (t < e0 + 0.6) p = anda(t, 10);
+        if (t >= T(3) - 0.2 && t < T(3) + 7.4) p = { perna: [6, 0, -6, 0], braco: [12, 8, -95, -30], bob: 0 }; // aponta para a lista
+        if (t >= R0) p = { perna: [4, 0, -4, 0], braco: [20, -100, -12, -8], bob: 0 };
+        if (t >= D0 + 0.3) p = { perna: [4, 0, -4, 0], braco: [12, 8, -140 + 10 * Math.sin(t * 6), 0], bob: 0 };
+        if (t >= em(6, 'E segue')) o = 1 - prog(t, DUR - 0.4, DUR);
+      }
+      pose('lia', { x, y: 1420 - p.bob, s: 0.82, dir: 1, o, perna: p.perna, braco: p.braco, humor, fala: falando(t, 'L'), t });
+    }
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>

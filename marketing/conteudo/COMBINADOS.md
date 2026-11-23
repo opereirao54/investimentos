@@ -107,6 +107,9 @@ true`), mesmo modelo do News.
 - **Voz:** **Charon** (Gemini TTS, masculina) e, desde 04/11 (fundador), também a **Sulafat** (feminina) como opção, para variar entre os vídeos. Uma voz por vídeo. Regravar o roteiro inteiro num
   pedido só (frase emendada muda volume e tom). Trocar palavras que o TTS
   confunde no contexto ("caro" num vídeo sobre "carro" → "pesa no bolso").
+- **Antes de produzir, conferir se o vídeo já pronto segue os combinados
+  atuais** (23/11: o Reel das tarifas era de outubro, com Caio e Mateus, e
+  foi refeito no dia).
 - **Personagens (fundador, 12/11): sempre Beto e Lia**, fictícios. **Beto é
   sempre o mau exemplo; Lia, o bom.** Vale para os Reels novos, a partir de
   sex 13/11. Os Reels já publicados e os vídeos prontos que ainda não foram
@@ -187,6 +190,9 @@ true`), mesmo modelo do News.
   diálogo Lia (voz Sulafat) × Beto (voz Charon), sem narrador (exceção à
   regra "uma voz por vídeo"); cortes a cada ~2–3 s; tela de celular quando
   couber; gancho falando com quem assiste. "Se não funcionar, retrocedemos."
+- **Sem legenda queimada (fundador, 23/11: "sem legenda por favor")**, no
+  Reel das tarifas refeito. Confirmar com o fundador se vale para todos
+  (em 19/11 a legenda leve tinha voltado).
 - ~~Sem legenda queimada (17/11)~~: voltou em 19/11 no estilo leve, ver acima.
 - ~~Legenda sincronizada (fundador, 16/11)~~: tirada em 17/11, ver acima. A fala aparece queimada no vídeo, palavra a palavra, numa faixa
   livre em torno de y 1430 (fora dos ~380 px de baixo que o Instagram cobre):
