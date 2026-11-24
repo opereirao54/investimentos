@@ -1,0 +1,19 @@
+{
+  "voz": "Charon",
+  "inicio": 0.05,
+  "final": 1.2,
+  "direcao": "Leia em voz alta, em português do Brasil, como narrador de um vídeo curto de finanças pessoais: voz próxima, clara e confiante, como um amigo que entende de dinheiro dando um alerta útil, sem tom de propaganda. Ritmo ágil. As frases com ponto de interrogação são perguntas ao espectador: leia com o tom subindo no fim. Leia os números por extenso. Faça uma pausa longa entre uma linha e outra. Leia só as linhas abaixo:",
+  "pausas": {
+    "1": 0.35,
+    "3": 0.35,
+    "5": 0.4
+  },
+  "falas": [
+    "Black Friday: você vai pagar no Pix?",
+    "Se cair em golpe, de cada cem reais perdidos no Pix, menos de dez voltam pra sua conta.",
+    "No cartão de crédito, dá pra contestar a compra e pedir o estorno.",
+    "Por isso o Procon orienta: em loja que você não conhece, cartão, não Pix.",
+    "E de preferência o cartão virtual, do app do banco.",
+    "Manda pra quem vai comprar na sexta."
+  ]
+}

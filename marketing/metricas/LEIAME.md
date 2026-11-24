@@ -30,6 +30,40 @@
 - **Operação:** de 5 Reels desde 02/11, dois saíram de manhã (8h30 e 6h) e
   não entram na comparação. Só o parcelado (32,6 s) ficou dentro dos 20–35 s.
 
+## Leitura de 23/11 (equipe do estúdio, 14 Reels, 21 seguidores)
+
+Leitura da Graph API na seg 23/11, 21h49. Relatórios completos em
+`../conteudo/alcance/news-black-friday-pix/equipe/` (analista e algoritmo).
+Nenhum Reel passou de 400 views: é padrão, não conclusão.
+
+- **Abertura nova (desde 04/11): não mudou o resultado.** 7 Reels da grade:
+  5,9 s e 15% (linha de base 5,6 s e 14%); pulos 81% (antes 79%). Só a
+  gasolina bateu a meta, com metade das views vindas de Stories.
+- **Black Friday de 16/11:** 3,4 s, 9%, 84% de pulos; abriu com etiqueta de
+  preço. **Tarifas (23/11):** 2,5 s com ~3 h no ar (parcial); conferir se
+  saiu com a vinheta antiga em tela cheia.
+- **Legenda sincronizada:** um só Reel limpo (13º, 18/11): 6,9 s, 77,8% de
+  pulos. Falta a duração do 13º e do GTA para fechar a retenção.
+- **O que os melhores têm em comum:** algo concreto na 1ª frase (tanque,
+  geladeira, mansão), gancho com data e 1º quadro sem cara de anúncio.
+- **Alcance caiu:** 120–308 por Reel até 13/11 → 64–109 desde 16/11; 0
+  comentários desde 09/11; +3 seguidores de 16 a 23/11 (~0,6% das views).
+- **Algoritmo:** a bio não tem palavra que se pesquise; nos primeiros
+  segundos a maior palavra na tela é APPLIQUEI, não o tema; hashtags
+  bagunçadas (#política no dólar faz a Meta não recomendar a quem não segue;
+  #economía, ##). Horário não é a trava (quase toda view vem de não
+  seguidores): manter 19h e agendar.
+
+## Em teste a partir de qua 25/11 (News, Black Friday Pix)
+
+| Mudança                                                                                                              | Hipótese                                                           | Comparar com                                           |
+| -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------ |
+| 1º quadro com a **cena de quem assiste** (o dedo indo apertar o Pix), sem etiqueta de preço nem "% OFF", sem vinheta | a etiqueta tem cara de anúncio e faz pular; a ação em curso segura | Black Friday 16/11 (3,4 s, 84%) e gasolina (12 s, 76%) |
+
+Próximas propostas do analista (uma por semana, o fundador decide): 02/12, um
+assunto que a pessoa reconhece no 1º segundo com a conta logo depois; 09/12,
+pedido de envio e "segue" antes dos 10 s.
+
 ## News da gasolina (11/11): 1ª leitura em 12/11, ~14 h no ar
 
 - **327 views, alcance 279, tempo médio 12,5 s, retenção 35%** (35,4 s): o
