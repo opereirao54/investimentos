@@ -54,10 +54,20 @@ Exemplo: Reel de sexta 27/11 → tema até terça 24/11 à noite, clipes quarta
    primeiros segundos com os Reels sem animação (gasolina 12,5 s / 35%) e
    decidir se a animação vira padrão.
 
+## Teste da boca sincronizada (24/11): não funcionou
+
+LatentSync (Space `fffiloni/LatentSync`) na fala do Beto ("Mas era tudo
+oferta?!"): erro nas duas tentativas, na cena inteira e no recorte do rosto
+(512 px), ~25 s cada. A IA não reconheceu o rosto 3D (o Beto está com a mão na
+testa). O teste com a Lia de frente não rodou: o Space pede 180 s livres e a
+cota não deixou. O Reel de 25/11 fica como está. Próximo teste, se o
+fundador quiser: rosto de frente, sem a mão, com a cota cheia (~6h45).
+
 ## Quando o Hugging Face PRO (US$ 9/mês, ~R$ 55–60) passa a valer
 
 A cota grátis dá **1 Reel animado por dia**, sem fala sincronizada. O PRO
-(40 min por dia, 8 vezes mais) vale quando acontecer **um** destes:
+(25 min por dia, 5 vezes mais, segundo o aviso do próprio Hugging Face em 24/11)
+vale quando acontecer **um** destes:
 
 - a boca sincronizada for aprovada e entrar em todo Reel (5 clipes + fala =
   ~430 s, mais que os 300 s grátis);
