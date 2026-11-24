@@ -162,6 +162,14 @@ true`), mesmo modelo do News.
 
 ## Pendentes (lembrar o fundador)
 
+- **Propostas do diagnóstico de 23/11 (algoritmo e analista; o fundador
+  decide):** (1) bio com palavras que se pesquisam (cartão, Pix, juros),
+  igual nas três redes; (2) editar legendas antigas: tirar #política do
+  Reel do dólar e as tags erradas (#economía, ##) e corrigir a legenda
+  trocada de 02/11; (3) fixar no TikTok e no YouTube os 3 Reels com mais
+  tempo médio; (4) mandar o print da barra de busca do TikTok ("pix ou
+  cartão") e das Estatísticas do 13º e do GTA (duração e origem).
+
 - **Plano de crescimento (05/11):**
   `.claude/skills/marketing-saas/referencias/crescimento.md`. **Fundador
   (05/11): só a grade seg, qua e sex, nada a mais** (sem Reel de teste em

@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=1080, height=1920">
+<script src="assets/gsap.min.js"></script>
+<style>
+@font-face{font-family:'Figtree';font-weight:400 900;font-style:normal;font-display:block;src:url(assets/fonts/Figtree-900-latin.woff2) format('woff2');unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'Figtree';font-weight:400 900;font-style:normal;font-display:block;src:url(assets/fonts/Figtree-900-latin-ext.woff2) format('woff2');unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;}
+@font-face{font-family:'DM Mono';font-weight:400;font-style:normal;font-display:block;src:url(assets/fonts/DMMono-400-latin.woff2) format('woff2');unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'DM Mono';font-weight:400;font-style:normal;font-display:block;src:url(assets/fonts/DMMono-400-latin-ext.woff2) format('woff2');unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;}
+@font-face{font-family:'DM Mono';font-weight:500;font-style:normal;font-display:block;src:url(assets/fonts/DMMono-500-latin.woff2) format('woff2');unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'DM Mono';font-weight:500;font-style:normal;font-display:block;src:url(assets/fonts/DMMono-500-latin-ext.woff2) format('woff2');unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;}
+
+:root { --campo1:#0b1410; --campo2:#0f1f18; --campo3:#112720; --tinta:#f0faf4; --deck:#c8d6cf; --mudo:#9fb3aa;
+  --sinal:#34d399; --primaria:#059669; --ambar:#fbbf24; --vermelho:#f87171; --azul:#60a5fa; --news:#b91c1c; --pix:#32bcad; }
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:hidden;background:var(--campo1)}
+#root{position:relative;width:1080px;height:1920px;overflow:hidden;font-family:'Figtree',sans-serif;-webkit-font-smoothing:antialiased;color:var(--tinta);
+  background:linear-gradient(150deg,var(--campo1) 0%,var(--campo2) 50%,var(--campo3) 100%)}
+.halo{position:absolute;inset:-20%;background:radial-gradient(60% 40% at 80% 10%,rgba(16,185,129,.22),transparent 70%),radial-gradient(40% 35% at 10% 90%,rgba(5,150,105,.18),transparent 70%)}
+.grade{position:absolute;inset:0;background-image:linear-gradient(rgba(240,250,244,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(240,250,244,.03) 1px,transparent 1px);background-size:60px 60px;background-position:-1px -1px}
+/* topo fixo, igual aos Reels: wordmark à esquerda, tarja da série e selo da contagem (contagem.js) à direita */
+.logo-fixo{position:absolute;left:60px;top:60px;width:200px;z-index:20}
+.serie{position:absolute;right:150px;top:60px;padding:10px 20px;border-radius:99px;background:var(--news);color:#fff;font-family:'DM Mono',monospace;font-weight:500;font-size:22px;letter-spacing:.14em;text-transform:uppercase;box-shadow:0 6px 18px rgba(0,0,0,.35);z-index:20}
+.dias{position:absolute;right:60px;top:130px;display:inline-flex;align-items:center;gap:12px;padding:12px 24px;border-radius:99px;background:rgba(11,20,16,.82);border:2px solid var(--ambar);color:#fde68a;font-family:'DM Mono',monospace;font-size:28px;letter-spacing:.06em;white-space:nowrap;z-index:20}
+.dias b{color:var(--ambar);font-weight:500;font-size:34px} .dias i{width:12px;height:12px;border-radius:50%;background:var(--ambar);box-shadow:0 0 12px var(--ambar)}
+.barra-t{position:absolute;left:0;bottom:0;height:8px;background:linear-gradient(90deg,var(--primaria),var(--sinal));z-index:30}
+.cena{position:absolute;inset:0}
+.tit{position:absolute;left:90px;right:90px;font-weight:900;font-size:84px;line-height:1.05;letter-spacing:-.035em}
+.tit .am{color:var(--ambar)} .tit .v{color:var(--sinal)}
+.cel{position:absolute;left:290px;top:560px;width:500px;height:740px;border-radius:64px;background:#0a0f0c;padding:18px;box-shadow:0 30px 70px rgba(0,0,0,.45)}
+.tela{width:100%;height:100%;border-radius:48px;background:#fff;color:#12241c;padding:34px 30px;position:relative;overflow:hidden}
+.loja{font-family:'DM Mono',monospace;font-size:24px;color:#51655b} .loja span{font-family:'Figtree';background:var(--news);color:#fff;padding:2px 10px;border-radius:8px;font-size:20px;font-weight:900;margin-left:8px}
+.prod{margin-top:24px;text-align:center} .prod .tv{width:300px;height:140px;margin:0 auto 12px;background:#1d2a23;border-radius:14px;border:8px solid #333}
+.prod b{display:block;font-size:34px;font-weight:900} .prod s{display:block;text-decoration:none;text-transform:uppercase;letter-spacing:.12em;color:#51655b;font-family:'DM Mono',monospace;font-size:28px;margin-top:6px} .prod strong{display:block;font-family:'DM Mono',monospace;font-weight:500;font-size:64px;letter-spacing:-.04em} .prod em{color:var(--news);font-style:normal;font-weight:900;font-size:26px}
+.btn{position:absolute;left:30px;right:30px;text-align:center;font-weight:900;border-radius:20px;padding:22px 0;font-size:34px}
+.pix{bottom:140px;background:var(--pix);color:#fff} .cart{bottom:44px;background:#e7eeea;color:#1d2a23;font-size:28px}
+.mao{position:absolute;left:620px;top:1110px;font-size:110px;z-index:8}
+/* manchete no visual da marca (card claro com barra vermelha, como nos News) */
+.faixa{position:absolute;left:70px;right:70px;top:250px;background:#f4f4f0;border-radius:22px;overflow:hidden;box-shadow:10px 12px 0 rgba(0,0,0,.55);z-index:5}
+.faixa b{display:block;background:var(--news);color:#fff;font-weight:900;font-size:30px;letter-spacing:.04em;padding:14px 34px;text-transform:uppercase}
+.faixa span{display:block;color:#111;font-size:46px;font-weight:900;line-height:1.12;letter-spacing:-.015em;padding:22px 34px 24px}
+.barras{position:absolute;left:150px;right:150px;top:700px;height:500px;display:flex;gap:80px;align-items:flex-end}
+.barras div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.barras i{display:block;width:100%;border-radius:14px 14px 0 0} .barras b{margin-top:14px;font-family:'DM Mono',monospace;font-size:30px;font-weight:400;letter-spacing:.12em;text-transform:uppercase;color:var(--mudo)}
+.tag{position:absolute;left:90px;right:90px;font-family:'DM Mono',monospace;font-size:24px;letter-spacing:.04em;color:var(--mudo);display:flex;gap:12px;align-items:center}
+.tag::before{content:'';flex:none;width:10px;height:22px;background:var(--sinal)}
+.cartao{position:absolute;left:240px;top:560px;width:600px;height:370px;border-radius:34px;background:linear-gradient(135deg,#059669,#064e3b);box-shadow:0 26px 50px rgba(0,0,0,.4);padding:40px;font-family:'DM Mono',monospace}
+.cartao .chip{width:90px;height:66px;border-radius:12px;background:var(--ambar)} .cartao .num{margin-top:60px;font-size:40px;letter-spacing:.12em} .cartao .nm{margin-top:20px;font-size:26px;color:#d1fae5;letter-spacing:.08em}
+.selo{position:absolute;font-weight:900;border-radius:22px;padding:18px 34px;font-size:46px;white-space:nowrap}
+.papel{position:absolute;left:70px;right:70px;top:560px;background:#f4f4f0;color:#111;border-radius:22px;overflow:hidden;box-shadow:10px 12px 0 rgba(0,0,0,.55)}
+.papel .org{background:var(--news);color:#fff;font-weight:900;font-size:30px;letter-spacing:.04em;padding:14px 34px;text-transform:uppercase} .papel .q{font-weight:900;font-size:52px;line-height:1.15;padding:26px 34px 30px;letter-spacing:-.015em}
+.grifo{background:linear-gradient(90deg, rgba(251,191,36,.85) 0 var(--g,0%), transparent var(--g,0%));padding:0 .06em}
+.lado{position:absolute;left:90px;right:90px;top:1040px;display:flex;gap:30px}
+.lado div{flex:1;border-radius:30px;padding:24px;text-align:center;font-weight:900;font-size:50px}
+.lado .ok{background:rgba(52,211,153,.12);border:3px solid rgba(52,211,153,.55);color:var(--sinal)} .lado .no{background:rgba(248,113,113,.1);border:3px solid rgba(248,113,113,.5);color:var(--vermelho)}
+.cta{position:absolute;left:90px;right:90px;font-weight:900;font-size:84px;line-height:1.05;letter-spacing:-.035em}
+.assina{position:absolute;left:0;right:0;text-align:center} .assina img{width:440px} .assina p{margin-top:26px;font-size:44px;font-weight:800;color:var(--deck)} .assina p em{font-style:normal;color:var(--sinal)}
+.aviso{position:absolute;left:80px;right:80px;padding:22px 26px;border-radius:22px;background:rgba(11,20,16,.9);border:2px solid rgba(240,250,244,.35);text-align:center;font-size:25px;line-height:1.4;color:var(--tinta)}
+/* legenda: mesma do render.js (centro em y 1430, faixa livre 1340-1520) */
+.lg{position:absolute;left:70px;right:70px;top:1370px;height:120px;display:flex;justify-content:center;align-items:center;z-index:40}
+.lg .pill{padding:14px 30px 18px;border-radius:24px;background:rgba(6,12,9,.78);box-shadow:0 10px 30px rgba(0,0,0,.35);font-weight:900;font-size:66px;letter-spacing:-.015em;white-space:nowrap;line-height:1.12;color:var(--tinta)}
+.lg .hl{color:var(--sinal)}
+.flash{position:absolute;inset:0;background:var(--campo1);opacity:0;z-index:30;pointer-events:none}
+/* capa (capa.js "news": true) */
+.faixa-news{position:absolute;left:-40px;right:-40px;top:300px;height:300px;background:var(--news);display:flex;flex-direction:column;align-items:center;justify-content:center;transform:skewY(-4deg);box-shadow:0 24px 60px rgba(0,0,0,.35)}
+.faixa-news b{font-size:124px;font-weight:900;letter-spacing:-.045em;line-height:1;color:#fff;transform:skewY(4deg)}
+.faixa-news span{margin-top:10px;padding:6px 34px;background:#fff;color:var(--news);font-family:'DM Mono',monospace;font-size:70px;letter-spacing:.32em;text-indent:.32em;transform:skewY(4deg)}
+.miolo{position:absolute;left:80px;right:80px;top:660px;height:1020px;padding-top:70px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.miolo .frase{font-weight:900;font-size:104px;line-height:1.04;letter-spacing:-.04em} .miolo .frase em{font-style:normal;color:var(--ambar)}
+.miolo .apoio{margin-top:48px;font-size:44px;font-weight:800;color:var(--deck)} .miolo img{margin-top:90px;width:300px;opacity:.95}
+</style>
+<body>
+<div id="root" data-composition-id="main" data-start="0" data-duration="25.58" data-width="1080" data-height="1920">
+<div class="halo"></div><div class="grade"></div>
+<img class="logo-fixo" id="logo" src="assets/wordmark.svg" alt="Appliquei">
+<div class="serie" id="serie">Appliquei News</div>
+<div class="dias" id="dias"><i></i>Faltam <b>38</b> dias</div>
+
+<div id="s0" class="clip cena" data-start="0.00" data-duration="2.45" data-track-index="1"><div class="tit" style="top:250px">Black Friday:<br><span class="am">vai pagar no Pix?</span></div><div class="cel" id="c0"><div class="tela">
+  <div class="loja">FINALIZAR COMPRA</div>
+  <div class="prod"><div class="tv"></div><b>Smart TV 55"</b><s>total</s><strong>R$ 899</strong></div>
+  <div class="btn pix" id="bpix">PAGAR COM PIX</div><div class="btn cart">Cartão de crédito</div></div></div><div class="mao" id="mao">👆</div></div>
+
+<div id="s1" class="clip cena" data-start="2.45" data-duration="6.05" data-track-index="1"><div class="tit" id="fx" style="top:250px;font-size:72px">De cada R$ 100<br>perdidos no Pix,<br><span class="am">menos de R$ 10 voltam</span></div>
+<div class="barras"><div><b style="order:-1;margin:0 0 14px;color:var(--tinta);font-size:46px;font-weight:500;letter-spacing:-.02em" id="n1">R$ 100</b><i id="b1" style="height:100%;background:var(--vermelho)"></i><b>perdidos</b></div>
+<div><b style="order:-1;margin:0 0 14px;color:var(--ambar);font-size:46px;font-weight:500;letter-spacing:-.02em" id="n2">R$ 0</b><i id="b2" style="height:0%;background:var(--ambar)"></i><b>volta, em média</b></div></div>
+<div class="tag" style="top:1240px">Banco Central · MED, dados de 2025</div></div>
+
+<div id="s2" class="clip cena" data-start="8.50" data-duration="3.99" data-track-index="1"><div class="tit" style="top:250px;font-size:76px">No cartão:<br><span class="v">dá pra contestar</span></div>
+<div class="cartao" id="cc"><div class="chip"></div><div class="num">•••• •••• •••• 4821</div><div class="nm">CARTÃO DE CRÉDITO</div></div>
+<div class="selo" id="est" style="left:300px;top:1010px;background:var(--sinal);color:#052e1f">↩ estorno pedido</div></div>
+
+<div id="s3" class="clip cena" data-start="12.49" data-duration="5.80" data-track-index="1"><div class="tit" style="top:250px;font-size:76px">O Procon<br><span class="am">orienta</span></div>
+<div class="papel" id="pp"><div class="org">Procon-MG · dicas para compras online</div><div class="q">Em loja que você não conhece, use o <span class="grifo" id="gr">cartão de crédito, e não o Pix</span>.</div></div>
+<div class="lado" id="ld" style="top:1110px"><div class="ok">✓ cartão</div><div class="no">✗ Pix</div></div></div>
+
+<div id="s4" class="clip cena" data-start="18.29" data-duration="3.53" data-track-index="1"><div class="tit" style="top:250px;font-size:76px">Melhor ainda:<br><span class="v">cartão virtual</span></div>
+<div class="cartao" id="cv" style="background:linear-gradient(135deg,#1d2a23,#0b1410);border:3px solid var(--sinal)"><div class="chip" style="background:var(--sinal)"></div><div class="num">•••• •••• •••• <b id="nv">0000</b></div><div class="nm">VIRTUAL · NO APP DO BANCO</div></div>
+<div class="tag" style="top:1010px">os bancos orientam: cartão virtual nas compras online</div></div>
+
+<div id="s5" class="clip cena" data-start="21.82" data-duration="3.06" data-track-index="1"><div class="cta" style="top:250px">Manda pra quem<br>vai comprar<br><span style="color:var(--ambar)">na sexta</span></div>
+<div class="assina" style="top:640px"><img src="assets/wordmark.svg" alt="Appliquei"><p>Mais contas assim: <em>siga o Appliquei</em></p></div>
+<div class="aviso" style="top:1000px">Banco Central, MED: em 2025 voltaram em média 9,3% do valor contestado em golpes no Pix; Procon-MG, orientação para compras online; orientação dos bancos sobre o cartão virtual. Conteúdo educacional, não é recomendação. Valores da TV de exemplo, loja fictícia.</div></div>
+
+<div id="sc" class="clip cena" data-start="24.88" data-duration="0.7" data-track-index="2">
+<div class="faixa-news"><b>APPLIQUEI</b><span>NEWS</span></div>
+<div class="miolo"><div class="frase">Black Friday:<br>vai pagar<br>no <em>Pix?</em></div><div class="apoio">De R$ 100 perdidos no Pix,<br>voltam menos de R$&nbsp;10</div><img src="assets/wordmark.svg" alt="Appliquei"></div></div>
+
+<div id="lg0" class="clip lg" data-start="0.12" data-duration="0.69" data-track-index="9"><span class="pill"><span>Black</span> <span>Friday</span></span></div>
+<div id="lg1" class="clip lg" data-start="0.81" data-duration="1.06" data-track-index="9"><span class="pill"><span>você</span> <span>vai</span> <span>pagar</span></span></div>
+<div id="lg2" class="clip lg" data-start="1.87" data-duration="0.77" data-track-index="9"><span class="pill"><span>no</span> <span class="hl">Pix?</span></span></div>
+<div id="lg3" class="clip lg" data-start="2.64" data-duration="0.64" data-track-index="9"><span class="pill"><span>Se</span> <span>cair</span> <span>em</span></span></div>
+<div id="lg4" class="clip lg" data-start="3.28" data-duration="0.62" data-track-index="9"><span class="pill"><span>golpe</span></span></div>
+<div id="lg5" class="clip lg" data-start="3.90" data-duration="0.85" data-track-index="9"><span class="pill"><span>de</span> <span>cada</span> <span>cem</span></span></div>
+<div id="lg6" class="clip lg" data-start="4.75" data-duration="1.06" data-track-index="9"><span class="pill"><span>reais</span> <span>perdidos</span> <span>no</span></span></div>
+<div id="lg7" class="clip lg" data-start="5.81" data-duration="0.40" data-track-index="9"><span class="pill"><span class="hl">Pix</span></span></div>
+<div id="lg8" class="clip lg" data-start="6.21" data-duration="0.85" data-track-index="9"><span class="pill"><span class="hl">menos</span> <span class="hl">de</span> <span class="hl">dez</span></span></div>
+<div id="lg9" class="clip lg" data-start="7.06" data-duration="0.86" data-track-index="9"><span class="pill"><span>voltam</span> <span>pra</span> <span>sua</span></span></div>
+<div id="lg10" class="clip lg" data-start="7.92" data-duration="0.77" data-track-index="9"><span class="pill"><span>conta</span></span></div>
+<div id="lg11" class="clip lg" data-start="8.69" data-duration="0.64" data-track-index="9"><span class="pill"><span>No</span> <span>cartão</span> <span>de</span></span></div>
+<div id="lg12" class="clip lg" data-start="9.33" data-duration="0.62" data-track-index="9"><span class="pill"><span>crédito</span></span></div>
+<div id="lg13" class="clip lg" data-start="9.95" data-duration="0.79" data-track-index="9"><span class="pill"><span>dá</span> <span>pra</span> <span class="hl">contestar</span></span></div>
+<div id="lg14" class="clip lg" data-start="10.74" data-duration="0.64" data-track-index="9"><span class="pill"><span>a</span> <span>compra</span> <span>e</span></span></div>
+<div id="lg15" class="clip lg" data-start="11.38" data-duration="1.30" data-track-index="9"><span class="pill"><span>pedir</span> <span>o</span> <span class="hl">estorno</span></span></div>
+<div id="lg16" class="clip lg" data-start="12.68" data-duration="0.85" data-track-index="9"><span class="pill"><span>Por</span> <span>isso</span> <span>o</span></span></div>
+<div id="lg17" class="clip lg" data-start="13.53" data-duration="1.25" data-track-index="9"><span class="pill"><span>Procon</span> <span>orienta</span></span></div>
+<div id="lg18" class="clip lg" data-start="14.78" data-duration="0.84" data-track-index="9"><span class="pill"><span>em</span> <span>loja</span> <span>que</span></span></div>
+<div id="lg19" class="clip lg" data-start="15.62" data-duration="1.46" data-track-index="9"><span class="pill"><span>você</span> <span>não</span> <span>conhece</span></span></div>
+<div id="lg20" class="clip lg" data-start="17.08" data-duration="0.62" data-track-index="9"><span class="pill"><span>cartão</span></span></div>
+<div id="lg21" class="clip lg" data-start="17.70" data-duration="0.78" data-track-index="9"><span class="pill"><span>não</span> <span class="hl">Pix</span></span></div>
+<div id="lg22" class="clip lg" data-start="18.48" data-duration="1.12" data-track-index="9"><span class="pill"><span>E</span> <span>de</span> <span>preferência</span></span></div>
+<div id="lg23" class="clip lg" data-start="19.60" data-duration="1.09" data-track-index="9"><span class="pill"><span>o</span> <span class="hl">cartão</span> <span class="hl">virtual</span></span></div>
+<div id="lg24" class="clip lg" data-start="20.69" data-duration="0.56" data-track-index="9"><span class="pill"><span>do</span> <span>app</span> <span>do</span></span></div>
+<div id="lg25" class="clip lg" data-start="21.25" data-duration="0.76" data-track-index="9"><span class="pill"><span>banco</span></span></div>
+<div id="lg26" class="clip lg" data-start="22.01" data-duration="0.64" data-track-index="9"><span class="pill"><span>Manda</span> <span>pra</span> <span>quem</span></span></div>
+<div id="lg27" class="clip lg" data-start="22.65" data-duration="0.65" data-track-index="9"><span class="pill"><span>vai</span> <span>comprar</span> <span>na</span></span></div>
+<div id="lg28" class="clip lg" data-start="23.30" data-duration="0.73" data-track-index="9"><span class="pill"><span class="hl">sexta</span></span></div>
+
+<div class="flash" id="fl"></div>
+<div class="barra-t" id="bt"></div>
+</div>
+<script>
+const INI=[0.0, 2.45, 8.5, 12.49, 18.29, 21.82]; const DUR=24.88;
+const tl=gsap.timeline({paused:true});
+const m={t:0};
+const fmt=v=>'R$ '+v.toFixed(2).replace('.',',').replace(',00','');
+tl.to(m,{t:DUR+0.7,duration:DUR+0.7,ease:'none',onUpdate:()=>{const t=m.t;
+  // topo e barra de progresso somem na capa do fim (o selo fica, como no contagem.js)
+  const cap=t>=DUR; ['logo','serie','bt'].forEach(i=>document.getElementById(i).style.opacity=cap?0:1);
+  document.getElementById('bt').style.width=(Math.min(1,t/DUR)*1080).toFixed(1)+'px';
+  const p=1+0.05*Math.abs(Math.sin(t*5)); document.getElementById('bpix').style.transform=`scale(${p})`;
+  document.getElementById('mao').style.transform=`translate(${-Math.max(0,Math.min(1,t/1.2))*120}px, ${-Math.max(0,Math.min(1,t/1.2))*20}px)`;
+  const l=t-INI[1], k=Math.max(0,Math.min(1,(l-3.6)/1.0));
+  document.getElementById('n2').textContent=fmt(9.3*k); document.getElementById('b2').style.height=(9.3*k)+'%';
+  const g=Math.max(0,Math.min(1,(t-INI[3]-1.8)/0.8)); document.getElementById('gr').style.setProperty('--g',(g*100).toFixed(1)+'%');
+  const v=t-INI[4]; document.getElementById('nv').textContent=v<0.5?'0000':String(1000+Math.floor((v*37)%9000)).slice(0,4);
+}},0);
+INI.slice(1).forEach(a=>tl.fromTo('#fl',{opacity:.6},{opacity:0,duration:.18,ease:'none',immediateRender:false},a));
+tl.fromTo('#fx',{y:-40,opacity:0},{y:0,opacity:1,duration:.3,ease:'power3.out'},INI[1]+0.05);
+tl.fromTo('#cc',{rotationY:70,opacity:0},{rotationY:0,opacity:1,duration:.4,ease:'back.out(1.6)'},INI[2]+0.2);
+tl.fromTo('#est',{scale:0,opacity:0},{scale:1,opacity:1,duration:.3,ease:'back.out(2.5)'},INI[2]+2.2);
+tl.fromTo('#pp',{y:60,opacity:0},{y:0,opacity:1,duration:.3},INI[3]+0.4);
+tl.fromTo('#ld',{y:60,opacity:0},{y:0,opacity:1,duration:.3},INI[3]+3.2);
+tl.fromTo('#cv',{scale:.6,opacity:0},{scale:1,opacity:1,duration:.35,ease:'back.out(1.8)'},INI[4]+0.3);
+document.querySelectorAll('.lg .pill').forEach(p=>tl.fromTo(p,{scale:.92},{scale:1,duration:.12,ease:'power2.out'},parseFloat(p.parentElement.dataset.start)));
+window.__timelines=window.__timelines||{}; window.__timelines['main']=tl; tl.seek(0);
+</script></body></html>

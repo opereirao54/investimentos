@@ -487,6 +487,61 @@ Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fict�
 #blackfriday #educacaofinanceira #direitodoconsumidor #financaspessoais
 ```
 
+## QUARTA 25/11 · Faltam 38 dias · Appliquei News
+
+Vídeo: `10-25-11-news-black-friday-pix.mp4` (25,7 s, capa no 1º quadro, sem
+vinheta) e `10-25-11-news-black-friday-pix-capa.png`. Bastidor:
+`../alcance/news-black-friday-pix/`.
+
+**19h · INSTAGRAM** · o Reel do celular com o botão do Pix
+
+1. Enviar o vídeo original; capa pela galeria (a imagem com a faixa vermelha APPLIQUEI NEWS). Conferir o recorte 3:4 da grade.
+2. "Carregar na qualidade mais alta" ligado.
+3. Colar a legenda, publicar (ou agendar para 19h) e fixar o 1º comentário.
+
+```
+Black Friday: vai pagar no Pix? 💳
+Se cair em golpe, de cada R$ 100 perdidos no Pix, menos de R$ 10 voltam (Banco Central, MED, dados de 2025). No cartão de crédito dá pra contestar a compra e pedir o estorno. Por isso o Procon orienta: em loja que você não conhece, cartão, não Pix. E de preferência o cartão virtual, do app do banco.
+Manda pra quem vai comprar na sexta. 👇
+📰 Appliquei News: a notícia da semana no seu bolso, toda quarta.
+⏳ Faltam 38 dias. Segue pra não perder.
+Conteúdo educacional, não é recomendação. Valores da TV de exemplo, loja fictícia.
+
+#blackfriday #pix #cartaodecredito #educacaofinanceira #financaspessoais
+```
+
+1º comentário (fixar): `Você já pagou no Pix uma loja que não conhecia? 👀`
+
+**19h · TIKTOK** · o mesmo vídeo do botão do Pix
+
+1. Enviar o vídeo original; capa = a imagem com a faixa vermelha.
+2. "Permitir upload em alta qualidade" ligado.
+3. Colar a legenda, publicar e fixar o 1º comentário.
+
+```
+Black Friday: Pix ou cartão? 💳 De cada R$ 100 perdidos em golpe no Pix, menos de R$ 10 voltam (Banco Central, 2025). Manda pra quem vai comprar na sexta. Segue pra não perder. ⏳ Faltam 38 dias. Conteúdo educacional, não é recomendação.
+
+#blackfriday #pix #cartaodecredito #educacaofinanceira #financaspessoais
+```
+
+**19h · YOUTUBE SHORTS** · o mesmo vídeo do botão do Pix
+
+Título:
+
+```
+Black Friday: vai pagar no Pix? #shorts
+```
+
+Descrição:
+
+```
+Se cair em golpe, de cada R$ 100 perdidos no Pix, menos de R$ 10 voltam (Banco Central, MED, 2025). No cartão dá pra contestar e pedir o estorno; em loja que você não conhece, o Procon orienta cartão, não Pix. Inscreva-se para a próxima conta.
+
+Conteúdo educacional, sem recomendação. Valores da TV de exemplo, loja fictícia.
+
+#blackfriday #pix #cartaodecredito #educacaofinanceira #financaspessoais
+```
+
 ## Assinaturas das séries na legenda (desde 04/11)
 
 - `💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta.`
