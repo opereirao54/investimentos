@@ -542,6 +542,68 @@ Conteúdo educacional, sem recomendação. Valores da TV de exemplo, loja fictí
 #blackfriday #pix #cartaodecredito #educacaofinanceira #financaspessoais
 ```
 
+## SEXTA 27/11 · Faltam 36 dias · Appliquei Explica · **21h**
+
+Vídeo: `11-27-11-13-salario-rotativo.mp4` (45 s, capa no 1º quadro, sem
+vinheta, legenda na tela) e `11-27-11-13-salario-rotativo-capa.png`.
+Bastidor: `../alcance/decimo-terceiro-rotativo/`. **Hoje às 21h, não 19h**
+(decisão do fundador).
+
+**21h · INSTAGRAM** · o Reel do visor vermelho com 446%
+
+1. Enviar o vídeo original; capa pela galeria (a imagem com a faixa verde APPLIQUEI EXPLICA e "Seu 13º contra um juro de 446%"). Conferir o recorte 3:4 da grade.
+2. "Carregar na qualidade mais alta" ligado.
+3. Colar a legenda, publicar (ou agendar para 21h) e fixar o 1º comentário.
+
+```
+Seu 13º contra um juro de 446% 💳
+O Banco Central divulgou hoje: o juro médio do rotativo do cartão foi de 446% ao ano em outubro, uns 15% ao mês. E segunda cai a 1ª parcela do 13º.
+O Beto gastou R$ 1.500 na Black Friday com 15% de desconto: economizou R$ 225. Só que devia R$ 1.500 no rotativo, e um mês de juro dá uns R$ 228. O desconto empatou, e a dívida continua lá.
+A Lia quitou o rotativo: só no 1º mês, deixou de pagar R$ 228.
+Regra de bolso: antes do desconto, olha o juro. Dívida cara vem primeiro.
+Manda pra quem recebe o 13º na segunda. 👇
+💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta.
+⏳ Faltam 36 dias. Segue pra não perder.
+Conteúdo educacional, sem recomendação. Valores de exemplo; o juro de cada banco varia. Personagens fictícios.
+
+#13salario #cartaodecredito #blackfriday #educacaofinanceira #financaspessoais
+```
+
+1º comentário (fixar): `O seu 13º vai pra dívida ou pra Black Friday? 👀`
+
+**21h · TIKTOK** · o mesmo vídeo do visor vermelho com 446%
+
+1. Enviar o vídeo original; capa = a imagem com a faixa verde.
+2. "Permitir upload em alta qualidade" ligado.
+3. Colar a legenda, publicar e fixar o 1º comentário.
+
+```
+Seu 13º contra um juro de 446% 💳 O rotativo do cartão cobra uns 15% ao mês: o desconto da Black Friday empata com um mês de juro. Dívida cara vem primeiro. Segue pra não perder. ⏳ Faltam 36 dias. Conteúdo educacional, sem recomendação.
+
+#13salario #cartaodecredito #blackfriday #educacaofinanceira #financaspessoais
+```
+
+**21h · YOUTUBE SHORTS** · o mesmo vídeo do visor vermelho com 446%
+
+1. Enviar o vídeo original; no app do YouTube, escolher o primeiro quadro como capa.
+2. Título e descrição abaixo; publicar.
+
+Título:
+
+```
+13º: gastar na Black Friday ou quitar o rotativo de 446%? #shorts
+```
+
+Descrição:
+
+```
+Juro médio do rotativo do cartão: 446% ao ano em outubro (Banco Central, 27/11/2026), uns 15% ao mês. Um desconto de 15% empata com um mês de juro, e a dívida continua. Regra de bolso: antes do desconto, olha o juro. Inscreva-se para a próxima conta.
+
+Conteúdo educacional, sem recomendação. Valores de exemplo. Personagens fictícios.
+
+#13salario #cartaodecredito #educacaofinanceira #financaspessoais
+```
+
 ## Assinaturas das séries na legenda (desde 04/11)
 
 - `💡 Appliquei Explica: a conta do dia a dia, toda segunda e sexta.`

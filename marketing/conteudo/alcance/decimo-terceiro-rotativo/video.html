@@ -1,0 +1,354 @@
+<!doctype html>
+<!--
+  Appliquei Explica (≈44 s, 1080×1920): "Seu 13º contra um juro de 446%".
+  Sex 27/11/2026 (faltam 36), postado às 21h. Juro médio do rotativo do cartão
+  de 446% ao ano em outubro (Banco Central, divulgado em 27/11) e 1ª parcela do
+  13º até seg 30/11. Beto gasta o 13º na Black Friday (15% off = R$ 225) e o
+  rotativo cobra ~R$ 228 em um mês; Lia quita a dívida. Voz Charon, legenda
+  sincronizada (faixa 1340–1520 livre).
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fontes.css">
+<style>
+  :root {
+    --campo1: #0b1410; --campo2: #0f1f18; --campo3: #112720;
+    --tinta: #f0faf4; --deck: #c8d6cf; --mudo: #9fb3aa;
+    --sinal: #34d399; --primaria: #059669; --ambar: #fbbf24; --vermelho: #f87171; --azul: #60a5fa;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--campo1); }
+  body { font-family: 'Figtree', sans-serif; -webkit-font-smoothing: antialiased; color: var(--tinta); }
+  .palco { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: linear-gradient(150deg, var(--campo1) 0%, var(--campo2) 50%, var(--campo3) 100%); }
+  .halo { position: absolute; inset: -20%;
+    background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.22), transparent 70%),
+                radial-gradient(40% 35% at 10% 90%, rgba(5,150,105,.18), transparent 70%); }
+  .malha { position: absolute; inset: 0; }
+  .cena { position: absolute; inset: 0; opacity: 0; }
+  .tit { font-weight: 900; letter-spacing: -.035em; line-height: 1.05; color: var(--tinta); }
+  .tit em { font-style: normal; color: var(--sinal); }
+  .tit em.a { color: var(--ambar); }
+  .logo-fixo { position: absolute; left: 60px; top: 60px; width: 200px; z-index: 20; }
+  .serie { position: absolute; right: 150px; top: 60px; padding: 10px 20px; border-radius: 99px; border: 2px solid rgba(52,211,153,.45); background: rgba(52,211,153,.12);
+    font-family: 'DM Mono', monospace; font-size: 22px; letter-spacing: .12em; text-transform: uppercase; color: var(--sinal); z-index: 20; }
+  .serie.news { border: none; background: #b91c1c; color: #fff; font-weight: 500; letter-spacing: .14em; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+  .barra-t { position: absolute; left: 0; bottom: 0; height: 8px; background: linear-gradient(90deg, var(--primaria), var(--sinal)); z-index: 30; }
+  .el { opacity: 0; }
+  .chip { position: absolute; left: 0; right: 0; text-align: center; }
+  .chip span { display: inline-block; padding: 14px 32px; border-radius: 20px; border: 3px solid rgba(240,250,244,.4); font-size: 40px; font-weight: 800; color: var(--deck); }
+  .chip.am span { border-color: var(--ambar); color: var(--ambar); }
+  .chip.mini span { font-size: 30px; padding: 10px 24px; border-width: 2px; color: var(--mudo); }
+
+  /* 1. Manchetes */
+  .pilha { position: absolute; left: 70px; right: 70px; top: 235px; }
+  .card { position: relative; background: #f4f4f0; border-radius: 22px; overflow: hidden; box-shadow: 10px 12px 0 rgba(0,0,0,.55); margin-bottom: 34px; }
+  .card .bar { background: #b91c1c; color: #fff; font-weight: 900; font-size: 30px; letter-spacing: .04em; padding: 14px 34px; text-transform: uppercase; }
+  .card .corpo { padding: 24px 34px 22px; }
+  .card b { display: block; color: #111; font-size: 50px; font-weight: 900; line-height: 1.12; letter-spacing: -.015em; }
+  .card small { display: block; margin-top: 12px; color: #666; font-size: 26px; }
+  .fala { position: absolute; left: 0; right: 0; top: 1060px; text-align: center; }
+  .fala .fq { display: inline-block; padding: 12px 28px; border-radius: 99px; background: rgba(96,165,250,.16); border: 3px solid var(--azul); font-size: 34px; font-weight: 800; color: #dbeafe; }
+  .fala .frase { margin-top: 26px; font-size: 80px; font-weight: 900; letter-spacing: -.02em; text-transform: uppercase; }
+  .faixa { position: absolute; left: 0; right: 0; top: 1400px; text-align: center; }
+  .faixa span { display: inline-block; background: #facc15; color: #111; font-size: 88px; font-weight: 900; padding: 8px 44px; text-transform: uppercase; letter-spacing: -.01em; }
+
+  
+  .big { position: absolute; left: 0; right: 0; text-align: center; }
+  .rot { font-family: 'DM Mono', monospace; font-size: 34px; letter-spacing: .16em; text-transform: uppercase; color: var(--mudo); }
+  .taxa { font-family: 'DM Mono', monospace; font-weight: 500; letter-spacing: -.04em; }
+  .vs { display: flex; justify-content: center; align-items: baseline; gap: 34px; margin-top: 10px; }
+  .vs .taxa { font-size: 150px; }
+  .vs i { font-style: normal; font-size: 56px; font-weight: 900; color: var(--mudo); }
+  .caixa { position: absolute; left: 90px; right: 90px; padding: 40px 44px; border-radius: 36px; background: rgba(240,250,244,.06); border: 3px solid rgba(240,250,244,.22); text-align: center; }
+  .caixa b { display: block; font-size: 48px; font-weight: 900; }
+  .caixa .taxa { display: block; margin-top: 14px; font-size: 110px; color: var(--sinal); }
+  .carimbo { position: absolute; left: 0; right: 0; text-align: center; }
+  .carimbo span { display: inline-block; padding: 14px 44px; border: 6px solid var(--sinal); border-radius: 18px; color: var(--sinal); font-size: 78px; font-weight: 900; text-transform: uppercase; transform: rotate(-4deg); }
+  .nota { position: absolute; left: 90px; right: 90px; text-align: center; font-size: 32px; color: var(--mudo); line-height: 1.35; }
+  .barras { position: absolute; left: 90px; right: 90px; }
+  .barras .r { display: flex; justify-content: space-between; align-items: baseline; font-size: 38px; font-weight: 800; margin: 34px 0 14px; }
+  .barras .r span { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 46px; }
+  .barras .tr { height: 70px; border-radius: 35px; background: rgba(240,250,244,.08); overflow: hidden; }
+  .barras .tr i { display: block; height: 100%; width: 0; border-radius: 35px; }
+
+/* 4. Cartão */
+  .regra-c { position: absolute; left: 90px; right: 90px; top: 300px; padding: 30px 36px; border-radius: 30px; background: rgba(52,211,153,.1); border: 3px solid rgba(52,211,153,.5); text-align: center; font-size: 42px; font-weight: 900; }
+  .regra-c em { font-style: normal; color: var(--sinal); }
+  .recibo { position: absolute; left: 90px; right: 90px; padding: 30px 40px; border-radius: 30px; background: #fff; color: #12241c; box-shadow: 0 30px 70px rgba(0,0,0,.45); }
+  .recibo .cab { display: flex; justify-content: space-between; font-family: 'DM Mono', monospace; font-size: 28px; letter-spacing: .08em; text-transform: uppercase; color: #51655b; padding-bottom: 14px; border-bottom: 3px dashed #c9d5cf; }
+  .recibo .ln { display: flex; justify-content: space-between; align-items: baseline; margin-top: 16px; font-size: 38px; font-weight: 800; }
+  .recibo .ln span { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 40px; }
+  .recibo .tot { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; padding-top: 14px; border-top: 2px solid #e7eeea; font-size: 44px; font-weight: 900; }
+  .recibo .tot span { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 64px; letter-spacing: -.03em; }
+  .recibo.seg { border: 5px solid var(--azul); }
+  .recibo.seg .tot span { color: #b91c1c; }
+  .recibo.sex .tot span { color: #047857; }
+  .tag-m { position: absolute; right: 30px; top: -28px; padding: 8px 20px; border-radius: 99px; background: var(--azul); color: #082f49; font-size: 28px; font-weight: 900; }
+  .dif { position: absolute; left: 0; right: 0; top: 1370px; text-align: center; font-family: 'DM Mono', monospace; font-size: 64px; color: var(--vermelho); }
+
+    .cadeia { position: absolute; left: 70px; right: 70px; display: flex; align-items: center; justify-content: center; gap: 22px; }
+  .elo { width: 270px; padding: 28px 18px; border-radius: 30px; text-align: center; background: rgba(240,250,244,.06); border: 3px solid rgba(240,250,244,.25); }
+  .elo .ic { font-size: 84px; line-height: 1; }
+  .elo b { display: block; margin-top: 12px; font-size: 36px; font-weight: 900; }
+  .elo small { display: block; margin-top: 4px; font-family: 'DM Mono', monospace; font-size: 30px; color: var(--vermelho); }
+  .seta-c { font-family: 'DM Mono', monospace; font-size: 60px; color: var(--mudo); }
+
+  /* regra e fecho (iguais ao News #1) */
+  .quem { position: absolute; left: 90px; right: 90px; display: flex; align-items: center; gap: 30px; padding: 36px 40px; border-radius: 40px; }
+  .quem .av { flex: none; width: 130px; height: 130px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 68px; font-weight: 900; color: #052e1f; }
+  .quem b { display: block; font-size: 46px; font-weight: 900; }
+  .quem small { display: block; margin-top: 6px; font-size: 34px; color: var(--deck); }
+  .q-caio { background: rgba(52,211,153,.12); border: 3px solid rgba(52,211,153,.55); }
+  .q-caio .av { background: var(--sinal); }
+  .q-mat { background: rgba(248,113,113,.1); border: 3px solid rgba(248,113,113,.5); }
+  .q-mat .av { background: var(--vermelho); }
+  .feito { position: absolute; left: 90px; right: 90px; display: flex; align-items: center; gap: 28px; padding: 30px 36px; border-radius: 30px; background: rgba(240,250,244,.06); border: 3px solid rgba(240,250,244,.2); font-size: 42px; font-weight: 800; line-height: 1.2; }
+  .feito .ok { flex: none; width: 78px; height: 78px; border-radius: 50%; background: var(--sinal); color: #052e1f; display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: 900; }
+  .feito em { font-style: normal; color: var(--sinal); }
+  .regra { position: absolute; left: 70px; right: 70px; padding: 44px 44px; border-radius: 44px; background: rgba(240,250,244,.06); border: 3px solid rgba(52,211,153,.5); box-shadow: 0 0 80px rgba(52,211,153,.15); text-align: center; }
+  .regra .rot { color: var(--sinal); font-size: 30px; }
+  .regra b { display: block; margin-top: 18px; font-size: 62px; font-weight: 900; letter-spacing: -.02em; line-height: 1.1; }
+  .regra b em { font-style: normal; color: var(--ambar); }
+  .manda { position: absolute; left: 0; right: 0; top: 470px; text-align: center; }
+  .manda .ic { width: 170px; height: 170px; margin: 0 auto; border-radius: 44px; background: var(--sinal); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 70px rgba(52,211,153,.4); }
+  .manda .ic svg { width: 96px; height: 96px; margin-left: -8px; }
+  .manda b { display: block; margin-top: 34px; font-size: 64px; font-weight: 900; letter-spacing: -.03em; line-height: 1.1; }
+  .assina { position: absolute; left: 0; right: 0; top: 1000px; text-align: center; }
+  .assina img { width: 440px; }
+  .assina p { margin-top: 26px; font-size: 44px; font-weight: 800; color: var(--deck); }
+  .assina p em { font-style: normal; color: var(--sinal); }
+  .aviso { position: absolute; left: 80px; right: 80px; top: 1320px; padding: 22px 26px; border-radius: 22px; background: rgba(11,20,16,.9); border: 2px solid rgba(240,250,244,.35); text-align: center; font-size: 25px; line-height: 1.4; color: var(--tinta); }
+
+  .bomba { position: absolute; left: 70px; right: 70px; top: 600px; padding: 44px 40px 40px; border-radius: 40px; background: #0a0f0c; border: 4px solid rgba(251,191,36,.55); box-shadow: 0 0 90px rgba(251,191,36,.12); text-align: center; }
+  .bomba .rot { color: var(--ambar); font-size: 30px; }
+  .visor { margin-top: 18px; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 150px; letter-spacing: -.06em; white-space: nowrap; color: var(--vermelho); line-height: 1; }
+  .tanque { margin: 36px auto 0; width: 100%; height: 46px; border-radius: 23px; background: rgba(240,250,244,.08); overflow: hidden; }
+  .tanque i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #f59e0b, #f87171); border-radius: 23px; }
+  .dia { position: absolute; left: 0; right: 0; top: 270px; text-align: center; }
+  .dia .cal { display: inline-block; width: 230px; border-radius: 28px; overflow: hidden; background: #fff; box-shadow: 10px 12px 0 rgba(0,0,0,.5); }
+  .dia .cal b { display: block; background: #b91c1c; color: #fff; font-size: 36px; font-weight: 900; padding: 8px 0; letter-spacing: .08em; }
+  .dia .cal span { display: block; color: #111; font-size: 130px; font-weight: 900; line-height: 1.1; padding-bottom: 6px; }
+  .recibo .ln.in, .recibo .tot.in { opacity: 0; }
+  #rc .ln, #rc .tot { font-size: 46px; } #rc .ln span { font-size: 50px; } #rc .tot span { font-size: 96px; }
+
+  .q-beto { background: rgba(248,113,113,.1); border: 3px solid rgba(248,113,113,.5); }
+  .q-beto .av { background: var(--vermelho); }
+  .q-lia { background: rgba(52,211,153,.12); border: 3px solid rgba(52,211,153,.55); }
+  .q-lia .av { background: var(--sinal); }
+  .etq { position: absolute; left: 140px; right: 140px; top: 470px; padding: 50px 40px 46px; border-radius: 40px; background: #fff; color: #12241c; text-align: center; box-shadow: 0 30px 80px rgba(0,0,0,.5); transform-origin: 50% -60px; }
+  .etq:before { content: ''; position: absolute; left: 50%; top: -34px; width: 40px; height: 40px; margin-left: -20px; border-radius: 50%; border: 8px solid #c9d5cf; background: var(--campo1); }
+  .etq .prod { font-size: 44px; font-weight: 900; }
+  .etq .velho { margin-top: 16px; font-family: 'DM Mono', monospace; font-size: 66px; color: #8a9a92; position: relative; display: inline-block; }
+  .etq .velho:after { content: ''; position: absolute; left: -10px; right: -10px; top: 52%; height: 8px; background: #dc2626; transform: rotate(-6deg); border-radius: 4px; }
+  .etq .novo { margin-top: 6px; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 150px; letter-spacing: -.06em; color: #047857; line-height: 1.05; white-space: nowrap; }
+  .selo-off { position: absolute; right: -40px; top: -70px; width: 220px; height: 220px; border-radius: 50%; background: #dc2626; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 900; font-size: 74px; line-height: .9; box-shadow: 0 14px 30px rgba(0,0,0,.4); }
+  .selo-off small { font-size: 46px; }
+  .outb { position: absolute; left: 0; right: 0; top: 1150px; text-align: center; }
+  .outb span { display: inline-flex; align-items: center; gap: 22px; padding: 18px 36px; border-radius: 26px; background: rgba(240,250,244,.07); border: 3px solid rgba(240,250,244,.35); font-size: 48px; font-weight: 800; color: var(--deck); }
+  .outb span b { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 60px; color: var(--tinta); }
+  .graf { position: absolute; left: 70px; top: 330px; width: 940px; height: 640px; }
+  .graf text { font-family: 'DM Mono', monospace; }
+  .economia { position: absolute; left: 90px; right: 90px; top: 1430px; display: flex; justify-content: space-between; align-items: center; padding: 26px 36px; border-radius: 28px; background: rgba(248,113,113,.1); border: 3px solid rgba(248,113,113,.5); font-size: 40px; font-weight: 800; }
+  .economia span { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 58px; color: var(--vermelho); }
+  .foto { position: absolute; left: 150px; right: 150px; padding: 26px; border-radius: 44px; background: #0a0f0c; border: 4px solid rgba(240,250,244,.3); }
+  .foto .tela { border-radius: 26px; background: #fff; color: #12241c; padding: 30px; text-align: center; }
+  .foto .tela small { display: block; font-family: 'DM Mono', monospace; font-size: 28px; color: #51655b; letter-spacing: .08em; }
+  .foto .tela b { display: block; margin-top: 8px; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 96px; letter-spacing: -.05em; }
+  .flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 25; }
+  .comp { position: absolute; left: 90px; right: 90px; }
+
+
+  .hd { position:absolute; left:70px; right:70px; }
+  .vis446 { font-family:'DM Mono',monospace; font-weight:500; font-size:250px; letter-spacing:-.07em; color:var(--vermelho); line-height:1; white-space:nowrap; }
+  .barc { position:absolute; left:90px; right:90px; }
+  .barc .r { display:flex; justify-content:space-between; align-items:baseline; font-size:42px; font-weight:800; margin:40px 0 16px; }
+  .barc .r span { font-family:'DM Mono',monospace; font-weight:500; font-size:60px; }
+  .barc .tr { height:90px; border-radius:45px; background:rgba(240,250,244,.08); overflow:hidden; }
+  .barc .tr i { display:block; height:100%; width:0; border-radius:45px; }
+
+</style>
+</head>
+<body>
+<div class="palco" id="palco">
+  <div class="halo"></div>
+  <svg class="malha" id="malha" viewBox="0 0 1080 1920"></svg>
+  <img class="logo-fixo" id="logoFixo" src="wordmark.svg" alt="Appliquei">
+  <div class="serie" id="serie">Appliquei Explica</div>
+
+  <!-- 1. GANCHO: 446% subindo desde o quadro 0, manchete do dia, 13º na segunda -->
+  <div class="cena" id="c1">
+    <div class="bomba" id="bb" style="top:250px;">
+      <div class="rot">Juro do rotativo do cartão</div>
+      <div class="vis446" id="v446">0%</div>
+      <div class="rot" style="margin-top:14px;color:var(--deck);">ao ano</div>
+      <div class="tanque"><i id="tq"></i></div>
+    </div>
+    <div class="pilha" style="top:780px;">
+      <div class="card el" id="mc"><div class="bar">Banco Central · 27/11/2026</div><div class="corpo"><b>Juro médio do rotativo do cartão de crédito cai a <span style="color:#b91c1c">446% ao ano</span> em outubro</b><small>Estadão Conteúdo, via O Povo · 27/11/2026</small></div></div>
+    </div>
+    <div class="chip am el" id="d13" style="top:1170px;"><span style="font-size:46px;">📅 Seg 30/11: cai a 1ª parcela do 13º</span></div>
+  </div>
+
+  <!-- 2. Beto e Lia: mesmo 13º, mesma dívida -->
+  <div class="cena" id="c2">
+    <div class="quem q-beto el" id="qb2" style="top:260px;"><div class="av">B</div><div><b>Beto</b><small>recebe o 13º</small></div></div>
+    <div class="quem q-lia el" id="ql2" style="top:470px;"><div class="av">L</div><div><b>Lia</b><small>recebe o 13º</small></div></div>
+    <div class="recibo el" id="rc" style="top:740px;">
+      <div class="cab"><span>Cada um</span><span>dezembro</span></div>
+      <div class="ln in" id="r1">13º (1ª parcela) <span style="color:#047857">+ R$ 1.500</span></div>
+      <div class="tot in" id="r2">No rotativo <span style="color:#b91c1c">− R$ 1.500</span></div>
+    </div>
+  </div>
+
+  <!-- 3. Beto gasta na Black Friday -->
+  <div class="cena" id="c3">
+    <div class="quem q-beto el" id="qb3" style="top:260px;"><div class="av">B</div><div><b>Beto</b><small>gasta tudo na Black Friday</small></div></div>
+    <div class="etq el" id="etq" style="top:560px;">
+      <div class="selo-off" id="off">15%<small>OFF</small></div>
+      <div class="prod">🛒 Black Friday</div>
+      <div class="velho">R$ 1.765</div>
+      <div class="novo">R$ 1.500</div>
+    </div>
+    <div class="chip el" id="eco" style="top:1130px;"><span style="font-size:52px;border-color:var(--sinal);color:var(--sinal);">Economizou <b id="ecv" style="font-family:'DM Mono',monospace;font-weight:500;">R$ 0</b></span></div>
+  </div>
+
+  <!-- 4. A virada: desconto × juro de um mês -->
+  <div class="cena" id="c4">
+    <div class="rot el" id="vt" style="position:absolute;left:0;right:0;top:300px;text-align:center;">Em 1 mês</div>
+    <div class="barc" style="top:380px;">
+      <div class="el" id="b1"><div class="r">Desconto da Black Friday <span style="color:var(--sinal)">+ R$ 225</span></div><div class="tr"><i id="b1i" style="background:var(--sinal)"></i></div></div>
+      <div class="el" id="b2"><div class="r">Juro do rotativo <span style="color:var(--vermelho)">− R$ 228</span></div><div class="tr"><i id="b2i" style="background:var(--vermelho)"></i></div></div>
+    </div>
+    <div class="carimbo el" id="emp" style="top:860px;"><span style="border-color:var(--ambar);color:var(--ambar);">empatou</span></div>
+    <div class="chip el" id="cont" style="top:1100px;"><span style="font-size:42px;border-color:var(--vermelho);color:#fecaca;">e a dívida de R$ 1.500 continua lá</span></div>
+  </div>
+
+  <!-- 5. Lia quita -->
+  <div class="cena" id="c5">
+    <div class="quem q-lia el" id="ql5" style="top:260px;"><div class="av">L</div><div><b>Lia</b><small>usa o 13º na dívida cara</small></div></div>
+    <div class="feito el" id="ft" style="top:520px;"><div class="ok">✓</div><div>Rotativo <em>quitado</em></div></div>
+    <div class="caixa el" id="cx" style="top:740px;"><b>Só no 1º mês, deixa de pagar</b><span class="taxa" id="cxv">R$ 0</span></div>
+  </div>
+
+  <!-- 6. REGRA -->
+  <div class="cena" id="c6">
+    <div class="regra el" id="rg" style="top:520px;"><div class="rot">Regra de bolso</div><b>Antes do desconto,<br>olha o juro:<br><em>dívida cara</em><br>vem primeiro.</b></div>
+  </div>
+
+  <!-- 7. FECHO -->
+  <div class="cena" id="c7">
+    <div class="manda el" id="mn" style="top:300px;"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 11.5 21 3l-8.5 18-2.2-7.3z" fill="#052e1f"/></svg></div><b>Manda pra quem recebe<br>o 13º na segunda</b></div>
+    <div class="assina el" id="as" style="top:760px;"><img src="wordmark.svg" alt="Appliquei"><p>Mais contas assim: <em>siga o Appliquei</em></p></div>
+    <div class="aviso el" id="av" style="top:1040px;">Conteúdo educacional, sem recomendação. Juro médio do rotativo de 446% ao ano em outubro/2026 (Banco Central, divulgado em 27/11/2026), ≈ 15,2% ao mês. 1ª parcela do 13º até 30/11. Valores de exemplo; o juro de cada banco varia. Personagens fictícios.</div>
+  </div>
+
+  <div class="barra-t" id="barraT"></div>
+</div>
+<script>
+  function $(id) { return document.getElementById(id); }
+  (function () {
+    const L = 1080, A = 1920, m = [];
+    for (let x = 60; x < L; x += 60) m.push(`<line x1="${x}" y1="0" x2="${x}" y2="${A}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    for (let y = 60; y < A; y += 60) m.push(`<line x1="0" y1="${y}" x2="${L}" y2="${y}" stroke="#f0faf4" stroke-opacity=".02"/>`);
+    $('malha').innerHTML = m.join('');
+  })();
+
+  const NAR = [[0.2, 10.37, "Quatrocentos e quarenta e seis por cento ao ano. É o juro do rotativo do cartão, divulgado hoje pelo Banco Central. E segunda cai a primeira parcela do décimo terceiro."], [10.67, 16.15, "O Beto e a Lia recebem mil e quinhentos reais. E cada um deve mil e quinhentos no rotativo."], [16.45, 22.77, "O Beto gasta tudo na Black Friday, com quinze por cento de desconto. Economizou duzentos e vinte e cinco reais."], [23.07, 30.13, "Só que, em um mês, o rotativo cobra uns duzentos e vinte e oito. O desconto empatou com um mês de juro. E a dívida continua lá."], [30.43, 35.22, "A Lia quita o rotativo. Só no primeiro mês, deixa de pagar duzentos e vinte e oito reais."], [35.52, 40.25, "Regra de bolso: antes do desconto, olha o juro. Dívida cara vem primeiro."], [40.55, 44.03, "Manda pra quem recebe o décimo terceiro na segunda. E segue o Appliquei."]];
+
+  const DUR = +(NAR[NAR.length - 1][1] + 0.9).toFixed(2);
+  const CENAS = NAR.map((f, i) => ['c' + (i + 1), i === 0 ? 0 : f[0] - 0.15, i + 1 < NAR.length ? NAR[i + 1][0] - 0.15 : DUR + 0.2]);
+  function quando(i, palavra) {
+    const [a, b, txt] = NAR[i], k = txt.indexOf(palavra);
+    return 0.15 + (k < 0 ? 0 : k / txt.length) * (b - a) + (i === 0 ? NAR[0][0] : 0) - 0.1;
+  }
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeBack = (x) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  function surge(el, lt, a, dur, dy) {
+    const p = easeBack(prog(lt, a, a + (dur || 0.4)));
+    el.style.opacity = clamp(p, 0, 1);
+    el.style.transform = `translateY(${(1 - p) * (dy == null ? 40 : dy)}px) scale(${0.85 + 0.15 * p})`;
+  }
+  function cai(el, lt, a, rot) {
+    const p = a <= 0 ? 1 : easeBack(prog(lt, a, a + 0.4));
+    el.style.opacity = clamp(p, 0, 1);
+    el.style.transform = `translateY(${(1 - p) * -80}px) rotate(${rot}deg) scale(${1.08 - 0.08 * p})`;
+  }
+  function mostra(el, lt, a) { const p = easeOut(prog(lt, a, a + 0.35)); el.style.opacity = p; el.style.transform = `translateX(${(1 - p) * -40}px)`; }
+  const reais = (v) => 'R$ ' + Math.round(v).toLocaleString('pt-BR');
+
+  function render(t) {
+    for (const [id, a, b] of CENAS) {
+      const el = $(id);
+      const dentro = t >= a - 0.01 && t < b;
+      const fadeIn = id === 'c1' ? 1 : easeOut(prog(t, a, a + 0.25));
+      const fadeOut = 1 - prog(t, b - 0.2, b);
+      el.style.opacity = dentro ? Math.min(fadeIn, fadeOut) : 0;
+      el.style.display = dentro ? 'block' : 'none';
+      if (dentro) cenaExtra(id, t - a);
+    }
+    const fim = CENAS[CENAS.length - 1][1];
+    $('serie').style.opacity = t < fim ? 1 : 1 - prog(t, fim, fim + 0.3);
+    $('barraT').style.width = (clamp(t / DUR, 0, 1) * 1080).toFixed(1) + 'px';
+  }
+
+  function cenaExtra(id, lt) {
+    const q = (p) => quando(+id.slice(1) - 1, p);
+    if (id === 'c1') {
+      // desde o quadro 0: o visor sobe de 0 a 446% e a caixa pulsa
+      const p = easeOut(prog(lt, 0, 1.8));
+      $('v446').textContent = Math.round(446 * p) + '%';
+      $('tq').style.width = (100 * p).toFixed(1) + '%';
+      $('bb').style.transform = `scale(${1 + 0.025 * Math.sin(lt * 6) * prog(lt, 1.8, 2.3)})`;
+      cai($('mc'), lt, q('divulgado'), -1.2);
+      surge($('d13'), lt, q('E segunda'), 0.4, 20);
+    }
+    if (id === 'c2') {
+      surge($('qb2'), lt, 0.05, 0.4, 30);
+      surge($('ql2'), lt, q('a Lia'), 0.4, 30);
+      surge($('rc'), lt, q('recebem'), 0.4, 30);
+      mostra($('r1'), lt, q('mil e quinhentos reais'));
+      mostra($('r2'), lt, q('E cada'));
+    }
+    if (id === 'c3') {
+      surge($('qb3'), lt, 0.05, 0.4, 30);
+      surge($('etq'), lt, q('Black'), 0.45, 40);
+      $('etq').style.transform += ` rotate(${(4 * Math.cos(lt * 5) * Math.exp(-Math.max(0, lt - q('Black')) * 0.9)).toFixed(2)}deg)`;
+      $('off').style.transform = `rotate(12deg) scale(${1 + 0.08 * Math.sin(lt * 8)})`;
+      const e0 = q('Economizou');
+      surge($('eco'), lt, e0, 0.35, 20);
+      $('ecv').textContent = reais(225 * easeOut(prog(lt, e0 + 0.2, e0 + 1.4)));
+    }
+    if (id === 'c4') {
+      surge($('vt'), lt, 0.05, 0.35, 10);
+      surge($('b1'), lt, 0.1, 0.35, 20);
+      $('b1i').style.width = (90 * 225 / 228 * easeOut(prog(lt, 0.3, 1.1))).toFixed(1) + '%';
+      const j = q('rotativo cobra');
+      surge($('b2'), lt, j, 0.35, 20);
+      $('b2i').style.width = (90 * easeOut(prog(lt, j + 0.2, q('duzentos') + 1.2))).toFixed(1) + '%';
+      surge($('emp'), lt, q('empatou'), 0.4, 20);
+      surge($('cont'), lt, q('E a dívida'), 0.4, 20);
+    }
+    if (id === 'c5') {
+      surge($('ql5'), lt, 0.05, 0.4, 30);
+      surge($('ft'), lt, q('quita'), 0.4, 20);
+      const c0 = q('Só no');
+      surge($('cx'), lt, c0, 0.4, 30);
+      $('cxv').textContent = reais(228 * easeOut(prog(lt, q('deixa'), q('duzentos') + 1.0)));
+    }
+    if (id === 'c6') { surge($('rg'), lt, 0.1, 0.45, 30); }
+    if (id === 'c7') {
+      surge($('mn'), lt, 0.1, 0.4, 40);
+      $('mn').querySelector('.ic').style.transform = `scale(${1 + 0.06 * Math.sin(lt * 7) * prog(lt, 0.5, 1)})`;
+      surge($('as'), lt, q('E segue'), 0.45, 40); surge($('av'), lt, q('E segue') + 0.6, 0.4, 10);
+      $('logoFixo').style.opacity = 1 - prog(lt, q('E segue') - 0.3, q('E segue'));
+    } else $('logoFixo').style.opacity = 1;
+  }
+  window.render = render;
+  render(0);
+</script>
+</body>
+</html>
